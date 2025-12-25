@@ -1,0 +1,595 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXContainerItemProxy section */
+		742FD7D12EFD3DCB00DF5696 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 742FD7B42EFD3DCA00DF5696 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 742FD7BB2EFD3DCA00DF5696;
+			remoteInfo = "Jedit-open";
+		};
+		742FD7DB2EFD3DCB00DF5696 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 742FD7B42EFD3DCA00DF5696 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 742FD7BB2EFD3DCA00DF5696;
+			remoteInfo = "Jedit-open";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		742FD7BC2EFD3DCA00DF5696 /* Jedit-open.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Jedit-open.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		742FD7D02EFD3DCB00DF5696 /* Jedit-openTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Jedit-openTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+		742FD7DA2EFD3DCB00DF5696 /* Jedit-openUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Jedit-openUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		742FD7E22EFD3DCB00DF5696 /* Exceptions for "Jedit-open" folder in "Jedit-open" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 742FD7BB2EFD3DCA00DF5696 /* Jedit-open */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		742FD7BE2EFD3DCA00DF5696 /* Jedit-open */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				742FD7E22EFD3DCB00DF5696 /* Exceptions for "Jedit-open" folder in "Jedit-open" target */,
+			);
+			path = "Jedit-open";
+			sourceTree = "<group>";
+		};
+		742FD7D32EFD3DCB00DF5696 /* Jedit-openTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Jedit-openTests";
+			sourceTree = "<group>";
+		};
+		742FD7DD2EFD3DCB00DF5696 /* Jedit-openUITests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = "Jedit-openUITests";
+			sourceTree = "<group>";
+		};
+/* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		742FD7B92EFD3DCA00DF5696 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		742FD7CD2EFD3DCB00DF5696 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		742FD7D72EFD3DCB00DF5696 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		742FD7B32EFD3DCA00DF5696 = {
+			isa = PBXGroup;
+			children = (
+				742FD7BE2EFD3DCA00DF5696 /* Jedit-open */,
+				742FD7D32EFD3DCB00DF5696 /* Jedit-openTests */,
+				742FD7DD2EFD3DCB00DF5696 /* Jedit-openUITests */,
+				742FD7BD2EFD3DCA00DF5696 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		742FD7BD2EFD3DCA00DF5696 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				742FD7BC2EFD3DCA00DF5696 /* Jedit-open.app */,
+				742FD7D02EFD3DCB00DF5696 /* Jedit-openTests.xctest */,
+				742FD7DA2EFD3DCB00DF5696 /* Jedit-openUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		742FD7BB2EFD3DCA00DF5696 /* Jedit-open */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 742FD7E32EFD3DCB00DF5696 /* Build configuration list for PBXNativeTarget "Jedit-open" */;
+			buildPhases = (
+				742FD7B82EFD3DCA00DF5696 /* Sources */,
+				742FD7B92EFD3DCA00DF5696 /* Frameworks */,
+				742FD7BA2EFD3DCA00DF5696 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				742FD7BE2EFD3DCA00DF5696 /* Jedit-open */,
+			);
+			name = "Jedit-open";
+			packageProductDependencies = (
+			);
+			productName = "Jedit-open";
+			productReference = 742FD7BC2EFD3DCA00DF5696 /* Jedit-open.app */;
+			productType = "com.apple.product-type.application";
+		};
+		742FD7CF2EFD3DCB00DF5696 /* Jedit-openTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 742FD7E82EFD3DCB00DF5696 /* Build configuration list for PBXNativeTarget "Jedit-openTests" */;
+			buildPhases = (
+				742FD7CC2EFD3DCB00DF5696 /* Sources */,
+				742FD7CD2EFD3DCB00DF5696 /* Frameworks */,
+				742FD7CE2EFD3DCB00DF5696 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				742FD7D22EFD3DCB00DF5696 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				742FD7D32EFD3DCB00DF5696 /* Jedit-openTests */,
+			);
+			name = "Jedit-openTests";
+			packageProductDependencies = (
+			);
+			productName = "Jedit-openTests";
+			productReference = 742FD7D02EFD3DCB00DF5696 /* Jedit-openTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		742FD7D92EFD3DCB00DF5696 /* Jedit-openUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 742FD7EB2EFD3DCB00DF5696 /* Build configuration list for PBXNativeTarget "Jedit-openUITests" */;
+			buildPhases = (
+				742FD7D62EFD3DCB00DF5696 /* Sources */,
+				742FD7D72EFD3DCB00DF5696 /* Frameworks */,
+				742FD7D82EFD3DCB00DF5696 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				742FD7DC2EFD3DCB00DF5696 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				742FD7DD2EFD3DCB00DF5696 /* Jedit-openUITests */,
+			);
+			name = "Jedit-openUITests";
+			packageProductDependencies = (
+			);
+			productName = "Jedit-openUITests";
+			productReference = 742FD7DA2EFD3DCB00DF5696 /* Jedit-openUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		742FD7B42EFD3DCA00DF5696 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					742FD7BB2EFD3DCA00DF5696 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					742FD7CF2EFD3DCB00DF5696 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 742FD7BB2EFD3DCA00DF5696;
+					};
+					742FD7D92EFD3DCB00DF5696 = {
+						CreatedOnToolsVersion = 26.2;
+						TestTargetID = 742FD7BB2EFD3DCA00DF5696;
+					};
+				};
+			};
+			buildConfigurationList = 742FD7B72EFD3DCA00DF5696 /* Build configuration list for PBXProject "Jedit-open" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 742FD7B32EFD3DCA00DF5696;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 742FD7BD2EFD3DCA00DF5696 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				742FD7BB2EFD3DCA00DF5696 /* Jedit-open */,
+				742FD7CF2EFD3DCB00DF5696 /* Jedit-openTests */,
+				742FD7D92EFD3DCB00DF5696 /* Jedit-openUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		742FD7BA2EFD3DCA00DF5696 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		742FD7CE2EFD3DCB00DF5696 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		742FD7D82EFD3DCB00DF5696 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		742FD7B82EFD3DCA00DF5696 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		742FD7CC2EFD3DCB00DF5696 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		742FD7D62EFD3DCB00DF5696 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		742FD7D22EFD3DCB00DF5696 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 742FD7BB2EFD3DCA00DF5696 /* Jedit-open */;
+			targetProxy = 742FD7D12EFD3DCB00DF5696 /* PBXContainerItemProxy */;
+		};
+		742FD7DC2EFD3DCB00DF5696 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 742FD7BB2EFD3DCA00DF5696 /* Jedit-open */;
+			targetProxy = 742FD7DB2EFD3DCB00DF5696 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		742FD7E42EFD3DCB00DF5696 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Jedit-open/Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-open";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		742FD7E52EFD3DCB00DF5696 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readwrite;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Jedit-open/Info.plist";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				INFOPLIST_KEY_NSMainNibFile = MainMenu;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-open";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		742FD7E62EFD3DCB00DF5696 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		742FD7E72EFD3DCB00DF5696 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		742FD7E92EFD3DCB00DF5696 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-openTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Jedit-open.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Jedit-open";
+			};
+			name = Debug;
+		};
+		742FD7EA2EFD3DCB00DF5696 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				GENERATE_INFOPLIST_FILE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 15.7;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-openTests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Jedit-open.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Jedit-open";
+			};
+			name = Release;
+		};
+		742FD7EC2EFD3DCB00DF5696 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-openUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Jedit-open";
+			};
+			name = Debug;
+		};
+		742FD7ED2EFD3DCB00DF5696 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = F8FSQZCDV7;
+				GENERATE_INFOPLIST_FILE = YES;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-openUITests";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				STRING_CATALOG_GENERATE_SYMBOLS = NO;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = "Jedit-open";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		742FD7B72EFD3DCA00DF5696 /* Build configuration list for PBXProject "Jedit-open" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				742FD7E62EFD3DCB00DF5696 /* Debug */,
+				742FD7E72EFD3DCB00DF5696 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		742FD7E32EFD3DCB00DF5696 /* Build configuration list for PBXNativeTarget "Jedit-open" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				742FD7E42EFD3DCB00DF5696 /* Debug */,
+				742FD7E52EFD3DCB00DF5696 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		742FD7E82EFD3DCB00DF5696 /* Build configuration list for PBXNativeTarget "Jedit-openTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				742FD7E92EFD3DCB00DF5696 /* Debug */,
+				742FD7EA2EFD3DCB00DF5696 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		742FD7EB2EFD3DCB00DF5696 /* Build configuration list for PBXNativeTarget "Jedit-openUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				742FD7EC2EFD3DCB00DF5696 /* Debug */,
+				742FD7ED2EFD3DCB00DF5696 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 742FD7B42EFD3DCA00DF5696 /* Project object */;
+}
