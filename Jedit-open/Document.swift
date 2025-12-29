@@ -9,34 +9,149 @@ import Cocoa
 
 class Document: NSDocument {
 
+    // MARK: - Properties
+
+    var textStorage: NSTextStorage = NSTextStorage()
+    var documentType: NSAttributedString.DocumentType = .plain
+    
+
+    // MARK: - Initialization
+
     override init() {
         super.init()
-        // Add your subclass-specific initialization here.
     }
 
     override nonisolated class var autosavesInPlace: Bool {
         return true
     }
 
-    override var windowNibName: NSNib.Name? {
-        // Returns the nib file name of the document
-        // If you need to use a subclass of NSWindowController or if your document supports multiple NSWindowControllers, you should remove this property and override -makeWindowControllers instead.
-        return NSNib.Name("Document")
+    // MARK: - Window Controllers
+
+    override func makeWindowControllers() {
+        // Document.xibからEditorWindowControllerを読み込む
+        let windowController = EditorWindowController(windowNibName: NSNib.Name("Document"))
+        self.addWindowController(windowController)
     }
 
+    override func windowControllerDidLoadNib(_ windowController: NSWindowController) {
+        super.windowControllerDidLoadNib(windowController)
+
+        // TextStorageを設定
+        // ウィンドウコントローラーのcontentViewからNSTextViewを探して、textStorageを設定する
+        if let window = windowController.window,
+           let contentView = window.contentView {
+            if let textView = findTextView(in: contentView) {
+                textView.layoutManager?.replaceTextStorage(textStorage)
+            }
+        }
+    }
+
+    // MARK: - Helper Methods
+
+    private func findTextView(in view: NSView) -> NSTextView? {
+        if let textView = view as? NSTextView {
+            return textView
+        }
+
+        for subview in view.subviews {
+            if let textView = findTextView(in: subview) {
+                return textView
+            }
+        }
+
+        return nil
+    }
+
+    // MARK: - Reading and Writing
+
     override func data(ofType typeName: String) throws -> Data {
-        // Insert code here to write your document to data of the specified type, throwing an error in case of failure.
-        // Alternatively, you could remove this method and override fileWrapper(ofType:), write(to:ofType:), or write(to:ofType:for:originalContentsURL:) instead.
-        throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
+        // ドキュメントタイプを判定
+        let docType: NSAttributedString.DocumentType
+        switch typeName {
+        case "public.rtf":
+            docType = .rtf
+        case "com.apple.rtfd":
+            docType = .rtfd
+        default:
+            docType = .plain
+        }
+
+        // ドキュメントタイプを保存
+        self.documentType = docType
+
+        // ドキュメントタイプに応じて保存
+        if docType == .plain {
+            // プレーンテキストの場合はUTF-8でエンコード
+            let string = textStorage.string
+            guard let data = string.data(using: .utf8) else {
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not encode text as UTF-8"
+                ])
+            }
+            return data
+        } else {
+            // RTFまたはRTFDの場合はNSAttributedStringを使用
+            let range = NSRange(location: 0, length: textStorage.length)
+            var options: [NSAttributedString.DocumentAttributeKey: Any] = [
+                .documentType: docType
+            ]
+
+            do {
+                let data = try textStorage.data(from: range, documentAttributes: options)
+                return data
+            } catch {
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not write \(docType == .rtf ? "RTF" : "RTFD") document: \(error.localizedDescription)"
+                ])
+            }
+        }
     }
 
     override nonisolated func read(from data: Data, ofType typeName: String) throws {
-        // Insert code here to read your document from the given data of the specified type, throwing an error in case of failure.
-        // Alternatively, you could remove this method and override read(from:ofType:) instead.
-        // If you do, you should also override isEntireFileLoaded to return false if the contents are lazily loaded.
-        throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: nil)
+        // ドキュメントタイプを判定
+        let docType: NSAttributedString.DocumentType
+        switch typeName {
+        case "public.rtf":
+            docType = .rtf
+        case "com.apple.rtfd":
+            docType = .rtfd
+        default:
+            docType = .plain
+        }
+
+        // ドキュメントタイプに応じて読み込み
+        if docType == .plain {
+            // プレーンテキストの場合はUTF-8でデコード
+            guard let string = String(data: data, encoding: .utf8) else {
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not decode text as UTF-8"
+                ])
+            }
+
+            // メインアクターで実行
+            Task { @MainActor in
+                self.documentType = .plain
+                self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+            }
+        } else {
+            // RTFまたはRTFDの場合はNSAttributedStringを使用
+            var options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+                .documentType: docType
+            ]
+
+            do {
+                let attributedString = try NSAttributedString(data: data, options: options, documentAttributes: nil)
+
+                // メインアクターで実行
+                Task { @MainActor in
+                    self.documentType = docType
+                    self.textStorage.setAttributedString(attributedString)
+                }
+            } catch {
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not read \(docType == .rtf ? "RTF" : "RTFD") document: \(error.localizedDescription)"
+                ])
+            }
+        }
     }
-
-
 }
-

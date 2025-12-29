@@ -24,6 +24,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 
+    private var preferencesWindowController: PreferencesWindowController?
+    
+    @IBAction func showPreferences(_ sender: Any?) {
+        if preferencesWindowController == nil {
+            preferencesWindowController = PreferencesWindowController()
+        }
+        preferencesWindowController?.showWindow(sender)
+        preferencesWindowController?.window?.makeKeyAndOrderFront(sender)
+    }
+
 
 }
 

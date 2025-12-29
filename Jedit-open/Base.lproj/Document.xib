@@ -5,9 +5,14 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <objects>
-        <customObject id="-2" userLabel="File's Owner" customClass="Document" customModule="Jedit_open" customModuleProvider="target">
+        <customObject id="-2" userLabel="File's Owner" customClass="EditorWindowController" customModule="Jedit_open" customModuleProvider="target">
             <connections>
-                <outlet property="window" destination="xOd-HO-29H" id="JIz-fz-R2o"/>
+                <outlet property="scrollView1" destination="lMX-3n-ttY" id="OGZ-fe-wQE"/>
+                <outlet property="scrollView2" destination="5UR-a6-Mue" id="fVh-MQ-wEw"/>
+                <outlet property="splitView" destination="zVL-C6-06i" id="W15-vH-hhV"/>
+                <outlet property="textView1" destination="cUZ-BQ-h50" id="hgK-s9-WIa"/>
+                <outlet property="textView2" destination="8wq-Jr-Jhy" id="GS8-lC-Frv"/>
+                <outlet property="window" destination="xOd-HO-29H" id="xZc-Ez-bR5"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -127,9 +132,6 @@
                     <toolbarItem reference="DGZ-F0-Tth"/>
                 </defaultToolbarItems>
             </toolbar>
-            <connections>
-                <outlet property="delegate" destination="-2" id="0bl-1N-x8E"/>
-            </connections>
             <point key="canvasLocation" x="727.5" y="164.5"/>
         </window>
     </objects>

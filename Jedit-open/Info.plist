@@ -9,7 +9,10 @@
 			<string>Editor</string>
 			<key>LSItemContentTypes</key>
 			<array>
-				<string>com.example.plain-text</string>
+				<string>public.plain-text</string>
+				<string>public.text</string>
+				<string>public.rtf</string>
+				<string>com.apple.rtfd</string>
 			</array>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).Document</string>
@@ -25,7 +28,7 @@
 			<key>UTTypeDescription</key>
 			<string>Example Text</string>
 			<key>UTTypeIdentifier</key>
-			<string>com.example.plain-text</string>
+			<string>public.plain-text</string>
 			<key>UTTypeTagSpecification</key>
 			<dict>
 				<key>public.filename-extension</key>
