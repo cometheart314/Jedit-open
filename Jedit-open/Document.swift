@@ -13,7 +13,9 @@ class Document: NSDocument {
 
     var textStorage: NSTextStorage = NSTextStorage()
     var documentType: NSAttributedString.DocumentType = .plain
+    var containerInset = NSSize(width: 10, height: 10)
     
+
 
     // MARK: - Initialization
 

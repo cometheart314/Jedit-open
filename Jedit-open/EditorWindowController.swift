@@ -12,11 +12,11 @@ class EditorWindowController: NSWindowController {
     // MARK: - IBOutlets
 
     @IBOutlet weak var splitView: NSSplitView!
-    @IBOutlet weak var scrollView1: NSScrollView!
-    @IBOutlet weak var scrollView2: NSScrollView!
     @IBOutlet weak var textView1: NSTextView!
     @IBOutlet weak var textView2: NSTextView!
-
+    @IBOutlet weak var scrollView2: ScalingScrollView!
+    @IBOutlet weak var scrollView1: ScalingScrollView!
+    
     // MARK: - Properties
 
     var textDocument: Document? {
@@ -68,6 +68,20 @@ class EditorWindowController: NSWindowController {
             textView1.isEditable = true
             textView1.isSelectable = true
             textView1.allowsUndo = true
+
+            // 横幅をウィンドウに合わせる設定
+            textContainer1.widthTracksTextView = false
+            textContainer1.heightTracksTextView = false
+            let width1 = scrollView1?.contentSize.width ?? 0
+            textContainer1.containerSize = NSSize(width: width1, height: CGFloat.greatestFiniteMagnitude)
+
+            textView1.isHorizontallyResizable = false
+            textView1.isVerticallyResizable = true
+            textView1.autoresizingMask = []
+            textView1.textContainerInset = textDocument!.containerInset
+            textView1.minSize = NSSize(width: 0, height: 0)
+            textView1.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            textView1.frame.size.width = width1
         }
 
         // TextView2の設定
@@ -76,16 +90,47 @@ class EditorWindowController: NSWindowController {
             textView2.isEditable = true
             textView2.isSelectable = true
             textView2.allowsUndo = true
+
+            // 横幅をウィンドウに合わせる設定
+            textContainer2.widthTracksTextView = false
+            textContainer2.heightTracksTextView = false
+            let width2 = scrollView2?.contentSize.width ?? 0
+            textContainer2.containerSize = NSSize(width: width2, height: CGFloat.greatestFiniteMagnitude)
+
+            textView2.isHorizontallyResizable = false
+            textView2.isVerticallyResizable = true
+            textView2.autoresizingMask = []
+            textView2.textContainerInset = textDocument!.containerInset
+            textView2.minSize = NSSize(width: 0, height: 0)
+            textView2.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            textView2.frame.size.width = width2
         }
 
         // ScrollViewの設定
         scrollView1?.hasVerticalScroller = true
-        scrollView1?.hasHorizontalScroller = true
+        scrollView1?.hasHorizontalScroller = false
         scrollView1?.autohidesScrollers = true
 
         scrollView2?.hasVerticalScroller = true
-        scrollView2?.hasHorizontalScroller = true
+        scrollView2?.hasHorizontalScroller = false
         scrollView2?.autohidesScrollers = true
+    }
+
+    // MARK: - Zoom Actions
+
+    @IBAction func zoomIn(_ sender: Any?) {
+        scrollView1?.zoomIn()
+        scrollView2?.zoomIn()
+    }
+
+    @IBAction func zoomOut(_ sender: Any?) {
+        scrollView1?.zoomOut()
+        scrollView2?.zoomOut()
+    }
+
+    @IBAction func resetZoom(_ sender: Any?) {
+        scrollView1?.resetZoom()
+        scrollView2?.resetZoom()
     }
 }
 
