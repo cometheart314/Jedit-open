@@ -636,6 +636,12 @@
                                     <action selector="toggleSplitView:" target="-1" id="Y4m-dC-k9U"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Toggle Page Mode" id="AMh-4W-66r">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleDisplayMode:" target="-1" id="3ct-MU-sXL"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="ZOO-m1-9aL"/>
                             <menuItem title="Zoom In" keyEquivalent="+" id="Zr7-QL-VXd">
                                 <connections>
