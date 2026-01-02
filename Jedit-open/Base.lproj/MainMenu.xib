@@ -630,6 +630,12 @@
                                     <action selector="toggleSidebar:" target="-1" id="iwa-gc-5KM"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="hB4-LF-h1Z"/>
+                            <menuItem title="Toggle Split View" keyEquivalent="d" id="tSV-m1-9aM">
+                                <connections>
+                                    <action selector="toggleSplitView:" target="-1" id="Y4m-dC-k9U"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="ZOO-m1-9aL"/>
                             <menuItem title="Zoom In" keyEquivalent="+" id="Zr7-QL-VXd">
                                 <connections>

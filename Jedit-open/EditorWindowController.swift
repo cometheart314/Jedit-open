@@ -12,8 +12,6 @@ class EditorWindowController: NSWindowController {
     // MARK: - IBOutlets
 
     @IBOutlet weak var splitView: NSSplitView!
-    @IBOutlet weak var textView1: NSTextView!
-    @IBOutlet weak var textView2: NSTextView!
     @IBOutlet weak var scrollView2: ScalingScrollView!
     @IBOutlet weak var scrollView1: ScalingScrollView!
     
@@ -22,6 +20,8 @@ class EditorWindowController: NSWindowController {
     var textDocument: Document? {
         return document as? Document
     }
+
+    private var isSplitViewCollapsed: Bool = false
 
     // MARK: - Window Lifecycle
 
@@ -43,77 +43,89 @@ class EditorWindowController: NSWindowController {
     }
 
     func setupTextViews(with textStorage: NSTextStorage) {
-        // 既存のLayoutManagerを取得または新規作成
-        var layoutManager1: NSLayoutManager
-        var layoutManager2: NSLayoutManager
-
+        // 既存のLayoutManagerを削除
         if textStorage.layoutManagers.count > 0 {
-            // 既存のLayoutManagerがある場合は削除
             for lm in textStorage.layoutManagers {
                 textStorage.removeLayoutManager(lm)
             }
         }
 
-        // 新しいLayoutManagerを作成
-        layoutManager1 = NSLayoutManager()
-        layoutManager2 = NSLayoutManager()
+        // splitViewの表示されているサブビューの数を取得
+        guard let splitView = splitView else { return }
+        let visibleSubviews = splitView.subviews.filter { !$0.isHidden }
+        let numberOfViews = visibleSubviews.count
 
-        // TextStorageにLayoutManagerを追加
-        textStorage.addLayoutManager(layoutManager1)
-        textStorage.addLayoutManager(layoutManager2)
-
-        // TextView1の設定
-        if let textContainer1 = textView1?.textContainer {
-            layoutManager1.addTextContainer(textContainer1)
-            textView1.isEditable = true
-            textView1.isSelectable = true
-            textView1.allowsUndo = true
-
-            // 横幅をウィンドウに合わせる設定
-            textContainer1.widthTracksTextView = false
-            textContainer1.heightTracksTextView = false
-            let width1 = scrollView1?.contentSize.width ?? 0
-            textContainer1.containerSize = NSSize(width: width1, height: CGFloat.greatestFiniteMagnitude)
-
-            textView1.isHorizontallyResizable = false
-            textView1.isVerticallyResizable = true
-            textView1.autoresizingMask = []
-            textView1.textContainerInset = textDocument!.containerInset
-            textView1.minSize = NSSize(width: 0, height: 0)
-            textView1.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-            textView1.frame.size.width = width1
+        // 必要な数のLayoutManagerを作成
+        var layoutManagers: [NSLayoutManager] = []
+        for _ in 0..<numberOfViews {
+            let layoutManager = NSLayoutManager()
+            textStorage.addLayoutManager(layoutManager)
+            layoutManagers.append(layoutManager)
         }
 
-        // TextView2の設定
-        if let textContainer2 = textView2?.textContainer {
-            layoutManager2.addTextContainer(textContainer2)
-            textView2.isEditable = true
-            textView2.isSelectable = true
-            textView2.allowsUndo = true
+        // TextView1の設定（常に設定）
+        if numberOfViews >= 1, let scrollView = scrollView1 {
+            let width = scrollView.contentSize.width
 
-            // 横幅をウィンドウに合わせる設定
-            textContainer2.widthTracksTextView = false
-            textContainer2.heightTracksTextView = false
-            let width2 = scrollView2?.contentSize.width ?? 0
-            textContainer2.containerSize = NSSize(width: width2, height: CGFloat.greatestFiniteMagnitude)
+            // TextContainerを作成
+            let textContainer = NSTextContainer(containerSize: NSSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+            textContainer.widthTracksTextView = false
+            textContainer.heightTracksTextView = false
 
-            textView2.isHorizontallyResizable = false
-            textView2.isVerticallyResizable = true
-            textView2.autoresizingMask = []
-            textView2.textContainerInset = textDocument!.containerInset
-            textView2.minSize = NSSize(width: 0, height: 0)
-            textView2.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-            textView2.frame.size.width = width2
+            // LayoutManagerにTextContainerを追加
+            let layoutManager = layoutManagers[0]
+            layoutManager.addTextContainer(textContainer)
+
+            // TextViewを作成
+            let textView = NSTextView(frame: scrollView.bounds, textContainer: textContainer)
+            textView.isEditable = true
+            textView.isSelectable = true
+            textView.allowsUndo = true
+            textView.isHorizontallyResizable = false
+            textView.isVerticallyResizable = true
+            textView.autoresizingMask = [.width]
+            textView.textContainerInset = textDocument!.containerInset
+            textView.minSize = NSSize(width: 0, height: 0)
+            textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+
+            // ScrollViewに設定
+            scrollView.documentView = textView
+            scrollView.hasVerticalScroller = true
+            scrollView.hasHorizontalScroller = false
+            scrollView.autohidesScrollers = true
         }
 
-        // ScrollViewの設定
-        scrollView1?.hasVerticalScroller = true
-        scrollView1?.hasHorizontalScroller = false
-        scrollView1?.autohidesScrollers = true
+        // TextView2の設定（サブビューが2つ以上の場合のみ）
+        if numberOfViews >= 2, let scrollView = scrollView2 {
+            let width = scrollView.contentSize.width
 
-        scrollView2?.hasVerticalScroller = true
-        scrollView2?.hasHorizontalScroller = false
-        scrollView2?.autohidesScrollers = true
+            // TextContainerを作成
+            let textContainer = NSTextContainer(containerSize: NSSize(width: width, height: CGFloat.greatestFiniteMagnitude))
+            textContainer.widthTracksTextView = false
+            textContainer.heightTracksTextView = false
+
+            // LayoutManagerにTextContainerを追加
+            let layoutManager = layoutManagers[1]
+            layoutManager.addTextContainer(textContainer)
+
+            // TextViewを作成
+            let textView = NSTextView(frame: scrollView.bounds, textContainer: textContainer)
+            textView.isEditable = true
+            textView.isSelectable = true
+            textView.allowsUndo = true
+            textView.isHorizontallyResizable = false
+            textView.isVerticallyResizable = true
+            textView.autoresizingMask = [.width]
+            textView.textContainerInset = textDocument!.containerInset
+            textView.minSize = NSSize(width: 0, height: 0)
+            textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+
+            // ScrollViewに設定
+            scrollView.documentView = textView
+            scrollView.hasVerticalScroller = true
+            scrollView.hasHorizontalScroller = false
+            scrollView.autohidesScrollers = true
+        }
     }
 
     // MARK: - Zoom Actions
@@ -131,6 +143,33 @@ class EditorWindowController: NSWindowController {
     @IBAction func resetZoom(_ sender: Any?) {
         scrollView1?.resetZoom()
         scrollView2?.resetZoom()
+    }
+
+    // MARK: - Split View Actions
+
+    @IBAction func toggleSplitView(_ sender: Any?) {
+        guard let splitView = splitView else { return }
+
+        isSplitViewCollapsed = !isSplitViewCollapsed
+
+        if isSplitViewCollapsed {
+            // 2つ目のペインを折りたたむ
+            if splitView.subviews.count > 1 {
+                splitView.subviews[1].isHidden = true
+            }
+        } else {
+            // 2つ目のペインを展開
+            if splitView.subviews.count > 1 {
+                splitView.subviews[1].isHidden = false
+            }
+        }
+
+        splitView.adjustSubviews()
+
+        // splitViewの状態に合わせてtextViewsを再設定
+        if let textDocument = self.textDocument {
+            setupTextViews(with: textDocument.textStorage)
+        }
     }
 }
 

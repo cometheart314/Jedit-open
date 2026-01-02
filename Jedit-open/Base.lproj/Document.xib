@@ -10,8 +10,6 @@
                 <outlet property="scrollView1" destination="lMX-3n-ttY" id="U6c-Qa-doB"/>
                 <outlet property="scrollView2" destination="5UR-a6-Mue" id="9N2-Zj-kR2"/>
                 <outlet property="splitView" destination="zVL-C6-06i" id="W15-vH-hhV"/>
-                <outlet property="textView1" destination="cUZ-BQ-h50" id="hgK-s9-WIa"/>
-                <outlet property="textView2" destination="8wq-Jr-Jhy" id="GS8-lC-Frv"/>
                 <outlet property="window" destination="xOd-HO-29H" id="xZc-Ez-bR5"/>
             </connections>
         </customObject>
