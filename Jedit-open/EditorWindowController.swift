@@ -7,258 +7,12 @@
 
 import Cocoa
 
+
 // MARK: - Flipped Container View
 
 class FlippedContainerView: NSView {
     override var isFlipped: Bool {
         return true
-    }
-}
-
-// MARK: - Line Number Ruler View
-
-class LineNumberRulerView: NSRulerView {
-    var lineNumberMode: LineNumberMode = .none {
-        didSet {
-            updateRuleThicknessAsync()
-            needsDisplay = true
-        }
-    }
-
-    weak var textView: NSTextView?
-    private let minimumThickness: CGFloat = 40.0
-    private let rightMargin: CGFloat = 5.0
-    private let leftMargin: CGFloat = 5.0
-    private var updateWorkItem: DispatchWorkItem?
-
-    init(scrollView: NSScrollView, textView: NSTextView) {
-        self.textView = textView
-        super.init(scrollView: scrollView, orientation: .verticalRuler)
-        self.clientView = textView
-        self.ruleThickness = minimumThickness
-
-        // macOSのNSRulerViewのバグ回避: clipsToBoundsを設定
-        self.clipsToBounds = true
-
-        // テキスト変更時にルーラーの幅を再計算
-        NotificationCenter.default.addObserver(self, selector: #selector(textDidChange), name: NSText.didChangeNotification, object: textView)
-
-        // 初期表示時にもルーラーの幅を計算
-        DispatchQueue.main.async { [weak self] in
-            self?.updateRuleThicknessAsync()
-        }
-    }
-
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-
-    deinit {
-        updateWorkItem?.cancel()
-        NotificationCenter.default.removeObserver(self)
-    }
-
-    @objc private func textDidChange(_ notification: Notification) {
-        // デバウンス: 連続した変更を防ぐため、前のタスクをキャンセル
-        updateWorkItem?.cancel()
-
-        let workItem = DispatchWorkItem { [weak self] in
-            self?.updateRuleThicknessAsync()
-        }
-        updateWorkItem = workItem
-
-        // 0.3秒後に実行（タイピング中の連続更新を防ぐ）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
-    }
-
-    private func updateRuleThicknessAsync() {
-        guard lineNumberMode != .none,
-              let textView = textView,
-              let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
-            return
-        }
-
-        let textStorage = layoutManager.textStorage!
-        let mode = lineNumberMode
-
-        switch mode {
-        case .none:
-            break
-
-        case .paragraph:
-            // パラグラフ数のカウントはバックグラウンドで実行可能（文字列のみを使用）
-            let textString = textStorage.string
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let self = self else { return }
-
-                var maxLineNumber = 0
-                textString.enumerateSubstrings(in: textString.startIndex..<textString.endIndex, options: .byParagraphs) { _, _, _, _ in
-                    maxLineNumber += 1
-                }
-
-                // UIの更新はメインスレッドで実行
-                DispatchQueue.main.async { [weak self] in
-                    self?.applyRuleThickness(for: maxLineNumber)
-                }
-            }
-
-        case .row:
-            // LayoutManagerへのアクセスはメインスレッドでのみ可能
-            // 非同期で実行してUIをブロックしないようにする
-            DispatchQueue.main.async { [weak self] in
-                guard let self = self,
-                      let textView = self.textView,
-                      let layoutManager = textView.layoutManager,
-                      let textContainer = textView.textContainer else {
-                    return
-                }
-
-                var maxLineNumber = 0
-                let glyphRange = layoutManager.glyphRange(for: textContainer)
-                layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { _, _, _, _, _ in
-                    maxLineNumber += 1
-                }
-
-                self.applyRuleThickness(for: maxLineNumber)
-            }
-        }
-    }
-
-    private func applyRuleThickness(for maxLineNumber: Int) {
-        // 最大行番号の幅を計算
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 10)
-        ]
-        let numberString = "\(maxLineNumber)" as NSString
-        let size = numberString.size(withAttributes: attributes)
-
-        // 必要な幅を計算（左マージン + 数字の幅 + 右マージン）
-        let requiredThickness = self.leftMargin + size.width + self.rightMargin
-        let newThickness = max(self.minimumThickness, requiredThickness)
-
-        if abs(self.ruleThickness - newThickness) > 1.0 {
-            self.ruleThickness = newThickness
-            // スクロールビューのレイアウトを更新
-            if let scrollView = self.scrollView as? NSScrollView,
-               let textView = textView,
-               let textContainer = textView.textContainer {
-                scrollView.tile()
-
-                // textViewとtextContainerのサイズも更新
-                textView.frame = scrollView.contentView.bounds
-                textContainer.containerSize = NSSize(width: scrollView.contentView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
-            }
-        }
-    }
-
-    override func drawHashMarksAndLabels(in rect: NSRect) {
-        // 背景を常に描画
-        NSColor.controlBackgroundColor.setFill()
-        rect.fill()
-
-        guard lineNumberMode != .none,
-              let textView = textView,
-              let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
-            return
-        }
-
-        let textStorage = layoutManager.textStorage!
-        let visibleRect = self.convert(textView.visibleRect, from: textView)
-
-        // 右端に境界線を描画
-        NSColor.separatorColor.setStroke()
-        let borderPath = NSBezierPath()
-        borderPath.move(to: NSPoint(x: rect.maxX - 0.5, y: rect.minY))
-        borderPath.line(to: NSPoint(x: rect.maxX - 0.5, y: rect.maxY))
-        borderPath.lineWidth = 1.0
-        borderPath.stroke()
-
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 10),
-            .foregroundColor: NSColor.secondaryLabelColor
-        ]
-
-        // textViewの可視範囲内のglyphRangeを取得
-        let textViewVisibleRect = textView.visibleRect
-        let glyphRange = layoutManager.glyphRange(forBoundingRect: textViewVisibleRect, in: textContainer)
-
-        switch lineNumberMode {
-        case .none:
-            break
-
-        case .paragraph:
-            // パラグラフ番号を表示
-            let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-
-            var paragraphNumber = 0
-            var drawnParagraphs = Set<Int>()
-
-            let searchRange = NSRange(location: 0, length: min(charRange.location + charRange.length, textStorage.length))
-            guard let stringRange = Range(searchRange, in: textStorage.string) else { return }
-
-            textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (substring, substringRange, enclosingRange, stop) in
-                paragraphNumber += 1
-
-                let nsSubstringRange = NSRange(substringRange, in: textStorage.string)
-
-                if nsSubstringRange.location >= charRange.location {
-                    let glyphRange = layoutManager.glyphRange(forCharacterRange: nsSubstringRange, actualCharacterRange: nil)
-                    let rectInContainer = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-
-                    // textContainerの座標をtextViewの座標に変換
-                    let rectInTextView = NSRect(
-                        x: rectInContainer.minX + textView.textContainerInset.width,
-                        y: rectInContainer.minY + textView.textContainerInset.height,
-                        width: rectInContainer.width,
-                        height: rectInContainer.height
-                    )
-
-                    // textViewの座標をrulerViewの座標に変換
-                    let rectInRuler = self.convert(rectInTextView, from: textView)
-
-                    if rectInRuler.minY >= rect.minY && rectInRuler.minY <= rect.maxY && !drawnParagraphs.contains(paragraphNumber) {
-                        let numberString = "\(paragraphNumber)" as NSString
-                        let size = numberString.size(withAttributes: attributes)
-                        let xPosition = self.ruleThickness - size.width - self.rightMargin
-                        let drawPoint = NSPoint(x: xPosition, y: rectInRuler.minY)
-                        numberString.draw(at: drawPoint, withAttributes: attributes)
-                        drawnParagraphs.insert(paragraphNumber)
-                    }
-                }
-            }
-
-        case .row:
-            // 行番号（折り返しを含む）を表示
-            var rowNumber = 0
-
-            // 可視範囲の前の行数を計算
-            layoutManager.enumerateLineFragments(forGlyphRange: NSRange(location: 0, length: glyphRange.location)) { _, _, _, _, _ in
-                rowNumber += 1
-            }
-
-            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rectInContainer, usedRect, textContainer, glyphRange, stop) in
-                rowNumber += 1
-
-                // textContainerの座標をtextViewの座標に変換
-                let rectInTextView = NSRect(
-                    x: rectInContainer.minX + textView.textContainerInset.width,
-                    y: rectInContainer.minY + textView.textContainerInset.height,
-                    width: rectInContainer.width,
-                    height: rectInContainer.height
-                )
-
-                // textViewの座標をrulerViewの座標に変換
-                let rectInRuler = self.convert(rectInTextView, from: textView)
-
-                let numberString = "\(rowNumber)" as NSString
-                let size = numberString.size(withAttributes: attributes)
-                let xPosition = self.ruleThickness - size.width - self.rightMargin
-                let drawPoint = NSPoint(x: xPosition, y: rectInRuler.minY)
-                numberString.draw(at: drawPoint, withAttributes: attributes)
-            }
-        }
     }
 }
 
@@ -269,15 +23,7 @@ enum DisplayMode {
     case page        // ページモード（ページネーション）
 }
 
-// MARK: - Line Number Mode
-
-enum LineNumberMode {
-    case none        // 行番号非表示
-    case paragraph   // パラグラフ番号
-    case row         // 行番号（折り返しを含む）
-}
-
-class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate {
+class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate, NSWindowDelegate {
 
     // MARK: - IBOutlets
 
@@ -319,16 +65,43 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private let headerHeight: CGFloat = 30.0 // ヘッダーの高さ
     private let footerHeight: CGFloat = 30.0 // フッターの高さ
 
+    // NotificationCenter observers
+    private var textViewObservers: [Any] = []
+
     // MARK: - Window Lifecycle
 
     override func windowDidLoad() {
         super.windowDidLoad()
 
+        // WindowDelegateを設定
+        self.window?.delegate = self
+
         // SplitViewのデリゲートを設定
         splitView?.delegate = self
 
+        // ルーラー幅変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(rulerThicknessDidChange(_:)),
+            name: LineNumberRulerView.rulerThicknessDidChangeNotification,
+            object: nil
+        )
+
         // TextStorageを設定
         setupTextStorage()
+    }
+
+    @objc private func rulerThicknessDidChange(_ notification: Notification) {
+        // ルーラー幅が変更されたらテキストビューのサイズを更新
+        guard displayMode == .continuous else { return }
+
+        if let scrollView = scrollView1 {
+            updateTextViewSize(for: scrollView)
+        }
+
+        if let scrollView = scrollView2, !scrollView.isHidden {
+            updateTextViewSize(for: scrollView)
+        }
     }
 
     // MARK: - Setup Methods
@@ -342,6 +115,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     func setupTextViews(with textStorage: NSTextStorage) {
+        // 既存のobserverを削除
+        for observer in textViewObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        textViewObservers.removeAll()
+
         // 既存のLayoutManagerを削除
         if textStorage.layoutManagers.count > 0 {
             for lm in textStorage.layoutManagers {
@@ -384,147 +163,179 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // TextView1の設定（常に設定）
         if numberOfViews >= 1, let scrollView = scrollView1 {
-            let width = scrollView.contentSize.width
+            let containerInset = textDocument!.containerInset
+
+            // 行番号ルーラーを先に設定（テキストビュー作成前にcontentSizeを確定させる）
+            if lineNumberMode != .none {
+                let rulerView = LineNumberRulerView(scrollView: scrollView, textView: nil)
+                rulerView.lineNumberMode = lineNumberMode
+                scrollView.verticalRulerView = rulerView
+                scrollView.hasVerticalRuler = true
+                scrollView.rulersVisible = true
+                rulerView1 = rulerView
+                scrollView.tile()
+            } else {
+                scrollView.hasVerticalRuler = false
+                scrollView.rulersVisible = false
+                scrollView.verticalRulerView = nil
+                rulerView1 = nil
+                scrollView.tile()
+            }
+
+            // scrollViewのフレーム幅を基準にして利用可能な幅を計算
+            var availableWidth = scrollView.frame.width
+
+            // ルーラーの幅を引く
+            if scrollView.hasVerticalRuler, scrollView.rulersVisible, let rulerView = scrollView.verticalRulerView {
+                availableWidth -= rulerView.ruleThickness
+            }
+
+            // 垂直スクローラーの幅を引く（表示されている場合）
+            if scrollView.hasVerticalScroller, let scroller = scrollView.verticalScroller, !scroller.isHidden {
+                availableWidth -= scroller.frame.width
+            }
+
+            let containerWidth = availableWidth - (containerInset.width * 2)
 
             // TextContainerを作成
-            let textContainer = NSTextContainer(containerSize: NSSize(width: width, height: CGFloat.greatestFiniteMagnitude))
-            textContainer.widthTracksTextView = true
+            // widthTracksTextView = false で手動制御（scrollViewのリサイズ時に自動で幅が変わらないようにする）
+            let textContainer = NSTextContainer(containerSize: NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude))
+            textContainer.widthTracksTextView = false
             textContainer.heightTracksTextView = false
+            // デフォルトのlineFragmentPaddingを使用（5.0）
+            textContainer.lineFragmentPadding = 5.0
 
             // LayoutManagerにTextContainerを追加
             let layoutManager = layoutManagers[0]
             layoutManager.addTextContainer(textContainer)
 
             // TextViewを作成
-            let textView = NSTextView(frame: scrollView.bounds, textContainer: textContainer)
+            let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: scrollView.contentSize.height)
+            let textView = NSTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
             textView.isHorizontallyResizable = false
             textView.isVerticallyResizable = true
-            textView.autoresizingMask = [.width]
-            textView.textContainerInset = textDocument!.containerInset
+            textView.autoresizingMask = []
+            // textContainerInsetで左右と上下のインセットを設定
+            textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
 
             // ScrollViewに設定
             scrollView.documentView = textView
             scrollView.hasVerticalScroller = true
-            scrollView.hasHorizontalScroller = false
-            scrollView.autohidesScrollers = true
+            scrollView.hasHorizontalScroller = true
+            scrollView.autohidesScrollers = false
 
-            // 行番号ルーラーを設定
-            if lineNumberMode != .none {
-                let rulerView = LineNumberRulerView(scrollView: scrollView, textView: textView)
-                rulerView.lineNumberMode = lineNumberMode
-                scrollView.verticalRulerView = rulerView
-                scrollView.hasVerticalRuler = true
-                scrollView.rulersVisible = true
-                rulerView1 = rulerView
-
-                // レイアウトを更新
-                scrollView.tile()
-
-                // textViewのframeを更新（autoresizingMaskだけでは不十分な場合がある）
-                textView.frame = scrollView.contentView.bounds
-
-                // textContainerのサイズも更新
-                textContainer.containerSize = NSSize(width: scrollView.contentView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+            // rulerViewにtextViewを設定
+            if let rulerView = rulerView1 {
+                rulerView.textView = textView
+                rulerView.clientView = textView
 
                 // テキスト変更時とスクロール時にrulerViewを更新
-                NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: textView, queue: .main) { [weak rulerView] _ in
+                let observer1 = NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: textView, queue: .main) { [weak rulerView] _ in
                     rulerView?.needsDisplay = true
                 }
-                NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak rulerView] _ in
+                let observer2 = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak rulerView] _ in
                     rulerView?.needsDisplay = true
                 }
-            } else {
-                scrollView.hasVerticalRuler = false
-                scrollView.rulersVisible = false
-                scrollView.verticalRulerView = nil
-                rulerView1 = nil
-
-                // レイアウトを更新
-                scrollView.tile()
-
-                // textViewのframeを更新
-                textView.frame = scrollView.contentView.bounds
-
-                // textContainerのサイズも更新
-                textContainer.containerSize = NSSize(width: scrollView.contentView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+                textViewObservers.append(contentsOf: [observer1, observer2])
             }
         }
 
         // TextView2の設定（サブビューが2つ以上の場合のみ）
         if numberOfViews >= 2, let scrollView = scrollView2 {
-            let width = scrollView.contentSize.width
+            let containerInset = textDocument!.containerInset
 
-            // TextContainerを作成
-            let textContainer = NSTextContainer(containerSize: NSSize(width: width, height: CGFloat.greatestFiniteMagnitude))
-            textContainer.widthTracksTextView = true
+            // 行番号ルーラーを先に設定（テキストビュー作成前にcontentSizeを確定させる）
+            if lineNumberMode != .none {
+                let rulerView = LineNumberRulerView(scrollView: scrollView, textView: nil)
+                rulerView.lineNumberMode = lineNumberMode
+                scrollView.verticalRulerView = rulerView
+                scrollView.hasVerticalRuler = true
+                scrollView.rulersVisible = true
+                rulerView2 = rulerView
+                scrollView.tile()
+            } else {
+                scrollView.hasVerticalRuler = false
+                scrollView.rulersVisible = false
+                scrollView.verticalRulerView = nil
+                rulerView2 = nil
+                scrollView.tile()
+            }
+
+            // scrollViewのフレーム幅を基準にして利用可能な幅を計算
+            var availableWidth = scrollView.frame.width
+
+            // ルーラーの幅を引く
+            if scrollView.hasVerticalRuler, scrollView.rulersVisible, let rulerView = scrollView.verticalRulerView {
+                availableWidth -= rulerView.ruleThickness
+            }
+
+            // 垂直スクローラーの幅を引く（表示されている場合）
+            if scrollView.hasVerticalScroller, let scroller = scrollView.verticalScroller, !scroller.isHidden {
+                availableWidth -= scroller.frame.width
+            }
+
+            let containerWidth = availableWidth - (containerInset.width * 2)
+
+            // TextContainerを作成（widthTracksTextView = false で手動制御）
+            let textContainer = NSTextContainer(containerSize: NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude))
+            textContainer.widthTracksTextView = false
             textContainer.heightTracksTextView = false
+            // デフォルトのlineFragmentPaddingを使用（5.0）
+            textContainer.lineFragmentPadding = 5.0
 
             // LayoutManagerにTextContainerを追加
             let layoutManager = layoutManagers[1]
             layoutManager.addTextContainer(textContainer)
 
             // TextViewを作成
-            let textView = NSTextView(frame: scrollView.bounds, textContainer: textContainer)
+            let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: scrollView.contentSize.height)
+            let textView = NSTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
             textView.isHorizontallyResizable = false
             textView.isVerticallyResizable = true
-            textView.autoresizingMask = [.width]
-            textView.textContainerInset = textDocument!.containerInset
+            textView.autoresizingMask = []
+            // textContainerInsetで左右と上下のインセットを設定
+            textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
 
             // ScrollViewに設定
             scrollView.documentView = textView
             scrollView.hasVerticalScroller = true
-            scrollView.hasHorizontalScroller = false
-            scrollView.autohidesScrollers = true
+            scrollView.hasHorizontalScroller = true
+            scrollView.autohidesScrollers = false
 
-            // 行番号ルーラーを設定
-            if lineNumberMode != .none {
-                let rulerView = LineNumberRulerView(scrollView: scrollView, textView: textView)
-                rulerView.lineNumberMode = lineNumberMode
-                scrollView.verticalRulerView = rulerView
-                scrollView.hasVerticalRuler = true
-                scrollView.rulersVisible = true
-                rulerView2 = rulerView
-
-                // レイアウトを更新
-                scrollView.tile()
-
-                // textViewのframeを更新（autoresizingMaskだけでは不十分な場合がある）
-                textView.frame = scrollView.contentView.bounds
-
-                // textContainerのサイズも更新
-                textContainer.containerSize = NSSize(width: scrollView.contentView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+            // rulerViewにtextViewを設定
+            if let rulerView = rulerView2 {
+                rulerView.textView = textView
+                rulerView.clientView = textView
 
                 // テキスト変更時とスクロール時にrulerViewを更新
-                NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: textView, queue: .main) { [weak rulerView] _ in
+                let observer1 = NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: textView, queue: .main) { [weak rulerView] _ in
                     rulerView?.needsDisplay = true
                 }
-                NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak rulerView] _ in
+                let observer2 = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak rulerView] _ in
                     rulerView?.needsDisplay = true
                 }
-            } else {
-                scrollView.hasVerticalRuler = false
-                scrollView.rulersVisible = false
-                scrollView.verticalRulerView = nil
-                rulerView2 = nil
+                textViewObservers.append(contentsOf: [observer1, observer2])
+            }
+        }
 
-                // レイアウトを更新
-                scrollView.tile()
-
-                // textViewのframeを更新
-                textView.frame = scrollView.contentView.bounds
-
-                // textContainerのサイズも更新
-                textContainer.containerSize = NSSize(width: scrollView.contentView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+        // レイアウト完了後にサイズを更新（初期化時はフレームが確定していない場合があるため）
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let scrollView = self.scrollView1 {
+                self.updateTextViewSize(for: scrollView)
+            }
+            if let scrollView = self.scrollView2, !scrollView.isHidden {
+                self.updateTextViewSize(for: scrollView)
             }
         }
     }
@@ -553,7 +364,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // ScrollViewの設定
             scrollView.hasVerticalScroller = true
             scrollView.hasHorizontalScroller = false
-            scrollView.autohidesScrollers = true
+            scrollView.autohidesScrollers = false
 
             // デリゲートを設定してからTextStorageに追加
             layoutManager.delegate = self
@@ -571,7 +382,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // ScrollViewの設定
             scrollView.hasVerticalScroller = true
             scrollView.hasHorizontalScroller = false
-            scrollView.autohidesScrollers = true
+            scrollView.autohidesScrollers = false
 
             // デリゲートを設定してからTextStorageに追加
             layoutManager.delegate = self
@@ -671,16 +482,19 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     @IBAction func hideLineNumbers(_ sender: Any?) {
+        guard lineNumberMode != .none else { return }
         lineNumberMode = .none
         updateLineNumberDisplay()
     }
 
     @IBAction func showParagraphNumbers(_ sender: Any?) {
+        guard lineNumberMode != .paragraph else { return }
         lineNumberMode = .paragraph
         updateLineNumberDisplay()
     }
 
     @IBAction func showRowNumbers(_ sender: Any?) {
+        guard lineNumberMode != .row else { return }
         lineNumberMode = .row
         updateLineNumberDisplay()
     }
@@ -706,7 +520,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private func updateRulerView(for scrollView: NSScrollView, textView: NSTextView, rulerRef: inout LineNumberRulerView?) {
         if lineNumberMode != .none {
             // 既存のrulerViewがあれば削除
-            if let existingRuler = rulerRef {
+            if rulerRef != nil {
                 scrollView.verticalRulerView = nil
                 scrollView.hasVerticalRuler = false
                 scrollView.rulersVisible = false
@@ -721,22 +535,22 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             scrollView.rulersVisible = true
             rulerRef = rulerView
 
-            // レイアウトを更新
+            // レイアウトを更新（ScalingScrollView.tile()でautoresizesSubviews=falseが設定される）
             scrollView.tile()
 
-            // textViewのframeを更新
-            if let textContainer = textView.textContainer {
-                textView.frame = scrollView.contentView.bounds
-                textContainer.containerSize = NSSize(width: scrollView.contentView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+            // サイズを更新（inoutパラメータへのアクセス競合を避けるため非同期で実行）
+            DispatchQueue.main.async { [weak self] in
+                self?.updateTextViewSize(for: scrollView)
             }
 
             // テキスト変更時とスクロール時にrulerViewを更新
-            NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: textView, queue: .main) { [weak rulerView] _ in
+            let observer1 = NotificationCenter.default.addObserver(forName: NSText.didChangeNotification, object: textView, queue: .main) { [weak rulerView] _ in
                 rulerView?.needsDisplay = true
             }
-            NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak rulerView] _ in
+            let observer2 = NotificationCenter.default.addObserver(forName: NSView.boundsDidChangeNotification, object: scrollView.contentView, queue: .main) { [weak rulerView] _ in
                 rulerView?.needsDisplay = true
             }
+            textViewObservers.append(contentsOf: [observer1, observer2])
         } else {
             // rulerViewを削除
             scrollView.hasVerticalRuler = false
@@ -744,13 +558,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             scrollView.verticalRulerView = nil
             rulerRef = nil
 
-            // レイアウトを更新
+            // レイアウトを更新（ScalingScrollView.tile()でautoresizesSubviews=falseが設定される）
             scrollView.tile()
 
-            // textViewのframeを更新
-            if let textContainer = textView.textContainer {
-                textView.frame = scrollView.contentView.bounds
-                textContainer.containerSize = NSSize(width: scrollView.contentView.bounds.width, height: CGFloat.greatestFiniteMagnitude)
+            // サイズを更新（inoutパラメータへのアクセス競合を避けるため非同期で実行）
+            DispatchQueue.main.async { [weak self] in
+                self?.updateTextViewSize(for: scrollView)
             }
         }
     }
@@ -1031,6 +844,45 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         scrollView.documentView?.scroll(savedScrollPosition)
     }
 
+    // MARK: - Text View Size Management
+
+    private func updateTextViewSize(for scrollView: NSScrollView) {
+        guard let textView = scrollView.documentView as? NSTextView,
+              let textContainer = textView.textContainer,
+              let layoutManager = textView.layoutManager,
+              let containerInset = textDocument?.containerInset else { return }
+
+        // scrollViewのフレーム幅を基準にして利用可能な幅を計算
+        var availableWidth = scrollView.frame.width
+
+        // ルーラーの幅を引く
+        if scrollView.hasVerticalRuler, scrollView.rulersVisible, let rulerView = scrollView.verticalRulerView {
+            availableWidth -= rulerView.ruleThickness
+        }
+
+        // 垂直スクローラーの幅を引く
+        if scrollView.hasVerticalScroller, let scroller = scrollView.verticalScroller, !scroller.isHidden {
+            availableWidth -= scroller.frame.width
+        }
+
+        let containerWidth = availableWidth - (containerInset.width * 2)
+
+        // テキストビューのフレームを更新
+        textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
+
+        // テキストコンテナのサイズを更新
+        textContainer.size = NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude)
+
+        // textContainerInsetを設定
+        textView.textContainerInset = containerInset
+
+        // レイアウトを強制的に再計算
+        layoutManager.ensureLayout(for: textContainer)
+
+        // テキストビューを再描画
+        textView.needsDisplay = true
+    }
+
     // MARK: - NSSplitViewDelegate
 
     func splitView(_ splitView: NSSplitView, shouldHideDividerAt dividerIndex: Int) -> Bool {
@@ -1039,6 +891,38 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             return splitView.subviews[1].isHidden
         }
         return false
+    }
+
+    func splitViewDidResizeSubviews(_ notification: Notification) {
+        // 通常モードの場合、テキストビューのサイズを更新
+        guard displayMode == .continuous else { return }
+
+        if let scrollView = scrollView1 {
+            updateTextViewSize(for: scrollView)
+        }
+
+        if let scrollView = scrollView2, !scrollView.isHidden {
+            updateTextViewSize(for: scrollView)
+        }
+    }
+
+    // MARK: - NSWindowDelegate
+
+    func windowDidResize(_ notification: Notification) {
+        // スプリットバー操作時はsplitViewDidResizeSubviewsで処理されるため、
+        // ウィンドウ全体のリサイズのみ処理する
+        guard displayMode == .continuous else { return }
+        guard let window = self.window, !window.inLiveResize else { return }
+
+        // scrollView1を更新
+        if let scrollView = scrollView1 {
+            updateTextViewSize(for: scrollView)
+        }
+
+        // scrollView2を更新（表示されている場合）
+        if let scrollView = scrollView2, !scrollView.isHidden {
+            updateTextViewSize(for: scrollView)
+        }
     }
 
     // MARK: - NSLayoutManagerDelegate

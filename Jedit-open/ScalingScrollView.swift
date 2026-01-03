@@ -33,6 +33,12 @@ class ScalingScrollView: NSScrollView {
 
     // MARK: - Layout
 
+    override func tile() {
+        super.tile()
+        // tile()後にclipViewの自動リサイズを無効にして、textViewのサイズが勝手に変更されないようにする
+        contentView.autoresizesSubviews = false
+    }
+
     override func layout() {
         super.layout()
         updateTextContainerSize()
@@ -80,8 +86,21 @@ class ScalingScrollView: NSScrollView {
             return
         }
 
-        // 拡大率を考慮した実際の表示幅を計算
-        let availableWidth = contentSize.width / magnification
+        // scrollViewのフレーム幅から利用可能な幅を計算
+        var availableWidth = frame.width
+
+        // ルーラーの幅を引く
+        if hasVerticalRuler, rulersVisible, let rulerView = verticalRulerView {
+            availableWidth -= rulerView.ruleThickness
+        }
+
+        // 垂直スクローラーの幅を引く
+        if hasVerticalScroller, let scroller = verticalScroller, !scroller.isHidden {
+            availableWidth -= scroller.frame.width
+        }
+
+        // 拡大率を考慮
+        availableWidth = availableWidth / magnification
 
         // containerInsetを考慮してTextContainerの幅を計算
         let inset = textView.textContainerInset
