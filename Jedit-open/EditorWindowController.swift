@@ -23,7 +23,7 @@ enum DisplayMode {
     case page        // ページモード（ページネーション）
 }
 
-class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate, NSWindowDelegate {
+class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate, NSWindowDelegate, NSMenuItemValidation {
 
     // MARK: - IBOutlets
 
@@ -42,6 +42,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // 表示モード
     private var displayMode: DisplayMode = .continuous
     private var lineNumberMode: LineNumberMode = .none
+    private var isInspectorBarVisible: Bool = false  // Inspector Barの表示状態
+    private var isInspectorBarInitialized: Bool = false  // Inspector Bar初期化済みフラグ
 
     // 行番号ルーラー
     private var rulerView1: LineNumberRulerView?
@@ -87,8 +89,29 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             object: nil
         )
 
+        // ドキュメントタイプ変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentTypeDidChange(_:)),
+            name: Document.documentTypeDidChangeNotification,
+            object: nil
+        )
+
         // TextStorageを設定
         setupTextStorage()
+    }
+
+    @objc private func documentTypeDidChange(_ notification: Notification) {
+        // 自分のドキュメントからの通知かを確認
+        guard let document = notification.object as? Document,
+              document === textDocument else { return }
+
+        // 初期化済みでない場合のみ、ドキュメントタイプに基づいて設定
+        if !isInspectorBarInitialized {
+            isInspectorBarInitialized = true
+            isInspectorBarVisible = (document.documentType != .plain)
+            updateInspectorBarVisibility()
+        }
     }
 
     @objc private func rulerThicknessDidChange(_ notification: Notification) {
@@ -115,6 +138,22 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     func setupTextViews(with textStorage: NSTextStorage) {
+        // 既存のtextViewのインスペクターバーを閉じる
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.usesInspectorBar = false
+        }
+        if let scrollView = scrollView2,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.usesInspectorBar = false
+        }
+        for textView in textViews1 {
+            textView.usesInspectorBar = false
+        }
+        for textView in textViews2 {
+            textView.usesInspectorBar = false
+        }
+
         // 既存のobserverを削除
         for observer in textViewObservers {
             NotificationCenter.default.removeObserver(observer)
@@ -218,6 +257,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.isHorizontallyResizable = false
             textView.isVerticallyResizable = true
             textView.autoresizingMask = []
+            textView.usesInspectorBar = isInspectorBarVisible
             // textContainerInsetで左右と上下のインセットを設定
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
@@ -301,6 +341,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.isHorizontallyResizable = false
             textView.isVerticallyResizable = true
             textView.autoresizingMask = []
+            textView.usesInspectorBar = isInspectorBarVisible
             // textContainerInsetで左右と上下のインセットを設定
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
@@ -568,6 +609,40 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    // MARK: - Inspector Bar Actions
+
+    @IBAction func toggleInspectorBar(_ sender: Any?) {
+        isInspectorBarVisible = !isInspectorBarVisible
+        updateInspectorBarVisibility()
+    }
+
+    private func updateInspectorBarVisibility() {
+        switch displayMode {
+        case .continuous:
+            // scrollView1のtextViewを更新
+            if let scrollView = scrollView1,
+               let textView = scrollView.documentView as? NSTextView {
+                textView.usesInspectorBar = isInspectorBarVisible
+            }
+
+            // scrollView2のtextViewを更新（splitViewが表示されている場合）
+            if let scrollView = scrollView2,
+               !scrollView.isHidden,
+               let textView = scrollView.documentView as? NSTextView {
+                textView.usesInspectorBar = isInspectorBarVisible
+            }
+
+        case .page:
+            // ページモード時は全てのtextViewを更新
+            for textView in textViews1 {
+                textView.usesInspectorBar = isInspectorBarVisible
+            }
+            for textView in textViews2 {
+                textView.usesInspectorBar = isInspectorBarVisible
+            }
+        }
+    }
+
     // MARK: - Pagination Methods
 
     private enum ScrollViewTarget {
@@ -655,6 +730,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.backgroundColor = .white
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.usesInspectorBar = isInspectorBarVisible
 
         // 配列に追加
         textContainers.append(textContainer)
@@ -904,6 +980,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let scrollView = scrollView2, !scrollView.isHidden {
             updateTextViewSize(for: scrollView)
         }
+    }
+
+    // MARK: - Menu Validation
+
+    @objc func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(toggleInspectorBar(_:)) {
+            menuItem.title = isInspectorBarVisible ? "Hide Inspector Bar" : "Show Inspector Bar"
+        }
+        return true
     }
 
     // MARK: - NSWindowDelegate

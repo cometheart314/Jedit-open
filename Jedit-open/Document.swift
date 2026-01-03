@@ -9,6 +9,10 @@ import Cocoa
 
 class Document: NSDocument {
 
+    // MARK: - Notifications
+
+    static let documentTypeDidChangeNotification = Notification.Name("DocumentTypeDidChange")
+
     // MARK: - Properties
 
     var textStorage: NSTextStorage = NSTextStorage()
@@ -134,6 +138,7 @@ class Document: NSDocument {
             Task { @MainActor in
                 self.documentType = .plain
                 self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
             }
         } else {
             // RTFまたはRTFDの場合はNSAttributedStringを使用
@@ -148,6 +153,7 @@ class Document: NSDocument {
                 Task { @MainActor in
                     self.documentType = docType
                     self.textStorage.setAttributedString(attributedString)
+                    NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
             } catch {
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [

@@ -38,7 +38,7 @@
                                             <rect key="frame" x="0.0" y="0.0" width="507" height="153"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView wantsLayer="YES" importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" usesInspectorBar="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" layoutManager="textKit1" id="cUZ-BQ-h50">
+                                                <textView wantsLayer="YES" importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" layoutManager="textKit1" id="cUZ-BQ-h50">
                                                     <rect key="frame" x="0.0" y="0.0" width="507" height="153"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES"/>
                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -70,7 +70,7 @@
                                             <rect key="frame" x="0.0" y="0.0" width="507" height="250"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textView wantsLayer="YES" importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" usesInspectorBar="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" layoutManager="textKit1" id="8wq-Jr-Jhy">
+                                                <textView wantsLayer="YES" importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" layoutManager="textKit1" id="8wq-Jr-Jhy">
                                                     <rect key="frame" x="0.0" y="0.0" width="507" height="250"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES"/>
                                                     <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>

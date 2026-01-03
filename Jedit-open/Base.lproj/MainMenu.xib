@@ -345,6 +345,85 @@
                         </items>
                     </menu>
                 </menuItem>
+                <menuItem title="View" id="H8h-7b-M4v">
+                    <modifierMask key="keyEquivalentModifierMask"/>
+                    <menu key="submenu" title="View" id="HyV-fh-RgO">
+                        <items>
+                            <menuItem title="Show Toolbar" keyEquivalent="t" id="snW-S8-Cw5">
+                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <connections>
+                                    <action selector="toggleToolbarShown:" target="-1" id="BXY-wc-z0C"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Show Inspector Bar" id="Insp-Bar-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleInspectorBar:" target="-1" id="Insp-Bar-Act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Line Number" id="Nlv-wI-OK1">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Line Number" id="NUT-yc-BrG">
+                                    <items>
+                                        <menuItem title="None" id="0Xg-Af-udW">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="hideLineNumbers:" target="-1" id="DPn-dX-OMQ"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Paragraph Number" id="vA0-nC-ila">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="showParagraphNumbers:" target="-1" id="J2d-hi-qtn"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Row Number" id="d9A-0O-r8c">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="showRowNumbers:" target="-1" id="enw-FD-1XG"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="hB4-LF-h1Z"/>
+                            <menuItem title="Toggle Split View" keyEquivalent="d" id="tSV-m1-9aM">
+                                <connections>
+                                    <action selector="toggleSplitView:" target="-1" id="Y4m-dC-k9U"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Toggle Page Mode" id="AMh-4W-66r">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleDisplayMode:" target="-1" id="3ct-MU-sXL"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="ZOO-m1-9aL"/>
+                            <menuItem title="Zoom In" keyEquivalent="+" id="Zr7-QL-VXd">
+                                <connections>
+                                    <action selector="zoomIn:" target="-1" id="Y3m-dB-k9T"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Zoom Out" keyEquivalent="-" id="4Hx-T8-p0j">
+                                <connections>
+                                    <action selector="zoomOut:" target="-1" id="DkK-mR-gYL"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Actual Size" keyEquivalent="0" id="8Gx-qZ-mNz">
+                                <connections>
+                                    <action selector="resetZoom:" target="-1" id="Nf9-Xy-7vK"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="ePk-h2-LfZ"/>
+                            <menuItem title="Enter Full Screen" keyEquivalent="f" id="4J7-dP-txa">
+                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
+                                <connections>
+                                    <action selector="toggleFullScreen:" target="-1" id="dU3-MA-1Rq"/>
+                                </connections>
+                            </menuItem>
+                        </items>
+                    </menu>
+                </menuItem>
                 <menuItem title="Format" id="jxT-CU-nIS">
                     <modifierMask key="keyEquivalentModifierMask"/>
                     <menu key="submenu" title="Format" id="GEO-Iw-cKr">
@@ -603,92 +682,6 @@
                                         </menuItem>
                                     </items>
                                 </menu>
-                            </menuItem>
-                        </items>
-                    </menu>
-                </menuItem>
-                <menuItem title="View" id="H8h-7b-M4v">
-                    <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="View" id="HyV-fh-RgO">
-                        <items>
-                            <menuItem title="Show Toolbar" keyEquivalent="t" id="snW-S8-Cw5">
-                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
-                                <connections>
-                                    <action selector="toggleToolbarShown:" target="-1" id="BXY-wc-z0C"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Customize Toolbar…" id="1UK-8n-QPP">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="runToolbarCustomizationPalette:" target="-1" id="pQI-g3-MTW"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Line Number" id="Nlv-wI-OK1">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <menu key="submenu" title="Line Number" id="NUT-yc-BrG">
-                                    <items>
-                                        <menuItem title="None" id="0Xg-Af-udW">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                            <connections>
-                                                <action selector="hideLineNumbers:" target="-1" id="DPn-dX-OMQ"/>
-                                            </connections>
-                                        </menuItem>
-                                        <menuItem title="Paragraph Number" id="vA0-nC-ila">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                            <connections>
-                                                <action selector="showParagraphNumbers:" target="-1" id="J2d-hi-qtn"/>
-                                            </connections>
-                                        </menuItem>
-                                        <menuItem title="Row Number" id="d9A-0O-r8c">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                            <connections>
-                                                <action selector="showRowNumbers:" target="-1" id="enw-FD-1XG"/>
-                                            </connections>
-                                        </menuItem>
-                                    </items>
-                                </menu>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="hB3-LF-h0Y"/>
-                            <menuItem title="Show Sidebar" keyEquivalent="s" id="kIP-vf-haE">
-                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
-                                <connections>
-                                    <action selector="toggleSidebar:" target="-1" id="iwa-gc-5KM"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="hB4-LF-h1Z"/>
-                            <menuItem title="Toggle Split View" keyEquivalent="d" id="tSV-m1-9aM">
-                                <connections>
-                                    <action selector="toggleSplitView:" target="-1" id="Y4m-dC-k9U"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Toggle Page Mode" id="AMh-4W-66r">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="toggleDisplayMode:" target="-1" id="3ct-MU-sXL"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="ZOO-m1-9aL"/>
-                            <menuItem title="Zoom In" keyEquivalent="+" id="Zr7-QL-VXd">
-                                <connections>
-                                    <action selector="zoomIn:" target="-1" id="Y3m-dB-k9T"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Zoom Out" keyEquivalent="-" id="4Hx-T8-p0j">
-                                <connections>
-                                    <action selector="zoomOut:" target="-1" id="DkK-mR-gYL"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Actual Size" keyEquivalent="0" id="8Gx-qZ-mNz">
-                                <connections>
-                                    <action selector="resetZoom:" target="-1" id="Nf9-Xy-7vK"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="ePk-h2-LfZ"/>
-                            <menuItem title="Enter Full Screen" keyEquivalent="f" id="4J7-dP-txa">
-                                <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>
-                                <connections>
-                                    <action selector="toggleFullScreen:" target="-1" id="dU3-MA-1Rq"/>
-                                </connections>
                             </menuItem>
                         </items>
                     </menu>
