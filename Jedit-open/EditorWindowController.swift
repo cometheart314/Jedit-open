@@ -7,15 +7,6 @@
 
 import Cocoa
 
-
-// MARK: - Flipped Container View
-
-class FlippedContainerView: NSView {
-    override var isFlipped: Bool {
-        return true
-    }
-}
-
 // MARK: - Display Mode
 
 enum DisplayMode {
@@ -56,16 +47,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var textViews1: [NSTextView] = []
     private var textContainers2: [NSTextContainer] = []
     private var textViews2: [NSTextView] = []
-    private var containerView1: FlippedContainerView?
-    private var containerView2: FlippedContainerView?
+    private var pagesView1: MultiplePageView?
+    private var pagesView2: MultiplePageView?
 
     // ページ設定
     private let pageWidth: CGFloat = 595.0  // A4サイズ相当（ポイント）
     private let pageHeight: CGFloat = 842.0 // A4サイズ相当（ポイント）
     private let pageMargin: CGFloat = 72.0  // 1インチ（72ポイント）のマージン
     private let pageSpacing: CGFloat = 20.0 // ページ間のスペース
-    private let headerHeight: CGFloat = 30.0 // ヘッダーの高さ
-    private let footerHeight: CGFloat = 30.0 // フッターの高さ
 
     // NotificationCenter observers
     private var textViewObservers: [Any] = []
@@ -80,6 +69,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // SplitViewのデリゲートを設定
         splitView?.delegate = self
+
+        // 初期状態では2つ目のペインを非表示にする
+        if let splitView = splitView, splitView.subviews.count > 1 {
+            splitView.subviews[1].isHidden = true
+            isSplitViewCollapsed = true
+        }
 
         // ルーラー幅変更通知を監視
         NotificationCenter.default.addObserver(
@@ -174,8 +169,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textViews1.removeAll()
         textContainers2.removeAll()
         textViews2.removeAll()
-        containerView1 = nil
-        containerView2 = nil
+        pagesView1 = nil
+        pagesView2 = nil
 
         // 表示モードに応じてセットアップ
         switch displayMode {
@@ -184,6 +179,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         case .page:
             setupPageMode(with: textStorage)
         }
+
+        // モード切り替え後にInspector barの状態を確実に反映
+        updateInspectorBarVisibility()
     }
 
     private func setupContinuousMode(with textStorage: NSTextStorage) {
@@ -387,48 +385,189 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let visibleSubviews = splitView.subviews.filter { !$0.isHidden }
         let numberOfViews = visibleSubviews.count
 
-        // 必要な数のLayoutManagerを作成（まだTextStorageには追加しない）
+        // ページ追加カウンタをリセット
+        pageAddCount1 = 0
+        pageAddCount2 = 0
+
+        // 推定ページ数を計算（1ページあたりの文字数を概算）
+        let textLength = textStorage.length
+        let charsPerPage = 1000  // 概算値
+        let estimatedPages = max(1, (textLength + charsPerPage - 1) / charsPerPage)
+        // print("Estimated pages: \(estimatedPages) for \(textLength) characters")
+
+        // 必要な数のLayoutManagerを作成
         var layoutManagers: [NSLayoutManager] = []
         for _ in 0..<numberOfViews {
             let layoutManager = NSLayoutManager()
+            // 非連続レイアウトを有効にしてパフォーマンス向上
+            layoutManager.allowsNonContiguousLayout = true
             layoutManagers.append(layoutManager)
         }
 
         // TextView1の設定（常に設定）
         if numberOfViews >= 1, let scrollView = scrollView1 {
             let layoutManager = layoutManagers[0]
-            layoutManager1 = layoutManager  // 保存
+            layoutManager1 = layoutManager
 
-            // 初期ページを追加
-            addPage(to: layoutManager, in: scrollView, for: .scrollView1)
+            // MultiplePageViewを作成
+            let initialFrame = NSRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
+            let pagesView = MultiplePageView(frame: initialFrame)
+            pagesView.pageWidth = pageWidth
+            pagesView.pageHeight = pageHeight
+            pagesView.pageMargin = pageMargin
+            pagesView.pageSeparatorHeight = pageSpacing
+            pagesView.documentName = textDocument?.displayName ?? ""
+            scrollView.documentView = pagesView
+            pagesView1 = pagesView
 
             // ScrollViewの設定
             scrollView.hasVerticalScroller = true
-            scrollView.hasHorizontalScroller = false
+            scrollView.hasHorizontalScroller = true
             scrollView.autohidesScrollers = false
 
-            // デリゲートを設定してからTextStorageに追加
+            // 推定ページ数分のTextContainerを一度に作成
+            createAllPages(count: estimatedPages, for: layoutManager, in: scrollView, target: .scrollView1)
+
+            // デリゲートを設定（追加ページが必要な場合のみ使用）
             layoutManager.delegate = self
-            textStorage.addLayoutManager(layoutManager)
         }
 
         // TextView2の設定（サブビューが2つ以上の場合のみ）
         if numberOfViews >= 2, let scrollView = scrollView2 {
             let layoutManager = layoutManagers[1]
-            layoutManager2 = layoutManager  // 保存
+            layoutManager2 = layoutManager
 
-            // 初期ページを追加
-            addPage(to: layoutManager, in: scrollView, for: .scrollView2)
+            // MultiplePageViewを作成
+            let initialFrame = NSRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
+            let pagesView = MultiplePageView(frame: initialFrame)
+            pagesView.pageWidth = pageWidth
+            pagesView.pageHeight = pageHeight
+            pagesView.pageMargin = pageMargin
+            pagesView.pageSeparatorHeight = pageSpacing
+            pagesView.documentName = textDocument?.displayName ?? ""
+            scrollView.documentView = pagesView
+            pagesView2 = pagesView
 
             // ScrollViewの設定
             scrollView.hasVerticalScroller = true
-            scrollView.hasHorizontalScroller = false
+            scrollView.hasHorizontalScroller = true
             scrollView.autohidesScrollers = false
 
-            // デリゲートを設定してからTextStorageに追加
+            // 推定ページ数分のTextContainerを一度に作成
+            createAllPages(count: estimatedPages, for: layoutManager, in: scrollView, target: .scrollView2)
+
+            // デリゲートを設定（追加ページが必要な場合のみ使用）
             layoutManager.delegate = self
-            textStorage.addLayoutManager(layoutManager)
         }
+
+        // scrollViewとpagesViewを即座に表示
+        if let scrollView = scrollView1, let pagesView = pagesView1 {
+            scrollView.needsLayout = true
+            scrollView.layoutSubtreeIfNeeded()
+            pagesView.needsDisplay = true
+            pagesView.displayIfNeeded()
+        }
+        if let scrollView = scrollView2, let pagesView = pagesView2 {
+            scrollView.needsLayout = true
+            scrollView.layoutSubtreeIfNeeded()
+            pagesView.needsDisplay = true
+            pagesView.displayIfNeeded()
+        }
+
+        // ウィンドウを更新
+        self.window?.displayIfNeeded()
+
+        // UIを更新してから、レイアウトを開始（遅延実行）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) { [weak self] in
+            guard let self = self else { return }
+
+            // layoutManager1にTextStorageを追加
+            if let layoutManager = self.layoutManager1 {
+                textStorage.addLayoutManager(layoutManager)
+
+                // 最初のページのレイアウトを即座に実行
+                if let firstContainer = self.textContainers1.first {
+                    layoutManager.ensureLayout(for: firstContainer)
+                }
+            }
+
+            // layoutManager2にTextStorageを追加（スプリット時のみ）
+            if let layoutManager = self.layoutManager2 {
+                textStorage.addLayoutManager(layoutManager)
+
+                // 最初のページのレイアウトを即座に実行
+                if let firstContainer = self.textContainers2.first {
+                    layoutManager.ensureLayout(for: firstContainer)
+                }
+            }
+        }
+    }
+
+    /// 指定された数のページを一度に作成
+    private func createAllPages(count: Int, for layoutManager: NSLayoutManager, in scrollView: NSScrollView, target: ScrollViewTarget) {
+        let startTime = CFAbsoluteTimeGetCurrent()
+
+        var textContainers: [NSTextContainer] = []
+        var textViews: [NSTextView] = []
+        let pagesView: MultiplePageView?
+
+        switch target {
+        case .scrollView1:
+            pagesView = pagesView1
+        case .scrollView2:
+            pagesView = pagesView2
+        }
+
+        guard let pagesView = pagesView else { return }
+
+        let textContainerSize = pagesView.documentSizeInPage
+
+        // すべてのページを一度に作成
+        for pageIndex in 0..<count {
+            // TextContainerを作成
+            let textContainer = NSTextContainer(containerSize: textContainerSize)
+            textContainer.widthTracksTextView = false
+            textContainer.heightTracksTextView = false
+
+            // LayoutManagerにTextContainerを追加
+            layoutManager.addTextContainer(textContainer)
+
+            // TextViewを作成
+            let documentRect = pagesView.documentRect(forPageNumber: pageIndex)
+            let textView = NSTextView(frame: documentRect, textContainer: textContainer)
+            textView.isEditable = true
+            textView.isSelectable = true
+            textView.allowsUndo = true
+            textView.isHorizontallyResizable = false
+            textView.isVerticallyResizable = false
+            textView.autoresizingMask = []
+            textView.textContainerInset = NSSize(width: 0, height: 0)
+            textView.backgroundColor = .white
+            textView.minSize = NSSize(width: 0, height: 0)
+            textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            textView.usesInspectorBar = isInspectorBarVisible
+
+            textContainers.append(textContainer)
+            textViews.append(textView)
+            pagesView.addSubview(textView)
+        }
+
+        // ページ数を設定
+        pagesView.setNumberOfPages(count)
+
+        // 配列をプロパティに保存
+        switch target {
+        case .scrollView1:
+            textContainers1 = textContainers
+            textViews1 = textViews
+        case .scrollView2:
+            textContainers2 = textContainers
+            textViews2 = textViews
+        }
+
+        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+        let targetName = target == .scrollView1 ? "SV1" : "SV2"
+        // print("[\(targetName)] created \(count) pages in \(String(format: "%.3f", elapsed))s")
     }
 
     // MARK: - Zoom Actions
@@ -477,11 +616,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // MARK: - Display Mode Actions
 
+    // 大きなファイルの警告しきい値（文字数）
+    private let largeFileThreshold = 50000
+
     @IBAction func toggleDisplayMode(_ sender: Any?) {
         // モードを切り替え
         switch displayMode {
         case .continuous:
-            displayMode = .page
+            // ページモードへの切り替え時は警告チェック
+            switchToPageModeWithWarning()
+            return
         case .page:
             displayMode = .continuous
         }
@@ -500,10 +644,37 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     @IBAction func switchToPageMode(_ sender: Any?) {
+        switchToPageModeWithWarning()
+    }
+
+    private func switchToPageModeWithWarning() {
+        guard let textDocument = self.textDocument else { return }
+
+        // アラートは不要になった（パフォーマンス改善により）
+        // let textLength = textDocument.textStorage.length
+        // if textLength > largeFileThreshold {
+        //     let estimatedPages = max(1, textLength / 1000)
+        //     let alert = NSAlert()
+        //     alert.messageText = "大きなファイルです"
+        //     alert.informativeText = "このファイルは \(textLength.formatted()) 文字あります（推定 \(estimatedPages) ページ）。\n\nページモードでの表示に時間がかかり、処理中はアプリが応答しなくなります。\n\n続行しますか？"
+        //     alert.alertStyle = .warning
+        //     alert.addButton(withTitle: "キャンセル")
+        //     alert.addButton(withTitle: "続ける")
+        //     let response = alert.runModal()
+        //     if response == .alertSecondButtonReturn {
+        //         displayMode = .page
+        //         DispatchQueue.main.async { [weak self] in
+        //             guard let self = self, let textDocument = self.textDocument else { return }
+        //             self.setupTextViews(with: textDocument.textStorage)
+        //         }
+        //     }
+        // } else {
+        //     displayMode = .page
+        //     setupTextViews(with: textDocument.textStorage)
+        // }
+
         displayMode = .page
-        if let textDocument = self.textDocument {
-            setupTextViews(with: textDocument.textStorage)
-        }
+        setupTextViews(with: textDocument.textStorage)
     }
 
     // MARK: - Line Number Actions
@@ -650,56 +821,29 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         case scrollView2
     }
 
-    private func createHeaderView(for pageIndex: Int, yOffset: CGFloat) -> NSView {
-        let headerView = NSView(frame: NSRect(x: pageMargin, y: yOffset + 10, width: pageWidth - (pageMargin * 2), height: headerHeight))
-
-        // ファイル名を表示
-        let fileName = textDocument?.displayName ?? "Untitled"
-        let label = NSTextField(labelWithString: fileName)
-        label.frame = NSRect(x: 0, y: 0, width: headerView.bounds.width, height: headerHeight)
-        label.alignment = .center
-        label.font = NSFont.systemFont(ofSize: 10)
-        label.textColor = .secondaryLabelColor
-
-        headerView.addSubview(label)
-        return headerView
-    }
-
-    private func createFooterView(for pageIndex: Int, totalPages: Int, yOffset: CGFloat) -> NSView {
-        let footerView = NSView(frame: NSRect(x: pageMargin, y: yOffset + pageHeight - footerHeight - 10, width: pageWidth - (pageMargin * 2), height: footerHeight))
-
-        // ページ番号を表示
-        let pageNumberText = "\(pageIndex + 1) / \(totalPages)"
-        let label = NSTextField(labelWithString: pageNumberText)
-        label.frame = NSRect(x: 0, y: 0, width: footerView.bounds.width, height: footerHeight)
-        label.alignment = .center
-        label.font = NSFont.systemFont(ofSize: 10)
-        label.textColor = .secondaryLabelColor
-
-        footerView.addSubview(label)
-        return footerView
-    }
+    private var lastPageTime: CFAbsoluteTime = 0
 
     private func addPage(to layoutManager: NSLayoutManager, in scrollView: NSScrollView, for target: ScrollViewTarget) {
+        let startTime = CFAbsoluteTimeGetCurrent()
+
         var textContainers: [NSTextContainer]
         var textViews: [NSTextView]
-        var containerView: FlippedContainerView?
+        var pagesView: MultiplePageView?
 
         switch target {
         case .scrollView1:
             textContainers = textContainers1
             textViews = textViews1
-            containerView = containerView1
+            pagesView = pagesView1
         case .scrollView2:
             textContainers = textContainers2
             textViews = textViews2
-            containerView = containerView2
+            pagesView = pagesView2
         }
 
-        let textContainerSize = NSSize(
-            width: pageWidth - (pageMargin * 2),
-            height: pageHeight - (pageMargin * 2)
-        )
+        guard let pagesView = pagesView else { return }
+
+        let textContainerSize = pagesView.documentSizeInPage
 
         // 新しいTextContainerを作成
         let textContainer = NSTextContainer(containerSize: textContainerSize)
@@ -711,15 +855,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // 新しいTextViewを作成
         let pageIndex = textContainers.count
-        let yOffset = CGFloat(pageIndex) * (pageHeight + pageSpacing)
-        let frame = NSRect(
-            x: pageMargin,
-            y: yOffset + pageMargin,
-            width: pageWidth - (pageMargin * 2),
-            height: pageHeight - (pageMargin * 2)
-        )
+        let documentRect = pagesView.documentRect(forPageNumber: pageIndex)
 
-        let textView = NSTextView(frame: frame, textContainer: textContainer)
+        let textView = NSTextView(frame: documentRect, textContainer: textContainer)
         textView.isEditable = true
         textView.isSelectable = true
         textView.allowsUndo = true
@@ -736,6 +874,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textContainers.append(textContainer)
         textViews.append(textView)
 
+        // pagesViewにTextViewを追加
+        pagesView.addSubview(textView)
+
+        // ページ数を更新（これでpagesViewのフレームも更新される）
+        pagesView.setNumberOfPages(textContainers.count)
+
+        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
+        lastPageTime = CFAbsoluteTimeGetCurrent()
+        let targetName = target == .scrollView1 ? "SV1" : "SV2"
+        // print("[\(targetName)] added page: \(pageIndex + 1), size: \(Int(textContainerSize.width))x\(Int(textContainerSize.height)), time: \(String(format: "%.3f", elapsed))s")
+
         // 配列をプロパティに戻す
         switch target {
         case .scrollView1:
@@ -745,32 +894,25 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textContainers2 = textContainers
             textViews2 = textViews
         }
-
-        // ContainerViewに新しいページを追加（常に非同期で実行）
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if let containerView = containerView {
-                // 総ページ数を取得
-                let totalPages = textViews.count
-                self.addPageToContainerView(containerView, textView: textView, at: pageIndex, totalPages: totalPages)
-            } else {
-                self.createContainerView(in: scrollView, with: textViews, for: target)
-            }
-        }
     }
 
     private func removeExcessPages(from layoutManager: NSLayoutManager, in scrollView: NSScrollView, for target: ScrollViewTarget) {
         var textContainers: [NSTextContainer]
         var textViews: [NSTextView]
+        var pagesView: MultiplePageView?
 
         switch target {
         case .scrollView1:
             textContainers = textContainers1
             textViews = textViews1
+            pagesView = pagesView1
         case .scrollView2:
             textContainers = textContainers2
             textViews = textViews2
+            pagesView = pagesView2
         }
+
+        guard let pagesView = pagesView else { return }
 
         // 最初のページは保持し、空のページのインデックスを収集（逆順で削除するため）
         var indicesToRemove: [Int] = []
@@ -787,6 +929,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 逆順で削除（インデックスのずれを防ぐ）
         for index in indicesToRemove.reversed() {
             let container = textContainers[index]
+            let textView = textViews[index]
+
+            // TextViewをpagesViewから削除
+            textView.removeFromSuperview()
 
             // layoutManagerから削除（layoutManager内のインデックスを見つける）
             if let layoutManagerIndex = layoutManager.textContainers.firstIndex(of: container) {
@@ -798,6 +944,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textViews.remove(at: index)
         }
 
+        // ページ数を更新
+        if !indicesToRemove.isEmpty {
+            pagesView.setNumberOfPages(textContainers.count)
+        }
+
         // 配列をプロパティに戻す
         switch target {
         case .scrollView1:
@@ -807,118 +958,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textContainers2 = textContainers
             textViews2 = textViews
         }
-
-        // DocumentViewを更新（非同期で実行）
-        if !indicesToRemove.isEmpty {
-            // containerViewを再構築
-            let viewsCopy = textViews
-            DispatchQueue.main.async { [weak self] in
-                self?.createContainerView(in: scrollView, with: viewsCopy, for: target)
-            }
-        }
     }
 
-    private func addPageToContainerView(_ containerView: FlippedContainerView, textView: NSTextView, at pageIndex: Int, totalPages: Int) {
-        // スクロール位置を保存
-        let scrollView = containerView.enclosingScrollView
-        let savedScrollPosition = scrollView?.documentVisibleRect.origin
-
-        // 既存のサブビューのコピーを作成
-        let existingSubviews = Array(containerView.subviews)
-
-        // すべてのサブビューを削除
-        for subview in existingSubviews {
-            subview.removeFromSuperview()
-        }
-
-        let yOffset = CGFloat(pageIndex) * (pageHeight + pageSpacing)
-
-        // ページの背景ビュー
-        let pageBackgroundView = NSView(frame: NSRect(x: 0, y: yOffset, width: pageWidth, height: pageHeight))
-        pageBackgroundView.wantsLayer = true
-        pageBackgroundView.layer?.backgroundColor = NSColor.white.cgColor
-        pageBackgroundView.layer?.borderColor = NSColor.gray.cgColor
-        pageBackgroundView.layer?.borderWidth = 1.0
-        pageBackgroundView.layer?.shadowColor = NSColor.black.cgColor
-        pageBackgroundView.layer?.shadowOpacity = 0.3
-        pageBackgroundView.layer?.shadowOffset = NSSize(width: 0, height: -2)
-        pageBackgroundView.layer?.shadowRadius = 4.0
-
-        // ヘッダーを作成
-        let headerView = createHeaderView(for: pageIndex, yOffset: yOffset)
-
-        // フッターを作成
-        let footerView = createFooterView(for: pageIndex, totalPages: totalPages, yOffset: yOffset)
-
-        // すべてのサブビューを再追加
-        for subview in existingSubviews {
-            containerView.addSubview(subview)
-        }
-        containerView.addSubview(pageBackgroundView)
-        containerView.addSubview(headerView)
-        containerView.addSubview(footerView)
-        containerView.addSubview(textView)
-
-        // containerViewのサイズを更新
-        let totalHeight = CGFloat(pageIndex + 1) * (pageHeight + pageSpacing)
-        containerView.frame.size.height = totalHeight
-
-        // スクロール位置を復元
-        if let savedPosition = savedScrollPosition {
-            scrollView?.documentView?.scroll(savedPosition)
-        }
-    }
-
-    private func createContainerView(in scrollView: NSScrollView, with textViews: [NSTextView], for target: ScrollViewTarget) {
-        // スクロール位置を保存
-        let savedScrollPosition = scrollView.documentVisibleRect.origin
-
-        // すべてのページを含むコンテナビューを作成
-        let totalHeight = CGFloat(textViews.count) * (pageHeight + pageSpacing)
-        let containerView = FlippedContainerView(frame: NSRect(x: 0, y: 0, width: pageWidth, height: totalHeight))
-        containerView.wantsLayer = true
-        containerView.layer?.backgroundColor = NSColor.lightGray.cgColor
-
-        // 各ページビューを追加
-        for (index, textView) in textViews.enumerated() {
-            let yOffset = CGFloat(index) * (pageHeight + pageSpacing)
-
-            // ページの背景ビュー
-            let pageBackgroundView = NSView(frame: NSRect(x: 0, y: yOffset, width: pageWidth, height: pageHeight))
-            pageBackgroundView.wantsLayer = true
-            pageBackgroundView.layer?.backgroundColor = NSColor.white.cgColor
-            pageBackgroundView.layer?.borderColor = NSColor.gray.cgColor
-            pageBackgroundView.layer?.borderWidth = 1.0
-            pageBackgroundView.layer?.shadowColor = NSColor.black.cgColor
-            pageBackgroundView.layer?.shadowOpacity = 0.3
-            pageBackgroundView.layer?.shadowOffset = NSSize(width: 0, height: -2)
-            pageBackgroundView.layer?.shadowRadius = 4.0
-
-            // ヘッダーを作成
-            let headerView = createHeaderView(for: index, yOffset: yOffset)
-
-            // フッターを作成
-            let footerView = createFooterView(for: index, totalPages: textViews.count, yOffset: yOffset)
-
-            containerView.addSubview(pageBackgroundView)
-            containerView.addSubview(headerView)
-            containerView.addSubview(footerView)
-            containerView.addSubview(textView)
-        }
-
-        scrollView.documentView = containerView
-
-        // containerViewをプロパティに保存
-        switch target {
-        case .scrollView1:
-            containerView1 = containerView
-        case .scrollView2:
-            containerView2 = containerView
-        }
-
-        // スクロール位置を復元
-        scrollView.documentView?.scroll(savedScrollPosition)
-    }
 
     // MARK: - Text View Size Management
 
@@ -988,6 +1029,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if menuItem.action == #selector(toggleInspectorBar(_:)) {
             menuItem.title = isInspectorBarVisible ? "Hide Inspector Bar" : "Show Inspector Bar"
         }
+        if menuItem.action == #selector(toggleDisplayMode(_:)) {
+            menuItem.title = displayMode == .continuous ? "Wrap to Page" : "Wrap to Window"
+        }
+        if menuItem.action == #selector(toggleSplitView(_:)) {
+            let isSplitViewVisible = splitView?.subviews.count ?? 0 > 1 && !(splitView?.subviews[1].isHidden ?? true)
+            menuItem.title = isSplitViewVisible ? "Collapse Views" : "Split View"
+        }
         return true
     }
 
@@ -1012,6 +1060,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // MARK: - NSLayoutManagerDelegate
 
+    // ページ追加中の再入防止フラグ
+    private var isAddingPage1: Bool = false
+    private var isAddingPage2: Bool = false
+
+    // ページ追加カウンタ（定期的なUI更新用）
+    private var pageAddCount1: Int = 0
+    private var pageAddCount2: Int = 0
+    private let pageAddBatchSize: Int = 1  // このページ数ごとにUIを更新（毎ページ）
+
     func layoutManager(_ layoutManager: NSLayoutManager, didCompleteLayoutFor textContainer: NSTextContainer?, atEnd layoutFinishedFlag: Bool) {
         // どのscrollViewに対応するlayoutManagerかを判定
         var target: ScrollViewTarget?
@@ -1030,28 +1087,42 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             return
         }
 
+        // 再入防止チェック
+        let isAddingPage = target == .scrollView1 ? isAddingPage1 : isAddingPage2
+        guard !isAddingPage else { return }
+
         // 現在のコンテナ数を取得（毎回最新の値を参照）
         let currentContainers = target == .scrollView1 ? textContainers1 : textContainers2
 
-        // 処理を非同期で実行
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
+        // textContainerがnilでない場合のみ処理
+        if let textContainer = textContainer {
+            let isLastContainer = currentContainers.isEmpty || textContainer == currentContainers.last
 
-            // textContainerがnilでない場合のみ処理
-            if let textContainer = textContainer {
-                let isLastContainer = currentContainers.isEmpty || textContainer == currentContainers.last
+            // 最後のコンテナでレイアウトが完了していない場合、新しいページを追加
+            // （事前に推定ページ数を作成しているので、ここに来るのは稀）
+            if isLastContainer && !layoutFinishedFlag {
+                // 再入防止フラグをセット
+                if target == .scrollView1 {
+                    isAddingPage1 = true
+                } else {
+                    isAddingPage2 = true
+                }
 
-                // コンテナが空か、最後のコンテナで、レイアウトが完了していない場合
-                if isLastContainer && !layoutFinishedFlag {
-                    // 新しいページを追加
-                    self.addPage(to: layoutManager, in: scrollView, for: target)
+                // 追加ページが必要（推定が少なかった場合）
+                addPage(to: layoutManager, in: scrollView, for: target)
+
+                // 再入防止フラグをクリア
+                if target == .scrollView1 {
+                    isAddingPage1 = false
+                } else {
+                    isAddingPage2 = false
                 }
             }
+        }
 
-            // レイアウトが完了した場合、余分なページを削除
-            if layoutFinishedFlag {
-                self.removeExcessPages(from: layoutManager, in: scrollView, for: target)
-            }
+        // レイアウトが完了した場合、余分なページを削除
+        if layoutFinishedFlag {
+            removeExcessPages(from: layoutManager, in: scrollView, for: target)
         }
     }
 }
