@@ -19,16 +19,28 @@ class MultiplePageView: NSView {
     var pageMargin: CGFloat = 72.0  // 1インチ
     var pageSeparatorHeight: CGFloat = 20.0
 
-    var lineColor: NSColor = .gray
-    var marginColor: NSColor = .white
-    var backgroundColor: NSColor = .lightGray
+    // プレーンテキストかどうか（ダークモード対応の判定用）
+    var isPlainText: Bool = true
+
+    // 色はプレーンテキストの場合のみダークモード対応
+    var lineColor: NSColor {
+        isPlainText ? .separatorColor : .gray
+    }
+    var marginColor: NSColor {
+        isPlainText ? .textBackgroundColor : .white
+    }
+    var backgroundColor: NSColor {
+        isPlainText ? .underPageBackgroundColor : .lightGray
+    }
 
     // ヘッダー・フッター
     var documentName: String = ""
     var showHeader: Bool = true
     var showFooter: Bool = true
     private let headerFooterFont = NSFont.systemFont(ofSize: 10)
-    private let headerFooterColor = NSColor.darkGray
+    private var headerFooterColor: NSColor {
+        isPlainText ? .secondaryLabelColor : .darkGray
+    }
 
     // MARK: - Initialization
 
@@ -50,6 +62,13 @@ class MultiplePageView: NSView {
 
     override var isOpaque: Bool {
         return true
+    }
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        // アピアランスが変わったら再描画
+        // TextViewの色はEditorWindowControllerで管理（プレーンテキストのみ変更）
+        needsDisplay = true
     }
 
     // MARK: - Page Management
@@ -145,15 +164,15 @@ class MultiplePageView: NSView {
 
             // ページの影を描画（ページを浮き上がらせて見せる）
             let shadowRect = pageRect.offsetBy(dx: 3, dy: 3)
-            NSColor.darkGray.withAlphaComponent(0.3).setFill()
+            NSColor.shadowColor.withAlphaComponent(0.3).setFill()
             shadowRect.fill()
 
-            // ページの白い背景
+            // ページの背景
             marginColor.setFill()
             pageRect.fill()
 
             // ページの境界線
-            NSColor.darkGray.setStroke()
+            NSColor.separatorColor.setStroke()
             pageRect.frame(withWidth: 0.5)
 
             // ドキュメント領域の境界線

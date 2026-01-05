@@ -59,6 +59,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // NotificationCenter observers
     private var textViewObservers: [Any] = []
 
+    deinit {
+        // KVO observerを解除
+        if let contentView = self.window?.contentView {
+            contentView.removeObserver(self, forKeyPath: "effectiveAppearance")
+        }
+        // NotificationCenter observerを解除
+        NotificationCenter.default.removeObserver(self)
+    }
+
     // MARK: - Window Lifecycle
 
     override func windowDidLoad() {
@@ -92,8 +101,85 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             object: nil
         )
 
+        // アピアランス変更を監視
+        if let window = self.window {
+            window.contentView?.addObserver(self, forKeyPath: "effectiveAppearance", options: [.new], context: nil)
+        }
+
         // TextStorageを設定
         setupTextStorage()
+    }
+
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        if keyPath == "effectiveAppearance" {
+            // メインスレッドで即座に実行
+            if Thread.isMainThread {
+                updateTextColorForAppearance()
+            } else {
+                DispatchQueue.main.async { [weak self] in
+                    self?.updateTextColorForAppearance()
+                }
+            }
+        } else {
+            super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
+        }
+    }
+
+    private func updateTextColorForAppearance() {
+        let isPlainText = textDocument?.documentType == .plain
+
+        // プレーンテキストの場合のみ文字色を変更
+        if isPlainText, let textStorage = textDocument?.textStorage {
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            if fullRange.length > 0 {
+                textStorage.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
+            }
+        }
+
+        // 背景色を更新（プレーンテキストはシステムカラー、リッチテキストは白固定）
+        switch displayMode {
+        case .continuous:
+            if let scrollView = scrollView1,
+               let textView = scrollView.documentView as? NSTextView {
+                if isPlainText {
+                    textView.backgroundColor = .textBackgroundColor
+                    textView.textColor = .textColor
+                    scrollView.backgroundColor = .textBackgroundColor
+                } else {
+                    textView.backgroundColor = .white
+                    scrollView.backgroundColor = .white
+                }
+            }
+            if let scrollView = scrollView2,
+               !scrollView.isHidden,
+               let textView = scrollView.documentView as? NSTextView {
+                if isPlainText {
+                    textView.backgroundColor = .textBackgroundColor
+                    textView.textColor = .textColor
+                    scrollView.backgroundColor = .textBackgroundColor
+                } else {
+                    textView.backgroundColor = .white
+                    scrollView.backgroundColor = .white
+                }
+            }
+        case .page:
+            for textView in textViews1 {
+                if isPlainText {
+                    textView.backgroundColor = .textBackgroundColor
+                    textView.textColor = .textColor
+                } else {
+                    textView.backgroundColor = .white
+                }
+            }
+            for textView in textViews2 {
+                if isPlainText {
+                    textView.backgroundColor = .textBackgroundColor
+                    textView.textColor = .textColor
+                } else {
+                    textView.backgroundColor = .white
+                }
+            }
+        }
     }
 
     @objc private func documentTypeDidChange(_ notification: Notification) {
@@ -107,6 +193,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             isInspectorBarVisible = (document.documentType != .plain)
             updateInspectorBarVisibility()
         }
+
+        // ドキュメント読み込み後にアピアランスに応じた色を適用
+        // （プレーンテキストをダークモードで開いた場合に文字色を設定）
+        updateTextColorForAppearance()
     }
 
     @objc private func rulerThicknessDidChange(_ notification: Notification) {
@@ -260,6 +350,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            // ダークモード対応（プレーンテキストのみ）
+            // リッチテキストは白背景固定（文字色はユーザー設定を保持）
+            if textDocument?.documentType == .plain {
+                textView.backgroundColor = .textBackgroundColor
+                textView.textColor = .textColor
+                scrollView.backgroundColor = .textBackgroundColor
+            } else {
+                textView.backgroundColor = .white
+                scrollView.backgroundColor = .white
+            }
 
             // ScrollViewに設定
             scrollView.documentView = textView
@@ -344,6 +444,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            // ダークモード対応（プレーンテキストのみ）
+            // リッチテキストは白背景固定（文字色はユーザー設定を保持）
+            if textDocument?.documentType == .plain {
+                textView.backgroundColor = .textBackgroundColor
+                textView.textColor = .textColor
+                scrollView.backgroundColor = .textBackgroundColor
+            } else {
+                textView.backgroundColor = .white
+                scrollView.backgroundColor = .white
+            }
 
             // ScrollViewに設定
             scrollView.documentView = textView
@@ -385,15 +495,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let visibleSubviews = splitView.subviews.filter { !$0.isHidden }
         let numberOfViews = visibleSubviews.count
 
-        // ページ追加カウンタをリセット
-        pageAddCount1 = 0
-        pageAddCount2 = 0
-
         // 推定ページ数を計算（1ページあたりの文字数を概算）
-        let textLength = textStorage.length
-        let charsPerPage = 1000  // 概算値
-        let estimatedPages = max(1, (textLength + charsPerPage - 1) / charsPerPage)
-        // print("Estimated pages: \(estimatedPages) for \(textLength) characters")
+        let charsPerPage = 1000
+        let estimatedPages = max(1, (textStorage.length + charsPerPage - 1) / charsPerPage)
 
         // 必要な数のLayoutManagerを作成
         var layoutManagers: [NSLayoutManager] = []
@@ -417,6 +521,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.pageMargin = pageMargin
             pagesView.pageSeparatorHeight = pageSpacing
             pagesView.documentName = textDocument?.displayName ?? ""
+            pagesView.isPlainText = textDocument?.documentType == .plain
             scrollView.documentView = pagesView
             pagesView1 = pagesView
 
@@ -445,6 +550,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.pageMargin = pageMargin
             pagesView.pageSeparatorHeight = pageSpacing
             pagesView.documentName = textDocument?.displayName ?? ""
+            pagesView.isPlainText = textDocument?.documentType == .plain
             scrollView.documentView = pagesView
             pagesView2 = pagesView
 
@@ -505,8 +611,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// 指定された数のページを一度に作成
     private func createAllPages(count: Int, for layoutManager: NSLayoutManager, in scrollView: NSScrollView, target: ScrollViewTarget) {
-        let startTime = CFAbsoluteTimeGetCurrent()
-
         var textContainers: [NSTextContainer] = []
         var textViews: [NSTextView] = []
         let pagesView: MultiplePageView?
@@ -542,7 +646,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.isVerticallyResizable = false
             textView.autoresizingMask = []
             textView.textContainerInset = NSSize(width: 0, height: 0)
-            textView.backgroundColor = .white
+            // ダークモード対応（プレーンテキストのみ）
+            // リッチテキストは白背景固定（文字色はユーザー設定を保持）
+            if textDocument?.documentType == .plain {
+                textView.backgroundColor = .textBackgroundColor
+                textView.textColor = .textColor
+            } else {
+                textView.backgroundColor = .white
+            }
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             textView.usesInspectorBar = isInspectorBarVisible
@@ -564,10 +675,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textContainers2 = textContainers
             textViews2 = textViews
         }
-
-        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-        let targetName = target == .scrollView1 ? "SV1" : "SV2"
-        // print("[\(targetName)] created \(count) pages in \(String(format: "%.3f", elapsed))s")
     }
 
     // MARK: - Zoom Actions
@@ -616,9 +723,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // MARK: - Display Mode Actions
 
-    // 大きなファイルの警告しきい値（文字数）
-    private let largeFileThreshold = 50000
-
     @IBAction func toggleDisplayMode(_ sender: Any?) {
         // モードを切り替え
         switch displayMode {
@@ -649,30 +753,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     private func switchToPageModeWithWarning() {
         guard let textDocument = self.textDocument else { return }
-
-        // アラートは不要になった（パフォーマンス改善により）
-        // let textLength = textDocument.textStorage.length
-        // if textLength > largeFileThreshold {
-        //     let estimatedPages = max(1, textLength / 1000)
-        //     let alert = NSAlert()
-        //     alert.messageText = "大きなファイルです"
-        //     alert.informativeText = "このファイルは \(textLength.formatted()) 文字あります（推定 \(estimatedPages) ページ）。\n\nページモードでの表示に時間がかかり、処理中はアプリが応答しなくなります。\n\n続行しますか？"
-        //     alert.alertStyle = .warning
-        //     alert.addButton(withTitle: "キャンセル")
-        //     alert.addButton(withTitle: "続ける")
-        //     let response = alert.runModal()
-        //     if response == .alertSecondButtonReturn {
-        //         displayMode = .page
-        //         DispatchQueue.main.async { [weak self] in
-        //             guard let self = self, let textDocument = self.textDocument else { return }
-        //             self.setupTextViews(with: textDocument.textStorage)
-        //         }
-        //     }
-        // } else {
-        //     displayMode = .page
-        //     setupTextViews(with: textDocument.textStorage)
-        // }
-
         displayMode = .page
         setupTextViews(with: textDocument.textStorage)
     }
@@ -821,10 +901,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         case scrollView2
     }
 
-    private var lastPageTime: CFAbsoluteTime = 0
-
     private func addPage(to layoutManager: NSLayoutManager, in scrollView: NSScrollView, for target: ScrollViewTarget) {
-        let startTime = CFAbsoluteTimeGetCurrent()
 
         var textContainers: [NSTextContainer]
         var textViews: [NSTextView]
@@ -865,7 +942,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.isVerticallyResizable = false
         textView.autoresizingMask = []
         textView.textContainerInset = NSSize(width: 0, height: 0)
-        textView.backgroundColor = .white
+        // ダークモード対応（プレーンテキストのみ）
+        // リッチテキストは白背景固定（文字色はユーザー設定を保持）
+        if textDocument?.documentType == .plain {
+            textView.backgroundColor = .textBackgroundColor
+            textView.textColor = .textColor
+        } else {
+            textView.backgroundColor = .white
+        }
         textView.minSize = NSSize(width: 0, height: 0)
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.usesInspectorBar = isInspectorBarVisible
@@ -879,11 +963,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // ページ数を更新（これでpagesViewのフレームも更新される）
         pagesView.setNumberOfPages(textContainers.count)
-
-        let elapsed = CFAbsoluteTimeGetCurrent() - startTime
-        lastPageTime = CFAbsoluteTimeGetCurrent()
-        let targetName = target == .scrollView1 ? "SV1" : "SV2"
-        // print("[\(targetName)] added page: \(pageIndex + 1), size: \(Int(textContainerSize.width))x\(Int(textContainerSize.height)), time: \(String(format: "%.3f", elapsed))s")
 
         // 配列をプロパティに戻す
         switch target {
@@ -1063,11 +1142,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // ページ追加中の再入防止フラグ
     private var isAddingPage1: Bool = false
     private var isAddingPage2: Bool = false
-
-    // ページ追加カウンタ（定期的なUI更新用）
-    private var pageAddCount1: Int = 0
-    private var pageAddCount2: Int = 0
-    private let pageAddBatchSize: Int = 1  // このページ数ごとにUIを更新（毎ページ）
 
     func layoutManager(_ layoutManager: NSLayoutManager, didCompleteLayoutFor textContainer: NSTextContainer?, atEnd layoutFinishedFlag: Bool) {
         // どのscrollViewに対応するlayoutManagerかを判定
