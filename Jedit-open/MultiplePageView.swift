@@ -22,6 +22,16 @@ class MultiplePageView: NSView {
     // プレーンテキストかどうか（ダークモード対応の判定用）
     var isPlainText: Bool = true
 
+    // 行番号表示モード
+    var lineNumberMode: LineNumberMode = .none {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    // 行番号描画用のtextViews参照
+    weak var layoutManager: NSLayoutManager?
+
     // 色はプレーンテキストの場合のみダークモード対応
     var lineColor: NSColor {
         isPlainText ? .separatorColor : .gray
@@ -189,6 +199,11 @@ class MultiplePageView: NSView {
             if showFooter {
                 drawFooter(forPageNumber: pageNum, in: pageRect, docRect: docRect)
             }
+
+            // 行番号を描画
+            if lineNumberMode != .none {
+                drawLineNumbers(forPageNumber: pageNum, in: pageRect, docRect: docRect)
+            }
         }
     }
 
@@ -226,5 +241,156 @@ class MultiplePageView: NSView {
         let footerX = pageRect.midX - footerSize.width / 2
 
         footerString.draw(at: NSPoint(x: footerX, y: footerY), withAttributes: attributes)
+    }
+
+    // MARK: - Line Number Drawing
+
+    private let lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
+    private var lineNumberColor: NSColor {
+        isPlainText ? .secondaryLabelColor : .darkGray
+    }
+    private let lineNumberRightMargin: CGFloat = 8.0
+
+    private func drawLineNumbers(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
+        guard let layoutManager = layoutManager,
+              pageNumber < layoutManager.textContainers.count else { return }
+
+        let textContainer = layoutManager.textContainers[pageNumber]
+        let glyphRange = layoutManager.glyphRange(for: textContainer)
+
+        guard glyphRange.length > 0 else { return }
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: lineNumberFont,
+            .foregroundColor: lineNumberColor
+        ]
+
+        // 前のページまでの行数/パラグラフ数をカウント
+        var startingNumber = 1
+
+        switch lineNumberMode {
+        case .none:
+            return
+
+        case .paragraph:
+            // 前のページまでのパラグラフ数をカウント
+            if pageNumber > 0, let textStorage = layoutManager.textStorage {
+                var paragraphCount = 0
+                for i in 0..<pageNumber {
+                    let container = layoutManager.textContainers[i]
+                    let containerGlyphRange = layoutManager.glyphRange(for: container)
+                    if containerGlyphRange.length > 0 {
+                        let charRange = layoutManager.characterRange(forGlyphRange: containerGlyphRange, actualGlyphRange: nil)
+                        if charRange.length > 0 {
+                            let rangeEnd = min(charRange.location + charRange.length, textStorage.length)
+                            let searchRange = NSRange(location: 0, length: rangeEnd)
+                            if let stringRange = Range(searchRange, in: textStorage.string) {
+                                textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { _, _, _, _ in
+                                    paragraphCount += 1
+                                }
+                            }
+                        }
+                    }
+                }
+                startingNumber = paragraphCount + 1
+            }
+
+            // このページのパラグラフ番号を描画
+            drawParagraphNumbers(for: textContainer, layoutManager: layoutManager,
+                                 startingNumber: startingNumber, pageRect: pageRect,
+                                 docRect: docRect, attributes: attributes)
+
+        case .row:
+            // 前のページまでの行数をカウント
+            if pageNumber > 0 {
+                for i in 0..<pageNumber {
+                    let container = layoutManager.textContainers[i]
+                    let containerGlyphRange = layoutManager.glyphRange(for: container)
+                    layoutManager.enumerateLineFragments(forGlyphRange: containerGlyphRange) { _, _, _, _, _ in
+                        startingNumber += 1
+                    }
+                }
+            }
+
+            // このページの行番号を描画
+            drawRowNumbers(for: textContainer, layoutManager: layoutManager,
+                          startingNumber: startingNumber, pageRect: pageRect,
+                          docRect: docRect, attributes: attributes)
+        }
+    }
+
+    private func drawParagraphNumbers(for textContainer: NSTextContainer, layoutManager: NSLayoutManager,
+                                       startingNumber: Int, pageRect: NSRect, docRect: NSRect,
+                                       attributes: [NSAttributedString.Key: Any]) {
+        guard let textStorage = layoutManager.textStorage else { return }
+
+        let glyphRange = layoutManager.glyphRange(for: textContainer)
+        let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+
+        guard charRange.length > 0 else { return }
+
+        // このページの最初の文字位置からパラグラフ番号を計算
+        var currentParagraphNumber = startingNumber
+
+        // 前のパラグラフと同じパラグラフから始まっているかチェック
+        if charRange.location > 0 {
+            let prevCharIndex = charRange.location - 1
+            let prevChar = (textStorage.string as NSString).character(at: prevCharIndex)
+            if prevChar != 0x0A && prevChar != 0x0D {  // 改行でない場合、前のパラグラフの続き
+                currentParagraphNumber -= 1
+            }
+        }
+
+        var drawnParagraphs = Set<Int>()
+        let searchRange = NSRange(location: charRange.location, length: charRange.length)
+
+        if let stringRange = Range(searchRange, in: textStorage.string) {
+            textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (_, substringRange, _, _) in
+                currentParagraphNumber += 1
+
+                let nsRange = NSRange(substringRange, in: textStorage.string)
+                let paragraphGlyphRange = layoutManager.glyphRange(forCharacterRange: nsRange, actualCharacterRange: nil)
+
+                // 最初の行フラグメントの位置を取得
+                var firstLineRect = NSRect.zero
+                layoutManager.enumerateLineFragments(forGlyphRange: paragraphGlyphRange) { rect, _, _, _, stop in
+                    firstLineRect = rect
+                    stop.pointee = true
+                }
+
+                if !firstLineRect.isEmpty && !drawnParagraphs.contains(currentParagraphNumber) {
+                    let numberString = "\(currentParagraphNumber)" as NSString
+                    let size = numberString.size(withAttributes: attributes)
+
+                    // 左マージン内に右寄せで描画
+                    let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
+                    let yPosition = docRect.minY + firstLineRect.minY
+
+                    numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
+                    drawnParagraphs.insert(currentParagraphNumber)
+                }
+            }
+        }
+    }
+
+    private func drawRowNumbers(for textContainer: NSTextContainer, layoutManager: NSLayoutManager,
+                                startingNumber: Int, pageRect: NSRect, docRect: NSRect,
+                                attributes: [NSAttributedString.Key: Any]) {
+        let glyphRange = layoutManager.glyphRange(for: textContainer)
+        guard glyphRange.length > 0 else { return }
+
+        var rowNumber = startingNumber
+
+        layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rect, usedRect, container, glyphRange, stop) in
+            let numberString = "\(rowNumber)" as NSString
+            let size = numberString.size(withAttributes: attributes)
+
+            // 左マージン内に右寄せで描画
+            let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
+            let yPosition = docRect.minY + rect.minY
+
+            numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
+            rowNumber += 1
+        }
     }
 }

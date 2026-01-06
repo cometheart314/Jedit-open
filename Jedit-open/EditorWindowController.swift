@@ -522,6 +522,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.pageSeparatorHeight = pageSpacing
             pagesView.documentName = textDocument?.displayName ?? ""
             pagesView.isPlainText = textDocument?.documentType == .plain
+            pagesView.lineNumberMode = lineNumberMode
+            pagesView.layoutManager = layoutManager
             scrollView.documentView = pagesView
             pagesView1 = pagesView
 
@@ -551,6 +553,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.pageSeparatorHeight = pageSpacing
             pagesView.documentName = textDocument?.displayName ?? ""
             pagesView.isPlainText = textDocument?.documentType == .plain
+            pagesView.lineNumberMode = lineNumberMode
+            pagesView.layoutManager = layoutManager
             scrollView.documentView = pagesView
             pagesView2 = pagesView
 
@@ -595,6 +599,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 if let firstContainer = self.textContainers1.first {
                     layoutManager.ensureLayout(for: firstContainer)
                 }
+
+                // 行番号表示のため再描画
+                self.pagesView1?.needsDisplay = true
             }
 
             // layoutManager2にTextStorageを追加（スプリット時のみ）
@@ -605,6 +612,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 if let firstContainer = self.textContainers2.first {
                     layoutManager.ensureLayout(for: firstContainer)
                 }
+
+                // 行番号表示のため再描画
+                self.pagesView2?.needsDisplay = true
             }
         }
     }
@@ -792,20 +802,25 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     private func updateLineNumberDisplay() {
-        // 通常モードの場合のみ行番号を更新
-        guard displayMode == .continuous else { return }
+        switch displayMode {
+        case .continuous:
+            // scrollView1の行番号を更新
+            if let scrollView = scrollView1,
+               let textView = scrollView.documentView as? NSTextView {
+                updateRulerView(for: scrollView, textView: textView, rulerRef: &rulerView1)
+            }
 
-        // scrollView1の行番号を更新
-        if let scrollView = scrollView1,
-           let textView = scrollView.documentView as? NSTextView {
-            updateRulerView(for: scrollView, textView: textView, rulerRef: &rulerView1)
-        }
+            // scrollView2の行番号を更新（splitViewが表示されている場合）
+            if let scrollView = scrollView2,
+               !scrollView.isHidden,
+               let textView = scrollView.documentView as? NSTextView {
+                updateRulerView(for: scrollView, textView: textView, rulerRef: &rulerView2)
+            }
 
-        // scrollView2の行番号を更新（splitViewが表示されている場合）
-        if let scrollView = scrollView2,
-           !scrollView.isHidden,
-           let textView = scrollView.documentView as? NSTextView {
-            updateRulerView(for: scrollView, textView: textView, rulerRef: &rulerView2)
+        case .page:
+            // ページモードではpagesViewの行番号モードを更新
+            pagesView1?.lineNumberMode = lineNumberMode
+            pagesView2?.lineNumberMode = lineNumberMode
         }
     }
 
@@ -1115,6 +1130,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let isSplitViewVisible = splitView?.subviews.count ?? 0 > 1 && !(splitView?.subviews[1].isHidden ?? true)
             menuItem.title = isSplitViewVisible ? "Collapse Views" : "Split View"
         }
+        
+        // Line number menu items validation
+        if menuItem.action == #selector(hideLineNumbers(_:)) {
+            menuItem.state = lineNumberMode == .none ? .on : .off
+        }
+        if menuItem.action == #selector(showParagraphNumbers(_:)) {
+            menuItem.state = lineNumberMode == .paragraph ? .on : .off
+        }
+        if menuItem.action == #selector(showRowNumbers(_:)) {
+            menuItem.state = lineNumberMode == .row ? .on : .off
+        }
+        
         return true
     }
 
