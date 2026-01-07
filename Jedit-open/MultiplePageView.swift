@@ -344,8 +344,6 @@ class MultiplePageView: NSView {
 
         if let stringRange = Range(searchRange, in: textStorage.string) {
             textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (_, substringRange, _, _) in
-                currentParagraphNumber += 1
-
                 let nsRange = NSRange(substringRange, in: textStorage.string)
                 let paragraphGlyphRange = layoutManager.glyphRange(forCharacterRange: nsRange, actualCharacterRange: nil)
 
@@ -367,6 +365,8 @@ class MultiplePageView: NSView {
                     numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
                     drawnParagraphs.insert(currentParagraphNumber)
                 }
+
+                currentParagraphNumber += 1
             }
         }
     }
