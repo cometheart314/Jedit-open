@@ -17,8 +17,8 @@
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <window title="Window" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" animationBehavior="default" id="xOd-HO-29H" userLabel="Window">
             <windowStyleMask key="styleMask" titled="YES" closable="YES" miniaturizable="YES" resizable="YES"/>
-            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
-            <rect key="contentRect" x="133" y="235" width="507" height="413"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES"/>
+            <rect key="contentRect" x="238" y="824" width="507" height="413"/>
             <rect key="screenRect" x="0.0" y="0.0" width="3440" height="1410"/>
             <value key="minSize" type="size" width="94" height="86"/>
             <view key="contentView" id="gIp-Ho-8D9">
@@ -32,23 +32,27 @@
                                 <rect key="frame" x="0.0" y="0.0" width="507" height="153"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <subviews>
-                                    <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lMX-3n-ttY" customClass="ScalingScrollView" customModule="Jedit_open" customModuleProvider="target">
+                                    <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="YES" hasVerticalScroller="YES" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="lMX-3n-ttY" customClass="ScalingScrollView" customModule="Jedit_open" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="0.0" width="507" height="153"/>
                                         <clipView key="contentView" drawsBackground="NO" id="4dV-Gs-1Nq">
-                                            <rect key="frame" x="0.0" y="0.0" width="507" height="153"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="507" height="137"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView wantsLayer="YES" importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" layoutManager="textKit1" id="cUZ-BQ-h50">
-                                                    <rect key="frame" x="0.0" y="0.0" width="507" height="153"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="507" height="137"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES"/>
                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="507" height="153"/>
+                                                    <size key="minSize" width="507" height="137"/>
                                                     <size key="maxSize" width="10000000" height="10000000"/>
                                                 </textView>
                                             </subviews>
                                         </clipView>
-                                        <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="ixb-y3-4Ug">
-                                            <rect key="frame" x="492" y="0.0" width="15" height="153"/>
+                                        <scroller key="horizontalScroller" verticalHuggingPriority="750" horizontal="YES" id="hSc-1n-ttY">
+                                            <rect key="frame" x="0.0" y="122" width="492" height="15"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                        </scroller>
+                                        <scroller key="verticalScroller" verticalHuggingPriority="750" horizontal="NO" id="ixb-y3-4Ug">
+                                            <rect key="frame" x="492" y="0.0" width="15" height="137"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                     </scrollView>
@@ -64,24 +68,28 @@
                                 <rect key="frame" x="0.0" y="163" width="507" height="250"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <subviews>
-                                    <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5UR-a6-Mue" customClass="ScalingScrollView" customModule="Jedit_open" customModuleProvider="target">
+                                    <scrollView borderType="none" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="YES" hasVerticalScroller="YES" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5UR-a6-Mue" customClass="ScalingScrollView" customModule="Jedit_open" customModuleProvider="target">
                                         <rect key="frame" x="0.0" y="0.0" width="507" height="250"/>
                                         <clipView key="contentView" drawsBackground="NO" id="AQL-Vz-akm">
-                                            <rect key="frame" x="0.0" y="0.0" width="507" height="250"/>
+                                            <rect key="frame" x="0.0" y="0.0" width="507" height="234"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView wantsLayer="YES" importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" layoutManager="textKit1" id="8wq-Jr-Jhy">
-                                                    <rect key="frame" x="0.0" y="0.0" width="507" height="250"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="507" height="234"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES"/>
                                                     <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="507" height="250"/>
+                                                    <size key="minSize" width="507" height="234"/>
                                                     <size key="maxSize" width="10000000" height="10000000"/>
                                                 </textView>
                                             </subviews>
                                         </clipView>
-                                        <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="Cbo-DY-baK">
-                                            <rect key="frame" x="492" y="0.0" width="15" height="250"/>
+                                        <scroller key="horizontalScroller" verticalHuggingPriority="750" horizontal="YES" id="hSc-2n-ttY">
+                                            <rect key="frame" x="0.0" y="219" width="492" height="15"/>
+                                            <autoresizingMask key="autoresizingMask"/>
+                                        </scroller>
+                                        <scroller key="verticalScroller" verticalHuggingPriority="750" horizontal="NO" id="Cbo-DY-baK">
+                                            <rect key="frame" x="492" y="0.0" width="15" height="234"/>
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                     </scrollView>
@@ -122,7 +130,7 @@
                     <toolbarItem reference="DGZ-F0-Tth"/>
                 </defaultToolbarItems>
             </toolbar>
-            <point key="canvasLocation" x="-100" y="5"/>
+            <point key="canvasLocation" x="-100.5" y="4.5"/>
         </window>
     </objects>
 </document>

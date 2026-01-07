@@ -32,22 +32,8 @@ class ScalingScrollView: NSScrollView {
     }
 
     // MARK: - Layout
-
-    override func tile() {
-        super.tile()
-        // tile()後にclipViewの自動リサイズを無効にして、textViewのサイズが勝手に変更されないようにする
-        contentView.autoresizesSubviews = false
-    }
-
-    override func layout() {
-        super.layout()
-        updateTextContainerSize()
-    }
-
-    override func setFrameSize(_ newSize: NSSize) {
-        super.setFrameSize(newSize)
-        updateTextContainerSize()
-    }
+    // Note: tile(), layout(), setFrameSize()はオーバーライドしない
+    // テキストビューのサイズ更新はEditorWindowControllerで管理
 
     // MARK: - Zoom Methods
 
@@ -86,31 +72,19 @@ class ScalingScrollView: NSScrollView {
             return
         }
 
-        // scrollViewのフレーム幅から利用可能な幅を計算
-        var availableWidth = frame.width
-
-        // ルーラーの幅を引く
-        if hasVerticalRuler, rulersVisible, let rulerView = verticalRulerView {
-            availableWidth -= rulerView.ruleThickness
-        }
-
-        // 垂直スクローラーの幅を引く
-        if hasVerticalScroller, let scroller = verticalScroller, !scroller.isHidden {
-            availableWidth -= scroller.frame.width
-        }
-
-        // 拡大率を考慮
+        // ズーム後のサイズを計算
+        var availableWidth = contentView.frame.width
         availableWidth = availableWidth / magnification
 
-        // containerInsetを考慮してTextContainerの幅を計算
-        let inset = textView.textContainerInset
-        let containerWidth = availableWidth - inset.width * 2
+        // textContainerのサイズを更新（widthTracksTextView = falseなので手動で更新）
+        let containerInset = textView.textContainerInset
+        let containerWidth = availableWidth - (containerInset.width * 2)
+        if containerWidth > 0 {
+            textContainer.containerSize = NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude)
+        }
 
-        // TextContainerの幅を更新
-        textContainer.containerSize = NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude)
-
-        // TextViewのサイズを更新
-        textView.frame.size.width = availableWidth
+        // textViewのフレームを更新
+        textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
     }
 }
 

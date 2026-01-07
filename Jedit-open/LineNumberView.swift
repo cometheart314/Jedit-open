@@ -1,5 +1,5 @@
 //
-//  LineNumberRulerView.swift
+//  LineNumberView.swift
 //  Jedit-open
 //
 //  Created by 松本慧 on 2025/12/26.
@@ -15,69 +15,123 @@ enum LineNumberMode {
     case row         // 行番号（折り返しを含む）
 }
 
-// MARK: - Line Number Ruler View
+// MARK: - Line Number View
 
-class LineNumberRulerView: NSRulerView {
+class LineNumberView: NSView {
     var lineNumberMode: LineNumberMode = .none {
         didSet {
-            updateRuleThicknessAsync()
+            updateWidthAsync()
             needsDisplay = true
         }
     }
 
-    weak var textView: NSTextView?
-    private let minimumThickness: CGFloat = 40.0
-    private let rightMargin: CGFloat = 5.0
-    private let leftMargin: CGFloat = 5.0
-    private var updateWorkItem: DispatchWorkItem?
-
-    init(scrollView: NSScrollView, textView: NSTextView?) {
-        self.textView = textView
-        super.init(scrollView: scrollView, orientation: .verticalRuler)
-        self.clientView = textView
-        self.ruleThickness = minimumThickness
-
-        // macOSのNSRulerViewのバグ回避: clipsToBoundsを設定
-        self.clipsToBounds = true
-
-        // テキスト変更時にルーラーの幅を再計算
-        if let textView = textView {
-            NotificationCenter.default.addObserver(self, selector: #selector(textDidChange), name: NSText.didChangeNotification, object: textView)
-        }
-
-        // 初期表示時にもルーラーの幅を計算
-        DispatchQueue.main.async { [weak self] in
-            self?.updateRuleThicknessAsync()
+    weak var textView: NSTextView? {
+        didSet {
+            setupScrollObserver()
         }
     }
 
-    required init(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
+    weak var scrollView: NSScrollView?
+
+    private let minimumWidth: CGFloat = 40.0
+    private let rightMargin: CGFloat = 5.0
+    private let leftMargin: CGFloat = 5.0
+    private var updateWorkItem: DispatchWorkItem?
+    private var scrollObserver: Any?
+    private var textChangeObserver: Any?
+
+    // 幅変更通知
+    static let widthDidChangeNotification = Notification.Name("LineNumberViewWidthDidChange")
+
+    // 現在の幅
+    private(set) var currentWidth: CGFloat = 40.0
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        commonInit()
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        commonInit()
+    }
+
+    private func commonInit() {
+        self.clipsToBounds = true
+        self.currentWidth = minimumWidth
+    }
+
+    // 座標系を上から下に設定（NSTextViewと同じ）
+    override var isFlipped: Bool {
+        return true
     }
 
     deinit {
         updateWorkItem?.cancel()
-        NotificationCenter.default.removeObserver(self)
+        if let observer = scrollObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
+        if let observer = textChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
-    @objc private func textDidChange(_ notification: Notification) {
-        // デバウンス: 連続した変更を防ぐため、前のタスクをキャンセル
+    private func setupScrollObserver() {
+        // 既存のobserverを削除
+        if let observer = scrollObserver {
+            NotificationCenter.default.removeObserver(observer)
+            scrollObserver = nil
+        }
+        if let observer = textChangeObserver {
+            NotificationCenter.default.removeObserver(observer)
+            textChangeObserver = nil
+        }
+
+        guard let textView = textView,
+              let scrollView = textView.enclosingScrollView else { return }
+
+        self.scrollView = scrollView
+
+        // スクロール時に再描画
+        scrollObserver = NotificationCenter.default.addObserver(
+            forName: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView,
+            queue: .main
+        ) { [weak self] _ in
+            self?.needsDisplay = true
+        }
+
+        // テキスト変更時に幅を再計算
+        textChangeObserver = NotificationCenter.default.addObserver(
+            forName: NSText.didChangeNotification,
+            object: textView,
+            queue: .main
+        ) { [weak self] _ in
+            self?.debounceUpdateWidth()
+        }
+
+        // 初期幅を計算
+        DispatchQueue.main.async { [weak self] in
+            self?.updateWidthAsync()
+        }
+    }
+
+    private func debounceUpdateWidth() {
         updateWorkItem?.cancel()
 
         let workItem = DispatchWorkItem { [weak self] in
-            self?.updateRuleThicknessAsync()
+            self?.updateWidthAsync()
         }
         updateWorkItem = workItem
 
-        // 0.3秒後に実行（タイピング中の連続更新を防ぐ）
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
     }
 
-    private func updateRuleThicknessAsync() {
+    private func updateWidthAsync() {
         guard lineNumberMode != .none,
               let textView = textView,
               let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
+              textView.textContainer != nil else {
             return
         }
 
@@ -89,7 +143,6 @@ class LineNumberRulerView: NSRulerView {
             break
 
         case .paragraph:
-            // パラグラフ数のカウントはバックグラウンドで実行可能（文字列のみを使用）
             let textString = textStorage.string
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
                 guard let self = self else { return }
@@ -99,15 +152,12 @@ class LineNumberRulerView: NSRulerView {
                     maxLineNumber += 1
                 }
 
-                // UIの更新はメインスレッドで実行
                 DispatchQueue.main.async { [weak self] in
-                    self?.applyRuleThickness(for: maxLineNumber)
+                    self?.applyWidth(for: maxLineNumber)
                 }
             }
 
         case .row:
-            // LayoutManagerへのアクセスはメインスレッドでのみ可能
-            // 非同期で実行してUIをブロックしないようにする
             DispatchQueue.main.async { [weak self] in
                 guard let self = self,
                       let textView = self.textView,
@@ -122,61 +172,53 @@ class LineNumberRulerView: NSRulerView {
                     maxLineNumber += 1
                 }
 
-                self.applyRuleThickness(for: maxLineNumber)
+                self.applyWidth(for: maxLineNumber)
             }
         }
     }
 
-    private func applyRuleThickness(for maxLineNumber: Int) {
-        // 最大行番号の幅を計算
+    private func applyWidth(for maxLineNumber: Int) {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 10)
         ]
         let numberString = "\(maxLineNumber)" as NSString
         let size = numberString.size(withAttributes: attributes)
 
-        // 必要な幅を計算（左マージン + 数字の幅 + 右マージン）
-        let requiredThickness = self.leftMargin + size.width + self.rightMargin
-        let newThickness = max(self.minimumThickness, requiredThickness)
+        let requiredWidth = self.leftMargin + size.width + self.rightMargin
+        let newWidth = max(self.minimumWidth, requiredWidth)
 
-        if abs(self.ruleThickness - newThickness) > 1.0 {
-            self.ruleThickness = newThickness
-            // スクロールビューのレイアウトを更新
-            if let scrollView = self.scrollView as? NSScrollView {
-                scrollView.tile()
-                // tile()の効果が反映された後に通知を送る（次のrunloop）
-                DispatchQueue.main.async {
-                    NotificationCenter.default.post(name: LineNumberRulerView.rulerThicknessDidChangeNotification, object: scrollView)
-                }
-            }
+        if abs(self.currentWidth - newWidth) > 1.0 {
+            self.currentWidth = newWidth
+
+            // 幅変更を通知
+            NotificationCenter.default.post(name: LineNumberView.widthDidChangeNotification, object: self)
         }
     }
 
-    // ルーラー幅変更通知
-    static let rulerThicknessDidChangeNotification = Notification.Name("LineNumberRulerViewThicknessDidChange")
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
 
-    override func drawHashMarksAndLabels(in rect: NSRect) {
-        // 背景を常に描画
+        // 背景を描画
         NSColor.controlBackgroundColor.setFill()
-        rect.fill()
-
-        guard lineNumberMode != .none,
-              let textView = textView,
-              let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
-            return
-        }
-
-        let textStorage = layoutManager.textStorage!
-        let visibleRect = self.convert(textView.visibleRect, from: textView)
+        dirtyRect.fill()
 
         // 右端に境界線を描画
         NSColor.separatorColor.setStroke()
         let borderPath = NSBezierPath()
-        borderPath.move(to: NSPoint(x: rect.maxX - 0.5, y: rect.minY))
-        borderPath.line(to: NSPoint(x: rect.maxX - 0.5, y: rect.maxY))
+        borderPath.move(to: NSPoint(x: bounds.maxX - 0.5, y: bounds.minY))
+        borderPath.line(to: NSPoint(x: bounds.maxX - 0.5, y: bounds.maxY))
         borderPath.lineWidth = 1.0
         borderPath.stroke()
+
+        guard lineNumberMode != .none,
+              let textView = textView,
+              let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer,
+              let scrollView = scrollView else {
+            return
+        }
+
+        let textStorage = layoutManager.textStorage!
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 10),
@@ -187,12 +229,14 @@ class LineNumberRulerView: NSRulerView {
         let textViewVisibleRect = textView.visibleRect
         let glyphRange = layoutManager.glyphRange(forBoundingRect: textViewVisibleRect, in: textContainer)
 
+        // スクロールオフセットを取得
+        let contentBounds = scrollView.contentView.bounds
+
         switch lineNumberMode {
         case .none:
             break
 
         case .paragraph:
-            // パラグラフ番号を表示
             let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
 
             var paragraphNumber = 0
@@ -211,21 +255,16 @@ class LineNumberRulerView: NSRulerView {
                     let rectInContainer = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
                     // textContainerの座標をtextViewの座標に変換
-                    let rectInTextView = NSRect(
-                        x: rectInContainer.minX + textView.textContainerInset.width,
-                        y: rectInContainer.minY + textView.textContainerInset.height,
-                        width: rectInContainer.width,
-                        height: rectInContainer.height
-                    )
+                    let yInTextView = rectInContainer.minY + textView.textContainerInset.height
 
-                    // textViewの座標をrulerViewの座標に変換
-                    let rectInRuler = self.convert(rectInTextView, from: textView)
+                    // スクロールオフセットを考慮して行番号ビューのY座標を計算
+                    let yInLineNumberView = yInTextView - contentBounds.origin.y
 
-                    if rectInRuler.minY >= rect.minY && rectInRuler.minY <= rect.maxY && !drawnParagraphs.contains(paragraphNumber) {
+                    if yInLineNumberView >= dirtyRect.minY - 20 && yInLineNumberView <= dirtyRect.maxY + 20 && !drawnParagraphs.contains(paragraphNumber) {
                         let numberString = "\(paragraphNumber)" as NSString
                         let size = numberString.size(withAttributes: attributes)
-                        let xPosition = self.ruleThickness - size.width - self.rightMargin
-                        let drawPoint = NSPoint(x: xPosition, y: rectInRuler.minY)
+                        let xPosition = self.currentWidth - size.width - self.rightMargin
+                        let drawPoint = NSPoint(x: xPosition, y: yInLineNumberView)
                         numberString.draw(at: drawPoint, withAttributes: attributes)
                         drawnParagraphs.insert(paragraphNumber)
                     }
@@ -233,7 +272,6 @@ class LineNumberRulerView: NSRulerView {
             }
 
         case .row:
-            // 行番号（折り返しを含む）を表示
             var rowNumber = 0
 
             // 可視範囲の前の行数を計算
@@ -245,20 +283,15 @@ class LineNumberRulerView: NSRulerView {
                 rowNumber += 1
 
                 // textContainerの座標をtextViewの座標に変換
-                let rectInTextView = NSRect(
-                    x: rectInContainer.minX + textView.textContainerInset.width,
-                    y: rectInContainer.minY + textView.textContainerInset.height,
-                    width: rectInContainer.width,
-                    height: rectInContainer.height
-                )
+                let yInTextView = rectInContainer.minY + textView.textContainerInset.height
 
-                // textViewの座標をrulerViewの座標に変換
-                let rectInRuler = self.convert(rectInTextView, from: textView)
+                // スクロールオフセットを考慮して行番号ビューのY座標を計算
+                let yInLineNumberView = yInTextView - contentBounds.origin.y
 
                 let numberString = "\(rowNumber)" as NSString
                 let size = numberString.size(withAttributes: attributes)
-                let xPosition = self.ruleThickness - size.width - self.rightMargin
-                let drawPoint = NSPoint(x: xPosition, y: rectInRuler.minY)
+                let xPosition = self.currentWidth - size.width - self.rightMargin
+                let drawPoint = NSPoint(x: xPosition, y: yInLineNumberView)
                 numberString.draw(at: drawPoint, withAttributes: attributes)
             }
         }

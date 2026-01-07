@@ -56,12 +56,10 @@ class MultiplePageView: NSView {
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        wantsLayer = true
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        wantsLayer = true
     }
 
     // MARK: - View Properties
@@ -216,7 +214,7 @@ class MultiplePageView: NSView {
         ]
 
         let headerString = documentName as NSString
-        let headerSize = headerString.size(withAttributes: attributes)
+        _ = headerString.size(withAttributes: attributes)
 
         // ヘッダーはページ上部マージン内に左寄せ
         let headerY = pageRect.minY + 20  // ページ上端から20ポイント下

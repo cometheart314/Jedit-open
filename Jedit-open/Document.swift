@@ -98,7 +98,7 @@ class Document: NSDocument {
         } else {
             // RTFまたはRTFDの場合はNSAttributedStringを使用
             let range = NSRange(location: 0, length: textStorage.length)
-            var options: [NSAttributedString.DocumentAttributeKey: Any] = [
+            let options: [NSAttributedString.DocumentAttributeKey: Any] = [
                 .documentType: docType
             ]
 
@@ -135,14 +135,14 @@ class Document: NSDocument {
             }
 
             // メインアクターで実行
-            Task { @MainActor in
+            MainActor.assumeIsolated {
                 self.documentType = .plain
                 self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
                 NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
             }
         } else {
             // RTFまたはRTFDの場合はNSAttributedStringを使用
-            var options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
                 .documentType: docType
             ]
 
@@ -150,7 +150,7 @@ class Document: NSDocument {
                 let attributedString = try NSAttributedString(data: data, options: options, documentAttributes: nil)
 
                 // メインアクターで実行
-                Task { @MainActor in
+                MainActor.assumeIsolated {
                     self.documentType = docType
                     self.textStorage.setAttributedString(attributedString)
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)

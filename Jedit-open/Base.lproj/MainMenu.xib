@@ -361,6 +361,12 @@
                                     <action selector="toggleInspectorBar:" target="-1" id="Insp-Bar-Act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Show Ruler" id="lO1-BW-Z4B">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showHideTextRuler:" target="-1" id="cbP-WA-fcT"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Line Number" id="Nlv-wI-OK1">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Line Number" id="NUT-yc-BrG">
@@ -665,7 +671,7 @@
                                         <menuItem title="Show Ruler" id="vLm-3I-IUL">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
-                                                <action selector="toggleRuler:" target="-1" id="FOx-HJ-KwY"/>
+                                                <action selector="showHideTextRuler:" target="-1" id="FOx-HJ-KwY"/>
                                             </connections>
                                         </menuItem>
                                         <menuItem title="Copy Ruler" keyEquivalent="c" id="MkV-Pr-PK5">
