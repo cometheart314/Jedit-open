@@ -11,15 +11,15 @@
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
-        <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="Jedit_open" customModuleProvider="target"/>
+        <customObject id="Voe-Tx-rLC" customClass="AppDelegate" customModule="Jedit" customModuleProvider="target"/>
         <customObject id="YLy-65-1bz" customClass="NSFontManager"/>
         <menu title="Main Menu" systemMenu="main" id="AYu-sK-qS6">
             <items>
-                <menuItem title="Jedit-open" id="1Xt-HY-uBw">
+                <menuItem title="Jedit" id="1Xt-HY-uBw">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="Jedit-open" systemMenu="apple" id="uQy-DD-JDr">
+                    <menu key="submenu" title="Jedit" systemMenu="apple" id="uQy-DD-JDr">
                         <items>
-                            <menuItem title="About Jedit-open" id="5kV-Vb-QxS">
+                            <menuItem title="About Jedit" id="5kV-Vb-QxS">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="orderFrontStandardAboutPanel:" target="-1" id="Exp-CZ-Vem"/>
@@ -392,6 +392,68 @@
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem title="Show Invisibles" id="inv-ch-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Show Invisibles" id="inv-ch-sub">
+                                    <items>
+                                        <menuItem title="Show All" id="inv-all-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleAllInvisibleCharacters:" target="-1" id="inv-all-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem isSeparatorItem="YES" id="inv-sep-001"/>
+                                        <menuItem title="↩ Return" id="inv-ret-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowReturnCharacter:" target="-1" id="inv-ret-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="▸ Tab" id="inv-tab-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowTabCharacter:" target="-1" id="inv-tab-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="· Space" id="inv-spc-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowSpaceCharacter:" target="-1" id="inv-spc-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="◯ Full-width Space" id="inv-fws-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowFullWidthSpaceCharacter:" target="-1" id="inv-fws-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="↓ Line Separator" id="inv-ls-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowLineSeparator:" target="-1" id="inv-ls-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="° Non-breaking Space" id="inv-nbs-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowNonBreakingSpace:" target="-1" id="inv-nbs-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="╍ Page Break" id="inv-pb-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowPageBreak:" target="-1" id="inv-pb-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="⇣ Vertical Tab" id="inv-vt-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleShowVerticalTab:" target="-1" id="inv-vt-act"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="hB4-LF-h1Z"/>
                             <menuItem title="Toggle Split View" keyEquivalent="d" id="tSV-m1-9aM">
                                 <connections>
@@ -730,7 +792,7 @@
                     </menu>
                 </menuItem>
             </items>
-            <point key="canvasLocation" x="140" y="154"/>
+            <point key="canvasLocation" x="558" y="-3"/>
         </menu>
     </objects>
 </document>

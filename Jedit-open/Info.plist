@@ -18,6 +18,8 @@
 			<string>$(PRODUCT_MODULE_NAME).Document</string>
 		</dict>
 	</array>
+	<key>CFBundleGetInfoString</key>
+	<string></string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
 	<key>UTImportedTypeDeclarations</key>

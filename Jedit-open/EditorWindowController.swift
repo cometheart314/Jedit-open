@@ -36,6 +36,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var isInspectorBarVisible: Bool = false  // Inspector Barの表示状態
     private var isInspectorBarInitialized: Bool = false  // Inspector Bar初期化済みフラグ
     private var isRulerVisible: Bool = false  // ルーラーの表示状態
+    private var invisibleCharacterOptions: InvisibleCharacterOptions = .none  // 不可視文字の表示オプション
 
     // 行番号ビュー
     private var lineNumberView1: LineNumberView?
@@ -332,10 +333,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let visibleSubviews = splitView.subviews.filter { !$0.isHidden }
         let numberOfViews = visibleSubviews.count
 
-        // 必要な数のLayoutManagerを作成
-        var layoutManagers: [NSLayoutManager] = []
+        // 必要な数のLayoutManagerを作成（不可視文字表示対応）
+        var layoutManagers: [InvisibleCharacterLayoutManager] = []
         for _ in 0..<numberOfViews {
-            let layoutManager = NSLayoutManager()
+            let layoutManager = InvisibleCharacterLayoutManager()
+            layoutManager.invisibleCharacterOptions = invisibleCharacterOptions
             textStorage.addLayoutManager(layoutManager)
             layoutManagers.append(layoutManager)
         }
@@ -539,10 +541,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let charsPerPage = 1000
         let estimatedPages = max(1, (textStorage.length + charsPerPage - 1) / charsPerPage)
 
-        // 必要な数のLayoutManagerを作成
-        var layoutManagers: [NSLayoutManager] = []
+        // 必要な数のLayoutManagerを作成（不可視文字表示対応）
+        var layoutManagers: [InvisibleCharacterLayoutManager] = []
         for _ in 0..<numberOfViews {
-            let layoutManager = NSLayoutManager()
+            let layoutManager = InvisibleCharacterLayoutManager()
+            layoutManager.invisibleCharacterOptions = invisibleCharacterOptions
             // 非連続レイアウトを有効にしてパフォーマンス向上
             layoutManager.allowsNonContiguousLayout = true
             layoutManagers.append(layoutManager)
@@ -959,6 +962,102 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    // MARK: - Invisible Character Actions
+
+    @IBAction func toggleAllInvisibleCharacters(_ sender: Any?) {
+        if invisibleCharacterOptions == .none {
+            // 1つもvisibleでない場合は全てオン
+            invisibleCharacterOptions = .all
+        } else {
+            // 1つでもvisibleの場合は全てオフ
+            invisibleCharacterOptions = .none
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowReturnCharacter(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.returnCharacter) {
+            invisibleCharacterOptions.remove(.returnCharacter)
+        } else {
+            invisibleCharacterOptions.insert(.returnCharacter)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowTabCharacter(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.tabCharacter) {
+            invisibleCharacterOptions.remove(.tabCharacter)
+        } else {
+            invisibleCharacterOptions.insert(.tabCharacter)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowSpaceCharacter(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.spaceCharacter) {
+            invisibleCharacterOptions.remove(.spaceCharacter)
+        } else {
+            invisibleCharacterOptions.insert(.spaceCharacter)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowFullWidthSpaceCharacter(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.fullWidthSpaceCharacter) {
+            invisibleCharacterOptions.remove(.fullWidthSpaceCharacter)
+        } else {
+            invisibleCharacterOptions.insert(.fullWidthSpaceCharacter)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowLineSeparator(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.lineSeparator) {
+            invisibleCharacterOptions.remove(.lineSeparator)
+        } else {
+            invisibleCharacterOptions.insert(.lineSeparator)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowNonBreakingSpace(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.nonBreakingSpace) {
+            invisibleCharacterOptions.remove(.nonBreakingSpace)
+        } else {
+            invisibleCharacterOptions.insert(.nonBreakingSpace)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowPageBreak(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.pageBreak) {
+            invisibleCharacterOptions.remove(.pageBreak)
+        } else {
+            invisibleCharacterOptions.insert(.pageBreak)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    @IBAction func toggleShowVerticalTab(_ sender: Any?) {
+        if invisibleCharacterOptions.contains(.verticalTab) {
+            invisibleCharacterOptions.remove(.verticalTab)
+        } else {
+            invisibleCharacterOptions.insert(.verticalTab)
+        }
+        updateInvisibleCharacterDisplay()
+    }
+
+    private func updateInvisibleCharacterDisplay() {
+        // textStorageに関連付けられた全てのLayoutManagerを更新
+        guard let textStorage = textDocument?.textStorage else { return }
+
+        for layoutManager in textStorage.layoutManagers {
+            if let invisibleLayoutManager = layoutManager as? InvisibleCharacterLayoutManager {
+                invisibleLayoutManager.invisibleCharacterOptions = invisibleCharacterOptions
+            }
+        }
+    }
+
     // MARK: - Inspector Bar Actions
 
     @IBAction func toggleInspectorBar(_ sender: Any?) {
@@ -1214,6 +1313,35 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if menuItem.action == #selector(showHideTextRuler(_:)) {
             menuItem.title = isRulerVisible ? "Hide Ruler" : "Show Ruler"
             menuItem.state = .off
+        }
+
+        // Invisible character menu items validation
+        if menuItem.action == #selector(toggleAllInvisibleCharacters(_:)) {
+            menuItem.title = invisibleCharacterOptions == .none ? "Show All" : "Hide All"
+        }
+        if menuItem.action == #selector(toggleShowReturnCharacter(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.returnCharacter) ? .on : .off
+        }
+        if menuItem.action == #selector(toggleShowTabCharacter(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.tabCharacter) ? .on : .off
+        }
+        if menuItem.action == #selector(toggleShowSpaceCharacter(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.spaceCharacter) ? .on : .off
+        }
+        if menuItem.action == #selector(toggleShowFullWidthSpaceCharacter(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.fullWidthSpaceCharacter) ? .on : .off
+        }
+        if menuItem.action == #selector(toggleShowLineSeparator(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.lineSeparator) ? .on : .off
+        }
+        if menuItem.action == #selector(toggleShowNonBreakingSpace(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.nonBreakingSpace) ? .on : .off
+        }
+        if menuItem.action == #selector(toggleShowPageBreak(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.pageBreak) ? .on : .off
+        }
+        if menuItem.action == #selector(toggleShowVerticalTab(_:)) {
+            menuItem.state = invisibleCharacterOptions.contains(.verticalTab) ? .on : .off
         }
 
         return true

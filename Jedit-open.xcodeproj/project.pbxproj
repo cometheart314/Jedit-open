@@ -24,7 +24,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		742FD7BC2EFD3DCA00DF5696 /* Jedit-open.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Jedit-open.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		742FD7BC2EFD3DCA00DF5696 /* Jedit.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Jedit.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		742FD7D02EFD3DCB00DF5696 /* Jedit-openTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Jedit-openTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		742FD7DA2EFD3DCB00DF5696 /* Jedit-openUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Jedit-openUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -98,7 +98,7 @@
 		742FD7BD2EFD3DCA00DF5696 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				742FD7BC2EFD3DCA00DF5696 /* Jedit-open.app */,
+				742FD7BC2EFD3DCA00DF5696 /* Jedit.app */,
 				742FD7D02EFD3DCB00DF5696 /* Jedit-openTests.xctest */,
 				742FD7DA2EFD3DCB00DF5696 /* Jedit-openUITests.xctest */,
 			);
@@ -127,7 +127,7 @@
 			packageProductDependencies = (
 			);
 			productName = "Jedit-open";
-			productReference = 742FD7BC2EFD3DCA00DF5696 /* Jedit-open.app */;
+			productReference = 742FD7BC2EFD3DCA00DF5696 /* Jedit.app */;
 			productType = "com.apple.product-type.application";
 		};
 		742FD7CF2EFD3DCB00DF5696 /* Jedit-openTests */ = {
@@ -297,6 +297,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Jedit-open/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainNibFile = MainMenu;
@@ -307,7 +308,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-open";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Jedit;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -333,6 +334,7 @@
 				ENABLE_USER_SELECTED_FILES = readwrite;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "Jedit-open/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "$(PRODUCT_NAME)";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMainNibFile = MainMenu;
@@ -343,7 +345,7 @@
 				);
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-open";
-				PRODUCT_NAME = "$(TARGET_NAME)";
+				PRODUCT_NAME = Jedit;
 				REGISTER_APP_GROUPS = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
