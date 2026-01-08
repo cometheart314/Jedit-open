@@ -455,10 +455,29 @@
                                 </menu>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="hB4-LF-h1Z"/>
-                            <menuItem title="Toggle Split View" keyEquivalent="d" id="tSV-m1-9aM">
-                                <connections>
-                                    <action selector="toggleSplitView:" target="-1" id="Y4m-dC-k9U"/>
-                                </connections>
+                            <menuItem title="Split View" id="tSV-m1-9aM">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Split View" id="spl-md-sub">
+                                    <items>
+                                        <menuItem title="□ No Split" id="spl-no-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setNoSplit:" target="-1" id="spl-no-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="⊟ Horizontal Split" id="spl-hz-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setHorizontalSplit:" target="-1" id="spl-hz-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="◫ Vertical Split" keyEquivalent="d" id="spl-vt-001">
+                                            <connections>
+                                                <action selector="setVerticalSplit:" target="-1" id="spl-vt-act"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
                             </menuItem>
                             <menuItem title="Toggle Page Mode" id="AMh-4W-66r">
                                 <modifierMask key="keyEquivalentModifierMask"/>

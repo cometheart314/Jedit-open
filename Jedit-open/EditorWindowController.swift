@@ -14,6 +14,14 @@ enum DisplayMode {
     case page        // ページモード（ページネーション）
 }
 
+// MARK: - Split Mode
+
+enum SplitMode {
+    case none        // スプリットなし
+    case horizontal  // 水平スプリット（上下に分割）
+    case vertical    // 垂直スプリット（左右に分割）
+}
+
 class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate, NSWindowDelegate, NSMenuItemValidation {
 
     // MARK: - IBOutlets
@@ -28,7 +36,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         return document as? Document
     }
 
-    private var isSplitViewCollapsed: Bool = false
+    private var splitMode: SplitMode = .none
 
     // 表示モード
     private var displayMode: DisplayMode = .continuous
@@ -92,7 +100,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 初期状態では2つ目のペインを非表示にする
         if let splitView = splitView, splitView.subviews.count > 1 {
             splitView.subviews[1].isHidden = true
-            isSplitViewCollapsed = true
+            splitMode = .none
         }
 
         // 行番号ビュー幅変更通知を監視
@@ -753,17 +761,46 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // MARK: - Split View Actions
 
     @IBAction func toggleSplitView(_ sender: Any?) {
+        // 現在のモードに応じてトグル
+        if splitMode == .none {
+            setSplitMode(.vertical)
+        } else {
+            setSplitMode(.none)
+        }
+    }
+
+    @IBAction func setNoSplit(_ sender: Any?) {
+        setSplitMode(.none)
+    }
+
+    @IBAction func setHorizontalSplit(_ sender: Any?) {
+        setSplitMode(.horizontal)
+    }
+
+    @IBAction func setVerticalSplit(_ sender: Any?) {
+        setSplitMode(.vertical)
+    }
+
+    private func setSplitMode(_ mode: SplitMode) {
         guard let splitView = splitView else { return }
 
-        isSplitViewCollapsed = !isSplitViewCollapsed
+        splitMode = mode
 
-        if isSplitViewCollapsed {
+        switch mode {
+        case .none:
             // 2つ目のペインを折りたたむ
             if splitView.subviews.count > 1 {
                 splitView.subviews[1].isHidden = true
             }
-        } else {
-            // 2つ目のペインを展開
+        case .horizontal:
+            // 水平スプリット（上下に分割）
+            splitView.isVertical = false
+            if splitView.subviews.count > 1 {
+                splitView.subviews[1].isHidden = false
+            }
+        case .vertical:
+            // 垂直スプリット（左右に分割）
+            splitView.isVertical = true
             if splitView.subviews.count > 1 {
                 splitView.subviews[1].isHidden = false
             }
@@ -1293,10 +1330,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             menuItem.title = displayMode == .continuous ? "Wrap to Page" : "Wrap to Window"
         }
         if menuItem.action == #selector(toggleSplitView(_:)) {
-            let isSplitViewVisible = splitView?.subviews.count ?? 0 > 1 && !(splitView?.subviews[1].isHidden ?? true)
-            menuItem.title = isSplitViewVisible ? "Collapse Views" : "Split View"
+            menuItem.title = splitMode != .none ? "Collapse Views" : "Split View"
         }
-        
+
+        // Split mode menu items validation
+        if menuItem.action == #selector(setNoSplit(_:)) {
+            menuItem.state = splitMode == .none ? .on : .off
+        }
+        if menuItem.action == #selector(setHorizontalSplit(_:)) {
+            menuItem.state = splitMode == .horizontal ? .on : .off
+        }
+        if menuItem.action == #selector(setVerticalSplit(_:)) {
+            menuItem.state = splitMode == .vertical ? .on : .off
+        }
+
         // Line number menu items validation
         if menuItem.action == #selector(hideLineNumbers(_:)) {
             menuItem.state = lineNumberMode == .none ? .on : .off
