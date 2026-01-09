@@ -45,6 +45,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var isInspectorBarInitialized: Bool = false  // Inspector Bar初期化済みフラグ
     private var isRulerVisible: Bool = false  // ルーラーの表示状態
     private var invisibleCharacterOptions: InvisibleCharacterOptions = .none  // 不可視文字の表示オプション
+    private var isVerticalLayout: Bool = false  // 縦書きレイアウト
 
     // 行番号ビュー
     private var lineNumberView1: LineNumberView?
@@ -106,8 +107,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 行番号ビュー幅変更通知を監視
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(lineNumberWidthDidChange(_:)),
+            selector: #selector(lineNumberSizeDidChange(_:)),
             name: LineNumberView.widthDidChangeNotification,
+            object: nil
+        )
+        // 行番号ビュー高さ変更通知を監視（縦書き時）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(lineNumberSizeDidChange(_:)),
+            name: LineNumberView.heightDidChangeNotification,
             object: nil
         )
 
@@ -217,15 +225,23 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         updateTextColorForAppearance()
     }
 
-    @objc private func lineNumberWidthDidChange(_ notification: Notification) {
-        // 行番号ビューの幅が変更されたら制約を更新
+    @objc private func lineNumberSizeDidChange(_ notification: Notification) {
+        // 行番号ビューのサイズが変更されたら制約を更新
         guard displayMode == .continuous else { return }
 
         if let lineNumberView = notification.object as? LineNumberView {
             if lineNumberView === lineNumberView1 {
-                lineNumberWidthConstraint1?.constant = lineNumberView.currentWidth
+                if isVerticalLayout {
+                    lineNumberWidthConstraint1?.constant = lineNumberView.currentHeight
+                } else {
+                    lineNumberWidthConstraint1?.constant = lineNumberView.currentWidth
+                }
             } else if lineNumberView === lineNumberView2 {
-                lineNumberWidthConstraint2?.constant = lineNumberView.currentWidth
+                if isVerticalLayout {
+                    lineNumberWidthConstraint2?.constant = lineNumberView.currentHeight
+                } else {
+                    lineNumberWidthConstraint2?.constant = lineNumberView.currentWidth
+                }
             }
         }
     }
@@ -357,14 +373,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 行番号ビューを設定
             setupLineNumberView(for: scrollView, lineNumberViewRef: &lineNumberView1, constraintRef: &lineNumberWidthConstraint1)
 
-            // contentViewの幅を基準に計算（ルーラー表示時も正しい幅が取得できる）
-            let availableWidth = scrollView.contentView.frame.width
-            let containerWidth = availableWidth - (containerInset.width * 2)
-
             // TextContainerを作成
             // widthTracksTextView = false で手動でサイズ管理
-            let textContainerWidth = containerWidth > 0 ? containerWidth : availableWidth
-            let textContainer = NSTextContainer(containerSize: NSSize(width: textContainerWidth, height: CGFloat.greatestFiniteMagnitude))
+            let textContainerSize: NSSize
+            if isVerticalLayout {
+                // 縦書き: 高さ（行の長さ）をウィンドウ高さに合わせる
+                let availableHeight = scrollView.contentView.frame.height
+                let containerHeight = availableHeight - (containerInset.height * 2)
+                textContainerSize = NSSize(width: containerHeight > 0 ? containerHeight : availableHeight, height: CGFloat.greatestFiniteMagnitude)
+            } else {
+                // 横書き: 幅（行の長さ）をウィンドウ幅に合わせる
+                let availableWidth = scrollView.contentView.frame.width
+                let containerWidth = availableWidth - (containerInset.width * 2)
+                textContainerSize = NSSize(width: containerWidth > 0 ? containerWidth : availableWidth, height: CGFloat.greatestFiniteMagnitude)
+            }
+            let textContainer = NSTextContainer(containerSize: textContainerSize)
             textContainer.widthTracksTextView = false
             textContainer.heightTracksTextView = false
             textContainer.lineFragmentPadding = 5.0
@@ -374,13 +397,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             layoutManager.addTextContainer(textContainer)
 
             // TextViewを作成
-            let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: scrollView.contentSize.height)
+            let availableWidth = scrollView.contentView.frame.width
+            let availableHeight = scrollView.contentView.frame.height
+            let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
             let textView = NSTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
-            textView.isHorizontallyResizable = false
-            textView.isVerticallyResizable = true
+            // 縦書き/横書きに応じてリサイズ方向を設定
+            textView.isHorizontallyResizable = isVerticalLayout
+            textView.isVerticallyResizable = !isVerticalLayout
             textView.autoresizingMask = []
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
@@ -401,9 +427,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // ScrollViewに設定
             scrollView.documentView = textView
-            scrollView.hasVerticalScroller = true
-            scrollView.hasHorizontalScroller = false  // ウィンドウモードでは水平スクロール不要（テキストは折り返す）
-            scrollView.autohidesScrollers = true
+            // 縦書き/横書きに応じてスクロールバーを設定
+            scrollView.hasVerticalScroller = !isVerticalLayout
+            scrollView.hasHorizontalScroller = isVerticalLayout
+            scrollView.autohidesScrollers = false  // スクロールバーを常に表示
+
+            // 縦書き/横書きレイアウトを適用
+            textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
 
             // lineNumberViewにtextViewを設定
             lineNumberView1?.textView = textView
@@ -428,14 +458,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 行番号ビューを設定
             setupLineNumberView(for: scrollView, lineNumberViewRef: &lineNumberView2, constraintRef: &lineNumberWidthConstraint2)
 
-            // contentViewの幅を基準に計算（ルーラー表示時も正しい幅が取得できる）
-            let availableWidth = scrollView.contentView.frame.width
-            let containerWidth = availableWidth - (containerInset.width * 2)
-
             // TextContainerを作成
             // widthTracksTextView = false で手動でサイズ管理
-            let textContainerWidth = containerWidth > 0 ? containerWidth : availableWidth
-            let textContainer = NSTextContainer(containerSize: NSSize(width: textContainerWidth, height: CGFloat.greatestFiniteMagnitude))
+            let textContainerSize: NSSize
+            if isVerticalLayout {
+                // 縦書き: 高さ（行の長さ）をウィンドウ高さに合わせる
+                let availableHeight = scrollView.contentView.frame.height
+                let containerHeight = availableHeight - (containerInset.height * 2)
+                textContainerSize = NSSize(width: containerHeight > 0 ? containerHeight : availableHeight, height: CGFloat.greatestFiniteMagnitude)
+            } else {
+                // 横書き: 幅（行の長さ）をウィンドウ幅に合わせる
+                let availableWidth = scrollView.contentView.frame.width
+                let containerWidth = availableWidth - (containerInset.width * 2)
+                textContainerSize = NSSize(width: containerWidth > 0 ? containerWidth : availableWidth, height: CGFloat.greatestFiniteMagnitude)
+            }
+            let textContainer = NSTextContainer(containerSize: textContainerSize)
             textContainer.widthTracksTextView = false
             textContainer.heightTracksTextView = false
             textContainer.lineFragmentPadding = 5.0
@@ -445,13 +482,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             layoutManager.addTextContainer(textContainer)
 
             // TextViewを作成
-            let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: scrollView.contentSize.height)
+            let availableWidth = scrollView.contentView.frame.width
+            let availableHeight = scrollView.contentView.frame.height
+            let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
             let textView = NSTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
-            textView.isHorizontallyResizable = false
-            textView.isVerticallyResizable = true
+            // 縦書き/横書きに応じてリサイズ方向を設定
+            textView.isHorizontallyResizable = isVerticalLayout
+            textView.isVerticallyResizable = !isVerticalLayout
             textView.autoresizingMask = []
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
@@ -472,9 +512,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // ScrollViewに設定
             scrollView.documentView = textView
-            scrollView.hasVerticalScroller = true
-            scrollView.hasHorizontalScroller = false  // ウィンドウモードでは水平スクロール不要（テキストは折り返す）
-            scrollView.autohidesScrollers = true
+            // 縦書き/横書きに応じてスクロールバーを設定
+            scrollView.hasVerticalScroller = !isVerticalLayout
+            scrollView.hasHorizontalScroller = isVerticalLayout
+            scrollView.autohidesScrollers = false  // スクロールバーを常に表示
+
+            // 縦書き/横書きレイアウトを適用
+            textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
 
             // lineNumberViewにtextViewを設定
             lineNumberView2?.textView = textView
@@ -512,31 +556,54 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 行番号ビューを作成
         let lineNumberView = LineNumberView(frame: .zero)
         lineNumberView.lineNumberMode = lineNumberMode
+        lineNumberView.isVerticalLayout = isVerticalLayout
         lineNumberView.translatesAutoresizingMaskIntoConstraints = false
         parentView.addSubview(lineNumberView)
 
         // ScrollViewのAuto Layout制約を再設定
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
-        // 行番号ビューの制約
-        let widthConstraint = lineNumberView.widthAnchor.constraint(equalToConstant: lineNumberView.currentWidth)
-        NSLayoutConstraint.activate([
-            lineNumberView.leadingAnchor.constraint(equalTo: parentView.leadingAnchor),
-            lineNumberView.topAnchor.constraint(equalTo: parentView.topAnchor),
-            lineNumberView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor),
-            widthConstraint
-        ])
+        if isVerticalLayout {
+            // 縦書き時は行番号ビューを上部に配置
+            let heightConstraint = lineNumberView.heightAnchor.constraint(equalToConstant: lineNumberView.currentHeight)
+            NSLayoutConstraint.activate([
+                lineNumberView.leadingAnchor.constraint(equalTo: parentView.leadingAnchor),
+                lineNumberView.trailingAnchor.constraint(equalTo: parentView.trailingAnchor),
+                lineNumberView.topAnchor.constraint(equalTo: parentView.topAnchor),
+                heightConstraint
+            ])
 
-        // ScrollViewの制約を更新（行番号ビューの右側に配置）
-        NSLayoutConstraint.activate([
-            scrollView.leadingAnchor.constraint(equalTo: lineNumberView.trailingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: parentView.trailingAnchor),
-            scrollView.topAnchor.constraint(equalTo: parentView.topAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor)
-        ])
+            // ScrollViewの制約を更新（行番号ビューの下側に配置）
+            NSLayoutConstraint.activate([
+                scrollView.leadingAnchor.constraint(equalTo: parentView.leadingAnchor),
+                scrollView.trailingAnchor.constraint(equalTo: parentView.trailingAnchor),
+                scrollView.topAnchor.constraint(equalTo: lineNumberView.bottomAnchor),
+                scrollView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor)
+            ])
+
+            constraintRef = heightConstraint
+        } else {
+            // 横書き時は行番号ビューを左側に配置
+            let widthConstraint = lineNumberView.widthAnchor.constraint(equalToConstant: lineNumberView.currentWidth)
+            NSLayoutConstraint.activate([
+                lineNumberView.leadingAnchor.constraint(equalTo: parentView.leadingAnchor),
+                lineNumberView.topAnchor.constraint(equalTo: parentView.topAnchor),
+                lineNumberView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor),
+                widthConstraint
+            ])
+
+            // ScrollViewの制約を更新（行番号ビューの右側に配置）
+            NSLayoutConstraint.activate([
+                scrollView.leadingAnchor.constraint(equalTo: lineNumberView.trailingAnchor),
+                scrollView.trailingAnchor.constraint(equalTo: parentView.trailingAnchor),
+                scrollView.topAnchor.constraint(equalTo: parentView.topAnchor),
+                scrollView.bottomAnchor.constraint(equalTo: parentView.bottomAnchor)
+            ])
+
+            constraintRef = widthConstraint
+        }
 
         lineNumberViewRef = lineNumberView
-        constraintRef = widthConstraint
     }
 
     private func setupPageMode(with textStorage: NSTextStorage) {
@@ -721,6 +788,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
+            // 縦書き/横書きレイアウトを適用
+            textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
 
             textContainers.append(textContainer)
             textViews.append(textView)
@@ -1095,6 +1164,51 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    // MARK: - Layout Orientation Actions
+
+    @IBAction func toggleLayoutOrientation(_ sender: Any?) {
+        isVerticalLayout = !isVerticalLayout
+        applyLayoutOrientation()
+    }
+
+    private func applyLayoutOrientation() {
+        let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
+
+        // Continuous modeのテキストビュー
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.setLayoutOrientation(orientation)
+            // サイズとスクロールバーを更新
+            updateTextViewSize(for: scrollView)
+        }
+        if let scrollView = scrollView2,
+           !scrollView.isHidden,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.setLayoutOrientation(orientation)
+            updateTextViewSize(for: scrollView)
+        }
+
+        // Page modeのテキストビュー
+        for textView in textViews1 {
+            textView.setLayoutOrientation(orientation)
+        }
+        for textView in textViews2 {
+            textView.setLayoutOrientation(orientation)
+        }
+
+        // 行番号ビューを再構築（縦書き/横書きで位置が変わるため）
+        if lineNumberMode != .none {
+            if let scrollView = scrollView1 {
+                setupLineNumberView(for: scrollView, lineNumberViewRef: &lineNumberView1, constraintRef: &lineNumberWidthConstraint1)
+                lineNumberView1?.textView = scrollView.documentView as? NSTextView
+            }
+            if let scrollView = scrollView2, !scrollView.isHidden {
+                setupLineNumberView(for: scrollView, lineNumberViewRef: &lineNumberView2, constraintRef: &lineNumberWidthConstraint2)
+                lineNumberView2?.textView = scrollView.documentView as? NSTextView
+            }
+        }
+    }
+
     // MARK: - Inspector Bar Actions
 
     @IBAction func toggleInspectorBar(_ sender: Any?) {
@@ -1189,6 +1303,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.usesInspectorBar = isInspectorBarVisible
         textView.usesRuler = true
+        // 縦書き/横書きレイアウトを適用
+        textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
 
         // 配列に追加
         textContainers.append(textContainer)
@@ -1282,18 +1398,47 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard let textView = scrollView.documentView as? NSTextView,
               let textContainer = textView.textContainer else { return }
 
-        // contentViewの幅を基準に計算
-        let availableWidth = scrollView.contentView.frame.width
         let containerInset = textView.textContainerInset
-        let containerWidth = availableWidth - (containerInset.width * 2)
 
-        // テキストコンテナのサイズを更新（widthTracksTextView=falseなので手動で更新）
-        if containerWidth > 0 {
-            textContainer.containerSize = NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude)
+        if isVerticalLayout {
+            // 縦書きの場合：高さをウィンドウに合わせ、幅は無限（横スクロール）
+            let availableHeight = scrollView.contentView.frame.height
+            let containerHeight = availableHeight - (containerInset.height * 2)
+
+            if containerHeight > 0 {
+                // 縦書きでは、containerSize.widthが1行の高さを決定する
+                textContainer.containerSize = NSSize(width: containerHeight, height: CGFloat.greatestFiniteMagnitude)
+            }
+
+            // テキストビューは横に拡張可能
+            textView.isHorizontallyResizable = true
+            textView.isVerticallyResizable = false
+            textView.setFrameSize(NSSize(width: textView.frame.width, height: availableHeight))
+
+            // スクロールバーの設定
+            scrollView.hasHorizontalScroller = true
+            scrollView.hasVerticalScroller = false
+            scrollView.autohidesScrollers = false
+        } else {
+            // 横書きの場合：幅をウィンドウに合わせ、高さは無限（縦スクロール）
+            let availableWidth = scrollView.contentView.frame.width
+            let containerWidth = availableWidth - (containerInset.width * 2)
+
+            if containerWidth > 0 {
+                textContainer.containerSize = NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude)
+            }
+
+            // テキストビューは縦に拡張可能
+            textView.isHorizontallyResizable = false
+            textView.isVerticallyResizable = true
+            textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
+
+            // スクロールバーの設定
+            scrollView.hasHorizontalScroller = false
+            scrollView.hasVerticalScroller = true
+            scrollView.autohidesScrollers = false
         }
 
-        // テキストビューのフレームを更新
-        textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
         textView.needsDisplay = true
     }
 
@@ -1389,6 +1534,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
         if menuItem.action == #selector(toggleShowVerticalTab(_:)) {
             menuItem.state = invisibleCharacterOptions.contains(.verticalTab) ? .on : .off
+        }
+
+        // Layout orientation menu item validation
+        if menuItem.action == #selector(toggleLayoutOrientation(_:)) {
+            menuItem.title = isVerticalLayout ? "Make Horizontal Layout" : "Make Vertical Layout"
         }
 
         return true

@@ -20,8 +20,25 @@ enum LineNumberMode {
 class LineNumberView: NSView {
     var lineNumberMode: LineNumberMode = .none {
         didSet {
-            updateWidthAsync()
+            updateSizeAsync()
             needsDisplay = true
+            // 縦書きモードでは遅延再描画を行う（スクロール位置が確定するまで待つ）
+            if isVerticalLayout {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    self?.needsDisplay = true
+                }
+            }
+        }
+    }
+
+    var isVerticalLayout: Bool = false {
+        didSet {
+            updateSizeAsync()
+            needsDisplay = true
+            // 遅延再描画を行う（スクロール位置が確定するまで待つ）
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.needsDisplay = true
+            }
         }
     }
 
@@ -34,17 +51,22 @@ class LineNumberView: NSView {
     weak var scrollView: NSScrollView?
 
     private let minimumWidth: CGFloat = 40.0
+    private let minimumHeight: CGFloat = 25.0
     private let rightMargin: CGFloat = 5.0
     private let leftMargin: CGFloat = 5.0
+    private let topMargin: CGFloat = 3.0
+    private let bottomMargin: CGFloat = 3.0
     private var updateWorkItem: DispatchWorkItem?
     private var scrollObserver: Any?
     private var textChangeObserver: Any?
 
-    // 幅変更通知
+    // サイズ変更通知
     static let widthDidChangeNotification = Notification.Name("LineNumberViewWidthDidChange")
+    static let heightDidChangeNotification = Notification.Name("LineNumberViewHeightDidChange")
 
-    // 現在の幅
+    // 現在のサイズ
     private(set) var currentWidth: CGFloat = 40.0
+    private(set) var currentHeight: CGFloat = 25.0
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -59,6 +81,7 @@ class LineNumberView: NSView {
     private func commonInit() {
         self.clipsToBounds = true
         self.currentWidth = minimumWidth
+        self.currentHeight = minimumHeight
     }
 
     // 座標系を上から下に設定（NSTextViewと同じ）
@@ -107,27 +130,27 @@ class LineNumberView: NSView {
             object: textView,
             queue: .main
         ) { [weak self] _ in
-            self?.debounceUpdateWidth()
+            self?.debounceUpdateSize()
         }
 
-        // 初期幅を計算
+        // 初期サイズを計算
         DispatchQueue.main.async { [weak self] in
-            self?.updateWidthAsync()
+            self?.updateSizeAsync()
         }
     }
 
-    private func debounceUpdateWidth() {
+    private func debounceUpdateSize() {
         updateWorkItem?.cancel()
 
         let workItem = DispatchWorkItem { [weak self] in
-            self?.updateWidthAsync()
+            self?.updateSizeAsync()
         }
         updateWorkItem = workItem
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
     }
 
-    private func updateWidthAsync() {
+    private func updateSizeAsync() {
         guard lineNumberMode != .none,
               let textView = textView,
               let layoutManager = textView.layoutManager,
@@ -153,7 +176,7 @@ class LineNumberView: NSView {
                 }
 
                 DispatchQueue.main.async { [weak self] in
-                    self?.applyWidth(for: maxLineNumber)
+                    self?.applySize(for: maxLineNumber)
                 }
             }
 
@@ -172,26 +195,38 @@ class LineNumberView: NSView {
                     maxLineNumber += 1
                 }
 
-                self.applyWidth(for: maxLineNumber)
+                self.applySize(for: maxLineNumber)
             }
         }
     }
 
-    private func applyWidth(for maxLineNumber: Int) {
+    private func applySize(for maxLineNumber: Int) {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 10)
         ]
-        let numberString = "\(maxLineNumber)" as NSString
-        let size = numberString.size(withAttributes: attributes)
+        let numberString = "\(maxLineNumber)"
 
-        let requiredWidth = self.leftMargin + size.width + self.rightMargin
-        let newWidth = max(self.minimumWidth, requiredWidth)
+        if isVerticalLayout {
+            // 縦書き時は高さを計算（上に配置）
+            // 90度回転するので、文字列の幅が高さになる
+            let size = (numberString as NSString).size(withAttributes: attributes)
+            let requiredHeight = self.topMargin + size.width + self.bottomMargin
+            let newHeight = max(self.minimumHeight, requiredHeight)
 
-        if abs(self.currentWidth - newWidth) > 1.0 {
-            self.currentWidth = newWidth
+            if abs(self.currentHeight - newHeight) > 1.0 {
+                self.currentHeight = newHeight
+                NotificationCenter.default.post(name: LineNumberView.heightDidChangeNotification, object: self)
+            }
+        } else {
+            // 横書き時は幅を計算（左に配置）
+            let size = (numberString as NSString).size(withAttributes: attributes)
+            let requiredWidth = self.leftMargin + size.width + self.rightMargin
+            let newWidth = max(self.minimumWidth, requiredWidth)
 
-            // 幅変更を通知
-            NotificationCenter.default.post(name: LineNumberView.widthDidChangeNotification, object: self)
+            if abs(self.currentWidth - newWidth) > 1.0 {
+                self.currentWidth = newWidth
+                NotificationCenter.default.post(name: LineNumberView.widthDidChangeNotification, object: self)
+            }
         }
     }
 
@@ -202,11 +237,18 @@ class LineNumberView: NSView {
         NSColor.controlBackgroundColor.setFill()
         dirtyRect.fill()
 
-        // 右端に境界線を描画
+        // 境界線を描画
         NSColor.separatorColor.setStroke()
         let borderPath = NSBezierPath()
-        borderPath.move(to: NSPoint(x: bounds.maxX - 0.5, y: bounds.minY))
-        borderPath.line(to: NSPoint(x: bounds.maxX - 0.5, y: bounds.maxY))
+        if isVerticalLayout {
+            // 縦書き時は下端に境界線
+            borderPath.move(to: NSPoint(x: bounds.minX, y: bounds.maxY - 0.5))
+            borderPath.line(to: NSPoint(x: bounds.maxX, y: bounds.maxY - 0.5))
+        } else {
+            // 横書き時は右端に境界線
+            borderPath.move(to: NSPoint(x: bounds.maxX - 0.5, y: bounds.minY))
+            borderPath.line(to: NSPoint(x: bounds.maxX - 0.5, y: bounds.maxY))
+        }
         borderPath.lineWidth = 1.0
         borderPath.stroke()
 
@@ -225,20 +267,52 @@ class LineNumberView: NSView {
             .foregroundColor: NSColor.secondaryLabelColor
         ]
 
-        // textViewの可視範囲内のglyphRangeを取得
-        let textViewVisibleRect = textView.visibleRect
-        let glyphRange = layoutManager.glyphRange(forBoundingRect: textViewVisibleRect, in: textContainer)
-
         // スクロールオフセットを取得
         let contentBounds = scrollView.contentView.bounds
 
+        if isVerticalLayout {
+            // 縦書き時の描画
+            drawVerticalLayoutLineNumbers(
+                layoutManager: layoutManager,
+                textContainer: textContainer,
+                textStorage: textStorage,
+                textView: textView,
+                contentBounds: contentBounds,
+                attributes: attributes
+            )
+        } else {
+            // 横書き時の描画
+            let textViewVisibleRect = textView.visibleRect
+            let glyphRange = layoutManager.glyphRange(forBoundingRect: textViewVisibleRect, in: textContainer)
+            drawHorizontalLayoutLineNumbers(
+                glyphRange: glyphRange,
+                layoutManager: layoutManager,
+                textContainer: textContainer,
+                textStorage: textStorage,
+                textView: textView,
+                contentBounds: contentBounds,
+                attributes: attributes,
+                dirtyRect: dirtyRect
+            )
+        }
+    }
+
+    private func drawHorizontalLayoutLineNumbers(
+        glyphRange: NSRange,
+        layoutManager: NSLayoutManager,
+        textContainer: NSTextContainer,
+        textStorage: NSTextStorage,
+        textView: NSTextView,
+        contentBounds: CGRect,
+        attributes: [NSAttributedString.Key: Any],
+        dirtyRect: NSRect
+    ) {
         switch lineNumberMode {
         case .none:
             break
 
         case .paragraph:
             let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-
             var paragraphNumber = 0
             var drawnParagraphs = Set<Int>()
 
@@ -254,10 +328,7 @@ class LineNumberView: NSView {
                     let glyphRange = layoutManager.glyphRange(forCharacterRange: nsSubstringRange, actualCharacterRange: nil)
                     let rectInContainer = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
-                    // textContainerの座標をtextViewの座標に変換
                     let yInTextView = rectInContainer.minY + textView.textContainerInset.height
-
-                    // スクロールオフセットを考慮して行番号ビューのY座標を計算
                     let yInLineNumberView = yInTextView - contentBounds.origin.y
 
                     if yInLineNumberView >= dirtyRect.minY - 20 && yInLineNumberView <= dirtyRect.maxY + 20 && !drawnParagraphs.contains(paragraphNumber) {
@@ -274,7 +345,6 @@ class LineNumberView: NSView {
         case .row:
             var rowNumber = 0
 
-            // 可視範囲の前の行数を計算
             layoutManager.enumerateLineFragments(forGlyphRange: NSRange(location: 0, length: glyphRange.location)) { _, _, _, _, _ in
                 rowNumber += 1
             }
@@ -282,10 +352,7 @@ class LineNumberView: NSView {
             layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rectInContainer, usedRect, textContainer, glyphRange, stop) in
                 rowNumber += 1
 
-                // textContainerの座標をtextViewの座標に変換
                 let yInTextView = rectInContainer.minY + textView.textContainerInset.height
-
-                // スクロールオフセットを考慮して行番号ビューのY座標を計算
                 let yInLineNumberView = yInTextView - contentBounds.origin.y
 
                 let numberString = "\(rowNumber)" as NSString
@@ -295,5 +362,109 @@ class LineNumberView: NSView {
                 numberString.draw(at: drawPoint, withAttributes: attributes)
             }
         }
+    }
+
+    private func drawVerticalLayoutLineNumbers(
+        layoutManager: NSLayoutManager,
+        textContainer: NSTextContainer,
+        textStorage: NSTextStorage,
+        textView: NSTextView,
+        contentBounds: CGRect,
+        attributes: [NSAttributedString.Key: Any]
+    ) {
+        // 縦書きでは列（行）が右から左に並ぶ
+        // lineRect.origin.y = 0 が最初の列（右端）
+
+        let fullGlyphRange = layoutManager.glyphRange(for: textContainer)
+        let documentWidth = textView.frame.width
+        let scrollX = contentBounds.origin.x
+
+        switch lineNumberMode {
+        case .none:
+            break
+
+        case .paragraph:
+            var paragraphNumber = 0
+            var drawnParagraphs = Set<Int>()
+
+            let fullRange = textStorage.string.startIndex..<textStorage.string.endIndex
+
+            textStorage.string.enumerateSubstrings(in: fullRange, options: .byParagraphs) { (substring, substringRange, enclosingRange, stop) in
+                paragraphNumber += 1
+
+                let nsSubstringRange = NSRange(substringRange, in: textStorage.string)
+                let glyphRangeForPara = layoutManager.glyphRange(forCharacterRange: nsSubstringRange, actualCharacterRange: nil)
+
+                if glyphRangeForPara.location < layoutManager.numberOfGlyphs {
+                    let glyphIndex = glyphRangeForPara.location
+                    let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+
+                    // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置を計算
+                    let columnXInDocument = documentWidth - lineRect.origin.y - lineRect.height
+
+                    // LineNumberView内の座標に変換
+                    let xInLineNumberView = columnXInDocument - scrollX - lineRect.height
+
+                    if !drawnParagraphs.contains(paragraphNumber) {
+                        self.drawVerticalNumber(paragraphNumber, at: xInLineNumberView, columnWidth: lineRect.height, attributes: attributes)
+                        drawnParagraphs.insert(paragraphNumber)
+                    }
+                }
+            }
+
+        case .row:
+            var rowNumber = 0
+
+            layoutManager.enumerateLineFragments(forGlyphRange: fullGlyphRange) { [self] (lineRect, usedRect, textContainerParam, glyphRangeInFrag, stop) in
+                rowNumber += 1
+
+                // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置を計算
+                let columnXInDocument = documentWidth - lineRect.origin.y - lineRect.height
+
+                // LineNumberView内の座標に変換
+                let xInLineNumberView = columnXInDocument - scrollX - lineRect.height
+
+                self.drawVerticalNumber(rowNumber, at: xInLineNumberView, columnWidth: lineRect.height, attributes: attributes)
+            }
+        }
+    }
+
+    /// 縦書きの行番号を描画（横書き文字を90度回転、下揃え）
+    private func drawVerticalNumber(_ number: Int, at xPosition: CGFloat, columnWidth: CGFloat, attributes: [NSAttributedString.Key: Any]) {
+        let numberString = "\(number)" as NSString
+        let font = attributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: 10)
+        let charAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: attributes[.foregroundColor] ?? NSColor.secondaryLabelColor
+        ]
+
+        // 文字列のサイズを計算
+        let stringSize = numberString.size(withAttributes: charAttributes)
+
+        // 回転後：幅と高さが入れ替わる
+        let rotatedWidth = stringSize.height
+        let rotatedHeight = stringSize.width
+
+        // 下揃え：ビューの下端からマージンを引いた位置
+        let yPosition = self.bounds.height - self.bottomMargin - rotatedHeight
+
+        // 列の中央にX位置を配置
+        let xCenter = xPosition + (columnWidth - rotatedWidth) / 2
+
+        // グラフィックスコンテキストを保存
+        NSGraphicsContext.current?.saveGraphicsState()
+
+        // 回転の中心点に移動して90度回転（反時計回り）
+        let transform = NSAffineTransform()
+        transform.translateX(by: xCenter + rotatedWidth / 2, yBy: yPosition + rotatedHeight / 2)
+        transform.rotate(byDegrees: 90)
+        transform.translateX(by: -stringSize.width / 2, yBy: -stringSize.height / 2)
+        transform.concat()
+
+        // 文字列を描画（原点に）
+        numberString.draw(at: NSPoint.zero, withAttributes: charAttributes)
+
+        // グラフィックスコンテキストを復元
+        NSGraphicsContext.current?.restoreGraphicsState()
     }
 }

@@ -770,6 +770,13 @@
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="lay-or-sep"/>
+                            <menuItem title="Make Vertical Layout" id="lay-or-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleLayoutOrientation:" target="-1" id="lay-or-act"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
