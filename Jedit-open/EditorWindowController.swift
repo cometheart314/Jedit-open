@@ -638,6 +638,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.pageHeight = pageHeight
             pagesView.pageMargin = pageMargin
             pagesView.pageSeparatorHeight = pageSpacing
+            pagesView.isVerticalLayout = isVerticalLayout
             pagesView.documentName = textDocument?.displayName ?? ""
             pagesView.isPlainText = textDocument?.documentType == .plain
             pagesView.lineNumberMode = lineNumberMode
@@ -670,6 +671,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.pageHeight = pageHeight
             pagesView.pageMargin = pageMargin
             pagesView.pageSeparatorHeight = pageSpacing
+            pagesView.isVerticalLayout = isVerticalLayout
             pagesView.documentName = textDocument?.displayName ?? ""
             pagesView.isPlainText = textDocument?.documentType == .plain
             pagesView.lineNumberMode = lineNumberMode
@@ -1188,12 +1190,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             updateTextViewSize(for: scrollView)
         }
 
-        // Page modeのテキストビュー
-        for textView in textViews1 {
-            textView.setLayoutOrientation(orientation)
-        }
-        for textView in textViews2 {
-            textView.setLayoutOrientation(orientation)
+        // Page modeのテキストビュー - ページサイズを更新して再構築
+        if displayMode == .page {
+            updatePageLayoutOrientation()
+        } else {
+            for textView in textViews1 {
+                textView.setLayoutOrientation(orientation)
+            }
+            for textView in textViews2 {
+                textView.setLayoutOrientation(orientation)
+            }
         }
 
         // 行番号ビューを再構築（縦書き/横書きで位置が変わるため）
@@ -1206,6 +1212,45 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 setupLineNumberView(for: scrollView, lineNumberViewRef: &lineNumberView2, constraintRef: &lineNumberWidthConstraint2)
                 lineNumberView2?.textView = scrollView.documentView as? NSTextView
             }
+        }
+    }
+
+    /// ページモードのレイアウト方向を更新（縦書き/横書き切り替え時）
+    private func updatePageLayoutOrientation() {
+        // レイアウト方向切り替え中フラグをセット（ページ追加を抑制）
+        isChangingLayoutOrientation = true
+        defer { isChangingLayoutOrientation = false }
+
+        let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
+
+        // pagesView1を更新
+        if let pagesView = pagesView1 {
+            pagesView.isVerticalLayout = isVerticalLayout
+            let newContainerSize = pagesView.documentSizeInPage
+
+            // テキストコンテナとテキストビューを更新
+            for (index, textContainer) in textContainers1.enumerated() {
+                textContainer.containerSize = newContainerSize
+                if index < textViews1.count {
+                    textViews1[index].setLayoutOrientation(orientation)
+                }
+            }
+            pagesView.needsDisplay = true
+        }
+
+        // pagesView2を更新
+        if let pagesView = pagesView2 {
+            pagesView.isVerticalLayout = isVerticalLayout
+            let newContainerSize = pagesView.documentSizeInPage
+
+            // テキストコンテナとテキストビューを更新
+            for (index, textContainer) in textContainers2.enumerated() {
+                textContainer.containerSize = newContainerSize
+                if index < textViews2.count {
+                    textViews2[index].setLayoutOrientation(orientation)
+                }
+            }
+            pagesView.needsDisplay = true
         }
     }
 
@@ -1577,6 +1622,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // ページ追加中の再入防止フラグ
     private var isAddingPage1: Bool = false
     private var isAddingPage2: Bool = false
+    // レイアウト方向切り替え中フラグ（ページ追加を抑制）
+    private var isChangingLayoutOrientation: Bool = false
 
     func layoutManager(_ layoutManager: NSLayoutManager, didCompleteLayoutFor textContainer: NSTextContainer?, atEnd layoutFinishedFlag: Bool) {
         // どのscrollViewに対応するlayoutManagerかを判定
@@ -1596,9 +1643,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             return
         }
 
-        // 再入防止チェック
+        // 再入防止チェック（レイアウト方向切り替え中もスキップ）
         let isAddingPage = target == .scrollView1 ? isAddingPage1 : isAddingPage2
-        guard !isAddingPage else { return }
+        guard !isAddingPage && !isChangingLayoutOrientation else { return }
 
         // 現在のコンテナ数を取得（毎回最新の値を参照）
         let currentContainers = target == .scrollView1 ? textContainers1 : textContainers2

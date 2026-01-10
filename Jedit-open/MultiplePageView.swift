@@ -19,6 +19,13 @@ class MultiplePageView: NSView {
     var pageMargin: CGFloat = 72.0  // 1インチ
     var pageSeparatorHeight: CGFloat = 20.0
 
+    // 縦書きレイアウト
+    var isVerticalLayout: Bool = false {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
     // プレーンテキストかどうか（ダークモード対応の判定用）
     var isPlainText: Bool = true
 
@@ -138,11 +145,15 @@ class MultiplePageView: NSView {
     }
 
     /// テキストコンテナのサイズ
+    /// 縦書き時は幅と高さを入れ替える（テキストの流れる方向が変わるため）
     var documentSizeInPage: NSSize {
-        return NSSize(
-            width: pageWidth - pageMargin * 2,
-            height: pageHeight - pageMargin * 2
-        )
+        let width = pageWidth - pageMargin * 2
+        let height = pageHeight - pageMargin * 2
+        if isVerticalLayout {
+            return NSSize(width: height, height: width)
+        } else {
+            return NSSize(width: width, height: height)
+        }
     }
 
     // MARK: - Drawing
@@ -355,14 +366,17 @@ class MultiplePageView: NSView {
                 }
 
                 if !firstLineRect.isEmpty && !drawnParagraphs.contains(currentParagraphNumber) {
-                    let numberString = "\(currentParagraphNumber)" as NSString
-                    let size = numberString.size(withAttributes: attributes)
-
-                    // 左マージン内に右寄せで描画
-                    let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
-                    let yPosition = docRect.minY + firstLineRect.minY
-
-                    numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
+                    if self.isVerticalLayout {
+                        // 縦書き：上マージン内に描画
+                        self.drawVerticalNumber(currentParagraphNumber, rect: firstLineRect, pageRect: pageRect, docRect: docRect, attributes: attributes)
+                    } else {
+                        // 横書き：左マージン内に右寄せで描画
+                        let numberString = "\(currentParagraphNumber)" as NSString
+                        let size = numberString.size(withAttributes: attributes)
+                        let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
+                        let yPosition = docRect.minY + firstLineRect.minY
+                        numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
+                    }
                     drawnParagraphs.insert(currentParagraphNumber)
                 }
 
@@ -380,15 +394,63 @@ class MultiplePageView: NSView {
         var rowNumber = startingNumber
 
         layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rect, usedRect, container, glyphRange, stop) in
-            let numberString = "\(rowNumber)" as NSString
-            let size = numberString.size(withAttributes: attributes)
-
-            // 左マージン内に右寄せで描画
-            let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
-            let yPosition = docRect.minY + rect.minY
-
-            numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
+            if self.isVerticalLayout {
+                // 縦書き：上マージン内に描画
+                self.drawVerticalNumber(rowNumber, rect: rect, pageRect: pageRect, docRect: docRect, attributes: attributes)
+            } else {
+                // 横書き：左マージン内に右寄せで描画
+                let numberString = "\(rowNumber)" as NSString
+                let size = numberString.size(withAttributes: attributes)
+                let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
+                let yPosition = docRect.minY + rect.minY
+                numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
+            }
             rowNumber += 1
         }
+    }
+
+    /// 縦書きの行番号を描画（上マージン内に90度回転）
+    private func drawVerticalNumber(_ number: Int, rect: NSRect, pageRect: NSRect, docRect: NSRect, attributes: [NSAttributedString.Key: Any]) {
+        let numberString = "\(number)" as NSString
+        let font = attributes[.font] as? NSFont ?? lineNumberFont
+        let charAttributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: attributes[.foregroundColor] ?? lineNumberColor
+        ]
+
+        let stringSize = numberString.size(withAttributes: charAttributes)
+
+        // 回転後：幅と高さが入れ替わる
+        let rotatedWidth = stringSize.height
+        let rotatedHeight = stringSize.width
+
+        // 縦書き：列のX位置を計算
+        // rect.origin.yが列の論理位置（0が最初の列=右端）
+        // rect.heightが列幅
+        // docRect.width（コンテナの幅）から相対位置を計算
+        let containerWidth = docRect.width
+        let columnX = docRect.minX + (containerWidth - rect.origin.y - rect.height)
+
+        // 上マージン内に配置（ページ上端とdocRect上端の間）
+        let yPosition = docRect.minY - lineNumberRightMargin - rotatedHeight
+
+        // 列の中央にX位置を配置
+        let xCenter = columnX + (rect.height - rotatedWidth) / 2
+
+        // グラフィックスコンテキストを保存
+        NSGraphicsContext.current?.saveGraphicsState()
+
+        // 回転の中心点に移動して90度回転
+        let transform = NSAffineTransform()
+        transform.translateX(by: xCenter + rotatedWidth / 2, yBy: yPosition + rotatedHeight / 2)
+        transform.rotate(byDegrees: 90)
+        transform.translateX(by: -stringSize.width / 2, yBy: -stringSize.height / 2)
+        transform.concat()
+
+        // 文字列を描画
+        numberString.draw(at: NSPoint.zero, withAttributes: charAttributes)
+
+        // グラフィックスコンテキストを復元
+        NSGraphicsContext.current?.restoreGraphicsState()
     }
 }
