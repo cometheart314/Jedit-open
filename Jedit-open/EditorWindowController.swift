@@ -1224,33 +1224,60 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
 
         // pagesView1を更新
-        if let pagesView = pagesView1 {
+        if let pagesView = pagesView1, let scrollView = scrollView1 {
             pagesView.isVerticalLayout = isVerticalLayout
             let newContainerSize = pagesView.documentSizeInPage
+
+            // ページビューのフレームを更新（ページ配置方向が変わるため）
+            pagesView.setNumberOfPages(textContainers1.count)
 
             // テキストコンテナとテキストビューを更新
             for (index, textContainer) in textContainers1.enumerated() {
                 textContainer.containerSize = newContainerSize
                 if index < textViews1.count {
-                    textViews1[index].setLayoutOrientation(orientation)
+                    let textView = textViews1[index]
+                    textView.frame = pagesView.documentRect(forPageNumber: index)
+                    textView.setLayoutOrientation(orientation)
                 }
             }
+
+            // スクロールビューを更新
+            scrollView.documentView = pagesView  // ドキュメントビューを再設定してサイズを認識させる
             pagesView.needsDisplay = true
+
+            // スクロール位置を調整
+            scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
+            scrollView.reflectScrolledClipView(scrollView.contentView)
         }
 
         // pagesView2を更新
-        if let pagesView = pagesView2 {
+        if let pagesView = pagesView2, let scrollView = scrollView2 {
             pagesView.isVerticalLayout = isVerticalLayout
             let newContainerSize = pagesView.documentSizeInPage
+
+            // ページビューのフレームを更新（ページ配置方向が変わるため）
+            pagesView.setNumberOfPages(textContainers2.count)
 
             // テキストコンテナとテキストビューを更新
             for (index, textContainer) in textContainers2.enumerated() {
                 textContainer.containerSize = newContainerSize
                 if index < textViews2.count {
-                    textViews2[index].setLayoutOrientation(orientation)
+                    let textView = textViews2[index]
+                    textView.frame = pagesView.documentRect(forPageNumber: index)
+                    textView.setLayoutOrientation(orientation)
                 }
             }
             pagesView.needsDisplay = true
+
+            // スクロール位置を調整
+            if isVerticalLayout {
+                // 縦書き：1ページ目（左端）を表示
+                scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
+            } else {
+                // 横書き：1ページ目（上端）を表示
+                scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
+            }
+            scrollView.reflectScrolledClipView(scrollView.contentView)
         }
     }
 

@@ -22,6 +22,9 @@ class MultiplePageView: NSView {
     // 縦書きレイアウト
     var isVerticalLayout: Bool = false {
         didSet {
+            if oldValue != isVerticalLayout {
+                updateFrame()
+            }
             needsDisplay = true
         }
     }
@@ -96,13 +99,26 @@ class MultiplePageView: NSView {
         updateFrame()
 
         let newFrame = frame
-        if newFrame.size.height > oldFrame.size.height {
-            setNeedsDisplay(NSRect(
-                x: oldFrame.origin.x,
-                y: oldFrame.maxY,
-                width: oldFrame.size.width,
-                height: newFrame.maxY - oldFrame.maxY
-            ))
+        if isVerticalLayout {
+            // 縦書き：横方向に拡張
+            if newFrame.size.width > oldFrame.size.width {
+                setNeedsDisplay(NSRect(
+                    x: 0,
+                    y: oldFrame.origin.y,
+                    width: newFrame.size.width,
+                    height: oldFrame.size.height
+                ))
+            }
+        } else {
+            // 横書き：縦方向に拡張
+            if newFrame.size.height > oldFrame.size.height {
+                setNeedsDisplay(NSRect(
+                    x: oldFrame.origin.x,
+                    y: oldFrame.maxY,
+                    width: oldFrame.size.width,
+                    height: newFrame.maxY - oldFrame.maxY
+                ))
+            }
         }
     }
 
@@ -115,9 +131,19 @@ class MultiplePageView: NSView {
 
         var rect = NSRect.zero
         rect.size = NSSize(width: pageWidth, height: pageHeight)
-        rect.size.height = rect.size.height * CGFloat(numPages)
-        if numPages > 1 {
-            rect.size.height += pageSeparatorHeight * CGFloat(numPages - 1)
+
+        if isVerticalLayout {
+            // 縦書き：ページを横に並べる
+            rect.size.width = rect.size.width * CGFloat(numPages)
+            if numPages > 1 {
+                rect.size.width += pageSeparatorHeight * CGFloat(numPages - 1)
+            }
+        } else {
+            // 横書き：ページを縦に並べる（上から下）
+            rect.size.height = rect.size.height * CGFloat(numPages)
+            if numPages > 1 {
+                rect.size.height += pageSeparatorHeight * CGFloat(numPages - 1)
+            }
         }
 
         frame = rect
@@ -129,8 +155,14 @@ class MultiplePageView: NSView {
     func pageRect(forPageNumber pageNumber: Int) -> NSRect {
         var rect = NSRect.zero
         rect.size = NSSize(width: pageWidth, height: pageHeight)
-        // originは(0, 0)から開始（frame.originを使わない）
-        rect.origin.y = (rect.size.height + pageSeparatorHeight) * CGFloat(pageNumber)
+
+        if isVerticalLayout {
+            // 縦書き：ページを左から右に配置（表示上は右端が1ページ目に見える）
+            rect.origin.x = (pageWidth + pageSeparatorHeight) * CGFloat(pageNumber)
+        } else {
+            // 横書き：ページを上から下に配置
+            rect.origin.y = (rect.size.height + pageSeparatorHeight) * CGFloat(pageNumber)
+        }
         return rect
     }
 
@@ -162,8 +194,18 @@ class MultiplePageView: NSView {
         guard NSGraphicsContext.current?.isDrawingToScreen == true else { return }
 
         // 表示領域に含まれるページのみ描画
-        let firstPage = max(0, Int(dirtyRect.minY / (pageHeight + pageSeparatorHeight)))
-        let lastPage = min(Int(dirtyRect.maxY / (pageHeight + pageSeparatorHeight)), numPages - 1)
+        var firstPage: Int
+        var lastPage: Int
+
+        if isVerticalLayout {
+            // 縦書き：横方向にページが並ぶ
+            firstPage = max(0, Int(dirtyRect.minX / (pageWidth + pageSeparatorHeight)))
+            lastPage = min(Int(dirtyRect.maxX / (pageWidth + pageSeparatorHeight)), numPages - 1)
+        } else {
+            // 横書き：縦方向にページが並ぶ（上から下）
+            firstPage = max(0, Int(dirtyRect.minY / (pageHeight + pageSeparatorHeight)))
+            lastPage = min(Int(dirtyRect.maxY / (pageHeight + pageSeparatorHeight)), numPages - 1)
+        }
 
         guard firstPage <= lastPage && numPages > 0 else {
             // 背景色で塗りつぶし
