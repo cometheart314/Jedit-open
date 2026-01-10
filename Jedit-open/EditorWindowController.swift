@@ -91,6 +91,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     override func windowDidLoad() {
         super.windowDidLoad()
+        print("=== windowDidLoad called ===")
 
         // WindowDelegateを設定
         self.window?.delegate = self
@@ -1353,6 +1354,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     private func addPage(to layoutManager: NSLayoutManager, in scrollView: NSScrollView, for target: ScrollViewTarget) {
+        // 再入防止
+        guard !isAddingPage else { return }
+        isAddingPage = true
+        defer { isAddingPage = false }
 
         var textContainers: [NSTextContainer]
         var textViews: [NSTextView]
@@ -1381,10 +1386,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // LayoutManagerにTextContainerを追加
         layoutManager.addTextContainer(textContainer)
 
-        // 新しいTextViewを作成（一時的なフレームで作成、後で更新される）
+        // 新しいページのインデックスを取得
         let pageIndex = textContainers.count
-        let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
 
+        // 一時的なフレームでTextViewを作成（後でupdateAllTextViewFramesで更新される）
+        let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
         let textView = NSTextView(frame: tempFrame, textContainer: textContainer)
         textView.isEditable = true
         textView.isSelectable = true
@@ -1406,15 +1412,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.usesInspectorBar = isInspectorBarVisible
         textView.usesRuler = true
 
-        // 縦書き/横書きレイアウトを適用（フラグで保護して無限ループを防止）
-        if isVerticalLayout {
-            let wasUpdating = isUpdatingPages
-            isUpdatingPages = true
-            textView.setLayoutOrientation(.vertical)
-            isUpdatingPages = wasUpdating
-        }
-
-        // フレームが更新されるまで非表示にする
+        // レイアウト方向はupdateAllTextViewFramesで設定される
+        // ここでは一時的に非表示にする
         textView.isHidden = true
 
         // 配列に追加
@@ -1459,16 +1458,50 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         guard let pagesView = pagesView else { return }
 
-        // 最初のページは保持し、空のページのインデックスを収集（逆順で削除するため）
-        var indicesToRemove: [Int] = []
+        // テキストストレージの長さを取得
+        guard let textStorage = layoutManager.textStorage else { return }
+        let textLength = textStorage.length
 
-        for (index, container) in textContainers.enumerated() {
-            if index > 0 { // 最初のページは残す
-                let glyphRange = layoutManager.glyphRange(for: container)
-                if glyphRange.length == 0 {
-                    indicesToRemove.append(index)
+        // 最初の空のコンテナを見つける（それ以降はすべて削除対象）
+        var firstEmptyIndex = textContainers.count  // デフォルトは削除なし
+
+        // 前方から探索して、最初の空または無効なコンテナを見つける
+        let totalGlyphs = layoutManager.numberOfGlyphs
+        let validContainers = Set(layoutManager.textContainers)
+        for index in 0..<textContainers.count {
+            let container = textContainers[index]
+            // コンテナがレイアウトマネージャに存在しない場合は無効として削除対象
+            guard validContainers.contains(container) else {
+                firstEmptyIndex = index
+                break
+            }
+            let glyphRange = layoutManager.glyphRange(for: container)
+
+            if glyphRange.length == 0 {
+                // グリフがない - このコンテナ以降を削除
+                firstEmptyIndex = index
+                break
+            } else {
+                // グリフがある場合、文字範囲とグリフ範囲が有効かチェック
+                let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+                // 文字範囲の終端がテキスト長を超えている場合は無効（古いデータ）
+                if NSMaxRange(charRange) > textLength {
+                    firstEmptyIndex = index
+                    break
+                }
+                // グリフ範囲の開始位置が総グリフ数以上の場合は無効（古いデータ）
+                if glyphRange.location >= totalGlyphs {
+                    firstEmptyIndex = index
+                    break
                 }
             }
+        }
+
+        // 最初の空コンテナ以降を削除対象にする（ただし最低1ページは残す）
+        var indicesToRemove: [Int] = []
+        let startIndex = max(1, firstEmptyIndex)  // 最初のページは残す
+        for index in startIndex..<textContainers.count {
+            indicesToRemove.append(index)
         }
 
         // 逆順で削除（インデックスのずれを防ぐ）
@@ -1498,6 +1531,122 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textContainers2 = textContainers
             textViews2 = textViews
         }
+    }
+
+    /// レイアウト完了後の遅延チェック：問題があれば修正
+    private func checkForLayoutIssues(layoutManager: NSLayoutManager, scrollView: NSScrollView, target: ScrollViewTarget, retryCount: Int = 0) {
+        // 更新中なら少し待ってから再試行（最大5回）
+        if isUpdatingPages {
+            if retryCount < 5 {
+                print("checkForLayoutIssues: waiting for update to finish (retry \(retryCount + 1))")
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    self?.checkForLayoutIssues(layoutManager: layoutManager, scrollView: scrollView, target: target, retryCount: retryCount + 1)
+                }
+            } else {
+                print("checkForLayoutIssues: giving up after 5 retries, forcing isUpdatingPages to false")
+                isUpdatingPages = false
+                // 再帰呼び出しせず、直接実行
+            }
+            if retryCount < 5 { return }
+        }
+
+        let currentContainers = target == .scrollView1 ? textContainers1 : textContainers2
+        guard let textStorage = layoutManager.textStorage else { return }
+        let textLength = textStorage.length
+
+        // レイアウトマネージャに実際に存在するコンテナのセットを取得
+        let validContainers = Set(layoutManager.textContainers)
+
+        // 全コンテナの文字範囲を確認
+        var totalLayoutedChars = 0
+        var emptyContainerCount = 0
+        for container in currentContainers {
+            // コンテナがレイアウトマネージャに存在するか確認
+            guard validContainers.contains(container) else { continue }
+
+            let glyphRange = layoutManager.glyphRange(for: container)
+            if glyphRange.length > 0 {
+                let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+                totalLayoutedChars += charRange.length
+            } else {
+                emptyContainerCount += 1
+            }
+        }
+
+        print("checkForLayoutIssues: totalLayoutedChars=\(totalLayoutedChars), textLength=\(textLength), emptyContainers=\(emptyContainerCount), containerCount=\(currentContainers.count)")
+
+        // 問題があれば再構築
+        // 1. 古いデータがある（合計文字数がテキスト長を超えている）
+        // 2. 空のコンテナが2つ以上ある
+        if totalLayoutedChars > textLength || emptyContainerCount > 1 {
+            print("checkForLayoutIssues: issues detected, rebuilding")
+            isUpdatingPages = true
+            defer { isUpdatingPages = false }
+            rebuildAllPages(for: layoutManager, in: scrollView, target: target)
+        }
+    }
+
+    /// テキスト長が減少した場合に全ページを再構築
+    private func rebuildAllPages(for layoutManager: NSLayoutManager, in scrollView: NSScrollView, target: ScrollViewTarget) {
+        var textContainers: [NSTextContainer]
+        var textViews: [NSTextView]
+        var pagesView: MultiplePageView?
+
+        switch target {
+        case .scrollView1:
+            textContainers = textContainers1
+            textViews = textViews1
+            pagesView = pagesView1
+        case .scrollView2:
+            textContainers = textContainers2
+            textViews = textViews2
+            pagesView = pagesView2
+        }
+
+        guard let pagesView = pagesView else { return }
+
+        // 全てのテキストビューを削除
+        for textView in textViews {
+            textView.removeFromSuperview()
+        }
+
+        // 全てのテキストコンテナをレイアウトマネージャーから削除
+        while layoutManager.textContainers.count > 0 {
+            layoutManager.removeTextContainer(at: 0)
+        }
+
+        // 配列をクリア
+        textContainers.removeAll()
+        textViews.removeAll()
+
+        // 配列をプロパティに戻す
+        switch target {
+        case .scrollView1:
+            textContainers1 = textContainers
+            textViews1 = textViews
+        case .scrollView2:
+            textContainers2 = textContainers
+            textViews2 = textViews
+        }
+
+        // 必要なページ数を推定（1ページあたりの文字数を概算）
+        guard let textStorage = layoutManager.textStorage else { return }
+        let charsPerPage = 1000
+        let estimatedPages = max(1, (textStorage.length + charsPerPage - 1) / charsPerPage)
+
+        // ページを再作成
+        createAllPages(count: estimatedPages, for: layoutManager, in: scrollView, target: target)
+
+        // ページ数を設定
+        let newPageCount = target == .scrollView1 ? textContainers1.count : textContainers2.count
+        pagesView.setNumberOfPages(newPageCount)
+
+        // フレームを更新
+        updateAllTextViewFrames(for: target)
+
+        // ビューの再描画を強制
+        pagesView.needsDisplay = true
+        pagesView.needsLayout = true
     }
 
 
@@ -1685,17 +1834,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // ページ操作中の再入防止フラグ（より広範囲に適用）
     private var isUpdatingPages: Bool = false
+    private var isAddingPage: Bool = false
+    private var previousTextLength1: Int = 0
+    private var previousTextLength2: Int = 0
     // レイアウト方向切り替え中フラグ（ページ追加を抑制）
     private var isChangingLayoutOrientation: Bool = false
+    // 遅延削除中フラグ
+    private var isDelayedRemoveScheduled: Bool = false
+    // レイアウトチェックのスケジュール済みフラグ
+    private var isLayoutCheckScheduled: Bool = false
 
     func layoutManager(_ layoutManager: NSLayoutManager, didCompleteLayoutFor textContainer: NSTextContainer?, atEnd layoutFinishedFlag: Bool) {
+        print("didCompleteLayoutFor: layoutFinishedFlag=\(layoutFinishedFlag), isChangingLayoutOrientation=\(isChangingLayoutOrientation), isUpdatingPages=\(isUpdatingPages)")
+
         // レイアウト方向切り替え中はスキップ
         guard !isChangingLayoutOrientation else { return }
-
-        // ページ追加中は、レイアウト完了時のみ処理（追加ページ要求はスキップ）
-        if isUpdatingPages && !layoutFinishedFlag {
-            return
-        }
 
         // どのscrollViewに対応するlayoutManagerかを判定
         var target: ScrollViewTarget?
@@ -1722,26 +1875,54 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let isLastContainer = currentContainers.isEmpty || textContainer == currentContainers.last
 
             // 最後のコンテナでレイアウトが完了していない場合、新しいページを追加
-            // （事前に推定ページ数を作成しているので、ここに来るのは稀）
             if isLastContainer && !layoutFinishedFlag {
-                // 再入防止フラグをセット（layoutFinishedFlagがtrueになるまでクリアしない）
-                isUpdatingPages = true
+                // まだレイアウトされていない文字があるかチェック
+                if let textStorage = layoutManager.textStorage {
+                    let totalCharacters = textStorage.length
+                    if totalCharacters > 0 {
+                        // 全コンテナでレイアウトされた最後の文字位置を取得
+                        var lastLayoutedChar = 0
+                        for container in layoutManager.textContainers {
+                            let glyphRange = layoutManager.glyphRange(for: container)
+                            if glyphRange.length > 0 {
+                                let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+                                lastLayoutedChar = max(lastLayoutedChar, NSMaxRange(charRange))
+                            }
+                        }
 
-                // 追加ページが必要（推定が少なかった場合）
-                addPage(to: layoutManager, in: scrollView, for: target)
-
-                // フラグはここではクリアしない - layoutFinishedFlag が true の時にクリアされる
+                        // まだレイアウトされていない文字がある場合のみページを追加
+                        if lastLayoutedChar < totalCharacters {
+                            addPage(to: layoutManager, in: scrollView, for: target)
+                        }
+                    }
+                }
                 return
             }
         }
 
         // レイアウトが完了した場合、ページ数を確定し、フレームを更新
         if layoutFinishedFlag {
-            // 再入防止フラグをセット
+            // 再入防止
+            if isUpdatingPages {
+                print("layoutFinishedFlag: skipped due to isUpdatingPages")
+                return
+            }
             isUpdatingPages = true
+            defer {
+                isUpdatingPages = false
+                // 処理完了後、遅延チェックをスケジュール（一度だけ）
+                if !isLayoutCheckScheduled {
+                    isLayoutCheckScheduled = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                        self?.isLayoutCheckScheduled = false
+                        self?.checkForLayoutIssues(layoutManager: layoutManager, scrollView: scrollView, target: target)
+                    }
+                }
+            }
 
             // ページ数を確定
-            let finalPageCount = target == .scrollView1 ? textContainers1.count : textContainers2.count
+            let currentContainers = target == .scrollView1 ? textContainers1 : textContainers2
+            let finalPageCount = currentContainers.count
             if let pagesView = (target == .scrollView1 ? pagesView1 : pagesView2) {
                 pagesView.setNumberOfPages(finalPageCount)
             }
@@ -1749,16 +1930,39 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 全テキストビューのフレームとレイアウト方向を更新
             updateAllTextViewFrames(for: target)
 
-            // 余分なページの削除は縦書きモードでは行わない（レイアウト完了タイミングの問題を避ける）
-            if !isVerticalLayout {
+            // テキストストレージの長さを取得
+            let textLength = layoutManager.textStorage?.length ?? 0
+            let totalGlyphs = layoutManager.numberOfGlyphs
+            print("layoutFinishedFlag: totalGlyphs=\(totalGlyphs), textLength=\(textLength), containerCount=\(currentContainers.count)")
+
+            // 最初のコンテナから1ページあたりの文字数を推定
+            var charsPerPage = 500  // デフォルト値
+            if let firstContainer = currentContainers.first {
+                let firstGlyphRange = layoutManager.glyphRange(for: firstContainer)
+                if firstGlyphRange.length > 0 {
+                    let firstCharRange = layoutManager.characterRange(forGlyphRange: firstGlyphRange, actualGlyphRange: nil)
+                    if firstCharRange.length > 0 {
+                        charsPerPage = firstCharRange.length
+                    }
+                }
+            }
+
+            // 予想されるページ数を計算
+            let estimatedPages = max(1, (textLength + charsPerPage - 1) / charsPerPage)
+            print("layoutFinishedFlag: estimatedPages=\(estimatedPages), charsPerPage=\(charsPerPage)")
+
+            // コンテナが明らかに多すぎる場合のみ再構築（+2のバッファ）
+            // 注：通常のページ追加中に誤ってrebuildしないよう、余裕を持たせる
+            if currentContainers.count > estimatedPages + 2 {
+                print("rebuildAllPages called: too many containers (\(currentContainers.count) > \(estimatedPages + 2))")
+                rebuildAllPages(for: layoutManager, in: scrollView, target: target)
+            } else {
+                // 通常の余分なページ削除
                 removeExcessPages(from: layoutManager, in: scrollView, for: target)
             }
 
             // フレーム更新完了
             needsPageFrameUpdate = false
-
-            // 再入防止フラグをクリア
-            isUpdatingPages = false
         }
     }
 
