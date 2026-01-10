@@ -157,8 +157,10 @@ class MultiplePageView: NSView {
         rect.size = NSSize(width: pageWidth, height: pageHeight)
 
         if isVerticalLayout {
-            // 縦書き：ページを左から右に配置（表示上は右端が1ページ目に見える）
-            rect.origin.x = (pageWidth + pageSeparatorHeight) * CGFloat(pageNumber)
+            // 縦書き：ページを右から左に配置（1ページ目が右端）
+            // ページ0は右端、ページ1はその左...
+            let reversedIndex = numPages - 1 - pageNumber
+            rect.origin.x = (pageWidth + pageSeparatorHeight) * CGFloat(reversedIndex)
         } else {
             // 横書き：ページを上から下に配置
             rect.origin.y = (rect.size.height + pageSeparatorHeight) * CGFloat(pageNumber)
@@ -193,21 +195,7 @@ class MultiplePageView: NSView {
     override func draw(_ dirtyRect: NSRect) {
         guard NSGraphicsContext.current?.isDrawingToScreen == true else { return }
 
-        // 表示領域に含まれるページのみ描画
-        var firstPage: Int
-        var lastPage: Int
-
-        if isVerticalLayout {
-            // 縦書き：横方向にページが並ぶ
-            firstPage = max(0, Int(dirtyRect.minX / (pageWidth + pageSeparatorHeight)))
-            lastPage = min(Int(dirtyRect.maxX / (pageWidth + pageSeparatorHeight)), numPages - 1)
-        } else {
-            // 横書き：縦方向にページが並ぶ（上から下）
-            firstPage = max(0, Int(dirtyRect.minY / (pageHeight + pageSeparatorHeight)))
-            lastPage = min(Int(dirtyRect.maxY / (pageHeight + pageSeparatorHeight)), numPages - 1)
-        }
-
-        guard firstPage <= lastPage && numPages > 0 else {
+        guard numPages > 0 else {
             // 背景色で塗りつぶし
             backgroundColor.setFill()
             dirtyRect.fill()
@@ -218,9 +206,11 @@ class MultiplePageView: NSView {
         backgroundColor.setFill()
         dirtyRect.fill()
 
-        // 各ページを描画
-        for pageNum in firstPage...lastPage {
+        // 表示領域と交差するページを描画
+        for pageNum in 0..<numPages {
             let pageRect = self.pageRect(forPageNumber: pageNum)
+            guard pageRect.intersects(dirtyRect) else { continue }
+
             let docRect = self.documentRect(forPageNumber: pageNum)
 
             // ページの影を描画（ページを浮き上がらせて見せる）

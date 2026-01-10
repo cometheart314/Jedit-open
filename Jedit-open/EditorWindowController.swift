@@ -738,6 +738,28 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // 行番号表示のため再描画
                 self.pagesView2?.needsDisplay = true
             }
+
+            // 縦書き時は右端（1ページ目）にスクロール（レイアウト完了後に実行）
+            if self.isVerticalLayout {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    guard let self = self else { return }
+                    self.scrollToFirstPageForVerticalLayout()
+                }
+            }
+        }
+    }
+
+    /// 縦書き時に1ページ目（右端）にスクロール
+    private func scrollToFirstPageForVerticalLayout() {
+        if let scrollView = scrollView1, let pagesView = pagesView1 {
+            let maxX = max(0, pagesView.frame.width - scrollView.contentView.bounds.width)
+            scrollView.contentView.scroll(to: NSPoint(x: maxX, y: 0))
+            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
+        if let scrollView = scrollView2, let pagesView = pagesView2, !scrollView.isHidden {
+            let maxX = max(0, pagesView.frame.width - scrollView.contentView.bounds.width)
+            scrollView.contentView.scroll(to: NSPoint(x: maxX, y: 0))
+            scrollView.reflectScrolledClipView(scrollView.contentView)
         }
     }
 
@@ -755,6 +777,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         guard let pagesView = pagesView else { return }
+
+        // 縦書き時の右から左配置のために、先にページ数を設定
+        pagesView.setNumberOfPages(count)
 
         let textContainerSize = pagesView.documentSizeInPage
 
@@ -797,9 +822,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textViews.append(textView)
             pagesView.addSubview(textView)
         }
-
-        // ページ数を設定
-        pagesView.setNumberOfPages(count)
 
         // 配列をプロパティに保存
         switch target {
@@ -1245,9 +1267,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             scrollView.documentView = pagesView  // ドキュメントビューを再設定してサイズを認識させる
             pagesView.needsDisplay = true
 
-            // スクロール位置を調整
-            scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
-            scrollView.reflectScrolledClipView(scrollView.contentView)
+            // スクロール位置を調整（横書き時は即座に、縦書き時は後で）
+            if !isVerticalLayout {
+                scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
+                scrollView.reflectScrolledClipView(scrollView.contentView)
+            }
         }
 
         // pagesView2を更新
@@ -1267,17 +1291,23 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     textView.setLayoutOrientation(orientation)
                 }
             }
+
+            // スクロールビューを更新
+            scrollView.documentView = pagesView
             pagesView.needsDisplay = true
 
-            // スクロール位置を調整
-            if isVerticalLayout {
-                // 縦書き：1ページ目（左端）を表示
+            // スクロール位置を調整（横書き時は即座に、縦書き時は後で）
+            if !isVerticalLayout {
                 scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
-            } else {
-                // 横書き：1ページ目（上端）を表示
-                scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
+                scrollView.reflectScrolledClipView(scrollView.contentView)
             }
-            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
+
+        // 縦書き時は右端（1ページ目）にスクロール（レイアウト完了後に実行）
+        if isVerticalLayout {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.scrollToFirstPageForVerticalLayout()
+            }
         }
     }
 
@@ -1351,11 +1381,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // LayoutManagerにTextContainerを追加
         layoutManager.addTextContainer(textContainer)
 
-        // 新しいTextViewを作成
+        // 新しいTextViewを作成（一時的なフレームで作成、後で更新される）
         let pageIndex = textContainers.count
-        let documentRect = pagesView.documentRect(forPageNumber: pageIndex)
+        let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
 
-        let textView = NSTextView(frame: documentRect, textContainer: textContainer)
+        let textView = NSTextView(frame: tempFrame, textContainer: textContainer)
         textView.isEditable = true
         textView.isSelectable = true
         textView.allowsUndo = true
@@ -1375,18 +1405,24 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.usesInspectorBar = isInspectorBarVisible
         textView.usesRuler = true
-        // 縦書き/横書きレイアウトを適用
-        textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
+
+        // 縦書き/横書きレイアウトを適用（フラグで保護して無限ループを防止）
+        if isVerticalLayout {
+            let wasUpdating = isUpdatingPages
+            isUpdatingPages = true
+            textView.setLayoutOrientation(.vertical)
+            isUpdatingPages = wasUpdating
+        }
+
+        // フレームが更新されるまで非表示にする
+        textView.isHidden = true
 
         // 配列に追加
         textContainers.append(textContainer)
         textViews.append(textView)
 
-        // pagesViewにTextViewを追加
+        // pagesViewにTextViewを追加（まだ表示位置は未設定）
         pagesView.addSubview(textView)
-
-        // ページ数を更新（これでpagesViewのフレームも更新される）
-        pagesView.setNumberOfPages(textContainers.count)
 
         // 配列をプロパティに戻す
         switch target {
@@ -1397,7 +1433,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textContainers2 = textContainers
             textViews2 = textViews
         }
+
+        // ページ追加をマーク（レイアウト完了後にフレームを更新するため）
+        needsPageFrameUpdate = true
     }
+
+    // ページフレーム更新が必要かどうか
+    private var needsPageFrameUpdate: Bool = false
 
     private func removeExcessPages(from layoutManager: NSLayoutManager, in scrollView: NSScrollView, for target: ScrollViewTarget) {
         var textContainers: [NSTextContainer]
@@ -1445,11 +1487,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 配列から削除
             textContainers.remove(at: index)
             textViews.remove(at: index)
-        }
-
-        // ページ数を更新
-        if !indicesToRemove.isEmpty {
-            pagesView.setNumberOfPages(textContainers.count)
         }
 
         // 配列をプロパティに戻す
@@ -1646,13 +1683,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // MARK: - NSLayoutManagerDelegate
 
-    // ページ追加中の再入防止フラグ
-    private var isAddingPage1: Bool = false
-    private var isAddingPage2: Bool = false
+    // ページ操作中の再入防止フラグ（より広範囲に適用）
+    private var isUpdatingPages: Bool = false
     // レイアウト方向切り替え中フラグ（ページ追加を抑制）
     private var isChangingLayoutOrientation: Bool = false
 
     func layoutManager(_ layoutManager: NSLayoutManager, didCompleteLayoutFor textContainer: NSTextContainer?, atEnd layoutFinishedFlag: Bool) {
+        // レイアウト方向切り替え中はスキップ
+        guard !isChangingLayoutOrientation else { return }
+
+        // ページ追加中は、レイアウト完了時のみ処理（追加ページ要求はスキップ）
+        if isUpdatingPages && !layoutFinishedFlag {
+            return
+        }
+
         // どのscrollViewに対応するlayoutManagerかを判定
         var target: ScrollViewTarget?
         var targetScrollView: NSScrollView?
@@ -1670,10 +1714,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             return
         }
 
-        // 再入防止チェック（レイアウト方向切り替え中もスキップ）
-        let isAddingPage = target == .scrollView1 ? isAddingPage1 : isAddingPage2
-        guard !isAddingPage && !isChangingLayoutOrientation else { return }
-
         // 現在のコンテナ数を取得（毎回最新の値を参照）
         let currentContainers = target == .scrollView1 ? textContainers1 : textContainers2
 
@@ -1684,28 +1724,72 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 最後のコンテナでレイアウトが完了していない場合、新しいページを追加
             // （事前に推定ページ数を作成しているので、ここに来るのは稀）
             if isLastContainer && !layoutFinishedFlag {
-                // 再入防止フラグをセット
-                if target == .scrollView1 {
-                    isAddingPage1 = true
-                } else {
-                    isAddingPage2 = true
-                }
+                // 再入防止フラグをセット（layoutFinishedFlagがtrueになるまでクリアしない）
+                isUpdatingPages = true
 
                 // 追加ページが必要（推定が少なかった場合）
                 addPage(to: layoutManager, in: scrollView, for: target)
 
-                // 再入防止フラグをクリア
-                if target == .scrollView1 {
-                    isAddingPage1 = false
-                } else {
-                    isAddingPage2 = false
-                }
+                // フラグはここではクリアしない - layoutFinishedFlag が true の時にクリアされる
+                return
             }
         }
 
-        // レイアウトが完了した場合、余分なページを削除
+        // レイアウトが完了した場合、ページ数を確定し、フレームを更新
         if layoutFinishedFlag {
-            removeExcessPages(from: layoutManager, in: scrollView, for: target)
+            // 再入防止フラグをセット
+            isUpdatingPages = true
+
+            // ページ数を確定
+            let finalPageCount = target == .scrollView1 ? textContainers1.count : textContainers2.count
+            if let pagesView = (target == .scrollView1 ? pagesView1 : pagesView2) {
+                pagesView.setNumberOfPages(finalPageCount)
+            }
+
+            // 全テキストビューのフレームとレイアウト方向を更新
+            updateAllTextViewFrames(for: target)
+
+            // 余分なページの削除は縦書きモードでは行わない（レイアウト完了タイミングの問題を避ける）
+            if !isVerticalLayout {
+                removeExcessPages(from: layoutManager, in: scrollView, for: target)
+            }
+
+            // フレーム更新完了
+            needsPageFrameUpdate = false
+
+            // 再入防止フラグをクリア
+            isUpdatingPages = false
+        }
+    }
+
+    /// 全テキストビューのフレームとレイアウト方向を更新
+    private func updateAllTextViewFrames(for target: ScrollViewTarget) {
+        let textViews: [NSTextView]
+        let pagesView: MultiplePageView?
+
+        switch target {
+        case .scrollView1:
+            textViews = textViews1
+            pagesView = pagesView1
+        case .scrollView2:
+            textViews = textViews2
+            pagesView = pagesView2
+        }
+
+        guard let pagesView = pagesView else { return }
+
+        let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
+
+        for (index, tv) in textViews.enumerated() {
+            tv.frame = pagesView.documentRect(forPageNumber: index)
+            // レイアウト方向が異なる場合のみ設定（不要な再レイアウトを避ける）
+            if tv.layoutOrientation != orientation {
+                tv.setLayoutOrientation(orientation)
+            }
+            // 非表示だったテキストビューを表示
+            if tv.isHidden {
+                tv.isHidden = false
+            }
         }
     }
 }
