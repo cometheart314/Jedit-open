@@ -59,6 +59,7 @@ class LineNumberView: NSView {
     private var updateWorkItem: DispatchWorkItem?
     private var scrollObserver: Any?
     private var textChangeObserver: Any?
+    private var textStorageObserver: Any?
 
     // サイズ変更通知
     static let widthDidChangeNotification = Notification.Name("LineNumberViewWidthDidChange")
@@ -97,6 +98,9 @@ class LineNumberView: NSView {
         if let observer = textChangeObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        if let observer = textStorageObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     private func setupScrollObserver() {
@@ -108,6 +112,10 @@ class LineNumberView: NSView {
         if let observer = textChangeObserver {
             NotificationCenter.default.removeObserver(observer)
             textChangeObserver = nil
+        }
+        if let observer = textStorageObserver {
+            NotificationCenter.default.removeObserver(observer)
+            textStorageObserver = nil
         }
 
         guard let textView = textView,
@@ -131,6 +139,22 @@ class LineNumberView: NSView {
             queue: .main
         ) { [weak self] _ in
             self?.debounceUpdateSize()
+        }
+
+        // テキストストレージの属性変更時（フォントサイズ変更など）に再描画
+        if let textStorage = textView.textStorage {
+            textStorageObserver = NotificationCenter.default.addObserver(
+                forName: NSTextStorage.didProcessEditingNotification,
+                object: textStorage,
+                queue: .main
+            ) { [weak self] _ in
+                // 即時再描画
+                self?.needsDisplay = true
+                // レイアウトが確定するまで待ってから再描画
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                    self?.needsDisplay = true
+                }
+            }
         }
 
         // 初期サイズを計算
@@ -328,6 +352,9 @@ class LineNumberView: NSView {
                     let glyphRange = layoutManager.glyphRange(forCharacterRange: nsSubstringRange, actualCharacterRange: nil)
                     let rectInContainer = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
+                    // パラグラフの最初の行のlineFragmentRectを取得して行の高さを得る
+                    let firstLineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
+
                     let yInTextView = rectInContainer.minY + textView.textContainerInset.height
                     let yInLineNumberView = yInTextView - contentBounds.origin.y
 
@@ -335,7 +362,9 @@ class LineNumberView: NSView {
                         let numberString = "\(paragraphNumber)" as NSString
                         let size = numberString.size(withAttributes: attributes)
                         let xPosition = self.currentWidth - size.width - self.rightMargin
-                        let drawPoint = NSPoint(x: xPosition, y: yInLineNumberView)
+                        // 行の中央に配置
+                        let yCenter = yInLineNumberView + (firstLineRect.height - size.height) / 2
+                        let drawPoint = NSPoint(x: xPosition, y: yCenter)
                         numberString.draw(at: drawPoint, withAttributes: attributes)
                         drawnParagraphs.insert(paragraphNumber)
                     }
@@ -358,7 +387,9 @@ class LineNumberView: NSView {
                 let numberString = "\(rowNumber)" as NSString
                 let size = numberString.size(withAttributes: attributes)
                 let xPosition = self.currentWidth - size.width - self.rightMargin
-                let drawPoint = NSPoint(x: xPosition, y: yInLineNumberView)
+                // 行の中央に配置
+                let yCenter = yInLineNumberView + (rectInContainer.height - size.height) / 2
+                let drawPoint = NSPoint(x: xPosition, y: yCenter)
                 numberString.draw(at: drawPoint, withAttributes: attributes)
             }
         }
@@ -399,11 +430,11 @@ class LineNumberView: NSView {
                     let glyphIndex = glyphRangeForPara.location
                     let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
 
-                    // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置を計算
+                    // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置（列の左端）を計算
                     let columnXInDocument = documentWidth - lineRect.origin.y - lineRect.height
 
-                    // LineNumberView内の座標に変換
-                    let xInLineNumberView = columnXInDocument - scrollX - lineRect.height
+                    // LineNumberView内の座標に変換（列の中央に合わせるためにheight/2を引く）
+                    let xInLineNumberView = columnXInDocument - scrollX - lineRect.height / 2
 
                     if !drawnParagraphs.contains(paragraphNumber) {
                         self.drawVerticalNumber(paragraphNumber, at: xInLineNumberView, columnWidth: lineRect.height, attributes: attributes)
@@ -418,18 +449,18 @@ class LineNumberView: NSView {
             layoutManager.enumerateLineFragments(forGlyphRange: fullGlyphRange) { [self] (lineRect, usedRect, textContainerParam, glyphRangeInFrag, stop) in
                 rowNumber += 1
 
-                // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置を計算
+                // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置（列の左端）を計算
                 let columnXInDocument = documentWidth - lineRect.origin.y - lineRect.height
 
-                // LineNumberView内の座標に変換
-                let xInLineNumberView = columnXInDocument - scrollX - lineRect.height
+                // LineNumberView内の座標に変換（列の中央に合わせるためにheight/2を引く）
+                let xInLineNumberView = columnXInDocument - scrollX - lineRect.height / 2
 
                 self.drawVerticalNumber(rowNumber, at: xInLineNumberView, columnWidth: lineRect.height, attributes: attributes)
             }
         }
     }
 
-    /// 縦書きの行番号を描画（横書き文字を90度回転、下揃え）
+    /// 縦書きの行番号を描画（横書き文字を90度回転、中央揃え）
     private func drawVerticalNumber(_ number: Int, at xPosition: CGFloat, columnWidth: CGFloat, attributes: [NSAttributedString.Key: Any]) {
         let numberString = "\(number)" as NSString
         let font = attributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: 10)
@@ -445,8 +476,8 @@ class LineNumberView: NSView {
         let rotatedWidth = stringSize.height
         let rotatedHeight = stringSize.width
 
-        // 下揃え：ビューの下端からマージンを引いた位置
-        let yPosition = self.bounds.height - self.bottomMargin - rotatedHeight
+        // 中央揃え：ビューの中央に配置
+        let yPosition = (self.bounds.height - rotatedHeight) / 2
 
         // 列の中央にX位置を配置
         let xCenter = xPosition + (columnWidth - rotatedWidth) / 2
