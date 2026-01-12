@@ -1072,6 +1072,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 textView.isRulerVisible = isRulerVisible
                 if isRulerVisible, let ruler = scrollView.horizontalRulerView {
                     ruler.originOffset = textDocument?.containerInset.width ?? 0
+                    ruler.clientView = textView
+                    window?.makeFirstResponder(textView)
+                    textView.updateRuler()
                 }
                 // ルーラー表示/非表示後にサイズを更新
                 updateTextViewSize(for: scrollView)
@@ -1082,6 +1085,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 textView.isRulerVisible = isRulerVisible
                 if isRulerVisible, let ruler = scrollView.horizontalRulerView {
                     ruler.originOffset = textDocument?.containerInset.width ?? 0
+                    ruler.clientView = textView
+                    textView.updateRuler()
                 }
                 // ルーラー表示/非表示後にサイズを更新
                 updateTextViewSize(for: scrollView)
