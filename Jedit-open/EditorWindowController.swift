@@ -1066,93 +1066,60 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private func updateRulerVisibility() {
         switch displayMode {
         case .continuous:
-            // 継続モードではtextView.isRulerVisibleを使用（標準的な方法）
-            if let scrollView = scrollView1,
-               let textView = scrollView.documentView as? NSTextView {
-                textView.isRulerVisible = isRulerVisible
-                if isRulerVisible {
-                    // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
-                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
-                    if let ruler = ruler {
-                        ruler.originOffset = textDocument?.containerInset.width ?? 0
-                        ruler.clientView = textView
-                        window?.makeFirstResponder(textView)
-                        textView.updateRuler()
-                    }
-                }
-                // ルーラー表示/非表示後にサイズを更新
-                updateTextViewSize(for: scrollView)
-            }
-            if let scrollView = scrollView2,
-               !scrollView.isHidden,
-               let textView = scrollView.documentView as? NSTextView {
-                textView.isRulerVisible = isRulerVisible
-                if isRulerVisible {
-                    // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
-                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
-                    if let ruler = ruler {
-                        ruler.originOffset = textDocument?.containerInset.width ?? 0
-                        ruler.clientView = textView
-                        textView.updateRuler()
-                    }
-                }
-                // ルーラー表示/非表示後にサイズを更新
-                updateTextViewSize(for: scrollView)
+            updateContinuousModeRuler(scrollView: scrollView1, isFirstResponder: true)
+            if let scrollView = scrollView2, !scrollView.isHidden {
+                updateContinuousModeRuler(scrollView: scrollView, isFirstResponder: false)
             }
         case .page:
-            // ページモードではScrollViewのルーラーを直接制御
-            // 縦書き時は縦ルーラーのみ、横書き時は横ルーラーのみ表示
-            if let scrollView = scrollView1 {
-                // 一度ルーラーを非表示にしてから種類を切り替える
-                scrollView.rulersVisible = false
-                if isVerticalLayout {
-                    // 縦書き：縦ルーラーのみ表示
-                    scrollView.hasHorizontalRuler = false
-                    scrollView.hasVerticalRuler = true
-                } else {
-                    // 横書き：横ルーラーのみ表示
-                    scrollView.hasHorizontalRuler = true
-                    scrollView.hasVerticalRuler = false
-                }
-                scrollView.tile()
-                scrollView.rulersVisible = isRulerVisible
-
-                // ルーラーの設定
-                if let firstTextView = textViews1.first {
-                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
-                    if let ruler = ruler {
-                        ruler.clientView = firstTextView
-                        ruler.originOffset = pageMargin
-                    }
-                    window?.makeFirstResponder(firstTextView)
-                    firstTextView.updateRuler()
-                }
-            }
+            updatePageModeRuler(scrollView: scrollView1, textViews: textViews1, isFirstResponder: true)
             if let scrollView = scrollView2, !scrollView.isHidden {
-                // 一度ルーラーを非表示にしてから種類を切り替える
-                scrollView.rulersVisible = false
-                if isVerticalLayout {
-                    // 縦書き：縦ルーラーのみ表示
-                    scrollView.hasHorizontalRuler = false
-                    scrollView.hasVerticalRuler = true
-                } else {
-                    // 横書き：横ルーラーのみ表示
-                    scrollView.hasHorizontalRuler = true
-                    scrollView.hasVerticalRuler = false
-                }
-                scrollView.tile()
-                scrollView.rulersVisible = isRulerVisible
-
-                // ルーラーの設定
-                if let firstTextView = textViews2.first {
-                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
-                    if let ruler = ruler {
-                        ruler.clientView = firstTextView
-                        ruler.originOffset = pageMargin
-                    }
-                    firstTextView.updateRuler()
-                }
+                updatePageModeRuler(scrollView: scrollView, textViews: textViews2, isFirstResponder: false)
             }
+        }
+    }
+
+    /// 連続モードのルーラー設定
+    private func updateContinuousModeRuler(scrollView: NSScrollView?, isFirstResponder: Bool) {
+        guard let scrollView = scrollView,
+              let textView = scrollView.documentView as? NSTextView else { return }
+
+        textView.isRulerVisible = isRulerVisible
+        if isRulerVisible {
+            let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+            if let ruler = ruler {
+                ruler.originOffset = textDocument?.containerInset.width ?? 0
+                ruler.clientView = textView
+                if isFirstResponder {
+                    window?.makeFirstResponder(textView)
+                }
+                textView.updateRuler()
+            }
+        }
+        updateTextViewSize(for: scrollView)
+    }
+
+    /// ページモードのルーラー設定
+    private func updatePageModeRuler(scrollView: NSScrollView?, textViews: [NSTextView], isFirstResponder: Bool) {
+        guard let scrollView = scrollView else { return }
+
+        // ルーラーの種類を切り替え
+        scrollView.rulersVisible = false
+        scrollView.hasHorizontalRuler = !isVerticalLayout
+        scrollView.hasVerticalRuler = isVerticalLayout
+        scrollView.tile()
+        scrollView.rulersVisible = isRulerVisible
+
+        // ルーラーの設定
+        if let firstTextView = textViews.first {
+            let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+            if let ruler = ruler {
+                ruler.clientView = firstTextView
+                ruler.originOffset = pageMargin
+            }
+            if isFirstResponder {
+                window?.makeFirstResponder(firstTextView)
+            }
+            firstTextView.updateRuler()
         }
     }
 
