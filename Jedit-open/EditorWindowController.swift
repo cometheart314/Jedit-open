@@ -650,7 +650,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // ScrollViewの設定
             scrollView.hasVerticalScroller = true
             scrollView.hasHorizontalScroller = true
-            scrollView.hasHorizontalRuler = true
+            // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
+            scrollView.hasHorizontalRuler = !isVerticalLayout
+            scrollView.hasVerticalRuler = isVerticalLayout
+            scrollView.rulersVisible = isRulerVisible
             scrollView.autohidesScrollers = false
 
             // 推定ページ数分のTextContainerを一度に作成
@@ -683,7 +686,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // ScrollViewの設定
             scrollView.hasVerticalScroller = true
             scrollView.hasHorizontalScroller = true
-            scrollView.hasHorizontalRuler = true
+            // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
+            scrollView.hasHorizontalRuler = !isVerticalLayout
+            scrollView.hasVerticalRuler = isVerticalLayout
+            scrollView.rulersVisible = isRulerVisible
             scrollView.autohidesScrollers = false
 
             // 推定ページ数分のTextContainerを一度に作成
@@ -925,12 +931,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let textDocument = self.textDocument {
             setupTextViews(with: textDocument.textStorage)
         }
+        // ルーラー表示状態を引き継ぐ（レイアウト完了後に実行）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.updateRulerVisibility()
+        }
     }
 
     @IBAction func switchToContinuousMode(_ sender: Any?) {
         displayMode = .continuous
         if let textDocument = self.textDocument {
             setupTextViews(with: textDocument.textStorage)
+        }
+        // ルーラー表示状態を引き継ぐ（レイアウト完了後に実行）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.updateRulerVisibility()
         }
     }
 
@@ -942,6 +956,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard let textDocument = self.textDocument else { return }
         displayMode = .page
         setupTextViews(with: textDocument.textStorage)
+        // ルーラー表示状態を引き継ぐ（レイアウト完了後に実行）
+        // レイアウト処理が完了するまで待つ必要があるため、遅延を長めに設定
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.updateRulerVisibility()
+        }
     }
 
     // MARK: - Line Number Actions
@@ -1069,23 +1088,58 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         case .page:
             // ページモードではScrollViewのルーラーを直接制御
+            // 縦書き時は縦ルーラーのみ、横書き時は横ルーラーのみ表示
             if let scrollView = scrollView1 {
+                // 一度ルーラーを非表示にしてから種類を切り替える
+                scrollView.rulersVisible = false
+                if isVerticalLayout {
+                    // 縦書き：縦ルーラーのみ表示
+                    scrollView.hasHorizontalRuler = false
+                    scrollView.hasVerticalRuler = true
+                } else {
+                    // 横書き：横ルーラーのみ表示
+                    scrollView.hasHorizontalRuler = true
+                    scrollView.hasVerticalRuler = false
+                }
+                scrollView.tile()
                 scrollView.rulersVisible = isRulerVisible
-                if isRulerVisible, let ruler = scrollView.horizontalRulerView {
-                    ruler.originOffset = pageMargin
-                    if let firstTextView = textViews1.first {
+
+                // ルーラーの設定
+                if let firstTextView = textViews1.first {
+                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+                    if let ruler = ruler {
                         ruler.clientView = firstTextView
+                        ruler.originOffset = pageMargin
+                    }
+                    if !isVerticalLayout {
                         window?.makeFirstResponder(firstTextView)
                         firstTextView.updateRuler()
                     }
                 }
             }
             if let scrollView = scrollView2, !scrollView.isHidden {
+                // 一度ルーラーを非表示にしてから種類を切り替える
+                scrollView.rulersVisible = false
+                if isVerticalLayout {
+                    // 縦書き：縦ルーラーのみ表示
+                    scrollView.hasHorizontalRuler = false
+                    scrollView.hasVerticalRuler = true
+                } else {
+                    // 横書き：横ルーラーのみ表示
+                    scrollView.hasHorizontalRuler = true
+                    scrollView.hasVerticalRuler = false
+                }
+                scrollView.tile()
                 scrollView.rulersVisible = isRulerVisible
-                if isRulerVisible, let ruler = scrollView.horizontalRulerView {
-                    ruler.originOffset = pageMargin
-                    if let firstTextView = textViews2.first {
+
+                // ルーラーの設定
+                if let firstTextView = textViews2.first {
+                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+                    if let ruler = ruler {
                         ruler.clientView = firstTextView
+                        ruler.originOffset = pageMargin
+                    }
+                    if !isVerticalLayout {
                         firstTextView.updateRuler()
                     }
                 }
@@ -1323,6 +1377,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                let layoutManager = self.layoutManager2 {
                 self.checkForLayoutIssues(layoutManager: layoutManager, scrollView: scrollView, target: .scrollView2)
             }
+        }
+
+        // ルーラー表示を更新（縦書き/横書きでルーラーの種類が変わるため）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.updateRulerVisibility()
         }
     }
 

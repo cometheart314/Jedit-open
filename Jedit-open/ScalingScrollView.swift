@@ -31,10 +31,6 @@ class ScalingScrollView: NSScrollView {
         currentMagnification = 1.0
     }
 
-    // MARK: - Layout
-    // Note: tile(), layout(), setFrameSize()はオーバーライドしない
-    // テキストビューのサイズ更新はEditorWindowControllerで管理
-
     // MARK: - Zoom Methods
 
     func zoomIn() {
