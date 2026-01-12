@@ -157,8 +157,9 @@ class MultiplePageView: NSView {
         rect.size = NSSize(width: pageWidth, height: pageHeight)
 
         if isVerticalLayout {
-            // 縦書き：ページを左から右に配置（スクロール位置で1ページ目を表示）
-            rect.origin.x = (pageWidth + pageSeparatorHeight) * CGFloat(pageNumber)
+            // 縦書き：ページを右から左に配置（1ページ目が右端）
+            let reversedIndex = numPages - 1 - pageNumber
+            rect.origin.x = (pageWidth + pageSeparatorHeight) * CGFloat(reversedIndex)
         } else {
             // 横書き：ページを上から下に配置
             rect.origin.y = (rect.size.height + pageSeparatorHeight) * CGFloat(pageNumber)
