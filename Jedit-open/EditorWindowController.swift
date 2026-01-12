@@ -1070,11 +1070,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             if let scrollView = scrollView1,
                let textView = scrollView.documentView as? NSTextView {
                 textView.isRulerVisible = isRulerVisible
-                if isRulerVisible, let ruler = scrollView.horizontalRulerView {
-                    ruler.originOffset = textDocument?.containerInset.width ?? 0
-                    ruler.clientView = textView
-                    window?.makeFirstResponder(textView)
-                    textView.updateRuler()
+                if isRulerVisible {
+                    // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
+                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+                    if let ruler = ruler {
+                        ruler.originOffset = textDocument?.containerInset.width ?? 0
+                        ruler.clientView = textView
+                        window?.makeFirstResponder(textView)
+                        textView.updateRuler()
+                    }
                 }
                 // ルーラー表示/非表示後にサイズを更新
                 updateTextViewSize(for: scrollView)
@@ -1083,10 +1087,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                !scrollView.isHidden,
                let textView = scrollView.documentView as? NSTextView {
                 textView.isRulerVisible = isRulerVisible
-                if isRulerVisible, let ruler = scrollView.horizontalRulerView {
-                    ruler.originOffset = textDocument?.containerInset.width ?? 0
-                    ruler.clientView = textView
-                    textView.updateRuler()
+                if isRulerVisible {
+                    // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
+                    let ruler: NSRulerView? = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+                    if let ruler = ruler {
+                        ruler.originOffset = textDocument?.containerInset.width ?? 0
+                        ruler.clientView = textView
+                        textView.updateRuler()
+                    }
                 }
                 // ルーラー表示/非表示後にサイズを更新
                 updateTextViewSize(for: scrollView)
@@ -1116,10 +1124,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                         ruler.clientView = firstTextView
                         ruler.originOffset = pageMargin
                     }
-                    if !isVerticalLayout {
-                        window?.makeFirstResponder(firstTextView)
-                        firstTextView.updateRuler()
-                    }
+                    window?.makeFirstResponder(firstTextView)
+                    firstTextView.updateRuler()
                 }
             }
             if let scrollView = scrollView2, !scrollView.isHidden {
@@ -1144,9 +1150,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                         ruler.clientView = firstTextView
                         ruler.originOffset = pageMargin
                     }
-                    if !isVerticalLayout {
-                        firstTextView.updateRuler()
-                    }
+                    firstTextView.updateRuler()
                 }
             }
         }
