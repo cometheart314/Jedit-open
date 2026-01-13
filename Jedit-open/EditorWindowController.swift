@@ -1229,6 +1229,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private func applyLayoutOrientation() {
         let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
 
+        // ページモードの場合はTextViewを再構築（setLayoutOrientationは大量テキストでフリーズするため）
+        if displayMode == .page {
+            guard let textDocument = self.textDocument else { return }
+            setupTextViews(with: textDocument.textStorage)
+            // ルーラー表示状態を引き継ぐ
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.updateRulerVisibility()
+            }
+            return
+        }
+
         // Continuous modeのテキストビュー
         if let scrollView = scrollView1,
            let textView = scrollView.documentView as? NSTextView {
@@ -1243,16 +1254,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             updateTextViewSize(for: scrollView)
         }
 
-        // Page modeのテキストビュー - ページサイズを更新して再構築
-        if displayMode == .page {
-            updatePageLayoutOrientation()
-        } else {
-            for textView in textViews1 {
-                textView.setLayoutOrientation(orientation)
-            }
-            for textView in textViews2 {
-                textView.setLayoutOrientation(orientation)
-            }
+        for textView in textViews1 {
+            textView.setLayoutOrientation(orientation)
+        }
+        for textView in textViews2 {
+            textView.setLayoutOrientation(orientation)
         }
 
         // 行番号ビューを再構築（縦書き/横書きで位置が変わるため）
@@ -1265,99 +1271,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 setupLineNumberView(for: scrollView, lineNumberViewRef: &lineNumberView2, constraintRef: &lineNumberWidthConstraint2)
                 lineNumberView2?.textView = scrollView.documentView as? NSTextView
             }
-        }
-    }
-
-    /// ページモードのレイアウト方向を更新（縦書き/横書き切り替え時）
-    private func updatePageLayoutOrientation() {
-        // レイアウト方向切り替え中フラグをセット（ページ追加を抑制）
-        isChangingLayoutOrientation = true
-        defer { isChangingLayoutOrientation = false }
-
-        let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
-
-        // pagesView1を更新
-        if let pagesView = pagesView1, let scrollView = scrollView1 {
-            pagesView.isVerticalLayout = isVerticalLayout
-            let newContainerSize = pagesView.documentSizeInPage
-
-            // ページビューのフレームを更新（ページ配置方向が変わるため）
-            pagesView.setNumberOfPages(textContainers1.count)
-
-            // テキストコンテナとテキストビューを更新
-            for (index, textContainer) in textContainers1.enumerated() {
-                textContainer.containerSize = newContainerSize
-                if index < textViews1.count {
-                    let textView = textViews1[index]
-                    textView.frame = pagesView.documentRect(forPageNumber: index)
-                    textView.setLayoutOrientation(orientation)
-                }
-            }
-
-            // スクロールビューを更新
-            scrollView.documentView = pagesView  // ドキュメントビューを再設定してサイズを認識させる
-            pagesView.needsDisplay = true
-
-            // スクロール位置を調整（横書き時は即座に、縦書き時は後で）
-            if !isVerticalLayout {
-                scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
-                scrollView.reflectScrolledClipView(scrollView.contentView)
-            }
-        }
-
-        // pagesView2を更新
-        if let pagesView = pagesView2, let scrollView = scrollView2 {
-            pagesView.isVerticalLayout = isVerticalLayout
-            let newContainerSize = pagesView.documentSizeInPage
-
-            // ページビューのフレームを更新（ページ配置方向が変わるため）
-            pagesView.setNumberOfPages(textContainers2.count)
-
-            // テキストコンテナとテキストビューを更新
-            for (index, textContainer) in textContainers2.enumerated() {
-                textContainer.containerSize = newContainerSize
-                if index < textViews2.count {
-                    let textView = textViews2[index]
-                    textView.frame = pagesView.documentRect(forPageNumber: index)
-                    textView.setLayoutOrientation(orientation)
-                }
-            }
-
-            // スクロールビューを更新
-            scrollView.documentView = pagesView
-            pagesView.needsDisplay = true
-
-            // スクロール位置を調整（横書き時は即座に、縦書き時は後で）
-            if !isVerticalLayout {
-                scrollView.contentView.scroll(to: NSPoint(x: 0, y: 0))
-                scrollView.reflectScrolledClipView(scrollView.contentView)
-            }
-        }
-
-        // 縦書き時は右端（1ページ目）にスクロール（レイアウト完了後に実行）
-        if isVerticalLayout {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.scrollToFirstPageForVerticalLayout()
-            }
-        }
-
-        // レイアウト変更後に余分なページをクリーンアップ
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            guard let self = self else { return }
-            if let scrollView = self.scrollView1,
-               let layoutManager = self.layoutManager1 {
-                self.checkForLayoutIssues(layoutManager: layoutManager, scrollView: scrollView, target: .scrollView1)
-            }
-            if let scrollView = self.scrollView2,
-               !scrollView.isHidden,
-               let layoutManager = self.layoutManager2 {
-                self.checkForLayoutIssues(layoutManager: layoutManager, scrollView: scrollView, target: .scrollView2)
-            }
-        }
-
-        // ルーラー表示を更新（縦書き/横書きでルーラーの種類が変わるため）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.updateRulerVisibility()
         }
     }
 
