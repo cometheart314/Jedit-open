@@ -22,7 +22,7 @@ class PreferencesWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "環境設定"
+        window.title = "Settings"
         window.minSize = NSSize(width: 600, height: 400)
         window.center()
         
@@ -34,7 +34,7 @@ class PreferencesWindowController: NSWindowController {
     private func setupPreferenceItems() {
         preferenceItems = [
             PreferenceCategory(
-                title: "一般",
+                title: "General",
                 icon: NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)!,
                 identifier: "general"
             ),
@@ -140,17 +140,14 @@ class PreferencesWindowController: NSWindowController {
         currentViewController = viewController
         
         // Update window title
-        window?.title = "環境設定 - \(item.title)"
+        window?.title = "Settings - \(item.title)"
     }
     
     private func createViewController(for identifier: String) -> NSViewController {
-        // XIBから読み込む場合
-        // return GeneralPreferencesViewController(nibName: "GeneralPreferences", bundle: nil)
-        
-        // コードで生成する場合
         switch identifier {
         case "general":
-            return GeneralPreferencesViewController()
+            // XIBから読み込む
+            return GeneralPreferencesViewController(nibName: "GeneralPreferences", bundle: nil)
         case "account":
             return AccountPreferencesViewController()
         case "appearance":
