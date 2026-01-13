@@ -33,6 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // MARK: - Application Open Handling
 
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
+        
         // 起動時のオプションに応じて処理
         if !hasHandledStartup {
             hasHandledStartup = true

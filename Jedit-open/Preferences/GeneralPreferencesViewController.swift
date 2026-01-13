@@ -8,25 +8,6 @@
 import Cocoa
 import ServiceManagement
 
-// MARK: - UserDefaults Keys
-
-extension UserDefaults {
-    enum Keys {
-        static let autoStartOption = "autoStartOption"
-        static let startupOption = "startupOption"
-        static let appearanceOption = "appearanceOption"
-    }
-
-    /// デフォルト値を登録
-    static func registerDefaults() {
-        UserDefaults.standard.register(defaults: [
-            Keys.autoStartOption: false,
-            Keys.startupOption: 0,
-            Keys.appearanceOption: 0
-        ])
-    }
-}
-
 // MARK: - GeneralPreferencesViewController
 
 class GeneralPreferencesViewController: NSViewController {
