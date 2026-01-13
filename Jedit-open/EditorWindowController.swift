@@ -22,6 +22,15 @@ enum SplitMode {
     case vertical    // 垂直スプリット（左右に分割）
 }
 
+// MARK: - Line Wrap Mode (for Continuous mode)
+
+enum LineWrapMode {
+    case paperWidth   // 用紙幅に合わせる
+    case windowWidth  // ウィンドウ幅に合わせる（デフォルト）
+    case noWrap       // 行を折り返さない
+    case fixedWidth   // 固定幅に合わせる
+}
+
 class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate, NSWindowDelegate, NSMenuItemValidation {
 
     // MARK: - IBOutlets
@@ -46,6 +55,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var isRulerVisible: Bool = false  // ルーラーの表示状態
     private var invisibleCharacterOptions: InvisibleCharacterOptions = .none  // 不可視文字の表示オプション
     private var isVerticalLayout: Bool = false  // 縦書きレイアウト
+    private var lineWrapMode: LineWrapMode = .windowWidth  // 行折り返しモード（Continuousモード用）
+    private var fixedWrapWidth: CGFloat = 600.0  // 固定幅（fixedWidthモード用）
 
     // 行番号ビュー
     private var lineNumberView1: LineNumberView?
@@ -963,6 +974,57 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    // MARK: - Line Wrap Mode Actions (for Continuous mode)
+
+    @IBAction func setLineWrapPaperWidth(_ sender: Any?) {
+        lineWrapMode = .paperWidth
+        applyLineWrapMode()
+    }
+
+    @IBAction func setLineWrapWindowWidth(_ sender: Any?) {
+        lineWrapMode = .windowWidth
+        applyLineWrapMode()
+    }
+
+    @IBAction func setLineWrapNoWrap(_ sender: Any?) {
+        lineWrapMode = .noWrap
+        applyLineWrapMode()
+    }
+
+    @IBAction func setLineWrapFixedWidth(_ sender: Any?) {
+        // 固定幅を入力するダイアログを表示
+        let alert = NSAlert()
+        alert.messageText = "Fixed Width"
+        alert.informativeText = "Enter the document width in points:"
+        alert.addButton(withTitle: "OK")
+        alert.addButton(withTitle: "Cancel")
+
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+        textField.stringValue = String(format: "%.0f", fixedWrapWidth)
+        alert.accessoryView = textField
+
+        guard let window = self.window else { return }
+        alert.beginSheetModal(for: window) { [weak self] response in
+            if response == .alertFirstButtonReturn {
+                if let width = Double(textField.stringValue), width > 0 {
+                    self?.fixedWrapWidth = CGFloat(width)
+                    self?.lineWrapMode = .fixedWidth
+                    self?.applyLineWrapMode()
+                }
+            }
+        }
+    }
+
+    private func applyLineWrapMode() {
+        guard displayMode == .continuous else { return }
+        if let scrollView = scrollView1 {
+            updateTextViewSize(for: scrollView)
+        }
+        if let scrollView = scrollView2, !scrollView.isHidden {
+            updateTextViewSize(for: scrollView)
+        }
+    }
+
     // MARK: - Line Number Actions
 
     @IBAction func toggleLineNumberMode(_ sender: Any?) {
@@ -1640,42 +1702,70 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
               let textContainer = textView.textContainer else { return }
 
         let containerInset = textView.textContainerInset
+        let availableWidth = scrollView.contentView.frame.width
+        let availableHeight = scrollView.contentView.frame.height
 
         if isVerticalLayout {
-            // 縦書きの場合：高さをウィンドウに合わせ、幅は無限（横スクロール）
-            let availableHeight = scrollView.contentView.frame.height
-            let containerHeight = availableHeight - (containerInset.height * 2)
+            // 縦書きの場合
+            let lineHeight: CGFloat
+            switch lineWrapMode {
+            case .paperWidth:
+                // 用紙高さ（マージンを除く）を1行の高さとする
+                lineHeight = pageHeight - (pageMargin * 2)
+            case .windowWidth:
+                // ウィンドウ高さを1行の高さとする
+                lineHeight = availableHeight - (containerInset.height * 2)
+            case .noWrap:
+                // 折り返さない（十分大きな値を使用）
+                lineHeight = 100000
+            case .fixedWidth:
+                // 固定幅を1行の高さとする
+                lineHeight = fixedWrapWidth
+            }
 
-            if containerHeight > 0 {
-                // 縦書きでは、containerSize.widthが1行の高さを決定する
-                textContainer.containerSize = NSSize(width: containerHeight, height: CGFloat.greatestFiniteMagnitude)
+            if lineHeight > 0 {
+                textContainer.containerSize = NSSize(width: lineHeight, height: CGFloat.greatestFiniteMagnitude)
             }
 
             // テキストビューは横に拡張可能
             textView.isHorizontallyResizable = true
-            textView.isVerticallyResizable = false
+            textView.isVerticallyResizable = lineWrapMode != .windowWidth
             textView.setFrameSize(NSSize(width: textView.frame.width, height: availableHeight))
 
             // スクロールバーの設定
             scrollView.hasHorizontalScroller = true
-            scrollView.hasVerticalScroller = false
+            scrollView.hasVerticalScroller = lineWrapMode != .windowWidth
             scrollView.autohidesScrollers = false
         } else {
-            // 横書きの場合：幅をウィンドウに合わせ、高さは無限（縦スクロール）
-            let availableWidth = scrollView.contentView.frame.width
-            let containerWidth = availableWidth - (containerInset.width * 2)
-
-            if containerWidth > 0 {
-                textContainer.containerSize = NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude)
+            // 横書きの場合
+            let lineWidth: CGFloat
+            switch lineWrapMode {
+            case .paperWidth:
+                // 用紙幅（マージンを除く）
+                lineWidth = pageWidth - (pageMargin * 2)
+            case .windowWidth:
+                // ウィンドウ幅
+                lineWidth = availableWidth - (containerInset.width * 2)
+            case .noWrap:
+                // 折り返さない（十分大きな値を使用）
+                lineWidth = 100000
+            case .fixedWidth:
+                // 固定幅
+                lineWidth = fixedWrapWidth
             }
 
-            // テキストビューは縦に拡張可能
-            textView.isHorizontallyResizable = false
+            if lineWidth > 0 {
+                textContainer.containerSize = NSSize(width: lineWidth, height: CGFloat.greatestFiniteMagnitude)
+            }
+
+            // テキストビューのサイズ設定
+            let textViewWidth = lineWrapMode == .windowWidth ? availableWidth : max(lineWidth + (containerInset.width * 2), availableWidth)
+            textView.isHorizontallyResizable = lineWrapMode != .windowWidth
             textView.isVerticallyResizable = true
-            textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
+            textView.setFrameSize(NSSize(width: textViewWidth, height: textView.frame.height))
 
             // スクロールバーの設定
-            scrollView.hasHorizontalScroller = false
+            scrollView.hasHorizontalScroller = lineWrapMode != .windowWidth
             scrollView.hasVerticalScroller = true
             scrollView.autohidesScrollers = false
         }
@@ -1780,6 +1870,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // Layout orientation menu item validation
         if menuItem.action == #selector(toggleLayoutOrientation(_:)) {
             menuItem.title = isVerticalLayout ? "Make Horizontal Layout" : "Make Vertical Layout"
+        }
+
+        // Line wrap mode menu items validation
+        if menuItem.action == #selector(setLineWrapPaperWidth(_:)) {
+            menuItem.state = lineWrapMode == .paperWidth ? .on : .off
+        }
+        if menuItem.action == #selector(setLineWrapWindowWidth(_:)) {
+            menuItem.state = lineWrapMode == .windowWidth ? .on : .off
+        }
+        if menuItem.action == #selector(setLineWrapNoWrap(_:)) {
+            menuItem.state = lineWrapMode == .noWrap ? .on : .off
+        }
+        if menuItem.action == #selector(setLineWrapFixedWidth(_:)) {
+            menuItem.state = lineWrapMode == .fixedWidth ? .on : .off
         }
 
         return true

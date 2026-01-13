@@ -479,6 +479,37 @@
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem title="Document Width" id="doc-wid-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Document Width" id="doc-wid-sub">
+                                    <items>
+                                        <menuItem title="Follows Paper Width" id="wrap-pap-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setLineWrapPaperWidth:" target="-1" id="wrap-pap-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Follows Window Width" id="wrap-win-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setLineWrapWindowWidth:" target="-1" id="wrap-win-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Don't Wrap Line" id="wrap-no-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setLineWrapNoWrap:" target="-1" id="wrap-no-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Fixed Width..." id="wrap-fix-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setLineWrapFixedWidth:" target="-1" id="wrap-fix-act"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
                             <menuItem title="Toggle Page Mode" id="AMh-4W-66r">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
