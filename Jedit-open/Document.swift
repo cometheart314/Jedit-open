@@ -70,6 +70,51 @@ class Document: NSDocument {
 
     // MARK: - Reading and Writing
 
+    // RTFDファイルパッケージの読み込みをサポート
+    override nonisolated func read(from fileWrapper: FileWrapper, ofType typeName: String) throws {
+        if typeName == "com.apple.rtfd" {
+            // RTFDはFileWrapperから直接読み込む
+            guard let attributedString = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) else {
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not read RTFD document"
+                ])
+            }
+
+            MainActor.assumeIsolated {
+                self.documentType = .rtfd
+                self.textStorage.setAttributedString(attributedString)
+                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+            }
+        } else {
+            // その他のファイルタイプは通常のread(from:ofType:)に委譲
+            if let data = fileWrapper.regularFileContents {
+                try read(from: data, ofType: typeName)
+            } else {
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not read file contents"
+                ])
+            }
+        }
+    }
+
+    // RTFDファイルパッケージの書き込みをサポート
+    override func fileWrapper(ofType typeName: String) throws -> FileWrapper {
+        if typeName == "com.apple.rtfd" {
+            // RTFDはFileWrapperとして書き出す
+            let range = NSRange(location: 0, length: textStorage.length)
+            guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: [:]) else {
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not create RTFD file wrapper"
+                ])
+            }
+            return fileWrapper
+        } else {
+            // その他のファイルタイプは通常のdata(ofType:)を使用
+            let data = try data(ofType: typeName)
+            return FileWrapper(regularFileWithContents: data)
+        }
+    }
+
     override func data(ofType typeName: String) throws -> Data {
         // ドキュメントタイプを判定
         let docType: NSAttributedString.DocumentType
