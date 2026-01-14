@@ -39,6 +39,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     @IBOutlet weak var scrollView2: ScalingScrollView!
     @IBOutlet weak var scrollView1: ScalingScrollView!
 
+    // MARK: - Image Resize
+
+    private var imageResizeController: ImageResizeController?
+
     // MARK: - Properties
 
     var textDocument: Document? {
@@ -408,11 +412,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let layoutManager = layoutManagers[0]
             layoutManager.addTextContainer(textContainer)
 
-            // TextViewを作成
+            // TextViewを作成（画像クリック対応）
             let availableWidth = scrollView.contentView.frame.width
             let availableHeight = scrollView.contentView.frame.height
             let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
-            let textView = NSTextView(frame: textViewFrame, textContainer: textContainer)
+            let textView = ImageClickableTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
@@ -436,6 +440,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 textView.backgroundColor = .white
                 scrollView.backgroundColor = .white
             }
+
+            // ImageResizeControllerを設定
+            if imageResizeController == nil {
+                imageResizeController = ImageResizeController(textStorage: textStorage, undoManager: textDocument?.undoManager)
+            }
+            textView.imageResizeController = imageResizeController
 
             // ScrollViewに設定
             scrollView.documentView = textView
@@ -493,11 +503,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let layoutManager = layoutManagers[1]
             layoutManager.addTextContainer(textContainer)
 
-            // TextViewを作成
+            // TextViewを作成（画像クリック対応）
             let availableWidth = scrollView.contentView.frame.width
             let availableHeight = scrollView.contentView.frame.height
             let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
-            let textView = NSTextView(frame: textViewFrame, textContainer: textContainer)
+            let textView = ImageClickableTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
@@ -521,6 +531,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 textView.backgroundColor = .white
                 scrollView.backgroundColor = .white
             }
+
+            // ImageResizeControllerを設定
+            if imageResizeController == nil {
+                imageResizeController = ImageResizeController(textStorage: textStorage, undoManager: textDocument?.undoManager)
+            }
+            textView.imageResizeController = imageResizeController
 
             // ScrollViewに設定
             scrollView.documentView = textView
@@ -801,6 +817,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         let textContainerSize = pagesView.documentSizeInPage
 
+        // ImageResizeControllerを確保
+        if imageResizeController == nil, let textStorage = layoutManager.textStorage {
+            imageResizeController = ImageResizeController(textStorage: textStorage, undoManager: textDocument?.undoManager)
+        }
+
         // すべてのページを一度に作成
         for pageIndex in 0..<count {
             // TextContainerを作成
@@ -811,9 +832,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // LayoutManagerにTextContainerを追加
             layoutManager.addTextContainer(textContainer)
 
-            // TextViewを作成
+            // TextViewを作成（画像クリック対応）
             let documentRect = pagesView.documentRect(forPageNumber: pageIndex)
-            let textView = NSTextView(frame: documentRect, textContainer: textContainer)
+            let textView = ImageClickableTextView(frame: documentRect, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
@@ -835,6 +856,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.usesRuler = true
             // 縦書き/横書きレイアウトを適用
             textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
+            // ImageResizeControllerを設定
+            textView.imageResizeController = imageResizeController
 
             textContainers.append(textContainer)
             textViews.append(textView)
@@ -1413,9 +1436,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 新しいページのインデックスを取得
         let pageIndex = textContainers.count
 
-        // 一時的なフレームでTextViewを作成（後でupdateAllTextViewFramesで更新される）
+        // 一時的なフレームでTextViewを作成（後でupdateAllTextViewFramesで更新される、画像クリック対応）
         let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
-        let textView = NSTextView(frame: tempFrame, textContainer: textContainer)
+        let textView = ImageClickableTextView(frame: tempFrame, textContainer: textContainer)
         textView.isEditable = true
         textView.isSelectable = true
         textView.allowsUndo = true
@@ -1435,6 +1458,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.usesInspectorBar = isInspectorBarVisible
         textView.usesRuler = true
+        // ImageResizeControllerを設定
+        textView.imageResizeController = imageResizeController
 
         // レイアウト方向はupdateAllTextViewFramesで設定される
         // ここでは一時的に非表示にする

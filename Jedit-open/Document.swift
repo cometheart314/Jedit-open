@@ -7,6 +7,16 @@
 
 import Cocoa
 
+// MARK: - AttachmentBoundsInfo
+
+/// 画像attachmentのbounds情報を保存するための構造体
+struct AttachmentBoundsInfo: Codable {
+    let location: Int
+    let filename: String
+    let width: CGFloat
+    let height: CGFloat
+}
+
 class Document: NSDocument {
 
     // MARK: - Notifications
@@ -80,9 +90,23 @@ class Document: NSDocument {
                 ])
             }
 
+            // bounds メタデータを読み込む
+            var boundsInfoList: [AttachmentBoundsInfo] = []
+            if let fileWrappers = fileWrapper.fileWrappers,
+               let metadataWrapper = fileWrappers[".attachment_bounds.json"],
+               let metadataData = metadataWrapper.regularFileContents {
+                boundsInfoList = (try? JSONDecoder().decode([AttachmentBoundsInfo].self, from: metadataData)) ?? []
+            }
+
             MainActor.assumeIsolated {
                 self.documentType = .rtfd
                 self.textStorage.setAttributedString(attributedString)
+
+                // bounds情報を適用
+                if !boundsInfoList.isEmpty {
+                    self.applyAttachmentBoundsMetadata(boundsInfoList)
+                }
+
                 NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
             }
         } else {
@@ -107,12 +131,106 @@ class Document: NSDocument {
                     NSLocalizedDescriptionKey: "Could not create RTFD file wrapper"
                 ])
             }
+
+            // 画像のbounds情報をメタデータとして保存
+            let boundsMetadata = collectAttachmentBoundsMetadata()
+            if !boundsMetadata.isEmpty {
+                if let metadataData = try? JSONEncoder().encode(boundsMetadata) {
+                    let metadataWrapper = FileWrapper(regularFileWithContents: metadataData)
+                    metadataWrapper.preferredFilename = ".attachment_bounds.json"
+                    fileWrapper.addFileWrapper(metadataWrapper)
+                }
+            }
+
             return fileWrapper
         } else {
             // その他のファイルタイプは通常のdata(ofType:)を使用
             let data = try data(ofType: typeName)
             return FileWrapper(regularFileWithContents: data)
         }
+    }
+
+    // MARK: - Attachment Bounds Metadata
+
+    /// 画像attachmentのbounds情報を収集
+    private func collectAttachmentBoundsMetadata() -> [AttachmentBoundsInfo] {
+        var boundsInfoList: [AttachmentBoundsInfo] = []
+
+        textStorage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: textStorage.length)) { value, range, _ in
+            guard let attachment = value as? NSTextAttachment else { return }
+
+            // boundsが設定されている場合のみ保存
+            if attachment.bounds.size.width > 0 && attachment.bounds.size.height > 0 {
+                // ファイル名を取得
+                let filename = attachment.fileWrapper?.preferredFilename ?? "unknown_\(range.location)"
+                let info = AttachmentBoundsInfo(
+                    location: range.location,
+                    filename: filename,
+                    width: attachment.bounds.size.width,
+                    height: attachment.bounds.size.height
+                )
+                boundsInfoList.append(info)
+            }
+        }
+
+        return boundsInfoList
+    }
+
+    /// 画像attachmentにbounds情報を適用
+    private func applyAttachmentBoundsMetadata(_ boundsInfoList: [AttachmentBoundsInfo]) {
+        // attachmentを置き換えてboundsを適用する
+        // 単にboundsを設定するだけでは表示に反映されないため、attachmentごと置き換える
+
+        var replacements: [(range: NSRange, attachment: NSTextAttachment, bounds: CGRect)] = []
+
+        // まずファイル名で照合してリストを作成
+        textStorage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: textStorage.length)) { value, range, _ in
+            guard let attachment = value as? NSTextAttachment,
+                  let filename = attachment.fileWrapper?.preferredFilename else { return }
+
+            // boundsInfoListから対応する情報を検索
+            if let info = boundsInfoList.first(where: { $0.filename == filename }) {
+                let newBounds = CGRect(x: 0, y: 0, width: info.width, height: info.height)
+                replacements.append((range: range, attachment: attachment, bounds: newBounds))
+            }
+        }
+
+        // 位置でも検索（ファイル名がない場合のフォールバック）
+        for info in boundsInfoList {
+            if info.location < textStorage.length {
+                let attrs = textStorage.attributes(at: info.location, effectiveRange: nil)
+                if let attachment = attrs[.attachment] as? NSTextAttachment {
+                    // すでにリストに含まれているかチェック
+                    if !replacements.contains(where: { $0.range.location == info.location }) {
+                        let newBounds = CGRect(x: 0, y: 0, width: info.width, height: info.height)
+                        replacements.append((range: NSRange(location: info.location, length: 1), attachment: attachment, bounds: newBounds))
+                    }
+                }
+            }
+        }
+
+        // 後ろから置き換えていく（位置がずれないように）
+        let sortedReplacements = replacements.sorted { $0.range.location > $1.range.location }
+
+        textStorage.beginEditing()
+        for replacement in sortedReplacements {
+            // 新しいattachmentを作成
+            let newAttachment = NSTextAttachment()
+            newAttachment.fileWrapper = replacement.attachment.fileWrapper
+            newAttachment.bounds = replacement.bounds
+
+            // 画像を取得してカスタムセルを設定（縦書き対応）
+            if let fileWrapper = replacement.attachment.fileWrapper,
+               let data = fileWrapper.regularFileContents,
+               let image = NSImage(data: data) {
+                let cell = ResizableImageAttachmentCell(image: image, displaySize: replacement.bounds.size)
+                newAttachment.attachmentCell = cell
+            }
+
+            let attachmentString = NSAttributedString(attachment: newAttachment)
+            textStorage.replaceCharacters(in: replacement.range, with: attachmentString)
+        }
+        textStorage.endEditing()
     }
 
     override func data(ofType typeName: String) throws -> Data {
