@@ -1,19 +1,19 @@
 {
   "fill" : {
-    "solid" : "extended-srgb:0.33333,0.74510,0.94118,1.00000"
+    "solid" : "extended-gray:0.00000,1.00000"
   },
   "groups" : [
     {
       "layers" : [
         {
-          "glass" : true,
-          "image-name" : "J_macOS11_Web_blue_2.png",
-          "name" : "J_macOS11_Web_blue_2",
+          "hidden" : false,
+          "image-name" : "black-J 2.png",
+          "name" : "black-J 2",
           "position" : {
-            "scale" : 1.35,
+            "scale" : 1,
             "translation-in-points" : [
-              10.390625,
-              7.875
+              0,
+              0
             ]
           }
         }

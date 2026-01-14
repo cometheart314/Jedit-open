@@ -1,61 +1,61 @@
 {
   "images" : [
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 8.png",
+      "filename" : "16x16@1x.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "16x16"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 7.png",
+      "filename" : "32x32@1x 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "16x16"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 6.png",
+      "filename" : "32x32@1x.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "32x32"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 5.png",
+      "filename" : "AppIcon-iOS-Default-32x32@2x.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "32x32"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 4.png",
+      "filename" : "64x64@2x.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "128x128"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 3.png",
+      "filename" : "256x256@1x 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "128x128"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 2.png",
+      "filename" : "256x256@1x.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "256x256"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー 1.png",
+      "filename" : "512x512@1x 1.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "256x256"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2のコピー.png",
+      "filename" : "512x512@1x.png",
       "idiom" : "mac",
       "scale" : "1x",
       "size" : "512x512"
     },
     {
-      "filename" : "J_macOS11_Web_blue_2 2.png",
+      "filename" : "1024x1024@1x.png",
       "idiom" : "mac",
       "scale" : "2x",
       "size" : "512x512"
