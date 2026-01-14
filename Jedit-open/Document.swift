@@ -82,7 +82,12 @@ class Document: NSDocument {
 
     // RTFDファイルパッケージの読み込みをサポート
     override nonisolated func read(from fileWrapper: FileWrapper, ofType typeName: String) throws {
-        if typeName == "com.apple.rtfd" {
+        // RTFDとして読み込むかどうかを判定
+        // 1. typeNameがcom.apple.rtfdの場合
+        // 2. ディレクトリパッケージでTXT.rtfを含む場合（RTFD構造）
+        let isRTFD = typeName == "com.apple.rtfd" || isRTFDPackage(fileWrapper)
+
+        if isRTFD && fileWrapper.isDirectory {
             // RTFDはFileWrapperから直接読み込む
             guard let attributedString = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) else {
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
@@ -121,9 +126,24 @@ class Document: NSDocument {
         }
     }
 
+    /// FileWrapperがRTFDパッケージ構造かどうかを判定
+    private nonisolated func isRTFDPackage(_ fileWrapper: FileWrapper) -> Bool {
+        guard fileWrapper.isDirectory,
+              let fileWrappers = fileWrapper.fileWrappers else {
+            return false
+        }
+        // RTFDパッケージは必ずTXT.rtfを含む
+        return fileWrappers["TXT.rtf"] != nil
+    }
+
     // RTFDファイルパッケージの書き込みをサポート
     override func fileWrapper(ofType typeName: String) throws -> FileWrapper {
-        if typeName == "com.apple.rtfd" {
+        // RTFDとして保存するかどうかを判定
+        // 1. typeNameがcom.apple.rtfdの場合
+        // 2. documentTypeが.rtfdの場合（拡張子が.rtfdでないRTFDパッケージを読み込んだ場合）
+        let shouldSaveAsRTFD = typeName == "com.apple.rtfd" || documentType == .rtfd
+
+        if shouldSaveAsRTFD {
             // RTFDはFileWrapperとして書き出す
             let range = NSRange(location: 0, length: textStorage.length)
             guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: [:]) else {
