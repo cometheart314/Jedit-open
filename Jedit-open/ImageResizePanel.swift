@@ -114,7 +114,7 @@ class ImageResizePanel: NSPanel {
         scaleTextLabel.alignment = .right
         contentView.addSubview(scaleTextLabel)
 
-        scaleSlider = NSSlider(value: 100, minValue: 10, maxValue: 400, target: self, action: #selector(scaleSliderChanged(_:)))
+        scaleSlider = NSSlider(value: 100, minValue: 0, maxValue: 200, target: self, action: #selector(scaleSliderChanged(_:)))
         scaleSlider.frame = NSRect(x: margin + labelWidth + spacing, y: yPos, width: 130, height: rowHeight)
         scaleSlider.isContinuous = true
         contentView.addSubview(scaleSlider)
@@ -234,6 +234,38 @@ class ImageResizePanel: NSPanel {
     }
 
     @objc private func applyClicked(_ sender: NSButton) {
+        // End editing to commit any pending text field input
+        // Check which field was being edited before resigning first responder
+        let editingWidth = (self.firstResponder as? NSText)?.delegate === widthField
+        let editingHeight = (self.firstResponder as? NSText)?.delegate === heightField
+
+        self.makeFirstResponder(nil)
+
+        // Read the current values from the text fields directly
+        // in case they were changed but not committed
+        let width = CGFloat(widthField.integerValue)
+        let height = CGFloat(heightField.integerValue)
+
+        if width > 0 && height > 0 {
+            // If aspect ratio should be maintained, adjust the other dimension
+            if aspectRatioCheckbox.state == .on && originalSize.width > 0 && originalSize.height > 0 {
+                if editingWidth {
+                    // Width was being edited, adjust height
+                    let ratio = originalSize.height / originalSize.width
+                    currentSize = NSSize(width: width, height: width * ratio)
+                } else if editingHeight {
+                    // Height was being edited, adjust width
+                    let ratio = originalSize.width / originalSize.height
+                    currentSize = NSSize(width: height * ratio, height: height)
+                } else {
+                    // Neither was being edited, use current values
+                    currentSize = NSSize(width: width, height: height)
+                }
+            } else {
+                currentSize = NSSize(width: width, height: height)
+            }
+        }
+
         onApply?(currentSize)
         close()
     }
