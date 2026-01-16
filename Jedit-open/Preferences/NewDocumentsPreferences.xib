@@ -22,10 +22,19 @@
                 <outlet property="fontNameField" destination="Vc7-8a-WjY" id="zFs-Uo-9qG"/>
                 <outlet property="footerTextView" destination="dYM-gi-Wc0" id="NCS-nA-CAi"/>
                 <outlet property="headerTextView" destination="MCd-yq-CCl" id="mEV-uL-Vx6"/>
+                <outlet property="invisibleKanjiSpaceCheckbox" destination="ZzT-27-9N5" id="inv-ksp-out"/>
+                <outlet property="invisibleLineSeparatorCheckbox" destination="Sna-s3-3Te" id="inv-lsp-out"/>
+                <outlet property="invisibleNonBreakingSpaceCheckbox" destination="Bdv-j8-Asw" id="inv-nbs-out"/>
+                <outlet property="invisiblePageBreakCheckbox" destination="Ws1-0s-2eh" id="inv-pgb-out"/>
+                <outlet property="invisibleParagraphBreakCheckbox" destination="DtL-IH-JDO" id="inv-pbr-out"/>
+                <outlet property="invisibleSpaceCheckbox" destination="lRv-pC-srN" id="inv-spc-out"/>
+                <outlet property="invisibleTabCheckbox" destination="CNB-oo-5X3" id="inv-tab-out"/>
+                <outlet property="invisibleVerticalTabCheckbox" destination="il3-fD-zyI" id="inv-vtb-out"/>
                 <outlet property="leftMarginField" destination="ppT-8p-7wJ" id="tiD-OQ-va0"/>
                 <outlet property="lineEndingPopup" destination="hh5-gw-RkL" id="41W-SI-eUO"/>
                 <outlet property="lineNumberPopup" destination="mra-s7-e3B" id="YJV-fJ-rIO"/>
                 <outlet property="marginUnitPopup" destination="Edb-gr-LrQ" id="QeE-gn-6sb"/>
+                <outlet property="newDocNamePopup" destination="eMY-Pc-2Ti" id="ndm-pop-out"/>
                 <outlet property="pageModeMatrix" destination="Cb4-qe-HEM" id="RNE-0A-bB5"/>
                 <outlet property="presetTableView" destination="gFa-M3-pou" id="HwW-Iw-sD0"/>
                 <outlet property="removeButton" destination="xlc-I5-2ws" id="w6t-cO-G08"/>
@@ -46,36 +55,28 @@
                 <outlet property="windowTopField" destination="H7Y-LW-oJy" id="1Xp-wB-Z3C"/>
                 <outlet property="windowWidthField" destination="Byx-wk-7aV" id="GCh-wt-kVw"/>
                 <outlet property="wordWrapPopup" destination="Fv2-2l-Xxv" id="UM9-e2-fjL"/>
-                <outlet property="invisibleSpaceCheckbox" destination="lRv-pC-srN" id="inv-spc-out"/>
-                <outlet property="invisibleNonBreakingSpaceCheckbox" destination="Bdv-j8-Asw" id="inv-nbs-out"/>
-                <outlet property="invisibleKanjiSpaceCheckbox" destination="ZzT-27-9N5" id="inv-ksp-out"/>
-                <outlet property="invisibleTabCheckbox" destination="CNB-oo-5X3" id="inv-tab-out"/>
-                <outlet property="invisibleLineSeparatorCheckbox" destination="Sna-s3-3Te" id="inv-lsp-out"/>
-                <outlet property="invisibleParagraphBreakCheckbox" destination="DtL-IH-JDO" id="inv-pbr-out"/>
-                <outlet property="invisiblePageBreakCheckbox" destination="Ws1-0s-2eh" id="inv-pgb-out"/>
-                <outlet property="invisibleVerticalTabCheckbox" destination="il3-fD-zyI" id="inv-vtb-out"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
         <customObject id="-3" userLabel="Application" customClass="NSObject"/>
         <customView id="c22-O7-iKe" customClass="NewDocuments">
-            <rect key="frame" x="0.0" y="0.0" width="666" height="491"/>
+            <rect key="frame" x="0.0" y="0.0" width="636" height="491"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
                 <scrollView autohidesScrollers="YES" horizontalLineScroll="24" horizontalPageScroll="10" verticalLineScroll="24" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5VY-dr-NPg">
-                    <rect key="frame" x="0.0" y="26" width="143" height="431"/>
+                    <rect key="frame" x="0.0" y="26" width="100" height="465"/>
                     <clipView key="contentView" id="544-0U-cYo">
-                        <rect key="frame" x="1" y="1" width="141" height="429"/>
+                        <rect key="frame" x="1" y="1" width="98" height="463"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <tableView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" columnReordering="NO" multipleSelection="NO" autosaveColumns="NO" rowHeight="24" rowSizeStyle="automatic" viewBased="YES" id="gFa-M3-pou">
-                                <rect key="frame" x="0.0" y="0.0" width="141" height="429"/>
+                                <rect key="frame" x="0.0" y="0.0" width="98" height="463"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <size key="intercellSpacing" width="17" height="0.0"/>
                                 <color key="backgroundColor" name="controlBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 <color key="gridColor" name="separatorColor" catalog="System" colorSpace="catalog"/>
                                 <tableColumns>
-                                    <tableColumn identifier="AutomaticTableColumnIdentifier.0" width="129" minWidth="40" maxWidth="1000" id="nL5-Ci-Ehz">
+                                    <tableColumn identifier="AutomaticTableColumnIdentifier.0" width="86" minWidth="40" maxWidth="1000" id="nL5-Ci-Ehz">
                                         <tableHeaderCell key="headerCell" lineBreakMode="truncatingTail" borderStyle="border">
                                             <color key="textColor" name="headerTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="headerColor" catalog="System" colorSpace="catalog"/>
@@ -88,11 +89,11 @@
                                         <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                         <prototypeCellViews>
                                             <tableCellView id="dn6-nN-hXe">
-                                                <rect key="frame" x="8" y="0.0" width="124" height="24"/>
+                                                <rect key="frame" x="8" y="0.0" width="81" height="24"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
-                                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eGM-bJ-CKu">
-                                                        <rect key="frame" x="0.0" y="4" width="124" height="16"/>
+                                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eGM-bJ-CKu">
+                                                        <rect key="frame" x="0.0" y="4" width="81" height="16"/>
                                                         <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES" flexibleMaxY="YES"/>
                                                         <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="4wk-Rh-ITg">
                                                             <font key="font" usesAppearanceFont="YES"/>
@@ -112,7 +113,7 @@
                         </subviews>
                     </clipView>
                     <constraints>
-                        <constraint firstAttribute="width" constant="143" id="JlC-s9-Qm3"/>
+                        <constraint firstAttribute="width" constant="100" id="JlC-s9-Qm3"/>
                     </constraints>
                     <scroller key="horizontalScroller" hidden="YES" wantsLayer="YES" verticalHuggingPriority="750" horizontal="YES" id="thz-nn-M1O">
                         <rect key="frame" x="1" y="413" width="141" height="17"/>
@@ -144,39 +145,26 @@
                     </constraints>
                 </button>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="N7X-le-vA6">
-                    <rect key="frame" x="49" y="1" width="90" height="24"/>
+                    <rect key="frame" x="49" y="1" width="50" height="24"/>
                     <buttonCell key="cell" type="push" title="Edit" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="mYf-q1-gRS">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                         <font key="font" metaFont="system"/>
                     </buttonCell>
                     <constraints>
-                        <constraint firstAttribute="width" constant="90" id="BFt-Du-TXW"/>
+                        <constraint firstAttribute="width" constant="50" id="BFt-Du-TXW"/>
                     </constraints>
                 </button>
-                <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wE5-rx-CfI">
-                    <rect key="frame" x="226" y="465" width="436" height="22"/>
-                    <constraints>
-                        <constraint firstAttribute="width" constant="432" id="s4i-KL-V80"/>
-                    </constraints>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" id="glJ-4I-qUS">
-                        <font key="font" metaFont="miniSystem"/>
-                        <string key="title">These settings are applied to new documents or documents created by other than Jedit. 
-To change the settings of current editing document, use the menu items of View or Format.</string>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
                 <tabView translatesAutoresizingMaskIntoConstraints="NO" id="Orc-03-RCR">
-                    <rect key="frame" x="136" y="-10" width="537" height="473"/>
+                    <rect key="frame" x="93" y="-10" width="550" height="507"/>
                     <font key="font" metaFont="system"/>
                     <tabViewItems>
                         <tabViewItem label="View" identifier="" id="C1R-au-QDo">
                             <view key="view" id="hAA-cf-kqa">
-                                <rect key="frame" x="10" y="33" width="517" height="427"/>
+                                <rect key="frame" x="10" y="33" width="530" height="461"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <box autoresizesSubviews="NO" fixedFrame="YES" borderType="line" title="Show Invisibles" translatesAutoresizingMaskIntoConstraints="NO" id="3qX-zp-sOi">
-                                        <rect key="frame" x="23" y="64" width="433" height="91"/>
+                                        <rect key="frame" x="23" y="98" width="433" height="91"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <view key="contentView" id="gT4-Vp-S4D">
                                             <rect key="frame" x="0.0" y="0.0" width="433" height="79"/>
@@ -274,7 +262,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </view>
                                     </box>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="OiQ-NZ-hSH">
-                                        <rect key="frame" x="277" y="150" width="80" height="17"/>
+                                        <rect key="frame" x="277" y="184" width="80" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="roundRect" title="Show All" bezelStyle="roundedRect" alignment="center" controlSize="mini" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Nqj-Vf-rOR">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -285,7 +273,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </connections>
                                     </button>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0Qf-BP-PmG">
-                                        <rect key="frame" x="376" y="149" width="80" height="17"/>
+                                        <rect key="frame" x="376" y="183" width="80" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="roundRect" title="Hide All" bezelStyle="roundedRect" alignment="center" controlSize="mini" state="on" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Bc1-FQ-V0b">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -295,8 +283,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <action selector="hideAllInvisiblesClicked:" target="-2" id="hid-all-act"/>
                                         </connections>
                                     </button>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UIa-aC-lOp">
-                                        <rect key="frame" x="20" y="264" width="47" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UIa-aC-lOp">
+                                        <rect key="frame" x="20" y="298" width="47" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Ruler: " id="zKO-pV-hj8">
                                             <font key="font" metaFont="smallSystem"/>
@@ -305,7 +293,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mra-s7-e3B">
-                                        <rect key="frame" x="286" y="294" width="163" height="22"/>
+                                        <rect key="frame" x="286" y="328" width="163" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="hRp-mP-H2y">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -322,7 +310,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="QIv-zg-RbC">
-                                        <rect key="frame" x="67" y="259" width="115" height="22"/>
+                                        <rect key="frame" x="67" y="293" width="115" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Characters" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="4" imageScaling="proportionallyDown" inset="2" selectedItem="AUH-5e-eeF" id="Fv5-Mj-Fj9">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -345,8 +333,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BrY-f4-H4K">
-                                        <rect key="frame" x="15" y="296" width="78" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BrY-f4-H4K">
+                                        <rect key="frame" x="15" y="330" width="78" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="View Scale: " id="DaY-PT-n7L">
                                             <font key="font" metaFont="smallSystem"/>
@@ -355,13 +343,13 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <box autoresizesSubviews="NO" fixedFrame="YES" borderType="line" title="New Window" translatesAutoresizingMaskIntoConstraints="NO" id="Lad-nA-rcW">
-                                        <rect key="frame" x="17" y="326" width="432" height="88"/>
+                                        <rect key="frame" x="17" y="360" width="432" height="88"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <view key="contentView" id="pZb-sQ-eEM">
                                             <rect key="frame" x="0.0" y="0.0" width="432" height="76"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bws-9K-5Lw">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bws-9K-5Lw">
                                                     <rect key="frame" x="-4" y="45" width="97" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="location  left:" id="vxq-23-ZGY">
@@ -370,7 +358,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sQO-tw-iY3">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sQO-tw-iY3">
                                                     <rect key="frame" x="21" y="13" width="73" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="size width:" id="Vvr-lO-AID">
@@ -379,7 +367,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MzY-Hy-eSw">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MzY-Hy-eSw">
                                                     <rect key="frame" x="171" y="13" width="54" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="height:" id="O6H-y8-gGl">
@@ -388,7 +376,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TE3-cI-NFw">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TE3-cI-NFw">
                                                     <rect key="frame" x="189" y="45" width="35" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="top:" id="tkc-4T-jRT">
@@ -397,7 +385,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Drd-Op-6a8">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Drd-Op-6a8">
                                                     <rect key="frame" x="96" y="42" width="56" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="KQU-Aq-Jzg">
@@ -406,7 +394,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Byx-wk-7aV">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Byx-wk-7aV">
                                                     <rect key="frame" x="96" y="10" width="56" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="9jZ-Au-kla">
@@ -415,7 +403,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H7Y-LW-oJy">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H7Y-LW-oJy">
                                                     <rect key="frame" x="227" y="42" width="56" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="ciF-Yf-9uO">
@@ -424,7 +412,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="q50-tE-BDg">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="q50-tE-BDg">
                                                     <rect key="frame" x="227" y="10" width="56" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="Woe-XS-XWT">
@@ -455,7 +443,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <action selector="getCurrentSizeClicked:" target="-2" id="siz-btn-con"/>
                                                     </connections>
                                                 </button>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tRS-vS-UK7">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tRS-vS-UK7">
                                                     <rect key="frame" x="151" y="45" width="22" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="pt." id="CsA-gG-vkz">
@@ -464,7 +452,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uBv-5M-AtV">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uBv-5M-AtV">
                                                     <rect key="frame" x="151" y="13" width="22" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="pt." id="S74-Pi-cK1">
@@ -473,7 +461,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="d8l-8o-8oP">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="d8l-8o-8oP">
                                                     <rect key="frame" x="283" y="45" width="22" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="pt." id="Yne-CR-t7A">
@@ -482,7 +470,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="YdQ-P7-EZQ">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="YdQ-P7-EZQ">
                                                     <rect key="frame" x="283" y="13" width="22" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="pt." id="ep0-rG-tji">
@@ -494,8 +482,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </subviews>
                                         </view>
                                     </box>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="d98-eP-7ZI">
-                                        <rect key="frame" x="188" y="296" width="98" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="d98-eP-7ZI">
+                                        <rect key="frame" x="188" y="330" width="98" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Line Number : " id="vBA-Kc-3UX">
                                             <font key="font" metaFont="smallSystem"/>
@@ -504,15 +492,15 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Xrx-0I-THt">
-                                        <rect key="frame" x="207" y="262" width="136" height="18"/>
+                                        <rect key="frame" x="207" y="296" width="136" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Show Inspector Bar" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="OD9-Nc-jgO">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="smallSystem"/>
                                         </buttonCell>
                                     </button>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Xzx-4O-Boa">
-                                        <rect key="frame" x="45" y="213" width="114" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Xzx-4O-Boa">
+                                        <rect key="frame" x="45" y="247" width="114" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Document Width:" id="wUd-1y-hBP">
                                             <font key="font" metaFont="smallSystem"/>
@@ -520,8 +508,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Za2-Mk-Pbf">
-                                        <rect key="frame" x="52" y="240" width="98" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Za2-Mk-Pbf">
+                                        <rect key="frame" x="52" y="274" width="98" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Window / Page:" id="l5X-dA-155">
                                             <font key="font" metaFont="smallSystem"/>
@@ -530,7 +518,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Cb4-qe-HEM">
-                                        <rect key="frame" x="156" y="238" width="224" height="17"/>
+                                        <rect key="frame" x="156" y="272" width="224" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         <size key="cellSize" width="110" height="17"/>
@@ -555,7 +543,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </cells>
                                     </matrix>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RYu-Ro-UEN">
-                                        <rect key="frame" x="162" y="208" width="218" height="22"/>
+                                        <rect key="frame" x="162" y="242" width="218" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Follows Paper Width" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="r0Q-v1-nic" id="wPQ-ux-IYS">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -579,7 +567,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qh9-me-2Og">
-                                        <rect key="frame" x="350" y="261" width="100" height="20"/>
+                                        <rect key="frame" x="350" y="295" width="100" height="20"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Show Tool Bar" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="4mC-fx-W5W">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -587,7 +575,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </buttonCell>
                                     </button>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="deL-3J-ivd">
-                                        <rect key="frame" x="148" y="292" width="29" height="21"/>
+                                        <rect key="frame" x="148" y="326" width="29" height="21"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="keK-aV-6L2">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -624,15 +612,15 @@ To change the settings of current editing document, use the menu items of View o
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wDi-0p-k5J">
-                                        <rect key="frame" x="17" y="20" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="54" width="167" height="24"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="qCY-dj-AB3">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
                                     </button>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fMg-Ef-coJ">
-                                        <rect key="frame" x="99" y="294" width="49" height="19"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fMg-Ef-coJ">
+                                        <rect key="frame" x="99" y="328" width="49" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" state="on" alignment="right" drawsBackground="YES" id="ND2-F2-1oB">
                                             <font key="font" metaFont="system"/>
@@ -645,16 +633,16 @@ To change the settings of current editing document, use the menu items of View o
                         </tabViewItem>
                         <tabViewItem label="Format" identifier="" id="n3X-E2-RQS">
                             <view key="view" id="vX3-Av-W9D">
-                                <rect key="frame" x="10" y="33" width="517" height="427"/>
+                                <rect key="frame" x="10" y="33" width="530" height="461"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wFd-jE-1xU">
-                                        <rect key="frame" x="186" y="239" width="15" height="22"/>
+                                        <rect key="frame" x="186" y="273" width="15" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <stepperCell key="cell" controlSize="small" continuous="YES" alignment="left" maxValue="1000" id="Bmx-cC-ten"/>
                                     </stepper>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Eg8-Tw-Bda">
-                                        <rect key="frame" x="44" y="274" width="110" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Eg8-Tw-Bda">
+                                        <rect key="frame" x="44" y="308" width="110" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Editing Direction" id="fY5-xY-TuE">
                                             <font key="font" metaFont="smallSystem"/>
@@ -663,7 +651,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="n90-vJ-nGl">
-                                        <rect key="frame" x="165" y="272" width="224" height="18"/>
+                                        <rect key="frame" x="165" y="306" width="224" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         <size key="cellSize" width="110" height="18"/>
@@ -688,7 +676,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </cells>
                                     </matrix>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eMY-Pc-2Ti">
-                                        <rect key="frame" x="163" y="386" width="187" height="22"/>
+                                        <rect key="frame" x="163" y="420" width="187" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Untitled #" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="aiL-6X-GUM" id="dC2-bg-v1J">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -708,9 +696,12 @@ To change the settings of current editing document, use the menu items of View o
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="ndm-act-con"/>
+                                        </connections>
                                     </popUpButton>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" preferredMaxLayoutWidth="161" translatesAutoresizingMaskIntoConstraints="NO" id="bWR-Hn-zZj">
-                                        <rect key="frame" x="22" y="391" width="134" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" preferredMaxLayoutWidth="161" translatesAutoresizingMaskIntoConstraints="NO" id="bWR-Hn-zZj">
+                                        <rect key="frame" x="22" y="425" width="134" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="right" title="New Document Name" id="Iet-CF-djG">
                                             <font key="font" metaFont="smallSystem"/>
@@ -718,8 +709,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mhd-e9-Q9V">
-                                        <rect key="frame" x="45" y="367" width="110" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Mhd-e9-Q9V">
+                                        <rect key="frame" x="45" y="401" width="110" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Text Style" id="8sO-WW-nVV">
                                             <font key="font" metaFont="smallSystem"/>
@@ -727,8 +718,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RfD-Wn-8r7">
-                                        <rect key="frame" x="355" y="366" width="30" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RfD-Wn-8r7">
+                                        <rect key="frame" x="355" y="400" width="30" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Ext." id="BDt-Os-Rfm">
                                             <font key="font" metaFont="smallSystem"/>
@@ -736,8 +727,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MNL-gk-H3j">
-                                        <rect key="frame" x="56" y="243" width="87" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MNL-gk-H3j">
+                                        <rect key="frame" x="56" y="277" width="87" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Tab Width" id="1Rn-fj-gcF">
                                             <font key="font" metaFont="smallSystem"/>
@@ -745,8 +736,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZRo-t7-Nwa">
-                                        <rect key="frame" x="149" y="241" width="39" height="19"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZRo-t7-Nwa">
+                                        <rect key="frame" x="149" y="275" width="39" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="iFW-g1-egs">
                                             <numberFormatter key="formatter" formatterBehavior="custom10_4" numberStyle="decimal" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" minimumFractionDigits="1" maximumFractionDigits="1" id="p1z-OQ-iEO">
@@ -759,7 +750,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="WhX-pX-Itz">
-                                        <rect key="frame" x="198" y="238" width="72" height="22"/>
+                                        <rect key="frame" x="198" y="272" width="72" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="points" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="M30-7v-nGA" id="HmY-fT-fh8">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -772,8 +763,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0KV-gZ-R3X">
-                                        <rect key="frame" x="271" y="244" width="214" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0KV-gZ-R3X">
+                                        <rect key="frame" x="271" y="278" width="214" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="space chars. will be insert by tab key." id="AkH-83-lI3">
                                             <font key="font" metaFont="smallSystem"/>
@@ -781,8 +772,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oZj-p9-NCY">
-                                        <rect key="frame" x="386" y="364" width="39" height="19"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oZj-p9-NCY">
+                                        <rect key="frame" x="386" y="398" width="39" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="left" drawsBackground="YES" id="cel-8r-lh7">
                                             <font key="font" metaFont="smallSystem"/>
@@ -791,7 +782,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZwF-8X-2NX">
-                                        <rect key="frame" x="326" y="298" width="53" height="20"/>
+                                        <rect key="frame" x="326" y="332" width="53" height="20"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="BOM" bezelStyle="regularSquare" imagePosition="left" controlSize="small" state="on" inset="2" id="kPO-g1-RO0">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -799,7 +790,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </buttonCell>
                                     </button>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3ER-p1-fiT">
-                                        <rect key="frame" x="163" y="328" width="223" height="22"/>
+                                        <rect key="frame" x="163" y="362" width="223" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="yoI-wP-bcR" customClass="EncodingPopUpButtonCell">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -814,7 +805,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hh5-gw-RkL">
-                                        <rect key="frame" x="163" y="298" width="159" height="22"/>
+                                        <rect key="frame" x="163" y="332" width="159" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="8y8-rQ-loh">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -828,8 +819,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DVZ-RX-s3G">
-                                        <rect key="frame" x="70" y="303" width="85" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DVZ-RX-s3G">
+                                        <rect key="frame" x="70" y="337" width="85" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Line Endings" id="uHg-t4-a7h">
                                             <font key="font" metaFont="smallSystem"/>
@@ -837,8 +828,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TKg-Pm-ehN">
-                                        <rect key="frame" x="89" y="331" width="65" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="TKg-Pm-ehN">
+                                        <rect key="frame" x="89" y="365" width="65" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Encoding" id="0Qf-bf-A6k">
                                             <font key="font" metaFont="smallSystem"/>
@@ -847,7 +838,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="oPo-f2-5W5">
-                                        <rect key="frame" x="165" y="364" width="224" height="17"/>
+                                        <rect key="frame" x="165" y="398" width="224" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         <size key="cellSize" width="110" height="17"/>
@@ -871,8 +862,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </column>
                                         </cells>
                                     </matrix>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rt1-wV-sAy">
-                                        <rect key="frame" x="206" y="209" width="128" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rt1-wV-sAy">
+                                        <rect key="frame" x="206" y="243" width="128" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Paragraph Spacing (pt.)" id="D9Q-FS-ih7">
                                             <font key="font" metaFont="smallSystem"/>
@@ -881,12 +872,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6qi-ax-duK">
-                                        <rect key="frame" x="418" y="192" width="15" height="22"/>
+                                        <rect key="frame" x="418" y="226" width="15" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <stepperCell key="cell" controlSize="small" continuous="YES" alignment="left" maxValue="100" id="H7Z-IC-vPt"/>
                                     </stepper>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kZN-sA-jdn">
-                                        <rect key="frame" x="150" y="209" width="39" height="19"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kZN-sA-jdn">
+                                        <rect key="frame" x="150" y="243" width="39" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" refusesFirstResponder="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" usesSingleLineMode="YES" id="2Dk-TC-7Gv">
                                             <numberFormatter key="formatter" formatterBehavior="custom10_4" positiveFormat="###.#" negativeFormat="###.#" numberStyle="scientific" paddingCharacter="*" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" minimumFractionDigits="1" maximumFractionDigits="1" decimalSeparator="." groupingSeparator="," id="CMj-yQ-eZP">
@@ -898,8 +889,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oQ4-Qd-Ft9">
-                                        <rect key="frame" x="15" y="212" width="129" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oQ4-Qd-Ft9">
+                                        <rect key="frame" x="15" y="246" width="129" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Inter-line Spacing (pt.)" id="gic-xq-xOs">
                                             <font key="font" metaFont="smallSystem"/>
@@ -907,8 +898,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oLw-zD-nTQ">
-                                        <rect key="frame" x="377" y="215" width="43" height="19"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oLw-zD-nTQ">
+                                        <rect key="frame" x="377" y="249" width="43" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" refusesFirstResponder="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" usesSingleLineMode="YES" id="bPT-jZ-OSW">
                                             <numberFormatter key="formatter" formatterBehavior="custom10_4" positiveFormat="###.#" negativeFormat="###.#" numberStyle="scientific" alwaysShowsDecimalSeparator="YES" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" minimumFractionDigits="1" maximumFractionDigits="1" id="4Qz-Yt-gV6">
@@ -920,8 +911,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sot-tw-grB">
-                                        <rect key="frame" x="334" y="218" width="45" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sot-tw-grB">
+                                        <rect key="frame" x="334" y="252" width="45" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="before" id="Pb2-TZ-65Z">
                                             <font key="font" metaFont="smallSystem"/>
@@ -930,12 +921,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="i9I-Vz-JyZ">
-                                        <rect key="frame" x="187" y="205" width="15" height="22"/>
+                                        <rect key="frame" x="187" y="239" width="15" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <stepperCell key="cell" controlSize="small" continuous="YES" alignment="left" minValue="-5" maxValue="100" id="Y7e-de-ojj"/>
                                     </stepper>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" tag="1" translatesAutoresizingMaskIntoConstraints="NO" id="S6z-wW-iGf">
-                                        <rect key="frame" x="377" y="194" width="43" height="19"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" tag="1" translatesAutoresizingMaskIntoConstraints="NO" id="S6z-wW-iGf">
+                                        <rect key="frame" x="377" y="228" width="43" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" refusesFirstResponder="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" usesSingleLineMode="YES" id="q2E-aS-vx6">
                                             <numberFormatter key="formatter" formatterBehavior="custom10_4" positiveFormat="###.#" negativeFormat="###.#" numberStyle="scientific" alwaysShowsDecimalSeparator="YES" usesGroupingSeparator="NO" groupingSize="0" minimumIntegerDigits="1" maximumIntegerDigits="2000000000" minimumFractionDigits="1" maximumFractionDigits="1" id="DhR-Fx-qBG">
@@ -947,8 +938,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="z04-0O-T5U">
-                                        <rect key="frame" x="345" y="199" width="34" height="14"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="z04-0O-T5U">
+                                        <rect key="frame" x="345" y="233" width="34" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="after" id="mda-TA-gLP">
                                             <font key="font" metaFont="smallSystem"/>
@@ -957,12 +948,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <stepper horizontalHuggingPriority="750" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6SS-Xe-hjl">
-                                        <rect key="frame" x="418" y="214" width="15" height="22"/>
+                                        <rect key="frame" x="418" y="248" width="15" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <stepperCell key="cell" controlSize="small" continuous="YES" alignment="left" maxValue="100" id="a1f-HO-L5f"/>
                                     </stepper>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Vp7-xj-KKE">
-                                        <rect key="frame" x="36" y="179" width="271" height="20"/>
+                                        <rect key="frame" x="36" y="213" width="271" height="20"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Auto-indent new lines" bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="PW5-hf-4MQ">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -970,15 +961,15 @@ To change the settings of current editing document, use the menu items of View o
                                         </buttonCell>
                                     </button>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="LvH-pC-VRP">
-                                        <rect key="frame" x="32" y="151" width="271" height="20"/>
+                                        <rect key="frame" x="32" y="185" width="271" height="20"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Indent wrapped lines of Plain Text by: " bezelStyle="regularSquare" imagePosition="left" alignment="left" controlSize="small" inset="2" id="Zfk-ZN-REq">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="smallSystem"/>
                                         </buttonCell>
                                     </button>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fAa-3F-WrF">
-                                        <rect key="frame" x="253" y="152" width="39" height="19"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fAa-3F-WrF">
+                                        <rect key="frame" x="253" y="186" width="39" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="bgS-7o-fce">
                                             <numberFormatter key="formatter" formatterBehavior="10_0" positiveFormat="0.00" negativeFormat="-0.00" localizesFormat="NO" hasThousandSeparators="NO" thousandSeparator="," id="GU3-kg-hWb">
@@ -993,8 +984,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" preferredMaxLayoutWidth="25" translatesAutoresizingMaskIntoConstraints="NO" id="QOU-KC-75F">
-                                        <rect key="frame" x="294" y="149" width="29" height="20"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" preferredMaxLayoutWidth="25" translatesAutoresizingMaskIntoConstraints="NO" id="QOU-KC-75F">
+                                        <rect key="frame" x="294" y="183" width="29" height="20"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" sendsActionOnEndEditing="YES" alignment="left" title="pt." id="caQ-x9-7V9">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1003,7 +994,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fv2-2l-Xxv">
-                                        <rect key="frame" x="166" y="122" width="180" height="22"/>
+                                        <rect key="frame" x="166" y="156" width="180" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="9qf-H7-mC1">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1017,8 +1008,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bSA-lt-Mfv">
-                                        <rect key="frame" x="30" y="121" width="134" height="20"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bSA-lt-Mfv">
+                                        <rect key="frame" x="30" y="155" width="134" height="20"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Wordwrapping method:" id="rGJ-gs-8uN">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1026,8 +1017,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iAP-w7-FWF">
-                                        <rect key="frame" x="34" y="99" width="63" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iAP-w7-FWF">
+                                        <rect key="frame" x="34" y="133" width="63" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="Target Size" id="zp7-oZ-pU6">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1035,8 +1026,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="o2I-ON-Cp7">
-                                        <rect key="frame" x="211" y="99" width="61" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="o2I-ON-Cp7">
+                                        <rect key="frame" x="211" y="133" width="61" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="Lower limit" id="yEz-jS-MJh">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1045,7 +1036,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9tt-l6-J18">
-                                        <rect key="frame" x="98" y="97" width="109" height="16"/>
+                                        <rect key="frame" x="98" y="131" width="109" height="16"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Characters" bezelStyle="rounded" alignment="left" controlSize="mini" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="Cil-IE-5jh" id="spY-sF-oik">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1061,8 +1052,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cBU-Ld-4DR">
-                                        <rect key="frame" x="340" y="98" width="62" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cBU-Ld-4DR">
+                                        <rect key="frame" x="340" y="132" width="62" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="Upper limit" id="Gjy-TI-8Fs">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1070,8 +1061,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="l9J-Sh-wNV">
-                                        <rect key="frame" x="402" y="98" width="59" height="16"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="l9J-Sh-wNV">
+                                        <rect key="frame" x="402" y="132" width="59" height="16"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="mini" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="VDL-iE-uWW">
                                             <numberFormatter key="formatter" formatterBehavior="10_0" positiveFormat="0" negativeFormat="-0" hasThousandSeparators="NO" thousandSeparator="," id="66e-mn-lW8">
@@ -1089,8 +1080,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <outlet property="nextKeyView" destination="hCA-SS-oBQ" id="L74-x8-rdp"/>
                                         </connections>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hCA-SS-oBQ">
-                                        <rect key="frame" x="275" y="98" width="59" height="16"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hCA-SS-oBQ">
+                                        <rect key="frame" x="275" y="132" width="59" height="16"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="mini" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="eG4-yE-Pr6">
                                             <numberFormatter key="formatter" formatterBehavior="10_0" positiveFormat="0" negativeFormat="-0" hasThousandSeparators="NO" thousandSeparator="," id="dev-AQ-eCz">
@@ -1109,7 +1100,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </connections>
                                     </textField>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Uoc-y6-orF">
-                                        <rect key="frame" x="17" y="20" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="54" width="167" height="24"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="o9A-OD-nBU">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1121,11 +1112,11 @@ To change the settings of current editing document, use the menu items of View o
                         </tabViewItem>
                         <tabViewItem label="Font/Color" identifier="" id="CPK-Qp-ddy">
                             <view key="view" id="E7T-VR-R9U">
-                                <rect key="frame" x="10" y="33" width="517" height="427"/>
+                                <rect key="frame" x="10" y="33" width="522" height="461"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fln-js-kA9">
-                                        <rect key="frame" x="15" y="387" width="72" height="17"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fln-js-kA9">
+                                        <rect key="frame" x="15" y="421" width="72" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Base Font" id="J7l-27-aDA">
                                             <font key="font" metaFont="system"/>
@@ -1133,8 +1124,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Vc7-8a-WjY">
-                                        <rect key="frame" x="156" y="387" width="247" height="17"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Vc7-8a-WjY">
+                                        <rect key="frame" x="156" y="421" width="247" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Label" id="2Dd-vw-T1x">
                                             <font key="font" metaFont="system"/>
@@ -1143,7 +1134,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MU8-Uu-dzl">
-                                        <rect key="frame" x="88" y="381" width="67" height="28"/>
+                                        <rect key="frame" x="88" y="415" width="67" height="28"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Change" bezelStyle="rounded" alignment="center" controlSize="small" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="2zP-Ah-zEi">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1151,12 +1142,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </buttonCell>
                                     </button>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="khm-tZ-ig1">
-                                        <rect key="frame" x="98" y="339" width="44" height="23"/>
+                                        <rect key="frame" x="98" y="373" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SDS-Fm-1fo">
-                                        <rect key="frame" x="29" y="345" width="65" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SDS-Fm-1fo">
+                                        <rect key="frame" x="29" y="379" width="65" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Character" id="Huq-NE-tx0">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1165,12 +1156,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="efN-DY-shz">
-                                        <rect key="frame" x="222" y="339" width="44" height="23"/>
+                                        <rect key="frame" x="222" y="373" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ek8-ct-9ET">
-                                        <rect key="frame" x="140" y="345" width="81" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ek8-ct-9ET">
+                                        <rect key="frame" x="140" y="379" width="81" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Background " id="taV-VV-Hq0">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1179,12 +1170,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="jP2-Vx-jbz">
-                                        <rect key="frame" x="426" y="339" width="44" height="23"/>
+                                        <rect key="frame" x="426" y="373" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fPS-MW-Muv">
-                                        <rect key="frame" x="359" y="345" width="64" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fPS-MW-Muv">
+                                        <rect key="frame" x="359" y="379" width="64" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Invisibles " id="ny7-jR-Pgf">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1193,12 +1184,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Olj-Gp-njN">
-                                        <rect key="frame" x="98" y="308" width="44" height="23"/>
+                                        <rect key="frame" x="98" y="342" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="IMA-zQ-TpW">
-                                        <rect key="frame" x="56" y="314" width="38" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="IMA-zQ-TpW">
+                                        <rect key="frame" x="56" y="348" width="38" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Caret" id="Cn1-O2-Cqb">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1207,12 +1198,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="lkf-dl-okk">
-                                        <rect key="frame" x="222" y="308" width="44" height="23"/>
+                                        <rect key="frame" x="222" y="342" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XSb-K6-rxT">
-                                        <rect key="frame" x="161" y="314" width="59" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XSb-K6-rxT">
+                                        <rect key="frame" x="161" y="348" width="59" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Highlight" id="WSQ-Wh-AKs">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1221,12 +1212,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Gax-ij-qjo">
-                                        <rect key="frame" x="426" y="308" width="44" height="23"/>
+                                        <rect key="frame" x="426" y="342" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0mU-P5-l2h">
-                                        <rect key="frame" x="340" y="312" width="82" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0mU-P5-l2h">
+                                        <rect key="frame" x="340" y="346" width="82" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Line Number" id="c5J-ik-Kp6">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1234,8 +1225,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tX5-NS-HAr">
-                                        <rect key="frame" x="267" y="281" width="158" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="tX5-NS-HAr">
+                                        <rect key="frame" x="267" y="315" width="158" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Line Number Background" id="GTD-I6-f5g">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1244,12 +1235,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EaC-6k-CUw">
-                                        <rect key="frame" x="98" y="277" width="44" height="23"/>
+                                        <rect key="frame" x="98" y="311" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fhk-J0-bFj">
-                                        <rect key="frame" x="24" y="281" width="72" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fhk-J0-bFj">
+                                        <rect key="frame" x="24" y="315" width="72" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Header" id="K6p-4e-R5u">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1258,12 +1249,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="kDd-bn-ppg">
-                                        <rect key="frame" x="222" y="277" width="44" height="23"/>
+                                        <rect key="frame" x="222" y="311" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="WRa-2o-5HA">
-                                        <rect key="frame" x="147" y="281" width="72" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="WRa-2o-5HA">
+                                        <rect key="frame" x="147" y="315" width="72" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Footer" id="TCA-Vj-yGc">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1272,17 +1263,17 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0jg-GA-hHh">
-                                        <rect key="frame" x="426" y="277" width="44" height="23"/>
+                                        <rect key="frame" x="426" y="311" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bZI-fr-HXw">
-                                        <rect key="frame" x="98" y="246" width="44" height="23"/>
+                                        <rect key="frame" x="98" y="280" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dLX-fD-2ON">
-                                        <rect key="frame" x="31" y="250" width="66" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dLX-fD-2ON">
+                                        <rect key="frame" x="31" y="284" width="66" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Line Cursor" id="gwh-mQ-7Rd">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1290,8 +1281,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bnc-fy-TRK">
-                                        <rect key="frame" x="156" y="250" width="66" height="14"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Bnc-fy-TRK">
+                                        <rect key="frame" x="156" y="284" width="66" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Bar Cursor" id="LOI-mz-1p6">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1300,12 +1291,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="vTh-H2-O6i">
-                                        <rect key="frame" x="222" y="246" width="44" height="23"/>
+                                        <rect key="frame" x="222" y="280" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="i32-qM-aHn" customClass="JOThemeColorPopupButton">
-                                        <rect key="frame" x="28" y="192" width="117" height="25"/>
+                                        <rect key="frame" x="28" y="226" width="117" height="25"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Theme" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="1ZY-y9-zdJ" id="UVo-UT-tMT">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1323,7 +1314,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="X51-SO-L89">
-                                        <rect key="frame" x="17" y="20" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="54" width="167" height="24"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cHa-Lr-5Gj">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1335,11 +1326,11 @@ To change the settings of current editing document, use the menu items of View o
                         </tabViewItem>
                         <tabViewItem label="Layout" identifier="" id="eEO-bk-fAM">
                             <view key="view" id="iTN-pu-SJ9">
-                                <rect key="frame" x="10" y="33" width="517" height="427"/>
+                                <rect key="frame" x="10" y="33" width="522" height="461"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <box autoresizesSubviews="NO" fixedFrame="YES" borderType="line" title="Paper Margin" translatesAutoresizingMaskIntoConstraints="NO" id="C3o-LR-P0w">
-                                        <rect key="frame" x="15" y="311" width="436" height="91"/>
+                                        <rect key="frame" x="15" y="345" width="436" height="91"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <view key="contentView" id="ggV-RN-DMt">
                                             <rect key="frame" x="0.0" y="0.0" width="436" height="79"/>
@@ -1360,7 +1351,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         </menu>
                                                     </popUpButtonCell>
                                                 </popUpButton>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oaG-ph-mxQ">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oaG-ph-mxQ">
                                                     <rect key="frame" x="113" y="52" width="29" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Top" id="a2L-lc-tad">
@@ -1369,7 +1360,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Js9-fC-jB9">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Js9-fC-jB9">
                                                     <rect key="frame" x="91" y="15" width="51" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Bottom" id="AL6-Rq-3JU">
@@ -1378,7 +1369,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZR7-Mi-7LW">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ZR7-Mi-7LW">
                                                     <rect key="frame" x="15" y="35" width="28" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Left" id="zh4-xp-LWG">
@@ -1387,7 +1378,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="yzh-pz-knl">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="yzh-pz-knl">
                                                     <rect key="frame" x="209" y="32" width="38" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Right" id="BBu-gk-BK4">
@@ -1396,7 +1387,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wyR-9a-gWY">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wyR-9a-gWY">
                                                     <rect key="frame" x="147" y="47" width="54" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="999.99" drawsBackground="YES" id="NWX-5s-eUC">
@@ -1409,7 +1400,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="he8-bI-k9M">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="he8-bI-k9M">
                                                     <rect key="frame" x="147" y="12" width="54" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="999.99" drawsBackground="YES" id="kL1-zo-ae9">
@@ -1422,7 +1413,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ppT-8p-7wJ">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ppT-8p-7wJ">
                                                     <rect key="frame" x="48" y="32" width="54" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="999.99" drawsBackground="YES" id="00U-vQ-mzy">
@@ -1435,7 +1426,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uhC-HE-xif">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uhC-HE-xif">
                                                     <rect key="frame" x="252" y="29" width="54" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="999.99" drawsBackground="YES" id="Xpz-lU-rFm">
@@ -1448,7 +1439,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2yH-Mf-JTl">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2yH-Mf-JTl">
                                                     <rect key="frame" x="414" y="55" width="16" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="%" id="Dhl-vi-1kt">
@@ -1457,7 +1448,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UkI-Sd-c12">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UkI-Sd-c12">
                                                     <rect key="frame" x="368" y="52" width="45" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="999.9" drawsBackground="YES" id="pgB-kV-uef">
@@ -1470,7 +1461,7 @@ To change the settings of current editing document, use the menu items of View o
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
                                                 </textField>
-                                                <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sau-vr-ign">
+                                                <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sau-vr-ign">
                                                     <rect key="frame" x="289" y="54" width="74" height="17"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Print Scale" id="SHQ-0g-I2N">
@@ -1483,7 +1474,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </view>
                                     </box>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Wgj-vE-Mu3">
-                                        <rect key="frame" x="17" y="52" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="86" width="167" height="24"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="pIS-la-ZK9">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1495,11 +1486,11 @@ To change the settings of current editing document, use the menu items of View o
                         </tabViewItem>
                         <tabViewItem label="Header/Footer" identifier="" id="lUy-Ej-XxM">
                             <view key="view" id="em2-LU-1yd">
-                                <rect key="frame" x="10" y="33" width="517" height="427"/>
+                                <rect key="frame" x="10" y="33" width="522" height="461"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <scrollView fixedFrame="YES" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9TB-oA-TXN">
-                                        <rect key="frame" x="17" y="301" width="430" height="81"/>
+                                        <rect key="frame" x="17" y="335" width="430" height="81"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="Yxb-EA-UHh">
                                             <rect key="frame" x="1" y="1" width="428" height="79"/>
@@ -1524,7 +1515,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </scroller>
                                     </scrollView>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Ktt-sM-ZyX">
-                                        <rect key="frame" x="80" y="385" width="128" height="22"/>
+                                        <rect key="frame" x="80" y="419" width="128" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Insert Variables" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="FqF-hm-eFj" id="wug-hR-U8A">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1580,8 +1571,8 @@ To change the settings of current editing document, use the menu items of View o
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1nZ-95-WbT">
-                                        <rect key="frame" x="21" y="390" width="57" height="17"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1nZ-95-WbT">
+                                        <rect key="frame" x="21" y="424" width="57" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Header" id="G66-6C-af8">
                                             <font key="font" metaFont="system"/>
@@ -1590,7 +1581,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <scrollView fixedFrame="YES" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="dGZ-BH-N2A">
-                                        <rect key="frame" x="17" y="182" width="430" height="82"/>
+                                        <rect key="frame" x="17" y="216" width="430" height="82"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="vCn-fD-0uC">
                                             <rect key="frame" x="1" y="1" width="428" height="80"/>
@@ -1614,8 +1605,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <autoresizingMask key="autoresizingMask"/>
                                         </scroller>
                                     </scrollView>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="JhM-v0-44t">
-                                        <rect key="frame" x="21" y="273" width="57" height="17"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="JhM-v0-44t">
+                                        <rect key="frame" x="21" y="307" width="57" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Footer" id="2Qb-jQ-Cp9">
                                             <font key="font" metaFont="system"/>
@@ -1624,7 +1615,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xvn-VH-7KS">
-                                        <rect key="frame" x="80" y="269" width="128" height="22"/>
+                                        <rect key="frame" x="80" y="303" width="128" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Insert Variables" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="lHE-Pn-G3Y" id="Jtr-Yh-Hb7">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1681,7 +1672,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mZW-qY-y6E">
-                                        <rect key="frame" x="364" y="388" width="64" height="18"/>
+                                        <rect key="frame" x="364" y="422" width="64" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Ruler" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="6vt-zJ-pCN">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -1689,7 +1680,7 @@ To change the settings of current editing document, use the menu items of View o
                                         </buttonCell>
                                     </button>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RPi-cd-vBv">
-                                        <rect key="frame" x="364" y="270" width="55" height="18"/>
+                                        <rect key="frame" x="364" y="304" width="55" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Ruler" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="sel-b3-gjW">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -1697,12 +1688,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </buttonCell>
                                     </button>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="nju-ig-hlq">
-                                        <rect key="frame" x="300" y="270" width="44" height="23"/>
+                                        <rect key="frame" x="300" y="304" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wji-fG-eWN">
-                                        <rect key="frame" x="365" y="144" width="88" height="32"/>
+                                        <rect key="frame" x="365" y="178" width="88" height="32"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Change" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="VdL-qM-h3c">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1710,12 +1701,12 @@ To change the settings of current editing document, use the menu items of View o
                                         </buttonCell>
                                     </button>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zVQ-SN-wna">
-                                        <rect key="frame" x="300" y="387" width="44" height="23"/>
+                                        <rect key="frame" x="300" y="421" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="N9k-uW-Db3">
-                                        <rect key="frame" x="17" y="52" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="86" width="167" height="24"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cN6-PQ-yGa">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1727,11 +1718,11 @@ To change the settings of current editing document, use the menu items of View o
                         </tabViewItem>
                         <tabViewItem label="Properties" identifier="" id="kzN-FS-NL2">
                             <view key="view" id="LEd-hq-B3c">
-                                <rect key="frame" x="10" y="33" width="517" height="427"/>
+                                <rect key="frame" x="10" y="33" width="522" height="461"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="E3k-Ts-S7V">
-                                        <rect key="frame" x="22" y="392" width="75" height="17"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="E3k-Ts-S7V">
+                                        <rect key="frame" x="22" y="426" width="75" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Author:" id="WZv-Hh-6yw">
                                             <font key="font" metaFont="system"/>
@@ -1739,8 +1730,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="YBX-df-o9z">
-                                        <rect key="frame" x="102" y="389" width="329" height="22"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="YBX-df-o9z">
+                                        <rect key="frame" x="102" y="423" width="329" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="o77-XY-iSc">
                                             <font key="font" metaFont="system"/>
@@ -1748,8 +1739,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dCu-Pj-vF9">
-                                        <rect key="frame" x="30" y="362" width="68" height="17"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dCu-Pj-vF9">
+                                        <rect key="frame" x="30" y="396" width="68" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Company:" id="L7W-15-spu">
                                             <font key="font" metaFont="system"/>
@@ -1757,8 +1748,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PfK-J7-gWi">
-                                        <rect key="frame" x="103" y="359" width="329" height="22"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PfK-J7-gWi">
+                                        <rect key="frame" x="103" y="393" width="329" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="7du-xK-4zq">
                                             <font key="font" metaFont="system"/>
@@ -1766,8 +1757,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qdW-Z7-TMj">
-                                        <rect key="frame" x="24" y="332" width="75" height="17"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qdW-Z7-TMj">
+                                        <rect key="frame" x="24" y="366" width="75" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Copyright:" id="qnr-f2-sR3">
                                             <font key="font" metaFont="system"/>
@@ -1775,8 +1766,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="pXS-bC-r53">
-                                        <rect key="frame" x="104" y="329" width="329" height="22"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="pXS-bC-r53">
+                                        <rect key="frame" x="104" y="363" width="329" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="9yI-BN-LfG">
                                             <font key="font" metaFont="system"/>
@@ -1784,8 +1775,8 @@ To change the settings of current editing document, use the menu items of View o
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fsy-gE-wcV">
-                                        <rect key="frame" x="86" y="271" width="350" height="28"/>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fsy-gE-wcV">
+                                        <rect key="frame" x="86" y="305" width="350" height="28"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="center" id="Mgn-No-9Ab">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1796,7 +1787,7 @@ individual documents</string>
                                         </textFieldCell>
                                     </textField>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="CK9-Ov-yAc">
-                                        <rect key="frame" x="17" y="20" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="54" width="167" height="24"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Fnl-dr-q4O">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1817,12 +1808,9 @@ individual documents</string>
                 <constraint firstItem="N7X-le-vA6" firstAttribute="top" secondItem="5VY-dr-NPg" secondAttribute="bottom" constant="1" id="GSg-go-i9f"/>
                 <constraint firstItem="VDd-sl-dqH" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" id="MzR-mU-1QA"/>
                 <constraint firstAttribute="bottom" secondItem="VDd-sl-dqH" secondAttribute="bottom" constant="3" id="N8x-wx-b4E"/>
-                <constraint firstItem="wE5-rx-CfI" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="4" id="RFH-ml-k2f"/>
-                <constraint firstItem="Orc-03-RCR" firstAttribute="top" secondItem="wE5-rx-CfI" secondAttribute="bottom" constant="8" symbolic="YES" id="Svv-L6-xSg"/>
-                <constraint firstItem="5VY-dr-NPg" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="34" id="V4r-6I-qbo"/>
-                <constraint firstItem="Orc-03-RCR" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="34" id="XYP-9u-jBf"/>
+                <constraint firstItem="5VY-dr-NPg" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="V4r-6I-qbo"/>
+                <constraint firstItem="Orc-03-RCR" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" id="XYP-9u-jBf"/>
                 <constraint firstItem="xlc-I5-2ws" firstAttribute="leading" secondItem="VDd-sl-dqH" secondAttribute="trailing" constant="3" id="ged-R1-uoj"/>
-                <constraint firstAttribute="trailing" secondItem="wE5-rx-CfI" secondAttribute="trailing" constant="6" id="hAM-Db-IY6"/>
                 <constraint firstItem="N7X-le-vA6" firstAttribute="leading" secondItem="xlc-I5-2ws" secondAttribute="trailing" constant="2" id="jU7-yG-Hnu"/>
                 <constraint firstAttribute="bottom" secondItem="5VY-dr-NPg" secondAttribute="bottom" constant="26" id="lhm-Yh-Oyl"/>
                 <constraint firstItem="xlc-I5-2ws" firstAttribute="top" secondItem="5VY-dr-NPg" secondAttribute="bottom" constant="2" id="uPb-D2-zii"/>
@@ -1830,7 +1818,7 @@ individual documents</string>
                 <constraint firstItem="VDd-sl-dqH" firstAttribute="top" secondItem="5VY-dr-NPg" secondAttribute="bottom" constant="1" id="ygT-pM-Ehj"/>
                 <constraint firstItem="Orc-03-RCR" firstAttribute="leading" secondItem="5VY-dr-NPg" secondAttribute="trailing" id="zZs-GU-R3W"/>
             </constraints>
-            <point key="canvasLocation" x="114" y="-551.5"/>
+            <point key="canvasLocation" x="150" y="-767.5"/>
         </customView>
     </objects>
     <resources>

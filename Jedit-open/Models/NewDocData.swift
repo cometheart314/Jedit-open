@@ -186,9 +186,12 @@ struct NewDocData: Codable, Equatable {
         var maxTargetSize: Int
 
         enum NewDocNameType: Int, Codable {
-            case untitled = 0
-            case dateTime = 1
-            case custom = 2
+            case untitled = 0             // Untitled #
+            case dateTime = 1             // YYYY-MM-DD hhmmss
+            case dateWithSerial = 2       // YYYY-MM-DD-###
+            case systemShortDate = 3      // System Short Date #
+            case systemLongDate = 4       // System Long Date #
+            case preferencesDate = 5      // Preferences General Date #
         }
 
         enum LineEndingType: Int, Codable {

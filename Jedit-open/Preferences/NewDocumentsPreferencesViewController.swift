@@ -41,6 +41,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBOutlet weak var invisibleVerticalTabCheckbox: NSButton!
 
     // Format Tab
+    @IBOutlet weak var newDocNamePopup: NSPopUpButton!
     @IBOutlet weak var textStyleMatrix: NSMatrix!  // Rich Text / Plain Text radio buttons
     @IBOutlet weak var encodingPopup: NSPopUpButton!
     @IBOutlet weak var lineEndingPopup: NSPopUpButton!
@@ -99,6 +100,54 @@ class NewDocumentsPreferencesViewController: NSViewController {
         updateRemoveButtonState()
         setupScaleMenu()
         setupDocWidthMenu()
+        setupEncodingPopup()
+    }
+
+    private func setupEncodingPopup() {
+        // encodingPopupにエンコーディング一覧を設定（カスタマイズ項目付き）
+        guard let popup = encodingPopup else { return }
+        EncodingManager.shared.setupPopUp(
+            popup,
+            selectedEncoding: .utf8,
+            withDefaultEntry: false,
+            includeCustomizeItem: true,
+            target: self,
+            action: #selector(customizeEncodingList(_:))
+        )
+
+        // エンコーディングリスト変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(encodingsListDidChange(_:)),
+            name: .encodingsListChanged,
+            object: nil
+        )
+    }
+
+    @objc private func customizeEncodingList(_ sender: Any) {
+        // カスタマイズパネルを表示
+        EncodingCustomizeWindowController.showPanel()
+
+        // 元のエンコーディングを再選択（「カスタマイズ...」項目が選択されたままにならないように）
+        if let preset = presetManager.preset(at: selectedPresetIndex) {
+            encodingPopup?.selectItem(withTag: Int(preset.data.format.textEncoding))
+        }
+    }
+
+    @objc private func encodingsListDidChange(_ notification: Notification) {
+        // エンコーディングリストが変更されたらポップアップを再構築
+        guard let popup = encodingPopup,
+              let preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        let currentEncoding = String.Encoding(rawValue: preset.data.format.textEncoding)
+        EncodingManager.shared.setupPopUp(
+            popup,
+            selectedEncoding: currentEncoding,
+            withDefaultEntry: false,
+            includeCustomizeItem: true,
+            target: self,
+            action: #selector(customizeEncodingList(_:))
+        )
     }
 
     private func setupScaleMenu() {
@@ -183,8 +232,11 @@ class NewDocumentsPreferencesViewController: NSViewController {
         invisibleVerticalTabCheckbox?.state = data.view.showInvisibles.verticalTab ? .on : .off
 
         // Format Tab
+        newDocNamePopup?.selectItem(withTag: data.format.newDocNameType.rawValue)
         // Text Style Matrix: tag 1 = Rich Text, tag 0 = Plain Text
         textStyleMatrix?.selectCell(withTag: data.format.richText ? 1 : 0)
+        // Encoding - tag is the encoding's rawValue
+        encodingPopup?.selectItem(withTag: Int(data.format.textEncoding))
         lineEndingPopup?.selectItem(withTag: data.format.lineEndingType.rawValue)
         bomCheckbox?.state = data.format.bom ? .on : .off
         tabWidthField?.integerValue = data.format.tabWidth
@@ -249,8 +301,11 @@ class NewDocumentsPreferencesViewController: NSViewController {
         )
 
         // Format Tab
+        preset.data.format.newDocNameType = NewDocData.FormatData.NewDocNameType(rawValue: newDocNamePopup?.selectedTag() ?? 0) ?? .untitled
         // Text Style Matrix: tag 1 = Rich Text, tag 0 = Plain Text
         preset.data.format.richText = textStyleMatrix?.selectedTag() == 1
+        // Encoding - tag is the encoding's rawValue
+        preset.data.format.textEncoding = UInt(encodingPopup?.selectedTag() ?? Int(String.Encoding.utf8.rawValue))
         preset.data.format.lineEndingType = NewDocData.FormatData.LineEndingType(rawValue: lineEndingPopup?.selectedTag() ?? 0) ?? .lf
         preset.data.format.bom = bomCheckbox?.state == .on
         preset.data.format.tabWidth = tabWidthField?.integerValue ?? 4

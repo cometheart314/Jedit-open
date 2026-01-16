@@ -15,6 +15,10 @@ extension UserDefaults {
         static let startupOption = "startupOption"
         static let appearanceOption = "appearanceOption"
         static let scaleMenuArray = "scaleMenuArray"
+        static let dateFormatType = "dateFormatType"
+        static let timeFormatType = "timeFormatType"
+        static let customDateFormat = "customDateFormat"
+        static let customTimeFormat = "customTimeFormat"
     }
 
     /// スケールメニューのデフォルト値
@@ -26,7 +30,11 @@ extension UserDefaults {
             Keys.autoStartOption: false,
             Keys.startupOption: 0,
             Keys.appearanceOption: 0,
-            Keys.scaleMenuArray: defaultScaleMenuArray
+            Keys.scaleMenuArray: defaultScaleMenuArray,
+            Keys.dateFormatType: 0,
+            Keys.timeFormatType: 0,
+            Keys.customDateFormat: "yyyy-MM-dd",
+            Keys.customTimeFormat: "HH:mm:ss"
         ])
     }
 }

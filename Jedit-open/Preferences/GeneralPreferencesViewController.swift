@@ -15,12 +15,83 @@ class GeneralPreferencesViewController: NSViewController {
     @IBOutlet weak var autoStartCheckBox: NSButton!
     @IBOutlet weak var startupOptionPopupButton: NSPopUpButton!
     @IBOutlet weak var appearancePopupButton: NSPopUpButton!
+    @IBOutlet weak var dateFormatPopupButton: NSPopUpButton!
+    @IBOutlet weak var timeFormatPopupButton: NSPopUpButton!
+    @IBOutlet weak var dateFormatField: NSTextField!  // プレビュー表示、カスタム時のみ編集可能
+    @IBOutlet weak var timeFormatField: NSTextField!  // プレビュー表示、カスタム時のみ編集可能
 
     private let defaults = UserDefaults.standard
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        setupDateTimeFormatMenus()
         loadPreferences()
+    }
+
+    // MARK: - Setup
+
+    private func setupDateTimeFormatMenus() {
+        // Date Format Popup
+        dateFormatPopupButton?.removeAllItems()
+        for i in 0..<CalendarDateHelper.numberOfDateTypes {
+            let name = CalendarDateHelper.nameOfDateType(i)
+            dateFormatPopupButton?.addItem(withTitle: name)
+            dateFormatPopupButton?.lastItem?.tag = i
+        }
+
+        // Time Format Popup
+        timeFormatPopupButton?.removeAllItems()
+        for i in 0..<CalendarDateHelper.numberOfTimeTypes {
+            let name = CalendarDateHelper.nameOfTimeType(i)
+            timeFormatPopupButton?.addItem(withTitle: name)
+            timeFormatPopupButton?.lastItem?.tag = i
+        }
+    }
+
+    private func updateDateFormatDisplay() {
+        let selectedTag = dateFormatPopupButton?.selectedTag() ?? 0
+        let isCustom = selectedTag == CalendarDateHelper.DateFormatType.custom.rawValue
+
+        if isCustom {
+            // カスタムフォーマットの場合は保存されているフォーマット文字列を表示（編集可能）
+            let customFormat = defaults.string(forKey: UserDefaults.Keys.customDateFormat) ?? "yyyy-MM-dd"
+            dateFormatField?.stringValue = customFormat
+            dateFormatField?.isEditable = true
+            dateFormatField?.isSelectable = true
+            dateFormatField?.drawsBackground = true
+            dateFormatField?.isBezeled = true
+        } else {
+            // 通常フォーマットの場合はプレビューを表示（編集不可）
+            let preview = CalendarDateHelper.descriptionOfDateType(selectedTag)
+            dateFormatField?.stringValue = preview
+            dateFormatField?.isEditable = false
+            dateFormatField?.isSelectable = false
+            dateFormatField?.drawsBackground = false
+            dateFormatField?.isBezeled = false
+        }
+    }
+
+    private func updateTimeFormatDisplay() {
+        let selectedTag = timeFormatPopupButton?.selectedTag() ?? 0
+        let isCustom = selectedTag == CalendarDateHelper.TimeFormatType.custom.rawValue
+
+        if isCustom {
+            // カスタムフォーマットの場合は保存されているフォーマット文字列を表示（編集可能）
+            let customFormat = defaults.string(forKey: UserDefaults.Keys.customTimeFormat) ?? "HH:mm:ss"
+            timeFormatField?.stringValue = customFormat
+            timeFormatField?.isEditable = true
+            timeFormatField?.isSelectable = true
+            timeFormatField?.drawsBackground = true
+            timeFormatField?.isBezeled = true
+        } else {
+            // 通常フォーマットの場合はプレビューを表示（編集不可）
+            let preview = CalendarDateHelper.descriptionOfTimeType(selectedTag)
+            timeFormatField?.stringValue = preview
+            timeFormatField?.isEditable = false
+            timeFormatField?.isSelectable = false
+            timeFormatField?.drawsBackground = false
+            timeFormatField?.isBezeled = false
+        }
     }
 
     /// UserDefaultsから設定を読み込んでUIに反映
@@ -36,6 +107,16 @@ class GeneralPreferencesViewController: NSViewController {
         // Appearance (0: System, 1: Light, 2: Dark)
         let appearanceOption = defaults.integer(forKey: UserDefaults.Keys.appearanceOption)
         appearancePopupButton?.selectItem(withTag: appearanceOption)
+
+        // Date Format
+        let dateFormatType = defaults.integer(forKey: UserDefaults.Keys.dateFormatType)
+        dateFormatPopupButton?.selectItem(withTag: dateFormatType)
+        updateDateFormatDisplay()
+
+        // Time Format
+        let timeFormatType = defaults.integer(forKey: UserDefaults.Keys.timeFormatType)
+        timeFormatPopupButton?.selectItem(withTag: timeFormatType)
+        updateTimeFormatDisplay()
     }
 
     @IBAction func autoStartCheckBoxClicked(_ sender: Any) {
@@ -80,5 +161,31 @@ class GeneralPreferencesViewController: NSViewController {
 
         // 外観を即座に適用
         AppDelegate.applyAppearance(selectedTag)
+    }
+
+    @IBAction func dateFormatPopupSelected(_ sender: Any) {
+        guard let popup = sender as? NSPopUpButton else { return }
+        let selectedTag = popup.selectedTag()
+        defaults.set(selectedTag, forKey: UserDefaults.Keys.dateFormatType)
+        updateDateFormatDisplay()
+    }
+
+    @IBAction func timeFormatPopupSelected(_ sender: Any) {
+        guard let popup = sender as? NSPopUpButton else { return }
+        let selectedTag = popup.selectedTag()
+        defaults.set(selectedTag, forKey: UserDefaults.Keys.timeFormatType)
+        updateTimeFormatDisplay()
+    }
+
+    @IBAction func dateFormatFieldChanged(_ sender: Any) {
+        guard let field = sender as? NSTextField else { return }
+        let format = field.stringValue
+        defaults.set(format, forKey: UserDefaults.Keys.customDateFormat)
+    }
+
+    @IBAction func timeFormatFieldChanged(_ sender: Any) {
+        guard let field = sender as? NSTextField else { return }
+        let format = field.stringValue
+        defaults.set(format, forKey: UserDefaults.Keys.customTimeFormat)
     }
 }
