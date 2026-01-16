@@ -39,34 +39,9 @@ class PreferencesWindowController: NSWindowController {
                 identifier: "general"
             ),
             PreferenceCategory(
-                title: "アカウント",
-                icon: NSImage(systemSymbolName: "person.circle", accessibilityDescription: nil)!,
-                identifier: "account"
-            ),
-            PreferenceCategory(
-                title: "外観",
-                icon: NSImage(systemSymbolName: "paintpalette", accessibilityDescription: nil)!,
-                identifier: "appearance"
-            ),
-            PreferenceCategory(
-                title: "通知",
-                icon: NSImage(systemSymbolName: "bell.badge", accessibilityDescription: nil)!,
-                identifier: "notifications"
-            ),
-            PreferenceCategory(
-                title: "プライバシーとセキュリティ",
-                icon: NSImage(systemSymbolName: "lock.shield", accessibilityDescription: nil)!,
-                identifier: "privacy"
-            ),
-            PreferenceCategory(
-                title: "ネットワーク",
-                icon: NSImage(systemSymbolName: "network", accessibilityDescription: nil)!,
-                identifier: "network"
-            ),
-            PreferenceCategory(
-                title: "詳細設定",
-                icon: NSImage(systemSymbolName: "slider.horizontal.3", accessibilityDescription: nil)!,
-                identifier: "advanced"
+                title: "NewDocuments",
+                icon: NSImage(systemSymbolName: "document.on.document", accessibilityDescription: nil)!,
+                identifier: "newDocuments"
             )
         ]
     }
@@ -81,7 +56,7 @@ class PreferencesWindowController: NSWindowController {
         splitView.autoresizingMask = [.width, .height]
         
         // Left Sidebar
-        let sidebarContainer = NSScrollView(frame: NSRect(x: 0, y: 0, width: 200, height: 500))
+        let sidebarContainer = NSScrollView(frame: NSRect(x: 0, y: 0, width: 140, height: 500))
         sidebarContainer.hasVerticalScroller = true
         sidebarContainer.autohidesScrollers = true
         sidebarContainer.borderType = .noBorder
@@ -148,18 +123,8 @@ class PreferencesWindowController: NSWindowController {
         case "general":
             // XIBから読み込む
             return GeneralPreferencesViewController(nibName: "GeneralPreferences", bundle: nil)
-        case "account":
-            return AccountPreferencesViewController()
-        case "appearance":
-            return AppearancePreferencesViewController()
-        case "notifications":
-            return NotificationsPreferencesViewController()
-        case "privacy":
-            return PrivacyPreferencesViewController()
-        case "network":
-            return NetworkPreferencesViewController()
-        case "advanced":
-            return AdvancedPreferencesViewController()
+        case "newDocuments":
+            return NewDocumentsPreferencesViewController(nibName: "NewDocumentsPreferences", bundle: nil)
         default:
             return NSViewController()
         }
