@@ -150,6 +150,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // TextStorageを設定
         setupTextStorage()
+
+        // テキスト編集設定の変更を監視
+        observeTextEditingPreferences()
     }
 
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
@@ -239,6 +242,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ドキュメント読み込み後にアピアランスに応じた色を適用
         // （プレーンテキストをダークモードで開いた場合に文字色を設定）
         updateTextColorForAppearance()
+
+        // ドキュメントタイプ変更時にテキスト編集設定を再適用
+        // （richTextSubstitutionsEnabled の設定に応じて置換オプションを切り替え）
+        applyTextEditingPreferences()
     }
 
     @objc private func lineNumberSizeDidChange(_ notification: Notification) {
@@ -365,6 +372,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // モード切り替え後にInspector barとルーラーの状態を確実に反映
         updateInspectorBarVisibility()
         updateRulerVisibility()
+
+        // テキスト編集設定を適用
+        applyTextEditingPreferences()
     }
 
     private func setupContinuousMode(with textStorage: NSTextStorage) {
@@ -2110,6 +2120,123 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 tv.isHidden = false
             }
         }
+    }
+
+    // MARK: - Text Editing Preferences
+
+    /// テキスト編集設定の変更通知を監視開始
+    func observeTextEditingPreferences() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(textEditingPreferencesDidChange(_:)),
+            name: .textEditingPreferencesDidChange,
+            object: nil
+        )
+    }
+
+    @objc private func textEditingPreferencesDidChange(_ notification: Notification) {
+        applyTextEditingPreferences()
+    }
+
+    /// テキスト編集設定をすべてのテキストビューに適用
+    func applyTextEditingPreferences() {
+        let defaults = UserDefaults.standard
+
+        // 設定値を取得
+        let checkSpelling = defaults.bool(forKey: UserDefaults.Keys.checkSpellingAsYouType)
+        let checkGrammar = defaults.bool(forKey: UserDefaults.Keys.checkGrammarWithSpelling)
+        let dataDetectors = defaults.bool(forKey: UserDefaults.Keys.dataDetectors)
+        let smartLinks = defaults.bool(forKey: UserDefaults.Keys.smartLinks)
+        let smartCopyPaste = defaults.bool(forKey: UserDefaults.Keys.smartCopyPaste)
+
+        // Rich Text Substitutions の設定
+        let richTextSubstitutionsOnly = defaults.bool(forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
+        let isPlainText = textDocument?.documentType == .plain
+
+        // richTextSubstitutionsOnly が true で、かつプレーンテキストの場合は置換を無効にする
+        let shouldApplySubstitutions = !richTextSubstitutionsOnly || !isPlainText
+        let textReplacements = shouldApplySubstitutions && defaults.bool(forKey: UserDefaults.Keys.textReplacements)
+        let smartQuotes = shouldApplySubstitutions && defaults.bool(forKey: UserDefaults.Keys.smartQuotes)
+        let smartDashes = shouldApplySubstitutions && defaults.bool(forKey: UserDefaults.Keys.smartDashes)
+        let correctSpelling = shouldApplySubstitutions && defaults.bool(forKey: UserDefaults.Keys.correctSpellingAutomatically)
+
+        // Continuousモードのテキストビュー
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            applyTextEditingSettings(to: textView,
+                                     checkSpelling: checkSpelling,
+                                     checkGrammar: checkGrammar,
+                                     dataDetectors: dataDetectors,
+                                     smartLinks: smartLinks,
+                                     smartCopyPaste: smartCopyPaste,
+                                     textReplacements: textReplacements,
+                                     smartQuotes: smartQuotes,
+                                     smartDashes: smartDashes,
+                                     correctSpelling: correctSpelling)
+        }
+
+        if let scrollView = scrollView2,
+           let textView = scrollView.documentView as? NSTextView {
+            applyTextEditingSettings(to: textView,
+                                     checkSpelling: checkSpelling,
+                                     checkGrammar: checkGrammar,
+                                     dataDetectors: dataDetectors,
+                                     smartLinks: smartLinks,
+                                     smartCopyPaste: smartCopyPaste,
+                                     textReplacements: textReplacements,
+                                     smartQuotes: smartQuotes,
+                                     smartDashes: smartDashes,
+                                     correctSpelling: correctSpelling)
+        }
+
+        // Pageモードのテキストビュー
+        for textView in textViews1 {
+            applyTextEditingSettings(to: textView,
+                                     checkSpelling: checkSpelling,
+                                     checkGrammar: checkGrammar,
+                                     dataDetectors: dataDetectors,
+                                     smartLinks: smartLinks,
+                                     smartCopyPaste: smartCopyPaste,
+                                     textReplacements: textReplacements,
+                                     smartQuotes: smartQuotes,
+                                     smartDashes: smartDashes,
+                                     correctSpelling: correctSpelling)
+        }
+
+        for textView in textViews2 {
+            applyTextEditingSettings(to: textView,
+                                     checkSpelling: checkSpelling,
+                                     checkGrammar: checkGrammar,
+                                     dataDetectors: dataDetectors,
+                                     smartLinks: smartLinks,
+                                     smartCopyPaste: smartCopyPaste,
+                                     textReplacements: textReplacements,
+                                     smartQuotes: smartQuotes,
+                                     smartDashes: smartDashes,
+                                     correctSpelling: correctSpelling)
+        }
+    }
+
+    /// 個別のテキストビューに設定を適用
+    private func applyTextEditingSettings(to textView: NSTextView,
+                                          checkSpelling: Bool,
+                                          checkGrammar: Bool,
+                                          dataDetectors: Bool,
+                                          smartLinks: Bool,
+                                          smartCopyPaste: Bool,
+                                          textReplacements: Bool,
+                                          smartQuotes: Bool,
+                                          smartDashes: Bool,
+                                          correctSpelling: Bool) {
+        textView.isContinuousSpellCheckingEnabled = checkSpelling
+        textView.isGrammarCheckingEnabled = checkGrammar
+        textView.isAutomaticDataDetectionEnabled = dataDetectors
+        textView.isAutomaticLinkDetectionEnabled = smartLinks
+        textView.smartInsertDeleteEnabled = smartCopyPaste
+        textView.isAutomaticTextReplacementEnabled = textReplacements
+        textView.isAutomaticQuoteSubstitutionEnabled = smartQuotes
+        textView.isAutomaticDashSubstitutionEnabled = smartDashes
+        textView.isAutomaticSpellingCorrectionEnabled = correctSpelling
     }
 }
 

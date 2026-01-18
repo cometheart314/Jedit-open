@@ -20,6 +20,20 @@ class GeneralPreferencesViewController: NSViewController {
     @IBOutlet weak var dateFormatField: NSTextField!  // プレビュー表示、カスタム時のみ編集可能
     @IBOutlet weak var timeFormatField: NSTextField!  // プレビュー表示、カスタム時のみ編集可能
 
+    // Text Editing Options
+    @IBOutlet weak var checkSpellingAsYouTypeCheckBox: NSButton!
+    @IBOutlet weak var checkGrammarWithSpellingCheckBox: NSButton!
+    @IBOutlet weak var dataDetectorsCheckBox: NSButton!
+    @IBOutlet weak var smartLinksCheckBox: NSButton!
+    @IBOutlet weak var smartSeparationCheckBox: NSButton!
+    @IBOutlet weak var smartCopyPasteCheckBox: NSButton!
+    @IBOutlet weak var dontShowContextMenuDefaultItemsCheckBox: NSButton!
+    @IBOutlet weak var richTextSubstitutionsCheckBox: NSButton!
+    @IBOutlet weak var textReplacementsCheckBox: NSButton!
+    @IBOutlet weak var smartQuotesCheckBox: NSButton!
+    @IBOutlet weak var smartDashesCheckBox: NSButton!
+    @IBOutlet weak var correctSpellingAutomaticallyCheckBox: NSButton!
+
     private let defaults = UserDefaults.standard
 
     override func viewDidLoad() {
@@ -117,6 +131,25 @@ class GeneralPreferencesViewController: NSViewController {
         let timeFormatType = defaults.integer(forKey: UserDefaults.Keys.timeFormatType)
         timeFormatPopupButton?.selectItem(withTag: timeFormatType)
         updateTimeFormatDisplay()
+
+        // Text Editing Options
+        checkSpellingAsYouTypeCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.checkSpellingAsYouType) ? .on : .off
+        checkGrammarWithSpellingCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.checkGrammarWithSpelling) ? .on : .off
+        dataDetectorsCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.dataDetectors) ? .on : .off
+        smartLinksCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartLinks) ? .on : .off
+        smartSeparationCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartSeparationEnglishJapanese) ? .on : .off
+        smartCopyPasteCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartCopyPaste) ? .on : .off
+        dontShowContextMenuDefaultItemsCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.dontShowContextMenuDefaultItems) ? .on : .off
+
+        // Rich Text Substitutions
+        // オン: 以下の置換オプションはリッチテキストのみに適用
+        // オフ: 以下の置換オプションはプレーンテキストにも適用
+        let richTextSubstitutionsEnabled = defaults.bool(forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
+        richTextSubstitutionsCheckBox?.state = richTextSubstitutionsEnabled ? .on : .off
+        textReplacementsCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.textReplacements) ? .on : .off
+        smartQuotesCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartQuotes) ? .on : .off
+        smartDashesCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartDashes) ? .on : .off
+        correctSpellingAutomaticallyCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.correctSpellingAutomatically) ? .on : .off
     }
 
     @IBAction func autoStartCheckBoxClicked(_ sender: Any) {
@@ -188,4 +221,103 @@ class GeneralPreferencesViewController: NSViewController {
         let format = field.stringValue
         defaults.set(format, forKey: UserDefaults.Keys.customTimeFormat)
     }
+
+    // MARK: - Text Editing Options Actions
+
+    @IBAction func checkSpellingAsYouTypeClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.checkSpellingAsYouType)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func checkGrammarWithSpellingClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.checkGrammarWithSpelling)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func dataDetectorsClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.dataDetectors)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func smartLinksClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.smartLinks)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func smartSeparationClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.smartSeparationEnglishJapanese)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func smartCopyPasteClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.smartCopyPaste)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func dontShowContextMenuDefaultItemsClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.dontShowContextMenuDefaultItems)
+        // This setting affects context menu, no immediate action needed
+    }
+
+    @IBAction func richTextSubstitutionsClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func textReplacementsClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.textReplacements)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func smartQuotesClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.smartQuotes)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func smartDashesClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.smartDashes)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func correctSpellingAutomaticallyClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.correctSpellingAutomatically)
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    // MARK: - Apply Text Editing Settings
+
+    /// すべてのウィンドウのテキストビューに設定を適用
+    private func applyTextEditingSettingsToAllWindows() {
+        NotificationCenter.default.post(name: .textEditingPreferencesDidChange, object: nil)
+    }
+}
+
+// MARK: - Notification Name Extension
+
+extension Notification.Name {
+    static let textEditingPreferencesDidChange = Notification.Name("textEditingPreferencesDidChange")
 }

@@ -9,9 +9,21 @@
             <connections>
                 <outlet property="appearancePopupButton" destination="qYb-hE-aST" id="6Qh-Ei-TPI"/>
                 <outlet property="autoStartCheckBox" destination="eVD-Kc-0NT" id="UQW-Fe-lWA"/>
+                <outlet property="checkGrammarWithSpellingCheckBox" destination="chk-gram-001" id="out-gram-001"/>
+                <outlet property="checkSpellingAsYouTypeCheckBox" destination="chk-spell-001" id="out-spell-001"/>
+                <outlet property="correctSpellingAutomaticallyCheckBox" destination="chk-corr-001" id="out-corr-001"/>
+                <outlet property="dataDetectorsCheckBox" destination="chk-data-001" id="out-data-001"/>
                 <outlet property="dateFormatField" destination="VTJ-q7-DRs" id="dff-out-con"/>
                 <outlet property="dateFormatPopupButton" destination="juc-dQ-EgR" id="dfp-out-con"/>
+                <outlet property="dontShowContextMenuDefaultItemsCheckBox" destination="chk-ctx-001" id="out-ctx-001"/>
+                <outlet property="richTextSubstitutionsCheckBox" destination="chk-rich-001" id="out-rich-001"/>
+                <outlet property="smartCopyPasteCheckBox" destination="chk-copy-001" id="out-copy-001"/>
+                <outlet property="smartDashesCheckBox" destination="chk-dash-001" id="out-dash-001"/>
+                <outlet property="smartLinksCheckBox" destination="chk-link-001" id="out-link-001"/>
+                <outlet property="smartQuotesCheckBox" destination="chk-quot-001" id="out-quot-001"/>
+                <outlet property="smartSeparationCheckBox" destination="chk-sep-001" id="out-sep-001"/>
                 <outlet property="startupOptionPopupButton" destination="3Df-kN-dq2" id="knf-z0-JlH"/>
+                <outlet property="textReplacementsCheckBox" destination="chk-repl-001" id="out-repl-001"/>
                 <outlet property="timeFormatField" destination="d5o-tg-aDE" id="tff-out-con"/>
                 <outlet property="timeFormatPopupButton" destination="N8q-7x-FKT" id="tfp-out-con"/>
                 <outlet property="view" destination="c22-O7-iKe" id="PSw-sF-mf3"/>
@@ -23,160 +35,328 @@
             <rect key="frame" x="0.0" y="0.0" width="711" height="500"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
-                <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eVD-Kc-0NT">
-                    <rect key="frame" x="142" y="464" width="16" height="16"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <buttonCell key="cell" type="check" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="BOL-Xo-yoW">
-                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                        <font key="font" metaFont="system"/>
-                    </buttonCell>
-                    <connections>
-                        <action selector="autoStartCheckBoxClicked:" target="-2" id="13R-Pe-iKi"/>
-                    </connections>
-                </button>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Q4U-m5-2az">
-                    <rect key="frame" x="18" y="464" width="118" height="16"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Auto Start at Login" id="mKV-F1-JbX">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3Df-kN-dq2">
-                    <rect key="frame" x="140" y="432" width="168" height="24"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <popUpButtonCell key="cell" type="push" title="Do Nothing" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="PXL-lX-2Zd" id="ha1-XQ-1Gd">
-                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="message"/>
-                        <menu key="menu" id="StE-WT-vbx">
-                            <items>
-                                <menuItem title="Do Nothing" state="on" id="PXL-lX-2Zd"/>
-                                <menuItem title="Open New Document" tag="1" id="GOs-1A-FQf"/>
-                                <menuItem title="Show Open Panel" tag="2" id="ZER-St-rWn"/>
-                            </items>
-                        </menu>
-                    </popUpButtonCell>
-                    <connections>
-                        <action selector="startupOptionSelected:" target="-2" id="bLB-fP-Icd"/>
-                    </connections>
-                </popUpButton>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="koB-SS-CaL">
-                    <rect key="frame" x="40" y="436" width="94" height="16"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Startup Option" id="SIU-Mz-ZjY">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qYb-hE-aST">
-                    <rect key="frame" x="140" y="400" width="87" height="24"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <popUpButtonCell key="cell" type="push" title="System" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="teb-Gd-0Cd" id="nCQ-Hw-3Fe">
-                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="message"/>
-                        <menu key="menu" id="a2W-w1-mYM">
-                            <items>
-                                <menuItem title="System" state="on" id="teb-Gd-0Cd"/>
-                                <menuItem title="Light" tag="1" id="BL1-ma-le8"/>
-                                <menuItem title="Dark" tag="2" id="wQP-Mf-pdW"/>
-                            </items>
-                        </menu>
-                    </popUpButtonCell>
-                    <connections>
-                        <action selector="appearancePopupSelected:" target="-2" id="ZRg-v4-gqQ"/>
-                    </connections>
-                </popUpButton>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="GO0-DF-RdK">
-                    <rect key="frame" x="57" y="404" width="77" height="16"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Appearance" id="y8s-KY-4tH">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iJn-ya-eaT">
-                    <rect key="frame" x="45" y="370" width="89" height="17"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Date Format" id="JQf-JN-U9K">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="juc-dQ-EgR">
-                    <rect key="frame" x="137" y="365" width="265" height="26"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="GPj-9f-cfw">
-                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="message"/>
-                        <menu key="menu" title="OtherViews" id="Au9-gw-Iz8">
-                            <items>
-                                <menuItem title="Item1" id="bkJ-vo-lKd"/>
-                                <menuItem title="Item2" id="pFp-CS-ruG"/>
-                                <menuItem title="Item3" id="7DD-uE-rba"/>
-                            </items>
-                        </menu>
-                    </popUpButtonCell>
-                    <connections>
-                        <action selector="dateFormatPopupSelected:" target="-2" id="dfp-act-con"/>
-                    </connections>
-                </popUpButton>
-                <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="N8q-7x-FKT">
-                    <rect key="frame" x="138" y="313" width="264" height="26"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <popUpButtonCell key="cell" type="push" title="Item1" bezelStyle="rounded" alignment="left" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="KQj-aY-pIq" id="PwB-aE-wMc">
-                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                        <font key="font" metaFont="message"/>
-                        <menu key="menu" title="OtherViews" id="i7e-sx-WJF">
-                            <items>
-                                <menuItem title="Item1" state="on" id="KQj-aY-pIq"/>
-                                <menuItem title="Item2" id="vdl-jV-5kI"/>
-                                <menuItem title="Item3" id="Fng-ws-DjA"/>
-                            </items>
-                        </menu>
-                    </popUpButtonCell>
-                    <connections>
-                        <action selector="timeFormatPopupSelected:" target="-2" id="tfp-act-con"/>
-                    </connections>
-                </popUpButton>
-                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H4G-ci-5EJ">
-                    <rect key="frame" x="45" y="320" width="89" height="18"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Time Format" id="tul-rc-mPa">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                </textField>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="d5o-tg-aDE">
-                    <rect key="frame" x="138" y="292" width="257" height="21"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="HH:mm:ss" drawsBackground="YES" id="Mnb-NL-fVA">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                    <connections>
-                        <action selector="timeFormatFieldChanged:" target="-2" id="tff-act-con"/>
-                    </connections>
-                </textField>
-                <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VTJ-q7-DRs">
-                    <rect key="frame" x="137" y="344" width="258" height="21"/>
-                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="yyyy-MM-dd" drawsBackground="YES" id="caD-kK-Tuv">
-                        <font key="font" metaFont="system"/>
-                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                        <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                    </textFieldCell>
-                    <connections>
-                        <action selector="dateFormatFieldChanged:" target="-2" id="dff-act-con"/>
-                    </connections>
-                </textField>
+                <tabView translatesAutoresizingMaskIntoConstraints="NO" id="tab-main-001">
+                    <rect key="frame" x="13" y="7" width="685" height="486"/>
+                    <font key="font" metaFont="system"/>
+                    <tabViewItems>
+                        <tabViewItem label="Edit" identifier="edit" id="tab-edit-001">
+                            <view key="view" id="view-edit-001">
+                                <rect key="frame" x="10" y="33" width="665" height="440"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <subviews>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-spell-001">
+                                        <rect key="frame" x="18" y="402" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Check spelling as you type" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-spell-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="checkSpellingAsYouTypeClicked:" target="-2" id="act-spell-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-gram-001">
+                                        <rect key="frame" x="18" y="380" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Check grammar with spelling" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-gram-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="checkGrammarWithSpellingClicked:" target="-2" id="act-gram-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-data-001">
+                                        <rect key="frame" x="18" y="358" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Data detectors" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-data-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="dataDetectorsClicked:" target="-2" id="act-data-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-link-001">
+                                        <rect key="frame" x="18" y="336" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Smart links" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-link-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="smartLinksClicked:" target="-2" id="act-link-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-sep-001">
+                                        <rect key="frame" x="18" y="314" width="419" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Smart separation between English and Japanese" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-sep-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="smartSeparationClicked:" target="-2" id="act-sep-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-copy-001">
+                                        <rect key="frame" x="18" y="292" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Smart copy/paste" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-copy-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="smartCopyPasteClicked:" target="-2" id="act-copy-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-ctx-001">
+                                        <rect key="frame" x="18" y="270" width="413" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Don't show Context Menu Default Items" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-ctx-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="dontShowContextMenuDefaultItemsClicked:" target="-2" id="act-ctx-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-rich-001">
+                                        <rect key="frame" x="18" y="236" width="320" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Following Substitutions Enabled Only in Rich Text" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-rich-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="richTextSubstitutionsClicked:" target="-2" id="act-rich-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-repl-001">
+                                        <rect key="frame" x="38" y="214" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Text replacements" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-repl-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="textReplacementsClicked:" target="-2" id="act-repl-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-quot-001">
+                                        <rect key="frame" x="38" y="192" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Smart quotes" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-quot-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="smartQuotesClicked:" target="-2" id="act-quot-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-dash-001">
+                                        <rect key="frame" x="38" y="170" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Smart dashes" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-dash-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="smartDashesClicked:" target="-2" id="act-dash-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-corr-001">
+                                        <rect key="frame" x="38" y="148" width="399" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Correct spelling automatically" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-corr-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="correctSpellingAutomaticallyClicked:" target="-2" id="act-corr-001"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
+                            </view>
+                        </tabViewItem>
+                        <tabViewItem label="View" identifier="view" id="tab-view-001">
+                            <view key="view" id="view-view-001">
+                                <rect key="frame" x="10" y="33" width="665" height="440"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <subviews>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="GO0-DF-RdK">
+                                        <rect key="frame" x="57" y="404" width="77" height="16"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Appearance" id="y8s-KY-4tH">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qYb-hE-aST">
+                                        <rect key="frame" x="140" y="400" width="120" height="24"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <popUpButtonCell key="cell" type="push" title="System" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="teb-Gd-0Cd" id="nCQ-Hw-3Fe">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="message"/>
+                                            <menu key="menu" id="a2W-w1-mYM">
+                                                <items>
+                                                    <menuItem title="System" state="on" id="teb-Gd-0Cd"/>
+                                                    <menuItem title="Light" tag="1" id="BL1-ma-le8"/>
+                                                    <menuItem title="Dark" tag="2" id="wQP-Mf-pdW"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <connections>
+                                            <action selector="appearancePopupSelected:" target="-2" id="ZRg-v4-gqQ"/>
+                                        </connections>
+                                    </popUpButton>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iJn-ya-eaT">
+                                        <rect key="frame" x="45" y="370" width="89" height="17"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Date Format" id="JQf-JN-U9K">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="juc-dQ-EgR">
+                                        <rect key="frame" x="137" y="365" width="265" height="26"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="GPj-9f-cfw">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="message"/>
+                                            <menu key="menu" title="OtherViews" id="Au9-gw-Iz8">
+                                                <items>
+                                                    <menuItem title="Item1" id="bkJ-vo-lKd"/>
+                                                    <menuItem title="Item2" id="pFp-CS-ruG"/>
+                                                    <menuItem title="Item3" id="7DD-uE-rba"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <connections>
+                                            <action selector="dateFormatPopupSelected:" target="-2" id="dfp-act-con"/>
+                                        </connections>
+                                    </popUpButton>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VTJ-q7-DRs">
+                                        <rect key="frame" x="137" y="344" width="258" height="21"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="yyyy-MM-dd" drawsBackground="YES" id="caD-kK-Tuv">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                        <connections>
+                                            <action selector="dateFormatFieldChanged:" target="-2" id="dff-act-con"/>
+                                        </connections>
+                                    </textField>
+                                    <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H4G-ci-5EJ">
+                                        <rect key="frame" x="45" y="320" width="89" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Time Format" id="tul-rc-mPa">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="N8q-7x-FKT">
+                                        <rect key="frame" x="138" y="313" width="264" height="26"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <popUpButtonCell key="cell" type="push" title="Item1" bezelStyle="rounded" alignment="left" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="KQj-aY-pIq" id="PwB-aE-wMc">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="message"/>
+                                            <menu key="menu" title="OtherViews" id="i7e-sx-WJF">
+                                                <items>
+                                                    <menuItem title="Item1" state="on" id="KQj-aY-pIq"/>
+                                                    <menuItem title="Item2" id="vdl-jV-5kI"/>
+                                                    <menuItem title="Item3" id="Fng-ws-DjA"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <connections>
+                                            <action selector="timeFormatPopupSelected:" target="-2" id="tfp-act-con"/>
+                                        </connections>
+                                    </popUpButton>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="d5o-tg-aDE">
+                                        <rect key="frame" x="138" y="292" width="257" height="21"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="HH:mm:ss" drawsBackground="YES" id="Mnb-NL-fVA">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                        <connections>
+                                            <action selector="timeFormatFieldChanged:" target="-2" id="tff-act-con"/>
+                                        </connections>
+                                    </textField>
+                                </subviews>
+                            </view>
+                        </tabViewItem>
+                        <tabViewItem label="Advanced" identifier="advanced" id="tab-advanced-001">
+                            <view key="view" id="view-advanced-001">
+                                <rect key="frame" x="10" y="33" width="665" height="440"/>
+                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                <subviews>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Q4U-m5-2az">
+                                        <rect key="frame" x="18" y="404" width="118" height="16"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Auto Start at Login" id="mKV-F1-JbX">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eVD-Kc-0NT">
+                                        <rect key="frame" x="142" y="404" width="16" height="16"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="BOL-Xo-yoW">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="autoStartCheckBoxClicked:" target="-2" id="13R-Pe-iKi"/>
+                                        </connections>
+                                    </button>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="koB-SS-CaL">
+                                        <rect key="frame" x="40" y="376" width="94" height="16"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Startup Option" id="SIU-Mz-ZjY">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3Df-kN-dq2">
+                                        <rect key="frame" x="140" y="372" width="200" height="24"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <popUpButtonCell key="cell" type="push" title="Do Nothing" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="PXL-lX-2Zd" id="ha1-XQ-1Gd">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="message"/>
+                                            <menu key="menu" id="StE-WT-vbx">
+                                                <items>
+                                                    <menuItem title="Do Nothing" state="on" id="PXL-lX-2Zd"/>
+                                                    <menuItem title="Open New Document" tag="1" id="GOs-1A-FQf"/>
+                                                    <menuItem title="Show Open Panel" tag="2" id="ZER-St-rWn"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <connections>
+                                            <action selector="startupOptionSelected:" target="-2" id="bLB-fP-Icd"/>
+                                        </connections>
+                                    </popUpButton>
+                                </subviews>
+                            </view>
+                        </tabViewItem>
+                    </tabViewItems>
+                </tabView>
             </subviews>
-            <point key="canvasLocation" x="-191.5" y="-340"/>
+            <constraints>
+                <constraint firstAttribute="bottom" secondItem="tab-main-001" secondAttribute="bottom" constant="17" id="QFQ-cX-1qP"/>
+                <constraint firstItem="tab-main-001" firstAttribute="leading" secondItem="c22-O7-iKe" secondAttribute="leading" constant="20" symbolic="YES" id="aLn-9N-dXd"/>
+                <constraint firstAttribute="trailing" secondItem="tab-main-001" secondAttribute="trailing" constant="20" symbolic="YES" id="jFt-hK-kjM"/>
+                <constraint firstItem="tab-main-001" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="13" id="zp1-ST-B7I"/>
+            </constraints>
+            <point key="canvasLocation" x="-259.5" y="-643"/>
         </customView>
     </objects>
 </document>

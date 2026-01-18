@@ -174,7 +174,8 @@ struct NewDocData: Codable, Equatable {
         var lineEndingType: LineEndingType
         var bom: Bool
         var editingDirection: EditingDirection
-        var tabWidth: Int
+        var tabWidthPoints: CGFloat  // タブ幅（ポイント単位で内部保存）
+        var tabWidthUnit: TabWidthUnit  // タブ幅の表示単位
         var interLineSpacing: CGFloat
         var paragraphSpacingBefore: CGFloat
         var paragraphSpacingAfter: CGFloat
@@ -211,6 +212,11 @@ struct NewDocData: Codable, Equatable {
             case wrapAtCharacters = 2
         }
 
+        enum TabWidthUnit: Int, Codable {
+            case points = 0
+            case spaces = 1
+        }
+
         static var `default`: FormatData {
             FormatData(
                 newDocNameType: .untitled,
@@ -219,7 +225,8 @@ struct NewDocData: Codable, Equatable {
                 lineEndingType: .lf,
                 bom: false,
                 editingDirection: .leftToRight,
-                tabWidth: 4,
+                tabWidthPoints: 28.0,  // 約4スペース分（7pt/スペース × 4）
+                tabWidthUnit: .points,
                 interLineSpacing: 0,
                 paragraphSpacingBefore: 0,
                 paragraphSpacingAfter: 0,

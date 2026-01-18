@@ -46,16 +46,23 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBOutlet weak var encodingPopup: NSPopUpButton!
     @IBOutlet weak var lineEndingPopup: NSPopUpButton!
     @IBOutlet weak var bomCheckbox: NSButton!
+    @IBOutlet weak var editingDirectionMatrix: NSMatrix!  // Horizontal / Vertical radio buttons
     @IBOutlet weak var tabWidthField: NSTextField!
+    @IBOutlet weak var tabWidthUnitPopup: NSPopUpButton!  // Points / Spaces 切り替え
+    @IBOutlet weak var tabWidthDescriptionLabel: NSTextField!  // タブ幅の説明ラベル
     @IBOutlet weak var autoIndentCheckbox: NSButton!
     @IBOutlet weak var wordWrapPopup: NSPopUpButton!
 
     // Font & Colors Tab
-    @IBOutlet weak var fontNameField: NSTextField!
-    @IBOutlet weak var fontSizeField: NSTextField!
+    @IBOutlet weak var baseFontLabel: NSTextField!  // フォント名とサイズを表示
+    @IBOutlet weak var changeFontButton: NSButton!
     @IBOutlet weak var textColorWell: NSColorWell!
     @IBOutlet weak var backgroundColorWell: NSColorWell!
     @IBOutlet weak var caretColorWell: NSColorWell!
+
+    // フォント設定用のプロパティ
+    private var currentBaseFontName: String = NSFont.systemFont(ofSize: 14).fontName
+    private var currentBaseFontSize: CGFloat = 14
 
     // Page Layout Tab
     @IBOutlet weak var topMarginField: NSTextField!
@@ -239,13 +246,18 @@ class NewDocumentsPreferencesViewController: NSViewController {
         encodingPopup?.selectItem(withTag: Int(data.format.textEncoding))
         lineEndingPopup?.selectItem(withTag: data.format.lineEndingType.rawValue)
         bomCheckbox?.state = data.format.bom ? .on : .off
-        tabWidthField?.integerValue = data.format.tabWidth
+        // Editing Direction: tag 0 = Horizontal (Left to Right), tag 1 = Vertical (Right to Left)
+        editingDirectionMatrix?.selectCell(withTag: data.format.editingDirection.rawValue)
+        // Tab Width: updateTabWidthDisplay() は Font & Colors を読み込んだ後に呼ぶ
         autoIndentCheckbox?.state = data.format.autoIndent ? .on : .off
         wordWrapPopup?.selectItem(withTag: data.format.wordWrappingType.rawValue)
 
         // Font & Colors Tab
-        fontNameField?.stringValue = data.fontAndColors.baseFontName
-        fontSizeField?.doubleValue = Double(data.fontAndColors.baseFontSize)
+        currentBaseFontName = data.fontAndColors.baseFontName
+        currentBaseFontSize = data.fontAndColors.baseFontSize
+        updateBaseFontLabel()
+        // Tab Width の表示を更新（Font設定を読み込んだ後に行う）
+        updateTabWidthDisplay()
         textColorWell?.color = data.fontAndColors.colors.character.nsColor
         backgroundColorWell?.color = data.fontAndColors.colors.background.nsColor
         caretColorWell?.color = data.fontAndColors.colors.caret.nsColor
@@ -308,13 +320,16 @@ class NewDocumentsPreferencesViewController: NSViewController {
         preset.data.format.textEncoding = UInt(encodingPopup?.selectedTag() ?? Int(String.Encoding.utf8.rawValue))
         preset.data.format.lineEndingType = NewDocData.FormatData.LineEndingType(rawValue: lineEndingPopup?.selectedTag() ?? 0) ?? .lf
         preset.data.format.bom = bomCheckbox?.state == .on
-        preset.data.format.tabWidth = tabWidthField?.integerValue ?? 4
+        // Editing Direction: tag 0 = Horizontal (Left to Right), tag 1 = Vertical (Right to Left)
+        preset.data.format.editingDirection = NewDocData.FormatData.EditingDirection(rawValue: editingDirectionMatrix?.selectedTag() ?? 0) ?? .leftToRight
+        preset.data.format.tabWidthPoints = getTabWidthInPoints()
+        preset.data.format.tabWidthUnit = getSelectedTabWidthUnit()
         preset.data.format.autoIndent = autoIndentCheckbox?.state == .on
         preset.data.format.wordWrappingType = NewDocData.FormatData.WordWrappingType(rawValue: wordWrapPopup?.selectedTag() ?? 0) ?? .wrapAtWindow
 
         // Font & Colors Tab
-        preset.data.fontAndColors.baseFontName = fontNameField?.stringValue ?? NSFont.systemFont(ofSize: 14).fontName
-        preset.data.fontAndColors.baseFontSize = CGFloat(fontSizeField?.doubleValue ?? 14)
+        preset.data.fontAndColors.baseFontName = currentBaseFontName
+        preset.data.fontAndColors.baseFontSize = currentBaseFontSize
         if let color = textColorWell?.color {
             preset.data.fontAndColors.colors.character = CodableColor(color)
         }
@@ -449,6 +464,12 @@ class NewDocumentsPreferencesViewController: NSViewController {
     // MARK: - Control Actions (値変更時に保存)
 
     @IBAction func controlValueChanged(_ sender: Any) {
+        saveCurrentPreset()
+    }
+
+    @IBAction func tabWidthUnitChanged(_ sender: Any) {
+        // 単位が切り替わったら、現在の値をポイントに変換してから新しい単位で表示
+        convertAndDisplayTabWidth()
         saveCurrentPreset()
     }
 
@@ -613,5 +634,177 @@ extension NewDocumentsPreferencesViewController: FixedDocWidthMenuDelegate {
     func fixedDocWidthMenuGetCurrentFixedWidth() -> Int {
         guard let preset = presetManager.preset(at: selectedPresetIndex) else { return 80 }
         return preset.data.view.fixedDocWidth
+    }
+}
+
+// MARK: - Tab Width Unit
+
+extension NewDocumentsPreferencesViewController {
+
+    /// 現在のBase Fontの1スペースあたりのポイント幅を計算
+    func spaceWidthInPoints() -> CGFloat {
+        let font = NSFont(name: currentBaseFontName, size: currentBaseFontSize)
+            ?? NSFont.systemFont(ofSize: currentBaseFontSize)
+
+        // スペース文字の幅を計算
+        let spaceString = " " as NSString
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        let size = spaceString.size(withAttributes: attributes)
+        return size.width
+    }
+
+    /// ポイントからスペース数に変換
+    func pointsToSpaces(_ points: CGFloat) -> CGFloat {
+        let spaceWidth = spaceWidthInPoints()
+        guard spaceWidth > 0 else { return 4 }  // デフォルト値
+        return points / spaceWidth
+    }
+
+    /// スペース数からポイントに変換
+    func spacesToPoints(_ spaces: CGFloat) -> CGFloat {
+        return spaces * spaceWidthInPoints()
+    }
+
+    /// タブ幅フィールドの表示を更新
+    func updateTabWidthDisplay() {
+        guard let preset = presetManager.preset(at: selectedPresetIndex) else { return }
+        let tabWidthPoints = preset.data.format.tabWidthPoints
+
+        // 保存されている単位をポップアップに反映
+        tabWidthUnitPopup?.selectItem(withTag: preset.data.format.tabWidthUnit.rawValue)
+
+        let unit = preset.data.format.tabWidthUnit
+
+        switch unit {
+        case .points:
+            tabWidthField?.doubleValue = Double(tabWidthPoints)
+        case .spaces:
+            let spaces = pointsToSpaces(tabWidthPoints)
+            // spacesの時は整数で表示
+            tabWidthField?.integerValue = Int(round(spaces))
+        }
+
+        // 説明ラベルを更新
+        updateTabWidthDescriptionLabel(for: unit)
+    }
+
+    /// タブ幅をポイントで取得（フィールドと単位から計算）
+    func getTabWidthInPoints() -> CGFloat {
+        let fieldValue = CGFloat(tabWidthField?.doubleValue ?? 28.0)
+        let unit = NewDocData.FormatData.TabWidthUnit(rawValue: tabWidthUnitPopup?.selectedTag() ?? 0) ?? .points
+
+        switch unit {
+        case .points:
+            return fieldValue
+        case .spaces:
+            return spacesToPoints(fieldValue)
+        }
+    }
+
+    /// 現在選択されているタブ幅単位を取得
+    func getSelectedTabWidthUnit() -> NewDocData.FormatData.TabWidthUnit {
+        return NewDocData.FormatData.TabWidthUnit(rawValue: tabWidthUnitPopup?.selectedTag() ?? 0) ?? .points
+    }
+
+    /// 単位切り替え時: 現在のフィールド値を新しい単位に変換して表示
+    /// previousUnit: 切り替え前の単位（nilの場合は保存されている単位を使用）
+    func convertAndDisplayTabWidth() {
+        guard let preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        // 切り替え前の単位を取得（保存されている単位）
+        let previousUnit = preset.data.format.tabWidthUnit
+        // 切り替え後の単位を取得（ポップアップで新しく選択された単位）
+        let newUnit = getSelectedTabWidthUnit()
+
+        // 同じ単位なら何もしない
+        guard previousUnit != newUnit else { return }
+
+        // 現在のフィールド値を取得
+        let currentFieldValue = CGFloat(tabWidthField?.doubleValue ?? 28.0)
+
+        // 現在のフィールド値をポイントに変換
+        let tabWidthPoints: CGFloat
+        switch previousUnit {
+        case .points:
+            tabWidthPoints = currentFieldValue
+        case .spaces:
+            tabWidthPoints = spacesToPoints(currentFieldValue)
+        }
+
+        // 新しい単位で表示
+        switch newUnit {
+        case .points:
+            tabWidthField?.doubleValue = Double(tabWidthPoints)
+        case .spaces:
+            let spaces = pointsToSpaces(tabWidthPoints)
+            // spacesの時は整数で表示
+            tabWidthField?.integerValue = Int(round(spaces))
+        }
+
+        // 説明ラベルを更新
+        updateTabWidthDescriptionLabel(for: newUnit)
+    }
+
+    /// タブ幅の説明ラベルを更新
+    func updateTabWidthDescriptionLabel(for unit: NewDocData.FormatData.TabWidthUnit) {
+        switch unit {
+        case .points:
+            tabWidthDescriptionLabel?.stringValue = "tab code will be inserted by tab key."
+        case .spaces:
+            tabWidthDescriptionLabel?.stringValue = "space chars. will be inserted by tab key."
+        }
+    }
+}
+
+// MARK: - Font Panel Support
+
+extension NewDocumentsPreferencesViewController {
+
+    /// フォントラベルを更新
+    private func updateBaseFontLabel() {
+        // フォントの表示名を取得
+        let displayName: String
+        if let font = NSFont(name: currentBaseFontName, size: currentBaseFontSize) {
+            displayName = font.displayName ?? currentBaseFontName
+        } else {
+            displayName = currentBaseFontName
+        }
+        let sizeString = String(format: "%.1f", currentBaseFontSize)
+        baseFontLabel?.stringValue = "\(displayName) - \(sizeString) pt"
+    }
+
+    /// Change ボタンが押された時
+    @IBAction func changeFontButtonClicked(_ sender: Any) {
+        // フォントパネルを表示
+        let fontManager = NSFontManager.shared
+        let currentFont = NSFont(name: currentBaseFontName, size: currentBaseFontSize)
+            ?? NSFont.systemFont(ofSize: currentBaseFontSize)
+
+        // フォントパネルにターゲットを設定
+        fontManager.target = self
+        fontManager.action = #selector(changeFont(_:))
+
+        // 現在のフォントをセット
+        fontManager.setSelectedFont(currentFont, isMultiple: false)
+
+        // フォントパネルを表示
+        fontManager.orderFrontFontPanel(self)
+    }
+
+    /// フォントパネルからフォントが変更された時
+    @objc func changeFont(_ sender: Any?) {
+        guard let fontManager = sender as? NSFontManager else { return }
+
+        let currentFont = NSFont(name: currentBaseFontName, size: currentBaseFontSize)
+            ?? NSFont.systemFont(ofSize: currentBaseFontSize)
+
+        let newFont = fontManager.convert(currentFont)
+        currentBaseFontName = newFont.fontName
+        currentBaseFontSize = newFont.pointSize
+
+        updateBaseFontLabel()
+        // フォントが変更されたらタブ幅の表示も更新（スペース単位の場合は値が変わる）
+        updateTabWidthDisplay()
+        saveCurrentPreset()
     }
 }
