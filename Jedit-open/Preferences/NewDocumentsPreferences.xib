@@ -17,23 +17,25 @@
                 <outlet property="bottomMarginField" destination="he8-bI-k9M" id="j6j-8G-P71"/>
                 <outlet property="caretColorWell" destination="Olj-Gp-njN" id="9le-40-7MF"/>
                 <outlet property="changeFontButton" destination="MU8-Uu-dzl" id="chg-fnt-out"/>
-                <outlet property="footerColorWell" destination="kDd-bn-ppg" id="fcw-out-001"/>
-                <outlet property="headerColorWell" destination="EaC-6k-CUw" id="hcw-out-001"/>
-                <outlet property="highlightColorWell" destination="lkf-dl-okk" id="hlcw-out-001"/>
-                <outlet property="invisibleColorWell" destination="jP2-Vx-jbz" id="icw-out-001"/>
-                <outlet property="lineNumberBackgroundColorWell" destination="0jg-GA-hHh" id="lnbcw-out-001"/>
-                <outlet property="lineNumberColorWell" destination="Gax-ij-qjo" id="lncw-out-001"/>
                 <outlet property="companyField" destination="PfK-J7-gWi" id="tON-lt-jIb"/>
                 <outlet property="copyrightField" destination="pXS-bC-r53" id="KO1-zy-jUj"/>
                 <outlet property="docWidthPopup" destination="RYu-Ro-UEN" id="HpK-MR-Gno"/>
                 <outlet property="editingDirectionMatrix" destination="n90-vJ-nGl" id="edt-dir-out"/>
                 <outlet property="encodingPopup" destination="3ER-p1-fiT" id="YEL-z2-dlQ"/>
                 <outlet property="fileExtensionField" destination="oZj-p9-NCY" id="fex-fld-out"/>
+                <outlet property="footerColorWell" destination="kDd-bn-ppg" id="fcw-out-001"/>
+                <outlet property="footerInsertVariablesPopup" destination="xvn-VH-7KS" id="fiv-out-001"/>
+                <outlet property="footerRulerCheckbox" destination="RPi-cd-vBv" id="frc-out-001"/>
                 <outlet property="footerTextView" destination="dYM-gi-Wc0" id="NCS-nA-CAi"/>
+                <outlet property="headerColorWell" destination="EaC-6k-CUw" id="hcw-out-001"/>
+                <outlet property="headerInsertVariablesPopup" destination="Ktt-sM-ZyX" id="hiv-out-001"/>
+                <outlet property="headerRulerCheckbox" destination="mZW-qY-y6E" id="hrc-out-001"/>
                 <outlet property="headerTextView" destination="MCd-yq-CCl" id="mEV-uL-Vx6"/>
+                <outlet property="highlightColorWell" destination="lkf-dl-okk" id="hlcw-out-001"/>
                 <outlet property="indentWrappedLinesCheckbox" destination="LvH-pC-VRP" id="iwl-chk-out"/>
                 <outlet property="interLineSpacingField" destination="kZN-sA-jdn" id="ils-fld-out"/>
                 <outlet property="interLineSpacingStepper" destination="i9I-Vz-JyZ" id="ils-stp-out"/>
+                <outlet property="invisibleColorWell" destination="jP2-Vx-jbz" id="icw-out-001"/>
                 <outlet property="invisibleKanjiSpaceCheckbox" destination="ZzT-27-9N5" id="inv-ksp-out"/>
                 <outlet property="invisibleLineSeparatorCheckbox" destination="Sna-s3-3Te" id="inv-lsp-out"/>
                 <outlet property="invisibleNonBreakingSpaceCheckbox" destination="Bdv-j8-Asw" id="inv-nbs-out"/>
@@ -44,16 +46,18 @@
                 <outlet property="invisibleVerticalTabCheckbox" destination="il3-fD-zyI" id="inv-vtb-out"/>
                 <outlet property="leftMarginField" destination="ppT-8p-7wJ" id="tiD-OQ-va0"/>
                 <outlet property="lineEndingPopup" destination="hh5-gw-RkL" id="41W-SI-eUO"/>
+                <outlet property="lineNumberBackgroundColorWell" destination="0jg-GA-hHh" id="lnbcw-out-001"/>
+                <outlet property="lineNumberColorWell" destination="Gax-ij-qjo" id="lncw-out-001"/>
                 <outlet property="lineNumberPopup" destination="mra-s7-e3B" id="YJV-fJ-rIO"/>
                 <outlet property="marginUnitPopup" destination="Edb-gr-LrQ" id="QeE-gn-6sb"/>
                 <outlet property="newDocNamePopup" destination="eMY-Pc-2Ti" id="ndm-pop-out"/>
                 <outlet property="pageModeMatrix" destination="Cb4-qe-HEM" id="RNE-0A-bB5"/>
                 <outlet property="paragraphSpacingAfterField" destination="S6z-wW-iGf" id="psa-fld-out"/>
-                <outlet property="printScaleField" destination="UkI-Sd-c12" id="psf-out-001"/>
                 <outlet property="paragraphSpacingAfterStepper" destination="6qi-ax-duK" id="psa-stp-out"/>
                 <outlet property="paragraphSpacingBeforeField" destination="oLw-zD-nTQ" id="psb-fld-out"/>
                 <outlet property="paragraphSpacingBeforeStepper" destination="6SS-Xe-hjl" id="psb-stp-out"/>
                 <outlet property="presetTableView" destination="gFa-M3-pou" id="HwW-Iw-sD0"/>
+                <outlet property="printScaleField" destination="UkI-Sd-c12" id="psf-out-001"/>
                 <outlet property="removeButton" destination="xlc-I5-2ws" id="w6t-cO-G08"/>
                 <outlet property="rightMarginField" destination="uhC-HE-xif" id="BJC-qI-dvb"/>
                 <outlet property="rulerPopup" destination="QIv-zg-RbC" id="rEE-sK-bbi"/>
@@ -1553,22 +1557,22 @@
                         </tabViewItem>
                         <tabViewItem label="Header/Footer" identifier="" id="lUy-Ej-XxM">
                             <view key="view" id="em2-LU-1yd">
-                                <rect key="frame" x="10" y="33" width="522" height="461"/>
+                                <rect key="frame" x="10" y="33" width="510" height="441"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <scrollView fixedFrame="YES" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="9TB-oA-TXN">
-                                        <rect key="frame" x="17" y="335" width="430" height="81"/>
+                                        <rect key="frame" x="17" y="287" width="476" height="105"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="Yxb-EA-UHh">
-                                            <rect key="frame" x="1" y="1" width="428" height="79"/>
-                                            <autoresizingMask key="autoresizingMask"/>
+                                            <rect key="frame" x="1" y="1" width="474" height="103"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="MCd-yq-CCl">
-                                                    <rect key="frame" x="0.0" y="0.0" width="428" height="79"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="474" height="103"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="428" height="79"/>
-                                                    <size key="maxSize" width="463" height="10000000"/>
+                                                    <size key="minSize" width="474" height="103"/>
+                                                    <size key="maxSize" width="476" height="10000000"/>
                                                 </textView>
                                             </subviews>
                                         </clipView>
@@ -1582,7 +1586,7 @@
                                         </scroller>
                                     </scrollView>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Ktt-sM-ZyX">
-                                        <rect key="frame" x="80" y="419" width="128" height="22"/>
+                                        <rect key="frame" x="80" y="400" width="128" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Insert Variables" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="FqF-hm-eFj" id="wug-hR-U8A">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1590,56 +1594,106 @@
                                             <menu key="menu" title="OtherViews" id="LtM-v4-Igj">
                                                 <items>
                                                     <menuItem title="Insert Variables" state="on" hidden="YES" id="FqF-hm-eFj"/>
-                                                    <menuItem title="Page Number" tag="1" id="zuZ-OV-dQQ"/>
-                                                    <menuItem title="Page Total" tag="2" id="W2L-7c-k20"/>
+                                                    <menuItem title="Page Number" tag="1" id="zuZ-OV-dQQ">
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-001"/>
+                                                        </connections>
+                                                    </menuItem>
+                                                    <menuItem title="Page Total" tag="2" id="W2L-7c-k20">
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-002"/>
+                                                        </connections>
+                                                    </menuItem>
                                                     <menuItem title="Current Date" tag="3" id="7x8-Ts-zCn">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-003"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Current Time" tag="4" id="Dou-ST-tyE">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-004"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Document Title" tag="5" id="8wC-Sl-pSa">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-005"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="File Path" tag="6" id="o0R-jT-IFM">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-006"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="User Name" tag="7" id="lya-Zb-6LU">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-007"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Modification Date" tag="8" id="bLQ-Ys-65L">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-008"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Modification Time" tag="9" id="JPp-kl-JCt">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-009"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Author" tag="10" id="Hag-Q9-5jz">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-010"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Company" tag="11" id="trz-c4-VnX">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-011"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Copyright" tag="12" id="rxp-yd-zB3">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-012"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Title" tag="13" id="56f-MJ-upe">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-013"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Subject" tag="14" id="sbp-uz-6qX">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-014"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Keywords" tag="15" id="N6I-2o-Uvw">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-015"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Comment" tag="16" id="cL3-BK-ASZ">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="headerInsertVariable:" target="-2" id="hiv-act-016"/>
+                                                        </connections>
                                                     </menuItem>
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1nZ-95-WbT">
-                                        <rect key="frame" x="21" y="424" width="57" height="17"/>
+                                        <rect key="frame" x="21" y="405" width="57" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Header" id="G66-6C-af8">
                                             <font key="font" metaFont="system"/>
@@ -1648,18 +1702,18 @@
                                         </textFieldCell>
                                     </textField>
                                     <scrollView fixedFrame="YES" autohidesScrollers="YES" horizontalLineScroll="10" horizontalPageScroll="10" verticalLineScroll="10" verticalPageScroll="10" hasHorizontalScroller="NO" hasVerticalScroller="NO" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="dGZ-BH-N2A">
-                                        <rect key="frame" x="17" y="216" width="430" height="82"/>
+                                        <rect key="frame" x="17" y="137" width="476" height="106"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="vCn-fD-0uC">
-                                            <rect key="frame" x="1" y="1" width="428" height="80"/>
-                                            <autoresizingMask key="autoresizingMask"/>
+                                            <rect key="frame" x="1" y="1" width="474" height="104"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="dYM-gi-Wc0">
-                                                    <rect key="frame" x="0.0" y="0.0" width="428" height="80"/>
+                                                    <rect key="frame" x="0.0" y="0.0" width="474" height="104"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                                    <size key="minSize" width="428" height="80"/>
-                                                    <size key="maxSize" width="463" height="10000000"/>
+                                                    <size key="minSize" width="474" height="104"/>
+                                                    <size key="maxSize" width="476" height="10000000"/>
                                                 </textView>
                                             </subviews>
                                         </clipView>
@@ -1673,7 +1727,7 @@
                                         </scroller>
                                     </scrollView>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="JhM-v0-44t">
-                                        <rect key="frame" x="21" y="307" width="57" height="17"/>
+                                        <rect key="frame" x="21" y="252" width="57" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" title="Footer" id="2Qb-jQ-Cp9">
                                             <font key="font" metaFont="system"/>
@@ -1682,7 +1736,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xvn-VH-7KS">
-                                        <rect key="frame" x="80" y="303" width="128" height="22"/>
+                                        <rect key="frame" x="80" y="248" width="128" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Insert Variables" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="lHE-Pn-G3Y" id="Jtr-Yh-Hb7">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1690,90 +1744,138 @@
                                             <menu key="menu" title="OtherViews" id="JLp-aB-EC7">
                                                 <items>
                                                     <menuItem title="Insert Variables" state="on" hidden="YES" id="lHE-Pn-G3Y"/>
-                                                    <menuItem title="Page Number" tag="1" id="gHR-9h-wZs"/>
-                                                    <menuItem title="Page Total" tag="2" id="nJ7-l1-MNI"/>
+                                                    <menuItem title="Page Number" tag="1" id="gHR-9h-wZs">
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-001"/>
+                                                        </connections>
+                                                    </menuItem>
+                                                    <menuItem title="Page Total" tag="2" id="nJ7-l1-MNI">
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-002"/>
+                                                        </connections>
+                                                    </menuItem>
                                                     <menuItem title="Current Date" tag="3" id="1PH-V2-gac">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-003"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Current Time" tag="4" id="Tj1-jJ-dyh">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-004"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Document Title" tag="5" id="sko-aV-vPK">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-005"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="File Path" tag="6" id="dME-zg-fRw">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-006"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="User Name" tag="7" id="Cmy-FA-WXV">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-007"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Modification Date" tag="8" id="cYp-xe-ucn">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-008"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Modification Time" tag="9" id="1wa-4q-YBL">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-009"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Author" tag="10" id="RhA-o4-5iY">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-010"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Company" tag="11" id="Hpe-Of-hvq">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-011"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Copyright" tag="12" id="1af-lE-zDz">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-012"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Title" tag="13" id="52W-8g-Q5Q">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-013"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Subject" tag="14" id="iR3-rQ-Fo0">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-014"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Keywords" tag="15" id="H6L-cb-9EG">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-015"/>
+                                                        </connections>
                                                     </menuItem>
                                                     <menuItem title="Comment" tag="16" id="vph-P4-Crg">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
+                                                        <connections>
+                                                            <action selector="footerInsertVariable:" target="-2" id="fiv-act-016"/>
+                                                        </connections>
                                                     </menuItem>
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mZW-qY-y6E">
-                                        <rect key="frame" x="364" y="422" width="64" height="18"/>
+                                        <rect key="frame" x="364" y="403" width="64" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Ruler" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="6vt-zJ-pCN">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
+                                        <connections>
+                                            <action selector="headerRulerChanged:" target="-2" id="hrc-act-001"/>
+                                        </connections>
                                     </button>
                                     <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RPi-cd-vBv">
-                                        <rect key="frame" x="364" y="304" width="55" height="18"/>
+                                        <rect key="frame" x="364" y="249" width="55" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="check" title="Ruler" bezelStyle="regularSquare" imagePosition="left" state="on" inset="2" id="sel-b3-gjW">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
+                                        <connections>
+                                            <action selector="footerRulerChanged:" target="-2" id="frc-act-001"/>
+                                        </connections>
                                     </button>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="nju-ig-hlq">
-                                        <rect key="frame" x="300" y="304" width="44" height="23"/>
+                                        <rect key="frame" x="300" y="249" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wji-fG-eWN">
-                                        <rect key="frame" x="365" y="178" width="88" height="32"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="push" title="Change" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="VdL-qM-h3c">
-                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                    </button>
                                     <colorWell fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zVQ-SN-wna">
-                                        <rect key="frame" x="300" y="421" width="44" height="23"/>
+                                        <rect key="frame" x="300" y="402" width="44" height="23"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="N9k-uW-Db3">
-                                        <rect key="frame" x="17" y="86" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="66" width="167" height="24"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cN6-PQ-yGa">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -1885,7 +1987,7 @@ individual documents</string>
                 <constraint firstItem="VDd-sl-dqH" firstAttribute="top" secondItem="5VY-dr-NPg" secondAttribute="bottom" constant="1" id="ygT-pM-Ehj"/>
                 <constraint firstItem="Orc-03-RCR" firstAttribute="leading" secondItem="5VY-dr-NPg" secondAttribute="trailing" constant="10" id="zZs-GU-R3W"/>
             </constraints>
-            <point key="canvasLocation" x="150" y="-767.5"/>
+            <point key="canvasLocation" x="68" y="-1145"/>
         </customView>
     </objects>
     <resources>

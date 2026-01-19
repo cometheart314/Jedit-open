@@ -98,6 +98,10 @@ class NewDocumentsPreferencesViewController: NSViewController {
     // Header/Footer Tab
     @IBOutlet weak var headerTextView: NSTextView!
     @IBOutlet weak var footerTextView: NSTextView!
+    @IBOutlet weak var headerRulerCheckbox: NSButton!
+    @IBOutlet weak var footerRulerCheckbox: NSButton!
+    @IBOutlet weak var headerInsertVariablesPopup: NSPopUpButton!
+    @IBOutlet weak var footerInsertVariablesPopup: NSPopUpButton!
 
     // Properties Tab
     @IBOutlet weak var authorField: NSTextField!
@@ -132,6 +136,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
         setupScaleMenu()
         setupDocWidthMenu()
         setupEncodingPopup()
+        setupHeaderFooterRulers()
     }
 
     private func setupEncodingPopup() {
@@ -317,8 +322,15 @@ class NewDocumentsPreferencesViewController: NSViewController {
         printScaleField?.integerValue = Int(data.pageLayout.printScale * 100)
 
         // Header/Footer Tab
-        headerTextView?.string = data.headerFooter.headerText
-        footerTextView?.string = data.headerFooter.footerText
+        // AttributedStringを読み込み
+        if let textStorage = headerTextView?.textStorage {
+            let headerAttrString = NewDocData.HeaderFooterData.attributedString(from: data.headerFooter.headerRTFData)
+            textStorage.setAttributedString(headerAttrString)
+        }
+        if let textStorage = footerTextView?.textStorage {
+            let footerAttrString = NewDocData.HeaderFooterData.attributedString(from: data.headerFooter.footerRTFData)
+            textStorage.setAttributedString(footerAttrString)
+        }
 
         // Properties Tab
         authorField?.stringValue = data.properties.author
@@ -424,8 +436,13 @@ class NewDocumentsPreferencesViewController: NSViewController {
         preset.data.pageLayout.printScale = CGFloat(printScaleField?.integerValue ?? 100) / 100.0
 
         // Header/Footer Tab
-        preset.data.headerFooter.headerText = headerTextView?.string ?? ""
-        preset.data.headerFooter.footerText = footerTextView?.string ?? ""
+        // AttributedStringをRTFデータとして保存
+        if let textStorage = headerTextView?.textStorage {
+            preset.data.headerFooter.headerRTFData = NewDocData.HeaderFooterData.rtfData(from: textStorage)
+        }
+        if let textStorage = footerTextView?.textStorage {
+            preset.data.headerFooter.footerRTFData = NewDocData.HeaderFooterData.rtfData(from: textStorage)
+        }
 
         // Properties Tab
         preset.data.properties.author = authorField?.stringValue ?? ""
@@ -1007,5 +1024,125 @@ extension NewDocumentsPreferencesViewController {
         leftMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(leftPoints))
         rightMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(rightPoints))
         bottomMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(bottomPoints))
+    }
+}
+
+// MARK: - Header/Footer Support
+
+extension NewDocumentsPreferencesViewController {
+
+    /// ヘッダールーラーチェックボックスの変更
+    @IBAction func headerRulerChanged(_ sender: NSButton) {
+        let showRuler = (sender.state == .on)
+        setRulerVisible(for: headerTextView, visible: showRuler)
+    }
+
+    /// フッタールーラーチェックボックスの変更
+    @IBAction func footerRulerChanged(_ sender: NSButton) {
+        let showRuler = (sender.state == .on)
+        setRulerVisible(for: footerTextView, visible: showRuler)
+    }
+
+    /// TextViewのルーラー表示を設定（タブストップやマージンなどの設定項目も含む）
+    private func setRulerVisible(for textView: NSTextView?, visible: Bool) {
+        guard let textView = textView,
+              let scrollView = textView.enclosingScrollView else { return }
+
+        // ルーラーを使用可能にする
+        textView.usesRuler = true
+
+        // ScrollViewにルーラーを設定
+        scrollView.hasHorizontalRuler = true
+        scrollView.rulersVisible = visible
+
+        // TextViewのルーラー表示状態を設定
+        textView.isRulerVisible = visible
+
+        // ルーラーの区切り線を非表示にする
+        if let rulerView = scrollView.horizontalRulerView {
+            // アクセサリビュー用の予約領域を0に設定
+            rulerView.reservedThicknessForAccessoryView = 0
+            // アクセサリビューがあれば削除
+            rulerView.accessoryView = nil
+
+            // ルーラーのボーダーを非表示にするためにレイヤーを使用
+            rulerView.wantsLayer = true
+            rulerView.layer?.borderWidth = 0
+            rulerView.layer?.masksToBounds = true
+
+            // サブビューのボーダーも非表示
+            for subview in rulerView.subviews {
+                subview.wantsLayer = true
+                subview.layer?.borderWidth = 0
+            }
+        }
+    }
+
+    /// TextViewのルーラー表示を初期化
+    func setupHeaderFooterRulers() {
+        // ヘッダーのルーラー初期状態
+        let headerRulerState = headerRulerCheckbox?.state == .on
+        setRulerVisible(for: headerTextView, visible: headerRulerState)
+
+        // フッターのルーラー初期状態
+        let footerRulerState = footerRulerCheckbox?.state == .on
+        setRulerVisible(for: footerTextView, visible: footerRulerState)
+    }
+
+    // MARK: - Insert Variables
+
+    /// 変数タグの配列（メニュー項目のtagと対応、tag=1から始まる）
+    private static let headerFooterVariables: [String] = [
+        "%page",      // tag 1: Page Number
+        "%total",     // tag 2: Page Total
+        "%date",      // tag 3: Current Date
+        "%time",      // tag 4: Current Time
+        "%name",      // tag 5: Document Title
+        "%path",      // tag 6: File Path
+        "%user",      // tag 7: User Name
+        "%mdate",     // tag 8: Modification Date
+        "%mtime",     // tag 9: Modification Time
+        "%author",    // tag 10: Author
+        "%company",   // tag 11: Company
+        "%copyright", // tag 12: Copyright
+        "%title",     // tag 13: Title
+        "%subject",   // tag 14: Subject
+        "%keywords",  // tag 15: Keywords
+        "%comment"    // tag 16: Comment
+    ]
+
+    /// ヘッダーのInsert Variablesメニューから選択
+    @IBAction func headerInsertVariable(_ sender: NSMenuItem) {
+        insertVariable(tag: sender.tag, into: headerTextView)
+    }
+
+    /// フッターのInsert Variablesメニューから選択
+    @IBAction func footerInsertVariable(_ sender: NSMenuItem) {
+        insertVariable(tag: sender.tag, into: footerTextView)
+    }
+
+    /// 変数をTextViewのカーソル位置に挿入
+    private func insertVariable(tag: Int, into textView: NSTextView?) {
+        guard let textView = textView,
+              tag >= 1,
+              tag <= Self.headerFooterVariables.count else { return }
+
+        let variable = Self.headerFooterVariables[tag - 1]
+
+        // 現在の選択範囲を取得（カーソル位置）
+        let selectedRange = textView.selectedRange()
+
+        // テキストを挿入
+        if textView.shouldChangeText(in: selectedRange, replacementString: variable) {
+            textView.replaceCharacters(in: selectedRange, with: variable)
+            textView.didChangeText()
+
+            // カーソルを挿入したテキストの後ろに移動
+            let newLocation = selectedRange.location + variable.count
+            textView.setSelectedRange(NSRange(location: newLocation, length: 0))
+
+            // プリセットを保存
+            saveCurrentPreset()
+        }
     }
 }

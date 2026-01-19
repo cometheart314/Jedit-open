@@ -361,14 +361,61 @@ struct NewDocData: Codable, Equatable {
     // MARK: - HeaderFooterData
 
     struct HeaderFooterData: Codable, Equatable {
-        var headerText: String
-        var footerText: String
+        /// ヘッダーのRTFデータ（attributedStringを保存）
+        var headerRTFData: Data?
+        /// フッターのRTFデータ（attributedStringを保存）
+        var footerRTFData: Data?
 
         static var `default`: HeaderFooterData {
             HeaderFooterData(
-                headerText: "",
-                footerText: ""
+                headerRTFData: defaultHeaderRTFData(),
+                footerRTFData: defaultFooterRTFData()
             )
+        }
+
+        /// デフォルトのヘッダー: "%name" 左寄せ
+        private static func defaultHeaderRTFData() -> Data? {
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .left
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 12),
+                .paragraphStyle: paragraphStyle
+            ]
+            let attrString = NSAttributedString(string: "%name", attributes: attributes)
+            return rtfData(from: attrString)
+        }
+
+        /// デフォルトのフッター: "%page/%total" 中央寄せ
+        private static func defaultFooterRTFData() -> Data? {
+            let paragraphStyle = NSMutableParagraphStyle()
+            paragraphStyle.alignment = .center
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.systemFont(ofSize: 12),
+                .paragraphStyle: paragraphStyle
+            ]
+            let attrString = NSAttributedString(string: "%page/%total", attributes: attributes)
+            return rtfData(from: attrString)
+        }
+
+        /// NSAttributedStringからRTFDataを作成
+        static func rtfData(from attributedString: NSAttributedString) -> Data? {
+            let range = NSRange(location: 0, length: attributedString.length)
+            return try? attributedString.data(
+                from: range,
+                documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
+            )
+        }
+
+        /// RTFDataからNSAttributedStringを作成
+        static func attributedString(from rtfData: Data?) -> NSAttributedString {
+            guard let data = rtfData else {
+                return NSAttributedString()
+            }
+            return (try? NSAttributedString(
+                data: data,
+                options: [.documentType: NSAttributedString.DocumentType.rtf],
+                documentAttributes: nil
+            )) ?? NSAttributedString()
         }
     }
 
