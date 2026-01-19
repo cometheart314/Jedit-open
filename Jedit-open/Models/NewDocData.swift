@@ -305,27 +305,55 @@ struct NewDocData: Codable, Equatable {
     // MARK: - PageLayoutData
 
     struct PageLayoutData: Codable, Equatable {
-        var topMargin: CGFloat
-        var leftMargin: CGFloat
-        var rightMargin: CGFloat
-        var bottomMargin: CGFloat
-        var marginUnit: MarginUnit
+        /// 上マージン（ポイント単位で保持）
+        var topMarginPoints: CGFloat
+        /// 左マージン（ポイント単位で保持）
+        var leftMarginPoints: CGFloat
+        /// 右マージン（ポイント単位で保持）
+        var rightMarginPoints: CGFloat
+        /// 下マージン（ポイント単位で保持）
+        var bottomMarginPoints: CGFloat
+        /// 印刷スケール（100% = 1.0）
         var printScale: CGFloat
 
-        enum MarginUnit: Int, Codable {
+        /// 表示用のマージン単位（保存されない、UI表示用のみ）
+        enum MarginUnit: Int {
             case centimeter = 0
             case inch = 1
             case point = 2
+
+            /// ポイントから指定単位に変換
+            func fromPoints(_ points: CGFloat) -> CGFloat {
+                switch self {
+                case .centimeter:
+                    return points / 28.3465  // 1cm = 28.3465pt
+                case .inch:
+                    return points / 72.0     // 1inch = 72pt
+                case .point:
+                    return points
+                }
+            }
+
+            /// 指定単位からポイントに変換
+            func toPoints(_ value: CGFloat) -> CGFloat {
+                switch self {
+                case .centimeter:
+                    return value * 28.3465
+                case .inch:
+                    return value * 72.0
+                case .point:
+                    return value
+                }
+            }
         }
 
         static var `default`: PageLayoutData {
             PageLayoutData(
-                topMargin: 2.0,
-                leftMargin: 2.0,
-                rightMargin: 2.0,
-                bottomMargin: 2.0,
-                marginUnit: .centimeter,
-                printScale: 1.0
+                topMarginPoints: 90.0,      // 上下マージン 90pt
+                leftMarginPoints: 72.0,     // 左右マージン 72pt
+                rightMarginPoints: 72.0,
+                bottomMarginPoints: 90.0,
+                printScale: 1.0             // 100%
             )
         }
     }

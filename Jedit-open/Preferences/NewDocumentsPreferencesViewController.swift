@@ -90,6 +90,10 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBOutlet weak var rightMarginField: NSTextField!
     @IBOutlet weak var bottomMarginField: NSTextField!
     @IBOutlet weak var marginUnitPopup: NSPopUpButton!
+    @IBOutlet weak var printScaleField: NSTextField!
+
+    /// 現在選択されているマージン単位（UI表示用のみ、保存されない）
+    private var currentMarginUnit: NewDocData.PageLayoutData.MarginUnit = .point
 
     // Header/Footer Tab
     @IBOutlet weak var headerTextView: NSTextView!
@@ -306,11 +310,11 @@ class NewDocumentsPreferencesViewController: NSViewController {
         lineNumberBackgroundColorWell?.color = data.fontAndColors.colors.lineNumberBackground.nsColor
 
         // Page Layout Tab
-        topMarginField?.doubleValue = Double(data.pageLayout.topMargin)
-        leftMarginField?.doubleValue = Double(data.pageLayout.leftMargin)
-        rightMarginField?.doubleValue = Double(data.pageLayout.rightMargin)
-        bottomMarginField?.doubleValue = Double(data.pageLayout.bottomMargin)
-        marginUnitPopup?.selectItem(withTag: data.pageLayout.marginUnit.rawValue)
+        // 単位はデフォルトでpoint、UIでその都度切り替え可能
+        marginUnitPopup?.selectItem(withTag: currentMarginUnit.rawValue)
+        updateMarginFieldsDisplay()
+        // Print Scale（100% = 1.0 で保持、表示は%）
+        printScaleField?.integerValue = Int(data.pageLayout.printScale * 100)
 
         // Header/Footer Tab
         headerTextView?.string = data.headerFooter.headerText
@@ -412,11 +416,12 @@ class NewDocumentsPreferencesViewController: NSViewController {
         }
 
         // Page Layout Tab
-        preset.data.pageLayout.topMargin = CGFloat(topMarginField?.doubleValue ?? 2.0)
-        preset.data.pageLayout.leftMargin = CGFloat(leftMarginField?.doubleValue ?? 2.0)
-        preset.data.pageLayout.rightMargin = CGFloat(rightMarginField?.doubleValue ?? 2.0)
-        preset.data.pageLayout.bottomMargin = CGFloat(bottomMarginField?.doubleValue ?? 2.0)
-        preset.data.pageLayout.marginUnit = NewDocData.PageLayoutData.MarginUnit(rawValue: marginUnitPopup?.selectedTag() ?? 0) ?? .centimeter
+        // 現在の表示単位からポイントに変換して保存
+        preset.data.pageLayout.topMarginPoints = currentMarginUnit.toPoints(CGFloat(topMarginField?.doubleValue ?? 90.0))
+        preset.data.pageLayout.leftMarginPoints = currentMarginUnit.toPoints(CGFloat(leftMarginField?.doubleValue ?? 72.0))
+        preset.data.pageLayout.rightMarginPoints = currentMarginUnit.toPoints(CGFloat(rightMarginField?.doubleValue ?? 72.0))
+        preset.data.pageLayout.bottomMarginPoints = currentMarginUnit.toPoints(CGFloat(bottomMarginField?.doubleValue ?? 90.0))
+        preset.data.pageLayout.printScale = CGFloat(printScaleField?.integerValue ?? 100) / 100.0
 
         // Header/Footer Tab
         preset.data.headerFooter.headerText = headerTextView?.string ?? ""
@@ -967,5 +972,40 @@ extension NewDocumentsPreferencesViewController {
                 ThemeColorManager.shared.addTheme(newTheme)
             }
         }
+    }
+}
+
+// MARK: - Page Layout Support
+
+extension NewDocumentsPreferencesViewController {
+
+    /// マージンフィールドの表示を更新（ポイント値を選択された単位で表示）
+    func updateMarginFieldsDisplay() {
+        guard let preset = presetManager.preset(at: selectedPresetIndex) else { return }
+        let data = preset.data
+
+        // ポイント値を現在選択されている単位に変換して表示
+        topMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(data.pageLayout.topMarginPoints))
+        leftMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(data.pageLayout.leftMarginPoints))
+        rightMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(data.pageLayout.rightMarginPoints))
+        bottomMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(data.pageLayout.bottomMarginPoints))
+    }
+
+    /// マージン単位が変更された時（表示単位を切り替えるだけ、保存はしない）
+    @IBAction func marginUnitChanged(_ sender: NSPopUpButton) {
+        // 現在のフィールド値を現在の単位でポイントに変換
+        let topPoints = currentMarginUnit.toPoints(CGFloat(topMarginField?.doubleValue ?? 0))
+        let leftPoints = currentMarginUnit.toPoints(CGFloat(leftMarginField?.doubleValue ?? 0))
+        let rightPoints = currentMarginUnit.toPoints(CGFloat(rightMarginField?.doubleValue ?? 0))
+        let bottomPoints = currentMarginUnit.toPoints(CGFloat(bottomMarginField?.doubleValue ?? 0))
+
+        // 新しい単位を取得して保持
+        currentMarginUnit = NewDocData.PageLayoutData.MarginUnit(rawValue: sender.selectedTag()) ?? .point
+
+        // 新しい単位で表示を更新
+        topMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(topPoints))
+        leftMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(leftPoints))
+        rightMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(rightPoints))
+        bottomMarginField?.doubleValue = Double(currentMarginUnit.fromPoints(bottomPoints))
     }
 }

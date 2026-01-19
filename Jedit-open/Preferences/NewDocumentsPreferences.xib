@@ -49,6 +49,7 @@
                 <outlet property="newDocNamePopup" destination="eMY-Pc-2Ti" id="ndm-pop-out"/>
                 <outlet property="pageModeMatrix" destination="Cb4-qe-HEM" id="RNE-0A-bB5"/>
                 <outlet property="paragraphSpacingAfterField" destination="S6z-wW-iGf" id="psa-fld-out"/>
+                <outlet property="printScaleField" destination="UkI-Sd-c12" id="psf-out-001"/>
                 <outlet property="paragraphSpacingAfterStepper" destination="6qi-ax-duK" id="psa-stp-out"/>
                 <outlet property="paragraphSpacingBeforeField" destination="oLw-zD-nTQ" id="psb-fld-out"/>
                 <outlet property="paragraphSpacingBeforeStepper" destination="6SS-Xe-hjl" id="psb-stp-out"/>
@@ -1392,12 +1393,15 @@
                                                         <font key="font" metaFont="message"/>
                                                         <menu key="menu" title="OtherViews" id="rwo-Fg-IN9">
                                                             <items>
-                                                                <menuItem title="cm" tag="1" id="Jeh-1l-bIP"/>
-                                                                <menuItem title="points" id="20l-9d-z7u"/>
-                                                                <menuItem title="inches" tag="2" id="dNb-8I-QX0"/>
+                                                                <menuItem title="cm" id="Jeh-1l-bIP"/>
+                                                                <menuItem title="inches" tag="1" id="dNb-8I-QX0"/>
+                                                                <menuItem title="points" tag="2" id="20l-9d-z7u"/>
                                                             </items>
                                                         </menu>
                                                     </popUpButtonCell>
+                                                    <connections>
+                                                        <action selector="marginUnitChanged:" target="-2" id="muc-act-001"/>
+                                                    </connections>
                                                 </popUpButton>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="oaG-ph-mxQ">
                                                     <rect key="frame" x="113" y="52" width="29" height="17"/>
@@ -1447,6 +1451,9 @@
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
+                                                    <connections>
+                                                        <action selector="controlValueChanged:" target="-2" id="tmf-act-001"/>
+                                                    </connections>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="he8-bI-k9M">
                                                     <rect key="frame" x="147" y="12" width="54" height="22"/>
@@ -1460,6 +1467,9 @@
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
+                                                    <connections>
+                                                        <action selector="controlValueChanged:" target="-2" id="bmf-act-001"/>
+                                                    </connections>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ppT-8p-7wJ">
                                                     <rect key="frame" x="48" y="32" width="54" height="22"/>
@@ -1473,6 +1483,9 @@
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
+                                                    <connections>
+                                                        <action selector="controlValueChanged:" target="-2" id="lmf-act-001"/>
+                                                    </connections>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uhC-HE-xif">
                                                     <rect key="frame" x="252" y="29" width="54" height="22"/>
@@ -1486,6 +1499,9 @@
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
+                                                    <connections>
+                                                        <action selector="controlValueChanged:" target="-2" id="rmf-act-001"/>
+                                                    </connections>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2yH-Mf-JTl">
                                                     <rect key="frame" x="414" y="55" width="16" height="17"/>
@@ -1499,8 +1515,8 @@
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="UkI-Sd-c12">
                                                     <rect key="frame" x="368" y="52" width="45" height="22"/>
                                                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="999.9" drawsBackground="YES" id="pgB-kV-uef">
-                                                        <numberFormatter key="formatter" formatterBehavior="10_0" positiveFormat="#,##0.0" negativeFormat="-#,##0.0" thousandSeparator="," id="urf-kf-Hrk">
+                                                    <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" title="100" drawsBackground="YES" id="pgB-kV-uef">
+                                                        <numberFormatter key="formatter" formatterBehavior="10_0" positiveFormat="#,##0" negativeFormat="-#,##0" id="urf-kf-Hrk">
                                                             <integer key="minimum" value="20"/>
                                                             <integer key="maximum" value="500"/>
                                                         </numberFormatter>
@@ -1508,6 +1524,9 @@
                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                                         <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                                     </textFieldCell>
+                                                    <connections>
+                                                        <action selector="controlValueChanged:" target="-2" id="psf-act-001"/>
+                                                    </connections>
                                                 </textField>
                                                 <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="sau-vr-ign">
                                                     <rect key="frame" x="289" y="54" width="74" height="17"/>
