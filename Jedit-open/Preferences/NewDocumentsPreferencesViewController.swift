@@ -43,22 +43,42 @@ class NewDocumentsPreferencesViewController: NSViewController {
     // Format Tab
     @IBOutlet weak var newDocNamePopup: NSPopUpButton!
     @IBOutlet weak var textStyleMatrix: NSMatrix!  // Rich Text / Plain Text radio buttons
+    @IBOutlet weak var fileExtensionField: NSTextField!  // ファイル拡張子
     @IBOutlet weak var encodingPopup: NSPopUpButton!
     @IBOutlet weak var lineEndingPopup: NSPopUpButton!
     @IBOutlet weak var bomCheckbox: NSButton!
     @IBOutlet weak var editingDirectionMatrix: NSMatrix!  // Horizontal / Vertical radio buttons
     @IBOutlet weak var tabWidthField: NSTextField!
+    @IBOutlet weak var tabWidthStepper: NSStepper!  // タブ幅のステッパー
     @IBOutlet weak var tabWidthUnitPopup: NSPopUpButton!  // Points / Spaces 切り替え
     @IBOutlet weak var tabWidthDescriptionLabel: NSTextField!  // タブ幅の説明ラベル
+    @IBOutlet weak var interLineSpacingField: NSTextField!  // 行間
+    @IBOutlet weak var interLineSpacingStepper: NSStepper!
+    @IBOutlet weak var paragraphSpacingBeforeField: NSTextField!  // 段落前
+    @IBOutlet weak var paragraphSpacingBeforeStepper: NSStepper!
+    @IBOutlet weak var paragraphSpacingAfterField: NSTextField!  // 段落後
+    @IBOutlet weak var paragraphSpacingAfterStepper: NSStepper!
     @IBOutlet weak var autoIndentCheckbox: NSButton!
+    @IBOutlet weak var indentWrappedLinesCheckbox: NSButton!  // Indent wrapped lines チェックボックス
+    @IBOutlet weak var wrappedLineIndentField: NSTextField!  // Indent wrapped lines 数値フィールド
     @IBOutlet weak var wordWrapPopup: NSPopUpButton!
+    @IBOutlet weak var targetSizeTypePopup: NSPopUpButton!  // Target Size Type ポップアップ
+    @IBOutlet weak var targetSizeLowerLimitField: NSTextField!  // Target Size Lower limit
+    @IBOutlet weak var targetSizeUpperLimitField: NSTextField!  // Target Size Upper limit
 
     // Font & Colors Tab
     @IBOutlet weak var baseFontLabel: NSTextField!  // フォント名とサイズを表示
     @IBOutlet weak var changeFontButton: NSButton!
+    @IBOutlet weak var themePopupButton: JOThemeColorPopupButton!  // テーマ選択
     @IBOutlet weak var textColorWell: NSColorWell!
     @IBOutlet weak var backgroundColorWell: NSColorWell!
+    @IBOutlet weak var invisibleColorWell: NSColorWell!
     @IBOutlet weak var caretColorWell: NSColorWell!
+    @IBOutlet weak var highlightColorWell: NSColorWell!
+    @IBOutlet weak var lineNumberColorWell: NSColorWell!
+    @IBOutlet weak var headerColorWell: NSColorWell!
+    @IBOutlet weak var footerColorWell: NSColorWell!
+    @IBOutlet weak var lineNumberBackgroundColorWell: NSColorWell!
 
     // フォント設定用のプロパティ
     private var currentBaseFontName: String = NSFont.systemFont(ofSize: 14).fontName
@@ -242,6 +262,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
         newDocNamePopup?.selectItem(withTag: data.format.newDocNameType.rawValue)
         // Text Style Matrix: tag 1 = Rich Text, tag 0 = Plain Text
         textStyleMatrix?.selectCell(withTag: data.format.richText ? 1 : 0)
+        fileExtensionField?.stringValue = data.format.fileExtension
         // Encoding - tag is the encoding's rawValue
         encodingPopup?.selectItem(withTag: Int(data.format.textEncoding))
         lineEndingPopup?.selectItem(withTag: data.format.lineEndingType.rawValue)
@@ -249,8 +270,23 @@ class NewDocumentsPreferencesViewController: NSViewController {
         // Editing Direction: tag 0 = Horizontal (Left to Right), tag 1 = Vertical (Right to Left)
         editingDirectionMatrix?.selectCell(withTag: data.format.editingDirection.rawValue)
         // Tab Width: updateTabWidthDisplay() は Font & Colors を読み込んだ後に呼ぶ
+        // Line/Paragraph Spacing
+        interLineSpacingField?.doubleValue = Double(data.format.interLineSpacing)
+        interLineSpacingStepper?.doubleValue = Double(data.format.interLineSpacing)
+        interLineSpacingStepper?.increment = 1
+        paragraphSpacingBeforeField?.doubleValue = Double(data.format.paragraphSpacingBefore)
+        paragraphSpacingBeforeStepper?.doubleValue = Double(data.format.paragraphSpacingBefore)
+        paragraphSpacingBeforeStepper?.increment = 1
+        paragraphSpacingAfterField?.doubleValue = Double(data.format.paragraphSpacingAfter)
+        paragraphSpacingAfterStepper?.doubleValue = Double(data.format.paragraphSpacingAfter)
+        paragraphSpacingAfterStepper?.increment = 1
         autoIndentCheckbox?.state = data.format.autoIndent ? .on : .off
+        indentWrappedLinesCheckbox?.state = data.format.indentWrappedLines ? .on : .off
+        wrappedLineIndentField?.doubleValue = Double(data.format.wrappedLineIndent)
         wordWrapPopup?.selectItem(withTag: data.format.wordWrappingType.rawValue)
+        targetSizeTypePopup?.selectItem(withTag: data.format.targetSizeType.rawValue)
+        targetSizeLowerLimitField?.integerValue = data.format.minTargetSize
+        targetSizeUpperLimitField?.integerValue = data.format.maxTargetSize
 
         // Font & Colors Tab
         currentBaseFontName = data.fontAndColors.baseFontName
@@ -258,9 +294,16 @@ class NewDocumentsPreferencesViewController: NSViewController {
         updateBaseFontLabel()
         // Tab Width の表示を更新（Font設定を読み込んだ後に行う）
         updateTabWidthDisplay()
+        // 9色のカラーウェルを読み込み
         textColorWell?.color = data.fontAndColors.colors.character.nsColor
         backgroundColorWell?.color = data.fontAndColors.colors.background.nsColor
+        invisibleColorWell?.color = data.fontAndColors.colors.invisible.nsColor
         caretColorWell?.color = data.fontAndColors.colors.caret.nsColor
+        highlightColorWell?.color = data.fontAndColors.colors.highlight.nsColor
+        lineNumberColorWell?.color = data.fontAndColors.colors.lineNumber.nsColor
+        headerColorWell?.color = data.fontAndColors.colors.header.nsColor
+        footerColorWell?.color = data.fontAndColors.colors.footer.nsColor
+        lineNumberBackgroundColorWell?.color = data.fontAndColors.colors.lineNumberBackground.nsColor
 
         // Page Layout Tab
         topMarginField?.doubleValue = Double(data.pageLayout.topMargin)
@@ -316,6 +359,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
         preset.data.format.newDocNameType = NewDocData.FormatData.NewDocNameType(rawValue: newDocNamePopup?.selectedTag() ?? 0) ?? .untitled
         // Text Style Matrix: tag 1 = Rich Text, tag 0 = Plain Text
         preset.data.format.richText = textStyleMatrix?.selectedTag() == 1
+        preset.data.format.fileExtension = fileExtensionField?.stringValue ?? ""
         // Encoding - tag is the encoding's rawValue
         preset.data.format.textEncoding = UInt(encodingPopup?.selectedTag() ?? Int(String.Encoding.utf8.rawValue))
         preset.data.format.lineEndingType = NewDocData.FormatData.LineEndingType(rawValue: lineEndingPopup?.selectedTag() ?? 0) ?? .lf
@@ -324,20 +368,47 @@ class NewDocumentsPreferencesViewController: NSViewController {
         preset.data.format.editingDirection = NewDocData.FormatData.EditingDirection(rawValue: editingDirectionMatrix?.selectedTag() ?? 0) ?? .leftToRight
         preset.data.format.tabWidthPoints = getTabWidthInPoints()
         preset.data.format.tabWidthUnit = getSelectedTabWidthUnit()
+        preset.data.format.interLineSpacing = CGFloat(interLineSpacingField?.doubleValue ?? 0)
+        preset.data.format.paragraphSpacingBefore = CGFloat(paragraphSpacingBeforeField?.doubleValue ?? 0)
+        preset.data.format.paragraphSpacingAfter = CGFloat(paragraphSpacingAfterField?.doubleValue ?? 0)
         preset.data.format.autoIndent = autoIndentCheckbox?.state == .on
-        preset.data.format.wordWrappingType = NewDocData.FormatData.WordWrappingType(rawValue: wordWrapPopup?.selectedTag() ?? 0) ?? .wrapAtWindow
+        preset.data.format.indentWrappedLines = indentWrappedLinesCheckbox?.state == .on
+        preset.data.format.wrappedLineIndent = CGFloat(wrappedLineIndentField?.doubleValue ?? 0)
+        preset.data.format.wordWrappingType = NewDocData.FormatData.WordWrappingType(rawValue: wordWrapPopup?.selectedTag() ?? 0) ?? .systemDefault
+        preset.data.format.targetSizeType = NewDocData.FormatData.TargetSizeType(rawValue: targetSizeTypePopup?.selectedTag() ?? 0) ?? .none
+        preset.data.format.minTargetSize = targetSizeLowerLimitField?.integerValue ?? 0
+        preset.data.format.maxTargetSize = targetSizeUpperLimitField?.integerValue ?? 1000
 
         // Font & Colors Tab
         preset.data.fontAndColors.baseFontName = currentBaseFontName
         preset.data.fontAndColors.baseFontSize = currentBaseFontSize
+        // 9色のカラーウェルを保存
         if let color = textColorWell?.color {
             preset.data.fontAndColors.colors.character = CodableColor(color)
         }
         if let color = backgroundColorWell?.color {
             preset.data.fontAndColors.colors.background = CodableColor(color)
         }
+        if let color = invisibleColorWell?.color {
+            preset.data.fontAndColors.colors.invisible = CodableColor(color)
+        }
         if let color = caretColorWell?.color {
             preset.data.fontAndColors.colors.caret = CodableColor(color)
+        }
+        if let color = highlightColorWell?.color {
+            preset.data.fontAndColors.colors.highlight = CodableColor(color)
+        }
+        if let color = lineNumberColorWell?.color {
+            preset.data.fontAndColors.colors.lineNumber = CodableColor(color)
+        }
+        if let color = headerColorWell?.color {
+            preset.data.fontAndColors.colors.header = CodableColor(color)
+        }
+        if let color = footerColorWell?.color {
+            preset.data.fontAndColors.colors.footer = CodableColor(color)
+        }
+        if let color = lineNumberBackgroundColorWell?.color {
+            preset.data.fontAndColors.colors.lineNumberBackground = CodableColor(color)
         }
 
         // Page Layout Tab
@@ -470,6 +541,27 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBAction func tabWidthUnitChanged(_ sender: Any) {
         // 単位が切り替わったら、現在の値をポイントに変換してから新しい単位で表示
         convertAndDisplayTabWidth()
+        saveCurrentPreset()
+    }
+
+    @IBAction func tabWidthStepperChanged(_ sender: NSStepper) {
+        // ステッパーの値をフィールドに反映
+        tabWidthField?.integerValue = sender.integerValue
+        saveCurrentPreset()
+    }
+
+    @IBAction func interLineSpacingStepperChanged(_ sender: NSStepper) {
+        interLineSpacingField?.doubleValue = sender.doubleValue
+        saveCurrentPreset()
+    }
+
+    @IBAction func paragraphSpacingBeforeStepperChanged(_ sender: NSStepper) {
+        paragraphSpacingBeforeField?.doubleValue = sender.doubleValue
+        saveCurrentPreset()
+    }
+
+    @IBAction func paragraphSpacingAfterStepperChanged(_ sender: NSStepper) {
+        paragraphSpacingAfterField?.doubleValue = sender.doubleValue
         saveCurrentPreset()
     }
 
@@ -678,11 +770,16 @@ extension NewDocumentsPreferencesViewController {
         switch unit {
         case .points:
             tabWidthField?.doubleValue = Double(tabWidthPoints)
+            tabWidthStepper?.integerValue = Int(tabWidthPoints)
         case .spaces:
             let spaces = pointsToSpaces(tabWidthPoints)
             // spacesの時は整数で表示
             tabWidthField?.integerValue = Int(round(spaces))
+            tabWidthStepper?.integerValue = Int(round(spaces))
         }
+
+        // ステッパーの増分を1に設定
+        tabWidthStepper?.increment = 1
 
         // 説明ラベルを更新
         updateTabWidthDescriptionLabel(for: unit)
@@ -735,10 +832,12 @@ extension NewDocumentsPreferencesViewController {
         switch newUnit {
         case .points:
             tabWidthField?.doubleValue = Double(tabWidthPoints)
+            tabWidthStepper?.integerValue = Int(tabWidthPoints)
         case .spaces:
             let spaces = pointsToSpaces(tabWidthPoints)
             // spacesの時は整数で表示
             tabWidthField?.integerValue = Int(round(spaces))
+            tabWidthStepper?.integerValue = Int(round(spaces))
         }
 
         // 説明ラベルを更新
@@ -806,5 +905,67 @@ extension NewDocumentsPreferencesViewController {
         // フォントが変更されたらタブ幅の表示も更新（スペース単位の場合は値が変わる）
         updateTabWidthDisplay()
         saveCurrentPreset()
+    }
+}
+
+// MARK: - Theme Color Support
+
+extension NewDocumentsPreferencesViewController {
+
+    /// テーマが選択された時
+    @objc func themeSelected(_ sender: NSMenuItem) {
+        guard let theme = sender.representedObject as? ThemeColorData else { return }
+
+        // 9つのカラーウェルにテーマの色を設定
+        textColorWell?.color = theme.characterColor.nsColor
+        backgroundColorWell?.color = theme.backgroundColor.nsColor
+        invisibleColorWell?.color = theme.invisibleColor.nsColor
+        caretColorWell?.color = theme.caretColor.nsColor
+        highlightColorWell?.color = theme.highlightColor.nsColor
+        lineNumberColorWell?.color = theme.lineNumberColor.nsColor
+        lineNumberBackgroundColorWell?.color = theme.lineNumberBackColor.nsColor
+        headerColorWell?.color = theme.headerColor.nsColor
+        footerColorWell?.color = theme.footerColor.nsColor
+
+        // プリセットを保存
+        saveCurrentPreset()
+    }
+
+    /// テーマ追加ダイアログを表示
+    @objc func addTheme(_ sender: NSMenuItem) {
+        guard let window = view.window else { return }
+
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Add Theme", comment: "")
+        alert.informativeText = NSLocalizedString("Enter a name for the new theme:", comment: "")
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+
+        let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+        inputField.stringValue = NSLocalizedString("New Theme", comment: "")
+        alert.accessoryView = inputField
+
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn {
+                let themeName = inputField.stringValue.isEmpty ? "New Theme" : inputField.stringValue
+
+                // 現在のカラーウェルの色からテーマを作成
+                let newTheme = ThemeColorData(
+                    themeName: themeName,
+                    removable: true,
+                    characterColor: CodableColor(self.textColorWell?.color ?? .textColor),
+                    backgroundColor: CodableColor(self.backgroundColorWell?.color ?? .textBackgroundColor),
+                    invisibleColor: CodableColor(self.invisibleColorWell?.color ?? .tertiaryLabelColor),
+                    caretColor: CodableColor(self.caretColorWell?.color ?? .textColor),
+                    highlightColor: CodableColor(self.highlightColorWell?.color ?? .selectedTextBackgroundColor),
+                    lineNumberColor: CodableColor(self.lineNumberColorWell?.color ?? .secondaryLabelColor),
+                    lineNumberBackColor: CodableColor(self.lineNumberBackgroundColorWell?.color ?? .controlBackgroundColor),
+                    headerColor: CodableColor(self.headerColorWell?.color ?? .labelColor),
+                    footerColor: CodableColor(self.footerColorWell?.color ?? .labelColor)
+                )
+
+                ThemeColorManager.shared.addTheme(newTheme)
+            }
+        }
     }
 }

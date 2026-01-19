@@ -170,6 +170,7 @@ struct NewDocData: Codable, Equatable {
     struct FormatData: Codable, Equatable {
         var newDocNameType: NewDocNameType
         var richText: Bool
+        var fileExtension: String  // ファイル拡張子（plain text: "txt", rich text: ""）
         var textEncoding: String.Encoding.RawValue
         var lineEndingType: LineEndingType
         var bom: Bool
@@ -180,9 +181,10 @@ struct NewDocData: Codable, Equatable {
         var paragraphSpacingBefore: CGFloat
         var paragraphSpacingAfter: CGFloat
         var autoIndent: Bool
+        var indentWrappedLines: Bool  // Indent wrapped lines of Plain Text チェックボックス
         var wrappedLineIndent: CGFloat
         var wordWrappingType: WordWrappingType
-        var targetSize: Int
+        var targetSizeType: TargetSizeType  // Target Size の種類
         var minTargetSize: Int
         var maxTargetSize: Int
 
@@ -207,9 +209,9 @@ struct NewDocData: Codable, Equatable {
         }
 
         enum WordWrappingType: Int, Codable {
-            case noWrap = 0
-            case wrapAtWindow = 1
-            case wrapAtCharacters = 2
+            case systemDefault = 0
+            case japaneseWordwrap = 1
+            case dontWordwrap = 2
         }
 
         enum TabWidthUnit: Int, Codable {
@@ -217,31 +219,43 @@ struct NewDocData: Codable, Equatable {
             case spaces = 1
         }
 
+        enum TargetSizeType: Int, Codable {
+            case none = 0
+            case characters = 1
+            case visibleChars = 2
+            case words = 3
+            case rows = 4
+            case paragraphs = 5
+        }
+
         static var `default`: FormatData {
             FormatData(
                 newDocNameType: .untitled,
                 richText: true,
+                fileExtension: "",
                 textEncoding: String.Encoding.utf8.rawValue,
                 lineEndingType: .lf,
                 bom: false,
                 editingDirection: .leftToRight,
-                tabWidthPoints: 28.0,  // 約4スペース分（7pt/スペース × 4）
+                tabWidthPoints: 32.0,  // 約4スペース分（8pt/スペース × 4）
                 tabWidthUnit: .points,
                 interLineSpacing: 0,
                 paragraphSpacingBefore: 0,
                 paragraphSpacingAfter: 0,
                 autoIndent: true,
+                indentWrappedLines: false,
                 wrappedLineIndent: 0,
-                wordWrappingType: .wrapAtWindow,
-                targetSize: 80,
-                minTargetSize: 40,
-                maxTargetSize: 200
+                wordWrappingType: .systemDefault,
+                targetSizeType: .none,
+                minTargetSize: 0,
+                maxTargetSize: 1000
             )
         }
 
         static var plainText: FormatData {
             var data = FormatData.default
             data.richText = false
+            data.fileExtension = "txt"
             return data
         }
     }
