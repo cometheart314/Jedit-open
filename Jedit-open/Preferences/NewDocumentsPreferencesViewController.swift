@@ -14,6 +14,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBOutlet weak var presetTableView: NSTableView!
     @IBOutlet weak var addButton: NSButton!
     @IBOutlet weak var removeButton: NSButton!
+    @IBOutlet weak var editButton: NSButton!
     @IBOutlet weak var tabView: NSTabView!
 
     // View Tab
@@ -218,10 +219,12 @@ class NewDocumentsPreferencesViewController: NSViewController {
     private func updateRemoveButtonState() {
         guard let preset = presetManager.preset(at: selectedPresetIndex) else {
             removeButton?.isEnabled = false
+            editButton?.isEnabled = false
             return
         }
-        // ビルトインプリセットは削除不可
+        // ビルトインプリセットは削除・編集不可
         removeButton?.isEnabled = !preset.isBuiltIn
+        editButton?.isEnabled = !preset.isBuiltIn
     }
 
     // MARK: - Load/Save Preset Data
@@ -661,8 +664,22 @@ class NewDocumentsPreferencesViewController: NSViewController {
 
     @objc private func tableViewDoubleClicked(_ sender: Any) {
         let clickedRow = presetTableView.clickedRow
-        guard clickedRow >= 0,
-              let preset = presetManager.preset(at: clickedRow),
+        guard clickedRow >= 0 else { return }
+
+        // 選択を更新してから編集
+        selectedPresetIndex = clickedRow
+        presetTableView?.selectRowIndexes(IndexSet(integer: clickedRow), byExtendingSelection: false)
+        editSelectedPreset()
+    }
+
+    /// Edit ボタンが押された時 - 選択されているプリセット名を編集
+    @IBAction func editPresetClicked(_ sender: Any) {
+        editSelectedPreset()
+    }
+
+    /// 選択されているプリセット名を編集
+    private func editSelectedPreset() {
+        guard let preset = presetManager.preset(at: selectedPresetIndex),
               !preset.isBuiltIn else { return }
 
         // プリセット名の編集

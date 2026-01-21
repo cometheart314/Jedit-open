@@ -28,6 +28,9 @@ class Document: NSDocument {
     var textStorage: NSTextStorage = NSTextStorage()
     var documentType: NSAttributedString.DocumentType = .plain
     var containerInset = NSSize(width: 10, height: 10)
+
+    /// プリセットから適用されたドキュメント設定データ
+    var presetData: NewDocData?
     
 
 
@@ -59,6 +62,12 @@ class Document: NSDocument {
             if let textView = findTextView(in: contentView) {
                 textView.layoutManager?.replaceTextStorage(textStorage)
             }
+        }
+
+        // プリセットデータがあればEditorWindowControllerに適用を依頼
+        // （windowDidLoadの時点ではdocumentがまだ関連付けられていないため、ここで呼び出す）
+        if presetData != nil, let editorWC = windowController as? EditorWindowController {
+            editorWC.applyPresetData()
         }
     }
 
@@ -343,6 +352,21 @@ class Document: NSDocument {
                     NSLocalizedDescriptionKey: "Could not read \(docType == .rtf ? "RTF" : "RTFD") document: \(error.localizedDescription)"
                 ])
             }
+        }
+    }
+
+    // MARK: - Preset Data Application
+
+    /// プリセットデータを適用する（ドキュメント作成時に一度だけ呼ばれる）
+    /// Note: プリセットデータはコピーされ、以降Preferencesの変更とは同期しない
+    func applyPresetData(_ data: NewDocData) {
+        self.presetData = data
+
+        // ドキュメントタイプを設定
+        if data.format.richText {
+            self.documentType = .rtf
+        } else {
+            self.documentType = .plain
         }
     }
 }

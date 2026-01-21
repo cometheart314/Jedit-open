@@ -151,6 +151,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // TextStorageを設定
         setupTextStorage()
 
+        // プリセットデータがあれば適用
+        // Note: windowDidLoadの時点ではdocumentがまだ関連付けられていない場合があるため、
+        //       Document.windowControllerDidLoadNibからも呼び出される
+        applyPresetData()
+
         // テキスト編集設定の変更を監視
         observeTextEditingPreferences()
     }
@@ -246,6 +251,177 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ドキュメントタイプ変更時にテキスト編集設定を再適用
         // （richTextSubstitutionsEnabled の設定に応じて置換オプションを切り替え）
         applyTextEditingPreferences()
+    }
+
+    /// プリセットデータがあれば適用する（ウィンドウ生成時に一度だけ呼ばれる）
+    /// Note: プリセットデータはドキュメント作成時にコピーされ、以降Preferencesの変更とは同期しない
+    /// Document.windowControllerDidLoadNibからも呼び出される
+    func applyPresetData() {
+        guard let presetData = textDocument?.presetData else { return }
+
+        // 表示モードを適用
+        let viewData = presetData.view
+        displayMode = viewData.pageMode ? .page : .continuous
+
+        // 行番号モードを適用
+        switch viewData.lineNumberType {
+        case .none:
+            lineNumberMode = .none
+        case .logical:
+            lineNumberMode = .paragraph
+        case .physical:
+            lineNumberMode = .row
+        }
+
+        // ドキュメント幅モードを適用
+        switch viewData.docWidthType {
+        case .paperWidth:
+            lineWrapMode = .paperWidth
+        case .windowWidth:
+            lineWrapMode = .windowWidth
+        case .noWrap:
+            lineWrapMode = .noWrap
+        case .fixedWidth:
+            lineWrapMode = .fixedWidth
+            fixedWrapWidth = CGFloat(viewData.fixedDocWidth * 8)  // 大まかな文字幅で換算
+        }
+
+        // Inspector Barの表示状態を適用
+        isInspectorBarVisible = viewData.showInspectorBar
+        isInspectorBarInitialized = true
+
+        // 不可視文字の表示設定を適用
+        invisibleCharacterOptions = viewData.showInvisibles.toInvisibleCharacterOptions()
+
+        // ツールバーの表示状態を適用
+        if let window = self.window, let toolbar = window.toolbar {
+            toolbar.isVisible = viewData.showToolBar
+        }
+
+        // スケールを適用
+        if let scrollView = scrollView1 as? ScalingScrollView {
+            scrollView.magnification = viewData.scale
+        }
+
+        // Editing Direction（縦書き/横書き）を適用
+        let formatData = presetData.format
+        isVerticalLayout = (formatData.editingDirection == .rightToLeft)
+
+        // フォント設定を適用
+        let fontData = presetData.fontAndColors
+        if let font = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+            applyFontToTextViews(font)
+        }
+
+        // 色設定を適用（リッチテキストの場合）
+        if presetData.format.richText {
+            applyColorsToTextViews(fontData.colors)
+        }
+
+        // テキストビューを再セットアップ（上記の設定を反映）
+        if let textStorage = textDocument?.textStorage {
+            setupTextViews(with: textStorage)
+        }
+
+        // setupTextViews後にスケールを再適用（setupTextViewsで上書きされる可能性があるため）
+        if let scrollView = scrollView1 as? ScalingScrollView {
+            scrollView.magnification = viewData.scale
+        }
+
+        // ウィンドウサイズと位置を適用
+        // プリセットから生成したドキュメントではウィンドウ復元機能を無効にして、
+        // プリセットで指定されたフレームを使用する
+        if let window = self.window {
+            // ウィンドウフレームの自動保存を無効化（プリセットのフレームを優先）
+            window.setFrameAutosaveName("")
+
+            let newFrame = NSRect(
+                x: viewData.windowX,
+                y: viewData.windowY,
+                width: viewData.windowWidth,
+                height: viewData.windowHeight
+            )
+            window.setFrame(newFrame, display: true)
+        }
+    }
+
+    /// プリセットのウィンドウフレームのみを適用（showWindows後に呼び出される）
+    func applyWindowFrameFromPreset() {
+        guard let presetData = textDocument?.presetData else { return }
+        guard let window = self.window else { return }
+
+        let viewData = presetData.view
+        window.setFrameAutosaveName("")
+
+        let newFrame = NSRect(
+            x: viewData.windowX,
+            y: viewData.windowY,
+            width: viewData.windowWidth,
+            height: viewData.windowHeight
+        )
+
+        // ランループの次のサイクルで実行して、システムのウィンドウ配置処理の後に適用
+        DispatchQueue.main.async { [weak self] in
+            guard let window = self?.window else { return }
+            window.setFrame(newFrame, display: true, animate: false)
+        }
+    }
+
+    /// フォントをテキストビューに適用
+    private func applyFontToTextViews(_ font: NSFont) {
+        // Continuous モードの場合
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.font = font
+        }
+        if let scrollView = scrollView2,
+           !scrollView.isHidden,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.font = font
+        }
+
+        // Page モードの場合
+        for textView in textViews1 {
+            textView.font = font
+        }
+        for textView in textViews2 {
+            textView.font = font
+        }
+    }
+
+    /// 色設定をテキストビューに適用
+    private func applyColorsToTextViews(_ colors: NewDocData.FontAndColorsData.Colors) {
+        // Continuous モードの場合
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.backgroundColor = colors.background.nsColor
+            textView.textColor = colors.character.nsColor
+            textView.insertionPointColor = colors.caret.nsColor
+            if let selectedTextAttributes = textView.selectedTextAttributes as? [NSAttributedString.Key: Any] {
+                var newAttributes = selectedTextAttributes
+                newAttributes[.backgroundColor] = colors.highlight.nsColor
+                textView.selectedTextAttributes = newAttributes
+            }
+        }
+        if let scrollView = scrollView2,
+           !scrollView.isHidden,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.backgroundColor = colors.background.nsColor
+            textView.textColor = colors.character.nsColor
+            textView.insertionPointColor = colors.caret.nsColor
+        }
+
+        // Page モードの場合
+        for textView in textViews1 {
+            textView.backgroundColor = colors.background.nsColor
+            textView.textColor = colors.character.nsColor
+            textView.insertionPointColor = colors.caret.nsColor
+        }
+        for textView in textViews2 {
+            textView.backgroundColor = colors.background.nsColor
+            textView.textColor = colors.character.nsColor
+            textView.insertionPointColor = colors.caret.nsColor
+        }
     }
 
     @objc private func lineNumberSizeDidChange(_ notification: Notification) {

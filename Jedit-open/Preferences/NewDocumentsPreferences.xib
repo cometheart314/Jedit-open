@@ -9,6 +9,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="NewDocumentsPreferencesViewController" customModule="Jedit" customModuleProvider="target">
             <connections>
                 <outlet property="addButton" destination="VDd-sl-dqH" id="8ea-3l-rde"/>
+                <outlet property="editButton" destination="N7X-le-vA6" id="edt-btn-out"/>
                 <outlet property="authorField" destination="YBX-df-o9z" id="xmy-oW-w2s"/>
                 <outlet property="autoIndentCheckbox" destination="Vp7-xj-KKE" id="Bo1-e5-jdn"/>
                 <outlet property="backgroundColorWell" destination="efN-DY-shz" id="l73-fy-qeT"/>
@@ -162,6 +163,9 @@
                     <constraints>
                         <constraint firstAttribute="width" constant="22" id="gsA-t4-56k"/>
                     </constraints>
+                    <connections>
+                        <action selector="addPresetClicked:" target="-2" id="add-preset-act"/>
+                    </connections>
                 </button>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="xlc-I5-2ws">
                     <rect key="frame" x="25" y="1" width="22" height="24"/>
@@ -172,6 +176,9 @@
                     <constraints>
                         <constraint firstAttribute="width" constant="22" id="H4d-UJ-ZDr"/>
                     </constraints>
+                    <connections>
+                        <action selector="removePresetClicked:" target="-2" id="rem-preset-act"/>
+                    </connections>
                 </button>
                 <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="N7X-le-vA6">
                     <rect key="frame" x="49" y="1" width="50" height="24"/>
@@ -182,6 +189,9 @@
                     <constraints>
                         <constraint firstAttribute="width" constant="50" id="BFt-Du-TXW"/>
                     </constraints>
+                    <connections>
+                        <action selector="editPresetClicked:" target="-2" id="edt-preset-act"/>
+                    </connections>
                 </button>
                 <tabView misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Orc-03-RCR">
                     <rect key="frame" x="101" y="0.0" width="530" height="487"/>

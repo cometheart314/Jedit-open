@@ -50,6 +50,9 @@ class LineNumberView: NSView {
 
     weak var scrollView: NSScrollView?
 
+    /// 現在の拡大率（ScalingScrollViewから取得）
+    private var magnification: CGFloat = 1.0
+
     private let minimumWidth: CGFloat = 40.0
     private let minimumHeight: CGFloat = 25.0
     private let rightMargin: CGFloat = 5.0
@@ -60,6 +63,7 @@ class LineNumberView: NSView {
     private var scrollObserver: Any?
     private var textChangeObserver: Any?
     private var textStorageObserver: Any?
+    private var magnificationObserver: Any?
 
     // サイズ変更通知
     static let widthDidChangeNotification = Notification.Name("LineNumberViewWidthDidChange")
@@ -101,6 +105,9 @@ class LineNumberView: NSView {
         if let observer = textStorageObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        if let observer = magnificationObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     private func setupScrollObserver() {
@@ -117,11 +124,34 @@ class LineNumberView: NSView {
             NotificationCenter.default.removeObserver(observer)
             textStorageObserver = nil
         }
+        if let observer = magnificationObserver {
+            NotificationCenter.default.removeObserver(observer)
+            magnificationObserver = nil
+        }
 
         guard let textView = textView,
               let scrollView = textView.enclosingScrollView else { return }
 
         self.scrollView = scrollView
+
+        // 初期magnificationを取得
+        if let scalingScrollView = scrollView as? ScalingScrollView {
+            self.magnification = scalingScrollView.magnification
+        }
+
+        // magnification変更通知を監視
+        magnificationObserver = NotificationCenter.default.addObserver(
+            forName: ScalingScrollView.magnificationDidChangeNotification,
+            object: scrollView,
+            queue: .main
+        ) { [weak self] notification in
+            if let mag = notification.userInfo?["magnification"] as? CGFloat {
+                self?.magnification = mag
+                // magnification変更時にサイズを再計算
+                self?.updateSizeAsync()
+                self?.needsDisplay = true
+            }
+        }
 
         // スクロール時に再描画
         scrollObserver = NotificationCenter.default.addObserver(
@@ -225,8 +255,10 @@ class LineNumberView: NSView {
     }
 
     private func applySize(for maxLineNumber: Int) {
+        // magnificationを適用したフォントサイズでサイズを計算
+        let scaledFontSize: CGFloat = 10 * magnification
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 10)
+            .font: NSFont.systemFont(ofSize: scaledFontSize)
         ]
         let numberString = "\(maxLineNumber)"
 
@@ -234,8 +266,11 @@ class LineNumberView: NSView {
             // 縦書き時は高さを計算（上に配置）
             // 90度回転するので、文字列の幅が高さになる
             let size = (numberString as NSString).size(withAttributes: attributes)
-            let requiredHeight = self.topMargin + size.width + self.bottomMargin
-            let newHeight = max(self.minimumHeight, requiredHeight)
+            let scaledTopMargin = self.topMargin * magnification
+            let scaledBottomMargin = self.bottomMargin * magnification
+            let requiredHeight = scaledTopMargin + size.width + scaledBottomMargin
+            let scaledMinHeight = self.minimumHeight * magnification
+            let newHeight = max(scaledMinHeight, requiredHeight)
 
             if abs(self.currentHeight - newHeight) > 1.0 {
                 self.currentHeight = newHeight
@@ -244,8 +279,11 @@ class LineNumberView: NSView {
         } else {
             // 横書き時は幅を計算（左に配置）
             let size = (numberString as NSString).size(withAttributes: attributes)
-            let requiredWidth = self.leftMargin + size.width + self.rightMargin
-            let newWidth = max(self.minimumWidth, requiredWidth)
+            let scaledLeftMargin = self.leftMargin * magnification
+            let scaledRightMargin = self.rightMargin * magnification
+            let requiredWidth = scaledLeftMargin + size.width + scaledRightMargin
+            let scaledMinWidth = self.minimumWidth * magnification
+            let newWidth = max(scaledMinWidth, requiredWidth)
 
             if abs(self.currentWidth - newWidth) > 1.0 {
                 self.currentWidth = newWidth
@@ -286,8 +324,10 @@ class LineNumberView: NSView {
 
         let textStorage = layoutManager.textStorage!
 
+        // magnificationを適用したフォントサイズ
+        let scaledFontSize: CGFloat = 10 * magnification
         let attributes: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 10),
+            .font: NSFont.systemFont(ofSize: scaledFontSize),
             .foregroundColor: NSColor.secondaryLabelColor
         ]
 
@@ -343,6 +383,13 @@ class LineNumberView: NSView {
             let searchRange = NSRange(location: 0, length: min(charRange.location + charRange.length, textStorage.length))
             guard let stringRange = Range(searchRange, in: textStorage.string) else { return }
 
+            let mag = self.magnification
+            // textContainerInsetはテキストコンテナ座標系の値
+            let containerInsetY = textView.textContainerInset.height
+
+            // contentBounds.origin.yはdocumentView座標系（magnification前）の値
+            let scrollOffset = contentBounds.origin.y
+
             textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (substring, substringRange, enclosingRange, stop) in
                 paragraphNumber += 1
 
@@ -355,15 +402,22 @@ class LineNumberView: NSView {
                     // パラグラフの最初の行のlineFragmentRectを取得して行の高さを得る
                     let firstLineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
 
-                    let yInTextView = rectInContainer.minY + textView.textContainerInset.height
-                    let yInLineNumberView = yInTextView - contentBounds.origin.y
+                    // テキストコンテナ座標をテキストビュー座標に変換
+                    let yInTextView = rectInContainer.minY + containerInsetY
 
-                    if yInLineNumberView >= dirtyRect.minY - 20 && yInLineNumberView <= dirtyRect.maxY + 20 && !drawnParagraphs.contains(paragraphNumber) {
+                    // テキストビュー座標からLineNumberView座標に変換
+                    // scrollOffsetはdocumentView座標なのでそのまま引き、結果にmagnificationを適用
+                    let yInLineNumberView = (yInTextView - scrollOffset) * mag
+
+                    let scaledLineHeight = firstLineRect.height * mag
+
+                    if yInLineNumberView >= dirtyRect.minY - 20 * mag && yInLineNumberView <= dirtyRect.maxY + 20 * mag && !drawnParagraphs.contains(paragraphNumber) {
                         let numberString = "\(paragraphNumber)" as NSString
                         let size = numberString.size(withAttributes: attributes)
-                        let xPosition = self.currentWidth - size.width - self.rightMargin
-                        // 行の中央に配置
-                        let yCenter = yInLineNumberView + (firstLineRect.height - size.height) / 2
+                        let scaledRightMargin = self.rightMargin * mag
+                        let xPosition = self.currentWidth - size.width - scaledRightMargin
+                        // 行の中央に配置（スケーリングされた行の高さを使用）
+                        let yCenter = yInLineNumberView + (scaledLineHeight - size.height) / 2
                         let drawPoint = NSPoint(x: xPosition, y: yCenter)
                         numberString.draw(at: drawPoint, withAttributes: attributes)
                         drawnParagraphs.insert(paragraphNumber)
@@ -373,22 +427,35 @@ class LineNumberView: NSView {
 
         case .row:
             var rowNumber = 0
+            let mag = self.magnification
+            // textContainerInsetはテキストコンテナ座標系の値
+            let containerInsetY = textView.textContainerInset.height
+
+            // contentBounds.origin.yはdocumentView座標系（magnification前）の値
+            let scrollOffset = contentBounds.origin.y
 
             layoutManager.enumerateLineFragments(forGlyphRange: NSRange(location: 0, length: glyphRange.location)) { _, _, _, _, _ in
                 rowNumber += 1
             }
 
-            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rectInContainer, usedRect, textContainer, glyphRange, stop) in
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rectInContainer, usedRect, textContainerParam, glyphRangeParam, stop) in
                 rowNumber += 1
 
-                let yInTextView = rectInContainer.minY + textView.textContainerInset.height
-                let yInLineNumberView = yInTextView - contentBounds.origin.y
+                // テキストコンテナ座標をテキストビュー座標に変換
+                let yInTextView = rectInContainer.minY + containerInsetY
+
+                // テキストビュー座標からLineNumberView座標に変換
+                // scrollOffsetはdocumentView座標なのでそのまま引き、結果にmagnificationを適用
+                let yInLineNumberView = (yInTextView - scrollOffset) * mag
+
+                let scaledLineHeight = rectInContainer.height * mag
 
                 let numberString = "\(rowNumber)" as NSString
                 let size = numberString.size(withAttributes: attributes)
-                let xPosition = self.currentWidth - size.width - self.rightMargin
-                // 行の中央に配置
-                let yCenter = yInLineNumberView + (rectInContainer.height - size.height) / 2
+                let scaledRightMargin = self.rightMargin * mag
+                let xPosition = self.currentWidth - size.width - scaledRightMargin
+                // 行の中央に配置（スケーリングされた行の高さを使用）
+                let yCenter = yInLineNumberView + (scaledLineHeight - size.height) / 2
                 let drawPoint = NSPoint(x: xPosition, y: yCenter)
                 numberString.draw(at: drawPoint, withAttributes: attributes)
             }
@@ -408,7 +475,9 @@ class LineNumberView: NSView {
 
         let fullGlyphRange = layoutManager.glyphRange(for: textContainer)
         let documentWidth = textView.frame.width
-        let scrollX = contentBounds.origin.x
+        let mag = self.magnification
+        // contentBounds.origin.xはdocumentView座標系（magnification前）の値
+        let scrollOffsetX = contentBounds.origin.x
 
         switch lineNumberMode {
         case .none:
@@ -430,14 +499,16 @@ class LineNumberView: NSView {
                     let glyphIndex = glyphRangeForPara.location
                     let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
 
-                    // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置（列の左端）を計算
-                    let columnXInDocument = documentWidth - lineRect.origin.y - lineRect.height
+                    let scaledColumnWidth = lineRect.height * mag
 
-                    // LineNumberView内の座標に変換（列の中央に合わせるためにheight/2を引く）
-                    let xInLineNumberView = columnXInDocument - scrollX - lineRect.height / 2
+                    // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置（列の左端）を計算
+                    // textView座標系でのX位置
+                    let xInTextView = documentWidth - lineRect.origin.y - lineRect.height
+                    // スクロールオフセットを引いてからmagnificationを適用
+                    let xInLineNumberView = (xInTextView - scrollOffsetX) * mag - scaledColumnWidth / 2
 
                     if !drawnParagraphs.contains(paragraphNumber) {
-                        self.drawVerticalNumber(paragraphNumber, at: xInLineNumberView, columnWidth: lineRect.height, attributes: attributes)
+                        self.drawVerticalNumber(paragraphNumber, at: xInLineNumberView, columnWidth: scaledColumnWidth, attributes: attributes)
                         drawnParagraphs.insert(paragraphNumber)
                     }
                 }
@@ -449,13 +520,15 @@ class LineNumberView: NSView {
             layoutManager.enumerateLineFragments(forGlyphRange: fullGlyphRange) { [self] (lineRect, usedRect, textContainerParam, glyphRangeInFrag, stop) in
                 rowNumber += 1
 
+                let scaledColumnWidth = lineRect.height * mag
+
                 // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置（列の左端）を計算
-                let columnXInDocument = documentWidth - lineRect.origin.y - lineRect.height
+                // textView座標系でのX位置
+                let xInTextView = documentWidth - lineRect.origin.y - lineRect.height
+                // スクロールオフセットを引いてからmagnificationを適用
+                let xInLineNumberView = (xInTextView - scrollOffsetX) * mag - scaledColumnWidth / 2
 
-                // LineNumberView内の座標に変換（列の中央に合わせるためにheight/2を引く）
-                let xInLineNumberView = columnXInDocument - scrollX - lineRect.height / 2
-
-                self.drawVerticalNumber(rowNumber, at: xInLineNumberView, columnWidth: lineRect.height, attributes: attributes)
+                self.drawVerticalNumber(rowNumber, at: xInLineNumberView, columnWidth: scaledColumnWidth, attributes: attributes)
             }
         }
     }

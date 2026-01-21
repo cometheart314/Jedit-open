@@ -10,15 +10,27 @@ import Cocoa
 
 class ScalingScrollView: NSScrollView {
 
+    // MARK: - Notifications
+
+    static let magnificationDidChangeNotification = Notification.Name("ScalingScrollViewMagnificationDidChange")
+
     // MARK: - Properties
 
     private var currentMagnification: CGFloat = 1.0
+    private var frameObserver: Any?
 
     // MARK: - Initialization
 
     override func awakeFromNib() {
         super.awakeFromNib()
         setupMagnification()
+        setupFrameObserver()
+    }
+
+    deinit {
+        if let observer = frameObserver {
+            NotificationCenter.default.removeObserver(observer)
+        }
     }
 
     // MARK: - Setup
@@ -31,6 +43,33 @@ class ScalingScrollView: NSScrollView {
         currentMagnification = 1.0
     }
 
+    private func setupFrameObserver() {
+        // フレーム変更通知を有効にする
+        postsFrameChangedNotifications = true
+
+        // フレーム変更時にテキストコンテナサイズを更新
+        // ただしライブリサイズ中は処理しない（viewDidEndLiveResizeで処理）
+        frameObserver = NotificationCenter.default.addObserver(
+            forName: NSView.frameDidChangeNotification,
+            object: self,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self = self else { return }
+            // ライブリサイズ中は更新しない
+            if !self.inLiveResize {
+                self.updateTextContainerSize()
+            }
+        }
+    }
+
+    // MARK: - Live Resize
+
+    override func viewDidEndLiveResize() {
+        super.viewDidEndLiveResize()
+        // リサイズ完了後にコンテナサイズを再計算
+        updateTextContainerSize()
+    }
+
     // MARK: - Zoom Methods
 
     func zoomIn() {
@@ -38,6 +77,7 @@ class ScalingScrollView: NSScrollView {
         setMagnification(newMagnification, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = newMagnification
         updateTextContainerSize()
+        postMagnificationNotification()
     }
 
     func zoomOut() {
@@ -45,12 +85,14 @@ class ScalingScrollView: NSScrollView {
         setMagnification(newMagnification, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = newMagnification
         updateTextContainerSize()
+        postMagnificationNotification()
     }
 
     func resetZoom() {
         setMagnification(1.0, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = 1.0
         updateTextContainerSize()
+        postMagnificationNotification()
     }
 
     func setZoomLevel(_ level: CGFloat) {
@@ -58,6 +100,31 @@ class ScalingScrollView: NSScrollView {
         setMagnification(clampedLevel, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = clampedLevel
         updateTextContainerSize()
+        postMagnificationNotification()
+    }
+
+    private func postMagnificationNotification() {
+        NotificationCenter.default.post(
+            name: ScalingScrollView.magnificationDidChangeNotification,
+            object: self,
+            userInfo: ["magnification": currentMagnification]
+        )
+    }
+
+    // MARK: - Gesture Handling
+
+    override func magnify(with event: NSEvent) {
+        super.magnify(with: event)
+        // ピンチジェスチャー終了時のみ処理
+        if event.phase == .ended || event.phase == .cancelled {
+            currentMagnification = magnification
+            updateTextContainerSize()
+            postMagnificationNotification()
+        } else if event.phase == .changed {
+            // ジェスチャー中も通知を送る（行番号表示更新のため）
+            currentMagnification = magnification
+            postMagnificationNotification()
+        }
     }
 
     // MARK: - Helper Methods
@@ -68,19 +135,43 @@ class ScalingScrollView: NSScrollView {
             return
         }
 
-        // ズーム後のサイズを計算
-        var availableWidth = contentView.frame.width
-        availableWidth = availableWidth / magnification
-
-        // textContainerのサイズを更新（widthTracksTextView = falseなので手動で更新）
+        let isVertical = textView.layoutOrientation == .vertical
         let containerInset = textView.textContainerInset
-        let containerWidth = availableWidth - (containerInset.width * 2)
-        if containerWidth > 0 {
-            textContainer.containerSize = NSSize(width: containerWidth, height: CGFloat.greatestFiniteMagnitude)
-        }
 
-        // textViewのフレームを更新
-        textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
+        if isVertical {
+            // 縦書き時: 行の長さを調整
+            // 縦書きでは containerSize.width が行の長さ（画面上の高さ方向）を表す
+            // containerSize.widthが有限の場合のみ処理（follows windowモード）
+            let currentContainerWidth = textContainer.containerSize.width
+
+            var availableHeight = contentView.frame.height
+            availableHeight = availableHeight / magnification
+            let expectedContainerWidth = availableHeight - (containerInset.height * 2)
+
+            // containerSizeが無限大でなく、かつ現在のコンテナサイズと期待サイズが大きく異なる場合のみ更新
+            if currentContainerWidth < CGFloat.greatestFiniteMagnitude / 2 &&
+               abs(currentContainerWidth - expectedContainerWidth) > 1.0 &&
+               expectedContainerWidth > 0 {
+                textContainer.containerSize = NSSize(width: expectedContainerWidth, height: CGFloat.greatestFiniteMagnitude)
+                textView.setFrameSize(NSSize(width: textView.frame.width, height: availableHeight))
+            }
+        } else {
+            // 横書き時: 幅を調整
+            // containerSize.widthが有限の場合のみ処理（follows windowモード）
+            let currentContainerWidth = textContainer.containerSize.width
+
+            var availableWidth = contentView.frame.width
+            availableWidth = availableWidth / magnification
+            let expectedContainerWidth = availableWidth - (containerInset.width * 2)
+
+            // containerSizeが無限大でなく、かつ現在のコンテナサイズと期待サイズが大きく異なる場合のみ更新
+            if currentContainerWidth < CGFloat.greatestFiniteMagnitude / 2 &&
+               abs(currentContainerWidth - expectedContainerWidth) > 1.0 &&
+               expectedContainerWidth > 0 {
+                textContainer.containerSize = NSSize(width: expectedContainerWidth, height: CGFloat.greatestFiniteMagnitude)
+                textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
+            }
+        }
     }
 }
 
