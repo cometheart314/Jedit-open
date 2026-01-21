@@ -336,6 +336,10 @@ class NewDocumentsPreferencesViewController: NSViewController {
         authorField?.stringValue = data.properties.author
         companyField?.stringValue = data.properties.company
         copyrightField?.stringValue = data.properties.copyright
+
+        // Update controls enabled state based on text style
+        updateEncodingControlsEnabled()
+        updateColorsControlsEnabled()
     }
 
     private func saveCurrentPreset() {
@@ -527,6 +531,134 @@ class NewDocumentsPreferencesViewController: NSViewController {
         }
     }
 
+    // MARK: - Tab-specific Revert to Defaults
+
+    /// View タブのみをデフォルト値にリセット
+    @IBAction func revertViewToDefaults(_ sender: Any) {
+        guard var preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        // プリセットタイプに応じたデフォルトViewDataを取得
+        let defaultViewData: NewDocData.ViewData
+        if preset.isBuiltIn {
+            if let builtIn = DocumentPreset.builtInPresets.first(where: { $0.id == preset.id }) {
+                defaultViewData = builtIn.data.view
+            } else {
+                defaultViewData = .default
+            }
+        } else {
+            // ユーザー追加プリセットは汎用デフォルトを使用
+            defaultViewData = .default
+        }
+
+        // View データをリセット
+        preset.data.view = defaultViewData
+
+        // 保存してUIを更新
+        presetManager.updatePreset(preset)
+        loadSelectedPreset()
+    }
+
+    /// Format タブのみをデフォルト値にリセット
+    @IBAction func revertFormatToDefaults(_ sender: Any) {
+        guard var preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        // プリセットタイプに応じたデフォルトFormatDataを取得
+        let defaultFormatData: NewDocData.FormatData
+        if preset.isBuiltIn {
+            if let builtIn = DocumentPreset.builtInPresets.first(where: { $0.id == preset.id }) {
+                defaultFormatData = builtIn.data.format
+            } else {
+                defaultFormatData = .default
+            }
+        } else {
+            defaultFormatData = .default
+        }
+
+        preset.data.format = defaultFormatData
+        presetManager.updatePreset(preset)
+        loadSelectedPreset()
+    }
+
+    /// Font/Colors タブのみをデフォルト値にリセット
+    @IBAction func revertFontAndColorsToDefaults(_ sender: Any) {
+        guard var preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        let defaultFontAndColorsData: NewDocData.FontAndColorsData
+        if preset.isBuiltIn {
+            if let builtIn = DocumentPreset.builtInPresets.first(where: { $0.id == preset.id }) {
+                defaultFontAndColorsData = builtIn.data.fontAndColors
+            } else {
+                defaultFontAndColorsData = .default
+            }
+        } else {
+            defaultFontAndColorsData = .default
+        }
+
+        preset.data.fontAndColors = defaultFontAndColorsData
+        presetManager.updatePreset(preset)
+        loadSelectedPreset()
+    }
+
+    /// Page Layout タブのみをデフォルト値にリセット
+    @IBAction func revertPageLayoutToDefaults(_ sender: Any) {
+        guard var preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        let defaultPageLayoutData: NewDocData.PageLayoutData
+        if preset.isBuiltIn {
+            if let builtIn = DocumentPreset.builtInPresets.first(where: { $0.id == preset.id }) {
+                defaultPageLayoutData = builtIn.data.pageLayout
+            } else {
+                defaultPageLayoutData = .default
+            }
+        } else {
+            defaultPageLayoutData = .default
+        }
+
+        preset.data.pageLayout = defaultPageLayoutData
+        presetManager.updatePreset(preset)
+        loadSelectedPreset()
+    }
+
+    /// Header/Footer タブのみをデフォルト値にリセット
+    @IBAction func revertHeaderFooterToDefaults(_ sender: Any) {
+        guard var preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        let defaultHeaderFooterData: NewDocData.HeaderFooterData
+        if preset.isBuiltIn {
+            if let builtIn = DocumentPreset.builtInPresets.first(where: { $0.id == preset.id }) {
+                defaultHeaderFooterData = builtIn.data.headerFooter
+            } else {
+                defaultHeaderFooterData = .default
+            }
+        } else {
+            defaultHeaderFooterData = .default
+        }
+
+        preset.data.headerFooter = defaultHeaderFooterData
+        presetManager.updatePreset(preset)
+        loadSelectedPreset()
+    }
+
+    /// Properties タブのみをデフォルト値にリセット
+    @IBAction func revertPropertiesToDefaults(_ sender: Any) {
+        guard var preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        let defaultPropertiesData: NewDocData.PropertiesData
+        if preset.isBuiltIn {
+            if let builtIn = DocumentPreset.builtInPresets.first(where: { $0.id == preset.id }) {
+                defaultPropertiesData = builtIn.data.properties
+            } else {
+                defaultPropertiesData = .default
+            }
+        } else {
+            defaultPropertiesData = .default
+        }
+
+        preset.data.properties = defaultPropertiesData
+        presetManager.updatePreset(preset)
+        loadSelectedPreset()
+    }
+
     @objc private func tableViewDoubleClicked(_ sender: Any) {
         let clickedRow = presetTableView.clickedRow
         guard clickedRow >= 0,
@@ -558,6 +690,45 @@ class NewDocumentsPreferencesViewController: NSViewController {
 
     @IBAction func controlValueChanged(_ sender: Any) {
         saveCurrentPreset()
+    }
+
+    /// Text Style (Rich Text / Plain Text) が変更された時
+    @IBAction func textStyleChanged(_ sender: Any) {
+        updateEncodingControlsEnabled()
+        updateColorsControlsEnabled()
+        saveCurrentPreset()
+    }
+
+    /// Encoding, Line Ending, BOM コントロールの有効/無効を更新
+    /// Rich Text の場合は無効化（グレイアウト）
+    private func updateEncodingControlsEnabled() {
+        let isRichText = textStyleMatrix?.selectedTag() == 1
+        let isEnabled = !isRichText
+
+        encodingPopup?.isEnabled = isEnabled
+        lineEndingPopup?.isEnabled = isEnabled
+        bomCheckbox?.isEnabled = isEnabled
+    }
+
+    /// Colors, Theme コントロールの有効/無効を更新
+    /// Plain Text の場合は無効化（グレイアウト）
+    private func updateColorsControlsEnabled() {
+        let isRichText = textStyleMatrix?.selectedTag() == 1
+        let isEnabled = isRichText
+
+        // Theme ボタン
+        themePopupButton?.isEnabled = isEnabled
+
+        // 9色のカラーウェル
+        textColorWell?.isEnabled = isEnabled
+        backgroundColorWell?.isEnabled = isEnabled
+        invisibleColorWell?.isEnabled = isEnabled
+        caretColorWell?.isEnabled = isEnabled
+        highlightColorWell?.isEnabled = isEnabled
+        lineNumberColorWell?.isEnabled = isEnabled
+        headerColorWell?.isEnabled = isEnabled
+        footerColorWell?.isEnabled = isEnabled
+        lineNumberBackgroundColorWell?.isEnabled = isEnabled
     }
 
     @IBAction func tabWidthUnitChanged(_ sender: Any) {

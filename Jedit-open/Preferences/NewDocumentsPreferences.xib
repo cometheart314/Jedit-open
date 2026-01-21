@@ -183,8 +183,8 @@
                         <constraint firstAttribute="width" constant="50" id="BFt-Du-TXW"/>
                     </constraints>
                 </button>
-                <tabView translatesAutoresizingMaskIntoConstraints="NO" id="Orc-03-RCR">
-                    <rect key="frame" x="103" y="0.0" width="530" height="487"/>
+                <tabView misplaced="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Orc-03-RCR">
+                    <rect key="frame" x="101" y="0.0" width="530" height="487"/>
                     <font key="font" metaFont="system"/>
                     <tabViewItems>
                         <tabViewItem label="View" identifier="" id="C1R-au-QDo">
@@ -640,14 +640,6 @@
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wDi-0p-k5J">
-                                        <rect key="frame" x="17" y="34" width="167" height="24"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="qCY-dj-AB3">
-                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                    </button>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fMg-Ef-coJ">
                                         <rect key="frame" x="99" y="308" width="49" height="19"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -657,7 +649,25 @@
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wDi-0p-k5J">
+                                        <rect key="frame" x="22" y="17" width="167" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="qCY-dj-AB3">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="nH5-Je-6XO"/>
+                                            <constraint firstAttribute="height" constant="24" id="s6j-Ui-sGT"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertViewToDefaults:" target="-2" id="rvd-view-001"/>
+                                        </connections>
+                                    </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstItem="wDi-0p-k5J" firstAttribute="leading" secondItem="hAA-cf-kqa" secondAttribute="leading" constant="22" id="7Ve-7e-6sY"/>
+                                    <constraint firstAttribute="bottom" secondItem="wDi-0p-k5J" secondAttribute="bottom" constant="17" id="dNz-0g-ib4"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                         <tabViewItem label="Format" identifier="" id="n3X-E2-RQS">
@@ -899,6 +909,9 @@
                                                 </buttonCell>
                                             </column>
                                         </cells>
+                                        <connections>
+                                            <action selector="textStyleChanged:" target="-2" id="tsc-act-001"/>
+                                        </connections>
                                     </matrix>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="rt1-wV-sAy">
                                         <rect key="frame" x="206" y="223" width="128" height="14"/>
@@ -1147,15 +1160,25 @@
                                             <outlet property="nextKeyView" destination="l9J-Sh-wNV" id="I2L-FI-U5h"/>
                                         </connections>
                                     </textField>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Uoc-y6-orF">
-                                        <rect key="frame" x="17" y="34" width="167" height="24"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Uoc-y6-orF">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="o9A-OD-nBU">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="11o-OU-RTt"/>
+                                            <constraint firstAttribute="height" constant="24" id="hHt-9m-4px"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertFormatToDefaults:" target="-2" id="rvd-format-001"/>
+                                        </connections>
                                     </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstItem="Uoc-y6-orF" firstAttribute="leading" secondItem="vX3-Av-W9D" secondAttribute="leading" constant="17" id="Gsd-r4-xgB"/>
+                                    <constraint firstAttribute="bottom" secondItem="Uoc-y6-orF" secondAttribute="bottom" constant="17" id="je1-fP-Zp2"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                         <tabViewItem label="Font/Color" identifier="" id="CPK-Qp-ddy">
@@ -1366,24 +1389,34 @@
                                             <outlet property="target" destination="-2" id="tpb-tgt-001"/>
                                         </connections>
                                     </popUpButton>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="X51-SO-L89">
-                                        <rect key="frame" x="17" y="34" width="167" height="24"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="X51-SO-L89">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cHa-Lr-5Gj">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="GcJ-3K-Fe0"/>
+                                            <constraint firstAttribute="height" constant="24" id="y3Y-RA-huo"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertFontAndColorsToDefaults:" target="-2" id="rvd-fc-001"/>
+                                        </connections>
                                     </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstItem="X51-SO-L89" firstAttribute="leading" secondItem="E7T-VR-R9U" secondAttribute="leading" constant="17" id="GqY-FN-Qxq"/>
+                                    <constraint firstAttribute="bottom" secondItem="X51-SO-L89" secondAttribute="bottom" constant="17" id="LHU-tK-35w"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                         <tabViewItem label="Layout" identifier="" id="eEO-bk-fAM">
                             <view key="view" id="iTN-pu-SJ9">
-                                <rect key="frame" x="10" y="33" width="530" height="461"/>
+                                <rect key="frame" x="10" y="33" width="510" height="441"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <box autoresizesSubviews="NO" fixedFrame="YES" borderType="line" title="Paper Margin" translatesAutoresizingMaskIntoConstraints="NO" id="C3o-LR-P0w">
-                                        <rect key="frame" x="15" y="345" width="436" height="91"/>
+                                        <rect key="frame" x="15" y="325" width="436" height="91"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <view key="contentView" id="ggV-RN-DMt">
                                             <rect key="frame" x="0.0" y="0.0" width="436" height="79"/>
@@ -1544,15 +1577,25 @@
                                             </subviews>
                                         </view>
                                     </box>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Wgj-vE-Mu3">
-                                        <rect key="frame" x="17" y="86" width="167" height="24"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Wgj-vE-Mu3">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="pIS-la-ZK9">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="1Uz-pb-WGt"/>
+                                            <constraint firstAttribute="height" constant="24" id="gks-Mr-w0J"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertPageLayoutToDefaults:" target="-2" id="rvd-layout-001"/>
+                                        </connections>
                                     </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstAttribute="bottom" secondItem="Wgj-vE-Mu3" secondAttribute="bottom" constant="17" id="shM-Rf-0jB"/>
+                                    <constraint firstItem="Wgj-vE-Mu3" firstAttribute="leading" secondItem="iTN-pu-SJ9" secondAttribute="leading" constant="17" id="zyE-Go-0Kt"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                         <tabViewItem label="Header/Footer" identifier="" id="lUy-Ej-XxM">
@@ -1874,24 +1917,34 @@
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="color" red="0.05813049898" green="0.055541899059999997" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                     </colorWell>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="N9k-uW-Db3">
-                                        <rect key="frame" x="17" y="66" width="167" height="24"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="N9k-uW-Db3">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cN6-PQ-yGa">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="24" id="Luh-Uh-uvk"/>
+                                            <constraint firstAttribute="width" constant="167" id="blb-ah-4Mq"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertHeaderFooterToDefaults:" target="-2" id="rvd-hf-001"/>
+                                        </connections>
                                     </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstItem="N9k-uW-Db3" firstAttribute="leading" secondItem="em2-LU-1yd" secondAttribute="leading" constant="17" id="ZkB-eL-PMQ"/>
+                                    <constraint firstAttribute="bottom" secondItem="N9k-uW-Db3" secondAttribute="bottom" constant="17" id="hQG-8a-Xj8"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                         <tabViewItem label="Properties" identifier="" id="kzN-FS-NL2">
                             <view key="view" id="LEd-hq-B3c">
-                                <rect key="frame" x="10" y="33" width="522" height="461"/>
+                                <rect key="frame" x="10" y="33" width="510" height="441"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="E3k-Ts-S7V">
-                                        <rect key="frame" x="22" y="426" width="75" height="17"/>
+                                        <rect key="frame" x="22" y="406" width="75" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Author:" id="WZv-Hh-6yw">
                                             <font key="font" metaFont="system"/>
@@ -1900,7 +1953,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="YBX-df-o9z">
-                                        <rect key="frame" x="102" y="423" width="329" height="22"/>
+                                        <rect key="frame" x="102" y="403" width="329" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="o77-XY-iSc">
                                             <font key="font" metaFont="system"/>
@@ -1909,7 +1962,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dCu-Pj-vF9">
-                                        <rect key="frame" x="30" y="396" width="68" height="17"/>
+                                        <rect key="frame" x="30" y="376" width="68" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Company:" id="L7W-15-spu">
                                             <font key="font" metaFont="system"/>
@@ -1918,7 +1971,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PfK-J7-gWi">
-                                        <rect key="frame" x="103" y="393" width="329" height="22"/>
+                                        <rect key="frame" x="103" y="373" width="329" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="7du-xK-4zq">
                                             <font key="font" metaFont="system"/>
@@ -1927,7 +1980,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qdW-Z7-TMj">
-                                        <rect key="frame" x="24" y="366" width="75" height="17"/>
+                                        <rect key="frame" x="24" y="346" width="75" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Copyright:" id="qnr-f2-sR3">
                                             <font key="font" metaFont="system"/>
@@ -1936,7 +1989,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="pXS-bC-r53">
-                                        <rect key="frame" x="104" y="363" width="329" height="22"/>
+                                        <rect key="frame" x="104" y="343" width="329" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" drawsBackground="YES" id="9yI-BN-LfG">
                                             <font key="font" metaFont="system"/>
@@ -1945,7 +1998,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fsy-gE-wcV">
-                                        <rect key="frame" x="86" y="305" width="350" height="28"/>
+                                        <rect key="frame" x="86" y="285" width="350" height="28"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="center" id="Mgn-No-9Ab">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1955,15 +2008,25 @@ individual documents</string>
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="CK9-Ov-yAc">
-                                        <rect key="frame" x="17" y="54" width="167" height="24"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="CK9-Ov-yAc">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="Fnl-dr-q4O">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="24" id="NwI-8V-m4r"/>
+                                            <constraint firstAttribute="width" constant="167" id="qVz-0F-Hfc"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertPropertiesToDefaults:" target="-2" id="rvd-prop-001"/>
+                                        </connections>
                                     </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstAttribute="bottom" secondItem="CK9-Ov-yAc" secondAttribute="bottom" constant="17" id="l4k-Vd-5kH"/>
+                                    <constraint firstItem="CK9-Ov-yAc" firstAttribute="leading" secondItem="LEd-hq-B3c" secondAttribute="leading" constant="17" id="r2M-aa-ts3"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                     </tabViewItems>
