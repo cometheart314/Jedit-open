@@ -42,7 +42,8 @@ class CalendarDateHelper {
             case .systemFullDateTime:
                 return NSLocalizedString("System Full Date&Time Format", comment: "")
             case .custom:
-                return UserDefaults.standard.string(forKey: UserDefaults.Keys.customDateFormat) ?? "yyyy-MM-dd"
+                let format = UserDefaults.standard.string(forKey: UserDefaults.Keys.customDateFormat) ?? "yyyy-MM-dd"
+                return "Custom (\(format))"
             }
         }
 
@@ -94,7 +95,8 @@ class CalendarDateHelper {
             case .systemFull:
                 return NSLocalizedString("System Full Time Format", comment: "")
             case .custom:
-                return UserDefaults.standard.string(forKey: UserDefaults.Keys.customTimeFormat) ?? "HH:mm:ss"
+                let format = UserDefaults.standard.string(forKey: UserDefaults.Keys.customTimeFormat) ?? "HH:mm:ss"
+                return "Custom (\(format))"
             }
         }
 

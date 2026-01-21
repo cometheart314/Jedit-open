@@ -308,6 +308,76 @@ class GeneralPreferencesViewController: NSViewController {
         applyTextEditingSettingsToAllWindows()
     }
 
+    // MARK: - Revert to Defaults Actions
+
+    @IBAction func revertEditToDefaults(_ sender: Any) {
+        // Reset all Edit tab settings to defaults
+        defaults.set(false, forKey: UserDefaults.Keys.checkSpellingAsYouType)
+        defaults.set(false, forKey: UserDefaults.Keys.checkGrammarWithSpelling)
+        defaults.set(false, forKey: UserDefaults.Keys.dataDetectors)
+        defaults.set(false, forKey: UserDefaults.Keys.smartLinks)
+        defaults.set(false, forKey: UserDefaults.Keys.smartSeparationEnglishJapanese)
+        defaults.set(false, forKey: UserDefaults.Keys.smartCopyPaste)
+        defaults.set(false, forKey: UserDefaults.Keys.dontShowContextMenuDefaultItems)
+        defaults.set(true, forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
+        defaults.set(false, forKey: UserDefaults.Keys.textReplacements)
+        defaults.set(false, forKey: UserDefaults.Keys.smartQuotes)
+        defaults.set(false, forKey: UserDefaults.Keys.smartDashes)
+        defaults.set(false, forKey: UserDefaults.Keys.correctSpellingAutomatically)
+
+        // Update UI
+        checkSpellingAsYouTypeCheckBox?.state = .off
+        checkGrammarWithSpellingCheckBox?.state = .off
+        dataDetectorsCheckBox?.state = .off
+        smartLinksCheckBox?.state = .off
+        smartSeparationCheckBox?.state = .off
+        smartCopyPasteCheckBox?.state = .off
+        dontShowContextMenuDefaultItemsCheckBox?.state = .off
+        richTextSubstitutionsCheckBox?.state = .on
+        textReplacementsCheckBox?.state = .off
+        smartQuotesCheckBox?.state = .off
+        smartDashesCheckBox?.state = .off
+        correctSpellingAutomaticallyCheckBox?.state = .off
+
+        applyTextEditingSettingsToAllWindows()
+    }
+
+    @IBAction func revertViewToDefaults(_ sender: Any) {
+        // Reset all View tab settings to defaults
+        defaults.set(0, forKey: UserDefaults.Keys.appearanceOption)
+        defaults.set(0, forKey: UserDefaults.Keys.dateFormatType)
+        defaults.set(0, forKey: UserDefaults.Keys.timeFormatType)
+        defaults.set("yyyy-MM-dd", forKey: UserDefaults.Keys.customDateFormat)
+        defaults.set("HH:mm:ss", forKey: UserDefaults.Keys.customTimeFormat)
+
+        // Update UI
+        appearancePopupButton?.selectItem(withTag: 0)
+        dateFormatPopupButton?.selectItem(withTag: 0)
+        timeFormatPopupButton?.selectItem(withTag: 0)
+        updateDateFormatDisplay()
+        updateTimeFormatDisplay()
+
+        // Apply appearance change
+        AppDelegate.applyAppearance(0)
+    }
+
+    @IBAction func revertAdvancedToDefaults(_ sender: Any) {
+        // Reset all Advanced tab settings to defaults
+        defaults.set(false, forKey: UserDefaults.Keys.autoStartOption)
+        defaults.set(0, forKey: UserDefaults.Keys.startupOption)
+
+        // Update UI
+        autoStartCheckBox?.state = .off
+        startupOptionPopupButton?.selectItem(withTag: 0)
+
+        // Unregister from login items
+        do {
+            try SMAppService.mainApp.unregister()
+        } catch {
+            // Ignore errors - might not be registered
+        }
+    }
+
     // MARK: - Apply Text Editing Settings
 
     /// すべてのウィンドウのテキストビューに設定を適用

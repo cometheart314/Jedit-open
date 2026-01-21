@@ -176,7 +176,25 @@
                                             <action selector="correctSpellingAutomaticallyClicked:" target="-2" id="act-corr-001"/>
                                         </connections>
                                     </button>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="E7v-hY-ASR">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="goO-rC-gEl">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="di9-jr-4zr"/>
+                                            <constraint firstAttribute="height" constant="24" id="sQJ-nf-5aZ"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertEditToDefaults:" target="-2" id="act-revert-edit"/>
+                                        </connections>
+                                    </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstItem="E7v-hY-ASR" firstAttribute="leading" secondItem="view-edit-001" secondAttribute="leading" constant="17" id="JWE-PO-H5q"/>
+                                    <constraint firstAttribute="bottom" secondItem="E7v-hY-ASR" secondAttribute="bottom" constant="17" id="ZZg-t4-4Rs"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                         <tabViewItem label="View" identifier="view" id="tab-view-001">
@@ -289,7 +307,25 @@
                                             <action selector="timeFormatFieldChanged:" target="-2" id="tff-act-con"/>
                                         </connections>
                                     </textField>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="9VD-Bk-9Oy">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="SZ2-ed-H23">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="aK9-MV-LUt"/>
+                                            <constraint firstAttribute="height" constant="24" id="wMO-8V-vCx"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertViewToDefaults:" target="-2" id="act-revert-view"/>
+                                        </connections>
+                                    </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstItem="9VD-Bk-9Oy" firstAttribute="leading" secondItem="view-view-001" secondAttribute="leading" constant="17" id="0FQ-y2-Cta"/>
+                                    <constraint firstAttribute="bottom" secondItem="9VD-Bk-9Oy" secondAttribute="bottom" constant="17" id="I9J-pf-4N8"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                         <tabViewItem label="Advanced" identifier="advanced" id="tab-advanced-001">
@@ -344,7 +380,25 @@
                                             <action selector="startupOptionSelected:" target="-2" id="bLB-fP-Icd"/>
                                         </connections>
                                     </popUpButton>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="S47-8L-S8s">
+                                        <rect key="frame" x="20" y="17" width="167" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="le4-JR-wPb">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="24" id="Tvy-QH-t3K"/>
+                                            <constraint firstAttribute="width" constant="167" id="gkO-OH-eCR"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertAdvancedToDefaults:" target="-2" id="act-revert-advanced"/>
+                                        </connections>
+                                    </button>
                                 </subviews>
+                                <constraints>
+                                    <constraint firstItem="S47-8L-S8s" firstAttribute="leading" secondItem="view-advanced-001" secondAttribute="leading" constant="20" symbolic="YES" id="W5b-hh-gDX"/>
+                                    <constraint firstAttribute="bottom" secondItem="S47-8L-S8s" secondAttribute="bottom" constant="17" id="wVf-j1-yHW"/>
+                                </constraints>
                             </view>
                         </tabViewItem>
                     </tabViewItems>
@@ -356,7 +410,7 @@
                 <constraint firstAttribute="trailing" secondItem="tab-main-001" secondAttribute="trailing" constant="20" symbolic="YES" id="jFt-hK-kjM"/>
                 <constraint firstItem="tab-main-001" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="13" id="zp1-ST-B7I"/>
             </constraints>
-            <point key="canvasLocation" x="-259.5" y="-643"/>
+            <point key="canvasLocation" x="-440" y="-644"/>
         </customView>
     </objects>
 </document>
