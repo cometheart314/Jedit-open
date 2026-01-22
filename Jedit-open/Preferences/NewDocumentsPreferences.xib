@@ -339,7 +339,7 @@
                                             <font key="font" metaFont="smallSystem"/>
                                             <menu key="menu" title="OtherViews" id="QdW-Rf-L9B">
                                                 <items>
-                                                    <menuItem title="Hide" id="Dzu-3u-hfL"/>
+                                                    <menuItem title="Hide" tag="0" id="Dzu-3u-hfL"/>
                                                     <menuItem title="Paragraph Number" tag="1" id="sC7-Kw-YNx">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
                                                     </menuItem>
@@ -347,6 +347,9 @@
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="lnm-pop-act"/>
+                                        </connections>
                                     </popUpButton>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="QIv-zg-RbC">
                                         <rect key="frame" x="67" y="273" width="115" height="22"/>
@@ -356,7 +359,7 @@
                                             <font key="font" metaFont="smallSystem"/>
                                             <menu key="menu" title="OtherViews" id="Bg3-4G-vHV">
                                                 <items>
-                                                    <menuItem title="Hide" id="KU9-zq-f9G">
+                                                    <menuItem title="Hide" tag="0" id="KU9-zq-f9G">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
                                                     </menuItem>
                                                     <menuItem isSeparatorItem="YES" id="fgW-CF-Htn"/>
@@ -371,6 +374,9 @@
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="rlr-pop-act"/>
+                                        </connections>
                                     </popUpButton>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BrY-f4-H4K">
                                         <rect key="frame" x="15" y="310" width="78" height="14"/>

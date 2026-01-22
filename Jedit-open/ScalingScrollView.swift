@@ -19,6 +19,11 @@ class ScalingScrollView: NSScrollView {
     private var currentMagnification: CGFloat = 1.0
     private var frameObserver: Any?
 
+    /// フレーム変更時にコンテナサイズを自動調整するかどうか
+    /// trueの場合: follows window widthモード（ウィンドウ幅に追従）
+    /// falseの場合: follows paper width / fixed width / no wrapモード（EditorWindowControllerが管理）
+    var autoAdjustsContainerSizeOnFrameChange: Bool = true
+
     // MARK: - Initialization
 
     override func awakeFromNib() {
@@ -130,6 +135,10 @@ class ScalingScrollView: NSScrollView {
     // MARK: - Helper Methods
 
     private func updateTextContainerSize() {
+        // autoAdjustsContainerSizeOnFrameChangeがfalseの場合は、
+        // EditorWindowControllerがコンテナサイズを管理するため、ここでは何もしない
+        guard autoAdjustsContainerSizeOnFrameChange else { return }
+
         guard let textView = documentView as? NSTextView,
               let textContainer = textView.textContainer else {
             return
@@ -141,33 +150,21 @@ class ScalingScrollView: NSScrollView {
         if isVertical {
             // 縦書き時: 行の長さを調整
             // 縦書きでは containerSize.width が行の長さ（画面上の高さ方向）を表す
-            // containerSize.widthが有限の場合のみ処理（follows windowモード）
-            let currentContainerWidth = textContainer.containerSize.width
-
             var availableHeight = contentView.frame.height
             availableHeight = availableHeight / magnification
             let expectedContainerWidth = availableHeight - (containerInset.height * 2)
 
-            // containerSizeが無限大でなく、かつ現在のコンテナサイズと期待サイズが大きく異なる場合のみ更新
-            if currentContainerWidth < CGFloat.greatestFiniteMagnitude / 2 &&
-               abs(currentContainerWidth - expectedContainerWidth) > 1.0 &&
-               expectedContainerWidth > 0 {
+            if expectedContainerWidth > 0 {
                 textContainer.containerSize = NSSize(width: expectedContainerWidth, height: CGFloat.greatestFiniteMagnitude)
                 textView.setFrameSize(NSSize(width: textView.frame.width, height: availableHeight))
             }
         } else {
             // 横書き時: 幅を調整
-            // containerSize.widthが有限の場合のみ処理（follows windowモード）
-            let currentContainerWidth = textContainer.containerSize.width
-
             var availableWidth = contentView.frame.width
             availableWidth = availableWidth / magnification
             let expectedContainerWidth = availableWidth - (containerInset.width * 2)
 
-            // containerSizeが無限大でなく、かつ現在のコンテナサイズと期待サイズが大きく異なる場合のみ更新
-            if currentContainerWidth < CGFloat.greatestFiniteMagnitude / 2 &&
-               abs(currentContainerWidth - expectedContainerWidth) > 1.0 &&
-               expectedContainerWidth > 0 {
+            if expectedContainerWidth > 0 {
                 textContainer.containerSize = NSSize(width: expectedContainerWidth, height: CGFloat.greatestFiniteMagnitude)
                 textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
             }
