@@ -393,11 +393,42 @@
                                     <action selector="toggleInspectorBar:" target="-1" id="Insp-Bar-Act"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Show Ruler" id="lO1-BW-Z4B">
+                            <menuItem title="Ruler" id="lO1-BW-Z4B">
                                 <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="showHideTextRuler:" target="-1" id="cbP-WA-fcT"/>
-                                </connections>
+                                <menu key="submenu" title="Ruler" id="ruler-sub-menu">
+                                    <items>
+                                        <menuItem title="Hide" id="ruler-hide-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setRulerHide:" target="-1" id="ruler-hide-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Points" id="ruler-pts-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setRulerPoints:" target="-1" id="ruler-pts-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Centimeters" id="ruler-cm-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setRulerCentimeters:" target="-1" id="ruler-cm-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Inches" id="ruler-in-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setRulerInches:" target="-1" id="ruler-in-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Characters" id="ruler-char-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="setRulerCharacters:" target="-1" id="ruler-char-act"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
                             </menuItem>
                             <menuItem title="Line Number" id="Nlv-wI-OK1">
                                 <modifierMask key="keyEquivalentModifierMask"/>

@@ -57,6 +57,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var isInspectorBarVisible: Bool = false  // Inspector Barの表示状態
     private var isInspectorBarInitialized: Bool = false  // Inspector Bar初期化済みフラグ
     private var isRulerVisible: Bool = false  // ルーラーの表示状態
+    private var rulerType: NewDocData.ViewData.RulerType = .character  // ルーラーの単位タイプ
     private var invisibleCharacterOptions: InvisibleCharacterOptions = .none  // 不可視文字の表示オプション
     private var isVerticalLayout: Bool = false  // 縦書きレイアウト
     private var lineWrapMode: LineWrapMode = .windowWidth  // 行折り返しモード（Continuousモード用）
@@ -290,6 +291,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         isInspectorBarVisible = viewData.showInspectorBar
         isInspectorBarInitialized = true
 
+        // ルーラータイプを適用
+        rulerType = viewData.rulerType
+        // rulerType.noneでなければルーラーを表示
+        isRulerVisible = (viewData.rulerType != .none)
+
         // 不可視文字の表示設定を適用
         invisibleCharacterOptions = viewData.showInvisibles.toInvisibleCharacterOptions()
 
@@ -322,6 +328,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let textStorage = textDocument?.textStorage {
             setupTextViews(with: textStorage)
         }
+
+        // setupTextViews後にルーラー設定を適用（単位設定を含む）
+        updateRulerVisibility()
 
         // setupTextViews後にスケールを再適用（setupTextViewsで上書きされる可能性があるため）
         if let scrollView = scrollView1 as? ScalingScrollView {
@@ -541,6 +550,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         switch displayMode {
         case .continuous:
             setupContinuousMode(with: textStorage)
+            // lineWrapModeに応じたサイズ設定を適用（setupContinuousModeは常にウィンドウ幅で初期化するため）
+            applyLineWrapMode()
         case .page:
             setupPageMode(with: textStorage)
         }
@@ -639,6 +650,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             scrollView.hasVerticalScroller = !isVerticalLayout
             scrollView.hasHorizontalScroller = isVerticalLayout
             scrollView.autohidesScrollers = false  // スクロールバーを常に表示
+            // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
+            scrollView.hasHorizontalRuler = !isVerticalLayout
+            scrollView.hasVerticalRuler = isVerticalLayout
+            // カスタムルーラーを設定
+            setupLabeledRuler(for: scrollView)
+            scrollView.rulersVisible = isRulerVisible
 
             // 縦書き/横書きレイアウトを適用
             textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
@@ -730,6 +747,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             scrollView.hasVerticalScroller = !isVerticalLayout
             scrollView.hasHorizontalScroller = isVerticalLayout
             scrollView.autohidesScrollers = false  // スクロールバーを常に表示
+            // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
+            scrollView.hasHorizontalRuler = !isVerticalLayout
+            scrollView.hasVerticalRuler = isVerticalLayout
+            // カスタムルーラーを設定
+            setupLabeledRuler(for: scrollView)
+            scrollView.rulersVisible = isRulerVisible
 
             // 縦書き/横書きレイアウトを適用
             textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
@@ -866,6 +889,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
             scrollView.hasHorizontalRuler = !isVerticalLayout
             scrollView.hasVerticalRuler = isVerticalLayout
+            // カスタムルーラーを設定
+            setupLabeledRuler(for: scrollView)
             scrollView.rulersVisible = isRulerVisible
             scrollView.autohidesScrollers = false
 
@@ -902,6 +927,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
             scrollView.hasHorizontalRuler = !isVerticalLayout
             scrollView.hasVerticalRuler = isVerticalLayout
+            // カスタムルーラーを設定
+            setupLabeledRuler(for: scrollView)
             scrollView.rulersVisible = isRulerVisible
             scrollView.autohidesScrollers = false
 
@@ -1226,6 +1253,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     private func applyLineWrapMode() {
         guard displayMode == .continuous else { return }
+
+        // ScalingScrollViewのautoAdjustsContainerSizeOnFrameChangeを設定
+        // windowWidthモードのみScalingScrollViewにコンテナサイズ調整を任せる
+        let autoAdjust = (lineWrapMode == .windowWidth)
+        if let scalingScrollView = scrollView1 as? ScalingScrollView {
+            scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
+        }
+        if let scalingScrollView = scrollView2 as? ScalingScrollView {
+            scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
+        }
+
         if let scrollView = scrollView1 {
             updateTextViewSize(for: scrollView)
         }
@@ -1334,6 +1372,36 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         updateRulerVisibility()
     }
 
+    @IBAction func setRulerHide(_ sender: Any?) {
+        rulerType = .none
+        isRulerVisible = false
+        updateRulerVisibility()
+    }
+
+    @IBAction func setRulerPoints(_ sender: Any?) {
+        rulerType = .point
+        isRulerVisible = true
+        updateRulerVisibility()
+    }
+
+    @IBAction func setRulerCentimeters(_ sender: Any?) {
+        rulerType = .centimeter
+        isRulerVisible = true
+        updateRulerVisibility()
+    }
+
+    @IBAction func setRulerInches(_ sender: Any?) {
+        rulerType = .inch
+        isRulerVisible = true
+        updateRulerVisibility()
+    }
+
+    @IBAction func setRulerCharacters(_ sender: Any?) {
+        rulerType = .character
+        isRulerVisible = true
+        updateRulerVisibility()
+    }
+
     private func updateRulerVisibility() {
         switch displayMode {
         case .continuous:
@@ -1354,12 +1422,32 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard let scrollView = scrollView,
               let textView = scrollView.documentView as? NSTextView else { return }
 
+        // ルーラーの種類を切り替え（縦書き/横書き対応）
+        let needsHorizontalRuler = !isVerticalLayout
+        let needsVerticalRuler = isVerticalLayout
+        let currentRuler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+        let needsRulerSetup = scrollView.hasHorizontalRuler != needsHorizontalRuler ||
+                              scrollView.hasVerticalRuler != needsVerticalRuler ||
+                              !(currentRuler is LabeledRulerView)
+        if needsRulerSetup {
+            scrollView.rulersVisible = false
+            scrollView.hasHorizontalRuler = needsHorizontalRuler
+            scrollView.hasVerticalRuler = needsVerticalRuler
+            // カスタムルーラーを再設定
+            setupLabeledRuler(for: scrollView)
+            scrollView.tile()
+        }
+
+        // ScrollViewのルーラー表示状態を更新
+        scrollView.rulersVisible = isRulerVisible
         textView.isRulerVisible = isRulerVisible
         if isRulerVisible {
             let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
             if let ruler = ruler {
                 ruler.originOffset = textDocument?.containerInset.width ?? 0
                 ruler.clientView = textView
+                // ルーラーの単位を設定
+                configureRulerUnit(ruler)
                 if isFirstResponder {
                     window?.makeFirstResponder(textView)
                 }
@@ -1377,6 +1465,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         scrollView.rulersVisible = false
         scrollView.hasHorizontalRuler = !isVerticalLayout
         scrollView.hasVerticalRuler = isVerticalLayout
+        // カスタムルーラーを再設定
+        setupLabeledRuler(for: scrollView)
         scrollView.tile()
         scrollView.rulersVisible = isRulerVisible
 
@@ -1386,11 +1476,79 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             if let ruler = ruler {
                 ruler.clientView = firstTextView
                 ruler.originOffset = pageMargin
+                // ルーラーの単位を設定
+                configureRulerUnit(ruler)
             }
             if isFirstResponder {
                 window?.makeFirstResponder(firstTextView)
             }
             firstTextView.updateRuler()
+        }
+    }
+
+    /// ScrollViewにカスタムルーラーを設定
+    private func setupLabeledRuler(for scrollView: NSScrollView) {
+        // 横ルーラーを設定
+        if scrollView.hasHorizontalRuler {
+            let horizontalRuler = LabeledRulerView(
+                scrollView: scrollView,
+                orientation: .horizontalRuler
+            )
+            scrollView.horizontalRulerView = horizontalRuler
+        }
+
+        // 縦ルーラーを設定
+        if scrollView.hasVerticalRuler {
+            let verticalRuler = LabeledRulerView(
+                scrollView: scrollView,
+                orientation: .verticalRuler
+            )
+            scrollView.verticalRulerView = verticalRuler
+        }
+    }
+
+    /// ルーラーの単位を設定
+    private func configureRulerUnit(_ ruler: NSRulerView) {
+        var labelText = ""
+
+        switch rulerType {
+        case .none:
+            // noneの場合は表示しないため、ここには来ないはず
+            break
+        case .point:
+            ruler.measurementUnits = .points
+            labelText = "Points"
+        case .centimeter:
+            ruler.measurementUnits = .centimeters
+            labelText = "cm"
+        case .inch:
+            ruler.measurementUnits = .inches
+            labelText = "Inches"
+        case .character:
+            // 基本フォントから文字幅を計算してカスタム単位を登録
+            if let presetData = textDocument?.presetData {
+                let fontData = presetData.fontAndColors
+                if let basicFont = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+                    let charWidth = basicCharWidth(from: basicFont)
+                    registerCharacterRulerUnit(charWidth: charWidth)
+                    ruler.measurementUnits = .characters
+                    // フォント名とサイズを簡潔に表示
+                    let shortName = basicFont.displayName ?? basicFont.fontName
+                    labelText = "\(shortName) \(Int(fontData.baseFontSize))pt"
+                }
+            } else {
+                // presetDataがない場合はシステムフォントを使用
+                let systemFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+                let charWidth = basicCharWidth(from: systemFont)
+                registerCharacterRulerUnit(charWidth: charWidth)
+                ruler.measurementUnits = .characters
+                labelText = "System \(Int(NSFont.systemFontSize))pt"
+            }
+        }
+
+        // LabeledRulerViewの場合はラベルを設定
+        if let labeledRuler = ruler as? LabeledRulerView {
+            labeledRuler.typeLabel = labelText
         }
     }
 
@@ -1515,6 +1673,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let scrollView = scrollView1,
            let textView = scrollView.documentView as? NSTextView {
             textView.setLayoutOrientation(orientation)
+            // スクロールバーの向きを更新
+            scrollView.hasVerticalScroller = !isVerticalLayout
+            scrollView.hasHorizontalScroller = isVerticalLayout
             // サイズとスクロールバーを更新
             updateTextViewSize(for: scrollView)
         }
@@ -1522,6 +1683,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
            !scrollView.isHidden,
            let textView = scrollView.documentView as? NSTextView {
             textView.setLayoutOrientation(orientation)
+            // スクロールバーの向きを更新
+            scrollView.hasVerticalScroller = !isVerticalLayout
+            scrollView.hasHorizontalScroller = isVerticalLayout
             updateTextViewSize(for: scrollView)
         }
 
@@ -1531,6 +1695,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         for textView in textViews2 {
             textView.setLayoutOrientation(orientation)
         }
+
+        // ルーラーの向きを更新
+        updateRulerVisibility()
 
         // 行番号ビューを再構築（縦書き/横書きで位置が変わるため）
         if lineNumberMode != .none {
@@ -2047,6 +2214,23 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if menuItem.action == #selector(showHideTextRuler(_:)) {
             menuItem.title = isRulerVisible ? "Hide Ruler" : "Show Ruler"
             menuItem.state = .off
+        }
+
+        // Ruler submenu items validation
+        if menuItem.action == #selector(setRulerHide(_:)) {
+            menuItem.state = rulerType == .none ? .on : .off
+        }
+        if menuItem.action == #selector(setRulerPoints(_:)) {
+            menuItem.state = rulerType == .point ? .on : .off
+        }
+        if menuItem.action == #selector(setRulerCentimeters(_:)) {
+            menuItem.state = rulerType == .centimeter ? .on : .off
+        }
+        if menuItem.action == #selector(setRulerInches(_:)) {
+            menuItem.state = rulerType == .inch ? .on : .off
+        }
+        if menuItem.action == #selector(setRulerCharacters(_:)) {
+            menuItem.state = rulerType == .character ? .on : .off
         }
 
         // Invisible character menu items validation
