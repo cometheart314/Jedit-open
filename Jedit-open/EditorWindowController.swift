@@ -144,6 +144,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             object: nil
         )
 
+        // ズーム変更通知を監視（ルーラーのキャレット位置更新用）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(magnificationDidChange(_:)),
+            name: ScalingScrollView.magnificationDidChangeNotification,
+            object: nil
+        )
+
         // アピアランス変更を監視
         if let window = self.window {
             window.contentView?.addObserver(self, forKeyPath: "effectiveAppearance", options: [.new], context: nil)
@@ -674,6 +682,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 self.updateTextViewSize(for: scrollView)
             }
             contentViewObservers.append(observer)
+
+            // 選択範囲変更を監視してルーラーのキャレット位置を更新
+            let selectionObserver = NotificationCenter.default.addObserver(
+                forName: NSTextView.didChangeSelectionNotification,
+                object: textView,
+                queue: .main
+            ) { [weak self] notification in
+                self?.textViewSelectionDidChange(notification)
+            }
+            textViewObservers.append(selectionObserver)
         }
 
         // TextView2の設定（サブビューが2つ以上の場合のみ）
@@ -771,6 +789,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 self.updateTextViewSize(for: scrollView)
             }
             contentViewObservers.append(observer)
+
+            // 選択範囲変更を監視してルーラーのキャレット位置を更新
+            let selectionObserver = NotificationCenter.default.addObserver(
+                forName: NSTextView.didChangeSelectionNotification,
+                object: textView,
+                queue: .main
+            ) { [weak self] notification in
+                self?.textViewSelectionDidChange(notification)
+            }
+            textViewObservers.append(selectionObserver)
         }
     }
 
@@ -1085,6 +1113,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         case .scrollView2:
             textContainers2 = textContainers
             textViews2 = textViews
+        }
+
+        // 各テキストビューの選択範囲変更を監視
+        for textView in textViews {
+            let selectionObserver = NotificationCenter.default.addObserver(
+                forName: NSTextView.didChangeSelectionNotification,
+                object: textView,
+                queue: .main
+            ) { [weak self] notification in
+                self?.textViewSelectionDidChange(notification)
+            }
+            textViewObservers.append(selectionObserver)
         }
     }
 
@@ -1475,7 +1515,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
             if let ruler = ruler {
                 ruler.clientView = firstTextView
-                ruler.originOffset = pageMargin
+                // ページモードでは、ルーラーの0地点をテキストの開始位置に合わせる
+                // pageMargin + lineFragmentPadding（テキストコンテナのデフォルト値は5.0）
+                let lineFragmentPadding = firstTextView.textContainer?.lineFragmentPadding ?? 5.0
+                ruler.originOffset = pageMargin + lineFragmentPadding
                 // ルーラーの単位を設定
                 configureRulerUnit(ruler)
             }
@@ -1494,7 +1537,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 scrollView: scrollView,
                 orientation: .horizontalRuler
             )
+            // マーカーとアクセサリビュー用の予約スペースを0にして、
+            // 縦ルーラーがある場合でもヘッダー領域を表示しない
+            horizontalRuler.reservedThicknessForMarkers = 0
+            horizontalRuler.reservedThicknessForAccessoryView = 0
             scrollView.horizontalRulerView = horizontalRuler
+        } else {
+            // 横ルーラーが不要な場合は明示的にnilを設定して、
+            // 上部のスペースが確保されないようにする
+            scrollView.horizontalRulerView = nil
         }
 
         // 縦ルーラーを設定
@@ -1503,7 +1554,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 scrollView: scrollView,
                 orientation: .verticalRuler
             )
+            // マーカーとアクセサリビュー用の予約スペースを0にして、
+            // 横ルーラーがある場合でもヘッダー領域を表示しない
+            verticalRuler.reservedThicknessForMarkers = 0
+            verticalRuler.reservedThicknessForAccessoryView = 0
             scrollView.verticalRulerView = verticalRuler
+        } else {
+            // 縦ルーラーが不要な場合は明示的にnilを設定して、
+            // 左側のスペースが確保されないようにする
+            scrollView.verticalRulerView = nil
         }
     }
 
@@ -1549,6 +1608,155 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // LabeledRulerViewの場合はラベルを設定
         if let labeledRuler = ruler as? LabeledRulerView {
             labeledRuler.typeLabel = labelText
+        }
+    }
+
+    // MARK: - Caret Position Indicator
+
+    /// テキストビューの選択範囲変更を監視してルーラーのキャレット位置を更新
+    @objc private func textViewSelectionDidChange(_ notification: Notification) {
+        guard let textView = notification.object as? NSTextView else { return }
+        updateRulerCaretPosition(for: textView)
+    }
+
+    /// ルーラー上のキャレット位置インジケータを更新
+    private func updateRulerCaretPosition(for textView: NSTextView) {
+        guard isRulerVisible else { return }
+        guard let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else { return }
+
+        // キャレット位置（挿入点）を取得
+        let selectedRange = textView.selectedRange()
+        let insertionPoint = selectedRange.location
+
+        // 挿入点のグリフインデックスを取得
+        let glyphIndex: Int
+        let useEndPosition: Bool
+        if insertionPoint < layoutManager.numberOfGlyphs {
+            glyphIndex = layoutManager.glyphIndexForCharacter(at: insertionPoint)
+            useEndPosition = false
+        } else if layoutManager.numberOfGlyphs > 0 {
+            // 文書末尾の場合は最後のグリフの末尾を使用
+            glyphIndex = layoutManager.numberOfGlyphs - 1
+            useEndPosition = true
+        } else {
+            // 空の文書の場合
+            glyphIndex = 0
+            useEndPosition = false
+        }
+
+        // 対応するScrollViewを見つけてルーラーを更新
+        if let scrollView = textView.enclosingScrollView {
+            let lineFragmentPadding = textContainer.lineFragmentPadding
+            let isPageMode = (displayMode == .page)
+
+            if isVerticalLayout {
+                // 縦書きモード：縦ルーラーを使用
+                // 縦書きでは画面上は文字が上から下に流れるが、
+                // NSLayoutManagerは内部的に横書きと同じ座標系を使用している
+                // つまり location.x が文字の進行方向（縦ルーラーのY位置）に対応する
+                if let verticalRuler = scrollView.verticalRulerView as? LabeledRulerView {
+                    var caretY: CGFloat = 0
+
+                    if layoutManager.numberOfGlyphs > 0 {
+                        let safeGlyphIndex = max(0, min(glyphIndex, layoutManager.numberOfGlyphs - 1))
+
+                        // lineFragmentRectを取得
+                        var effectiveRange = NSRange()
+                        let lineFragmentRect = layoutManager.lineFragmentRect(forGlyphAt: safeGlyphIndex, effectiveRange: &effectiveRange)
+
+                        // グリフの位置を取得
+                        let location = layoutManager.location(forGlyphAt: safeGlyphIndex)
+
+                        // 縦書きでは location.x が縦方向の位置を示す
+                        // lineFragmentRect.origin.x + location.x が縦ルーラー上のY位置になる
+                        if useEndPosition {
+                            // 文書末尾の場合、グリフの下端（右端）を使用
+                            let glyphRange = NSRange(location: safeGlyphIndex, length: 1)
+                            let boundingRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+                            caretY = lineFragmentRect.origin.x + location.x + boundingRect.width
+                        } else {
+                            // 通常はグリフの上端（左端）を使用
+                            caretY = lineFragmentRect.origin.x + location.x
+                        }
+                    }
+
+                    // lineFragmentPaddingを引いてルーラーの0地点と一致させる
+                    var adjustedCaretY = caretY - lineFragmentPadding
+
+                    if isPageMode {
+                        // ページモードでの調整
+                        adjustedCaretY += textView.frame.origin.y - pageMargin
+                    }
+
+                    verticalRuler.caretPosition = adjustedCaretY
+                }
+            } else {
+                // 横書きモード：横ルーラーを使用
+                // lineFragmentRectとlocationを使用して正確な位置を計算
+                var effectiveRange = NSRange()
+                let lineFragmentRect = layoutManager.lineFragmentRect(forGlyphAt: max(0, min(glyphIndex, layoutManager.numberOfGlyphs - 1)), effectiveRange: &effectiveRange)
+
+                // グリフの行フラグメント内での位置を取得
+                let locationInLineFragment: NSPoint
+                if layoutManager.numberOfGlyphs > 0 {
+                    locationInLineFragment = layoutManager.location(forGlyphAt: glyphIndex)
+                } else {
+                    locationInLineFragment = .zero
+                }
+
+                // テキストコンテナ座標でのキャレットX位置を計算
+                let caretX: CGFloat
+                if useEndPosition {
+                    // 文書末尾の場合、グリフの右端を使用
+                    let glyphRect = layoutManager.boundingRect(forGlyphRange: NSRange(location: glyphIndex, length: 1), in: textContainer)
+                    caretX = glyphRect.maxX
+                } else {
+                    caretX = lineFragmentRect.origin.x + locationInLineFragment.x
+                }
+
+                if let horizontalRuler = scrollView.horizontalRulerView as? LabeledRulerView {
+                    var adjustedCaretX = caretX - lineFragmentPadding
+                    if isPageMode {
+                        // ページモードでの調整
+                        adjustedCaretX += textView.frame.origin.x - pageMargin
+                    }
+                    horizontalRuler.caretPosition = adjustedCaretX
+                }
+            }
+        }
+    }
+
+    /// 全てのテキストビューのルーラーキャレット位置を更新
+    private func updateAllRulerCaretPositions() {
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            updateRulerCaretPosition(for: textView)
+        }
+        if let scrollView = scrollView2, !scrollView.isHidden,
+           let textView = scrollView.documentView as? NSTextView {
+            updateRulerCaretPosition(for: textView)
+        }
+        for textView in textViews1 {
+            updateRulerCaretPosition(for: textView)
+        }
+        for textView in textViews2 {
+            updateRulerCaretPosition(for: textView)
+        }
+    }
+
+    /// ズーム変更時にルーラーのキャレット位置を更新
+    @objc private func magnificationDidChange(_ notification: Notification) {
+        // このウィンドウのScrollViewからの通知かチェック
+        guard let scrollView = notification.object as? ScalingScrollView,
+              scrollView === scrollView1 || scrollView === scrollView2 else { return }
+
+        // ルーラーを再描画してキャレット位置を更新
+        if let horizontalRuler = scrollView.horizontalRulerView as? LabeledRulerView {
+            horizontalRuler.needsDisplay = true
+        }
+        if let verticalRuler = scrollView.verticalRulerView as? LabeledRulerView {
+            verticalRuler.needsDisplay = true
         }
     }
 

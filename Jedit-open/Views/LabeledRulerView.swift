@@ -17,6 +17,17 @@ class LabeledRulerView: NSRulerView {
         }
     }
 
+    /// キャレット（挿入点）のルーラー上の位置（ドキュメント座標系）
+    /// 横ルーラーの場合はX座標、縦ルーラーの場合はY座標
+    var caretPosition: CGFloat? {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    /// キャレットスリットの色
+    var caretSlitColor: NSColor = NSColor.systemRed.withAlphaComponent(0.8)
+
     override var isFlipped: Bool {
         return true  // 上から下への座標系を使用
     }
@@ -43,6 +54,93 @@ class LabeledRulerView: NSRulerView {
 
         // 目盛りとラベルを描画（ラベルの上に表示）
         super.drawHashMarksAndLabels(in: rect)
+
+        // キャレット位置のスリットを描画（目盛りの上に表示）
+        drawCaretSlit()
+    }
+
+    /// キャレット位置を示すスリット（細線）を描画
+    private func drawCaretSlit() {
+        guard let position = caretPosition else { return }
+        guard let scrollView = self.scrollView else { return }
+
+        // ルーラーのオリジン（baselineLocation）を考慮
+        let baseline = baselineLocation
+
+        // ズーム倍率を取得
+        let magnification = scrollView.magnification
+
+        if orientation == .horizontalRuler {
+            // 横ルーラー：キャレットのX位置に縦線を描画
+            // caretPositionはテキストコンテナ座標系の値
+            // ズーム倍率を適用し、スクロール位置とoriginOffset（ズーム適用済み）を考慮
+            let clipView = scrollView.contentView
+            let scrollOffsetX = clipView.bounds.origin.x
+            // originOffsetもズーム倍率の影響を受ける（ページモードでのマージン）
+            let scaledOriginOffset = originOffset * magnification
+            let xInRuler = position * magnification - scrollOffsetX + scaledOriginOffset
+
+            // スリットの描画
+            let slitRect = NSRect(
+                x: xInRuler - 0.5,
+                y: baseline,
+                width: 1.0,
+                height: bounds.height - baseline
+            )
+
+            // 可視範囲内かチェック
+            if slitRect.minX >= visibleRect.minX && slitRect.maxX <= visibleRect.maxX {
+                caretSlitColor.setFill()
+                slitRect.fill()
+
+                // 小さな三角形のインジケータを上部に描画
+                let trianglePath = NSBezierPath()
+                let triangleSize: CGFloat = 4.0
+                let centerX = xInRuler
+                let topY = baseline
+
+                trianglePath.move(to: NSPoint(x: centerX, y: topY + triangleSize))
+                trianglePath.line(to: NSPoint(x: centerX - triangleSize, y: topY))
+                trianglePath.line(to: NSPoint(x: centerX + triangleSize, y: topY))
+                trianglePath.close()
+                trianglePath.fill()
+            }
+        } else if orientation == .verticalRuler {
+            // 縦ルーラー：キャレットのY位置に横線を描画
+            // caretPositionはテキストコンテナ座標系の値
+            // ズーム倍率を適用し、スクロール位置とoriginOffset（ズーム適用済み）を考慮
+            let clipView = scrollView.contentView
+            let scrollOffsetY = clipView.bounds.origin.y
+            // originOffsetもズーム倍率の影響を受ける（ページモードでのマージン）
+            let scaledOriginOffset = originOffset * magnification
+            let yInRuler = position * magnification - scrollOffsetY + scaledOriginOffset
+
+            // スリットの描画
+            let slitRect = NSRect(
+                x: baseline,
+                y: yInRuler - 0.5,
+                width: bounds.width - baseline,
+                height: 1.0
+            )
+
+            // 可視範囲内かチェック
+            if slitRect.minY >= visibleRect.minY && slitRect.maxY <= visibleRect.maxY {
+                caretSlitColor.setFill()
+                slitRect.fill()
+
+                // 小さな三角形のインジケータを左側に描画
+                let trianglePath = NSBezierPath()
+                let triangleSize: CGFloat = 4.0
+                let centerY = yInRuler
+                let leftX = baseline
+
+                trianglePath.move(to: NSPoint(x: leftX + triangleSize, y: centerY))
+                trianglePath.line(to: NSPoint(x: leftX, y: centerY - triangleSize))
+                trianglePath.line(to: NSPoint(x: leftX, y: centerY + triangleSize))
+                trianglePath.close()
+                trianglePath.fill()
+            }
+        }
     }
 
     /// 縦ルーラー用のラベル描画（縦書き）
