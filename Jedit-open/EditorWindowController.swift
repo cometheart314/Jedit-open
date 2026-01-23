@@ -2330,10 +2330,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if isVerticalLayout {
             // 縦書きの場合
             let lineHeight: CGFloat
+            let padding = textContainer.lineFragmentPadding
             switch lineWrapMode {
             case .paperWidth:
                 // 用紙高さ（マージンを除く）を1行の高さとする
-                lineHeight = pageHeight - (pageMargin * 2)
+                // lineFragmentPadding分を加算して正確な用紙幅位置で折り返す
+                lineHeight = pageHeight - (pageMargin * 2) + (padding * 2)
             case .windowWidth:
                 // ウィンドウ高さを1行の高さとする
                 lineHeight = availableHeight - (containerInset.height * 2)
@@ -2364,10 +2366,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         } else {
             // 横書きの場合
             let lineWidth: CGFloat
+            let padding = textContainer.lineFragmentPadding
             switch lineWrapMode {
             case .paperWidth:
                 // 用紙幅（マージンを除く）
-                lineWidth = pageWidth - (pageMargin * 2)
+                // lineFragmentPadding分を加算して正確な用紙幅位置で折り返す
+                lineWidth = pageWidth - (pageMargin * 2) + (padding * 2)
             case .windowWidth:
                 // ウィンドウ幅
                 lineWidth = availableWidth - (containerInset.width * 2)
