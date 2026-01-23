@@ -61,7 +61,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var invisibleCharacterOptions: InvisibleCharacterOptions = .none  // 不可視文字の表示オプション
     private var isVerticalLayout: Bool = false  // 縦書きレイアウト
     private var lineWrapMode: LineWrapMode = .windowWidth  // 行折り返しモード（Continuousモード用）
-    private var fixedWrapWidth: CGFloat = 600.0  // 固定幅（fixedWidthモード用）
+    private var fixedWrapWidthInChars: Int = 80  // 固定幅（fixedWidthモード用、文字数）
 
     // 行番号ビュー
     private var lineNumberView1: LineNumberView?
@@ -292,7 +292,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             lineWrapMode = .noWrap
         case .fixedWidth:
             lineWrapMode = .fixedWidth
-            fixedWrapWidth = CGFloat(viewData.fixedDocWidth * 8)  // 大まかな文字幅で換算
+            fixedWrapWidthInChars = viewData.fixedDocWidth
         }
 
         // Inspector Barの表示状態を適用
@@ -1268,27 +1268,63 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     @IBAction func setLineWrapFixedWidth(_ sender: Any?) {
-        // 固定幅を入力するダイアログを表示
+        // 固定幅を文字数で入力するダイアログを表示
         let alert = NSAlert()
-        alert.messageText = "Fixed Width"
-        alert.informativeText = "Enter the document width in points:"
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = NSLocalizedString("Fixed Width", comment: "")
+        alert.informativeText = NSLocalizedString("Enter the document width in characters:", comment: "")
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
 
-        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        textField.stringValue = String(format: "%.0f", fixedWrapWidth)
-        alert.accessoryView = textField
+        // アクセサリビュー（テキストフィールド + ラベル）
+        let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+
+        let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 80, height: 24))
+        textField.integerValue = fixedWrapWidthInChars
+        textField.alignment = .right
+        // NumberFormatterを設定
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.minimum = 10
+        formatter.maximum = 9999
+        formatter.allowsFloats = false
+        textField.formatter = formatter
+        containerView.addSubview(textField)
+
+        let label = NSTextField(labelWithString: NSLocalizedString("chars.", comment: ""))
+        label.frame = NSRect(x: 85, y: 4, width: 50, height: 17)
+        containerView.addSubview(label)
+
+        alert.accessoryView = containerView
 
         guard let window = self.window else { return }
         alert.beginSheetModal(for: window) { [weak self] response in
             if response == .alertFirstButtonReturn {
-                if let width = Double(textField.stringValue), width > 0 {
-                    self?.fixedWrapWidth = CGFloat(width)
+                let chars = textField.integerValue
+                if chars >= 10 && chars <= 9999 {
+                    self?.fixedWrapWidthInChars = chars
                     self?.lineWrapMode = .fixedWidth
                     self?.applyLineWrapMode()
                 }
             }
         }
+    }
+
+    /// 固定幅をポイント値で取得（文字数 × 基本文字幅）
+    private func getFixedWrapWidthInPoints() -> CGFloat {
+        let charWidth: CGFloat
+        if let presetData = textDocument?.presetData {
+            let fontData = presetData.fontAndColors
+            if let basicFont = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+                charWidth = basicCharWidth(from: basicFont)
+            } else {
+                charWidth = 8.0  // フォントが見つからない場合のデフォルト
+            }
+        } else {
+            // presetDataがない場合はシステムフォントを使用
+            let systemFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+            charWidth = basicCharWidth(from: systemFont)
+        }
+        return CGFloat(fixedWrapWidthInChars) * charWidth
     }
 
     private func applyLineWrapMode() {
@@ -2305,8 +2341,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // 折り返さない（十分大きな値を使用）
                 lineHeight = 100000
             case .fixedWidth:
-                // 固定幅を1行の高さとする
-                lineHeight = fixedWrapWidth
+                // 固定幅を1行の高さとする（文字数から計算）
+                // fixedWidthモードではlineFragmentPaddingを0にして正確な文字数で折り返す
+                textContainer.lineFragmentPadding = 0
+                // containerInset.height分を加算してルーラー上で正確に指定文字数位置で折り返す
+                lineHeight = getFixedWrapWidthInPoints() + containerInset.height
             }
 
             if lineHeight > 0 {
@@ -2336,8 +2375,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // 折り返さない（十分大きな値を使用）
                 lineWidth = 100000
             case .fixedWidth:
-                // 固定幅
-                lineWidth = fixedWrapWidth
+                // 固定幅（文字数から計算）
+                // fixedWidthモードではlineFragmentPaddingを0にして正確な文字数で折り返す
+                textContainer.lineFragmentPadding = 0
+                // containerInset.width分を加算してルーラー上で正確に指定文字数位置で折り返す
+                lineWidth = getFixedWrapWidthInPoints() + containerInset.width
             }
 
             if lineWidth > 0 {
@@ -2487,6 +2529,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
         if menuItem.action == #selector(setLineWrapFixedWidth(_:)) {
             menuItem.state = lineWrapMode == .fixedWidth ? .on : .off
+            // メニュータイトルに現在の文字数を表示
+            menuItem.title = String(format: NSLocalizedString("Fixed Width (%dchars.)...", comment: ""), fixedWrapWidthInChars)
         }
 
         return true

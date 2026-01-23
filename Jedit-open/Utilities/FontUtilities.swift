@@ -29,11 +29,13 @@ func fontSupportsJapanese(_ font: NSFont) -> Bool {
 
 /// 日本語フォント用の全角文字幅を計算
 /// - Parameter font: 計算対象のフォント
-/// - Returns: 全角文字の平均幅（ポイント）
+/// - Returns: 全角文字の幅（ポイント）
 func fullWidthCharWidth(font: NSFont) -> CGFloat {
-    let sample = "あいうえおアイウエオ漢字カナ１２３４５"
+    // 日本語テキストエディタでは「全角文字」を基準にする
+    // 代表的な全角文字で幅を計算（ひらがな・カタカナ・漢字は同じ幅）
+    let sample = "あ"
     let attr: [NSAttributedString.Key: Any] = [.font: font]
-    return (sample as NSString).size(withAttributes: attr).width / CGFloat(sample.count)
+    return (sample as NSString).size(withAttributes: attr).width
 }
 
 /// 半角文字幅を計算（英数字フォント用）
