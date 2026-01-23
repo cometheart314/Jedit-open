@@ -543,6 +543,9 @@
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="smallSystem"/>
                                         </buttonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="sib-act-001"/>
+                                        </connections>
                                     </button>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Xzx-4O-Boa">
                                         <rect key="frame" x="45" y="227" width="114" height="14"/>
@@ -586,6 +589,9 @@
                                                 </buttonCell>
                                             </column>
                                         </cells>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="pgm-act-001"/>
+                                        </connections>
                                     </matrix>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RYu-Ro-UEN">
                                         <rect key="frame" x="162" y="222" width="218" height="22"/>
@@ -610,6 +616,9 @@
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="dwp-act-001"/>
+                                        </connections>
                                     </popUpButton>
                                     <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qh9-me-2Og">
                                         <rect key="frame" x="350" y="275" width="100" height="20"/>
@@ -618,6 +627,9 @@
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="smallSystem"/>
                                         </buttonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="stb-act-001"/>
+                                        </connections>
                                     </button>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="deL-3J-ivd">
                                         <rect key="frame" x="148" y="306" width="29" height="21"/>
