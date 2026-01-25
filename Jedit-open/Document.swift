@@ -23,6 +23,11 @@ class Document: NSDocument {
 
     static let documentTypeDidChangeNotification = Notification.Name("DocumentTypeDidChange")
 
+    // MARK: - Extended Attribute Keys
+
+    /// プリセットデータを保存する拡張属性キー
+    static let presetDataExtendedAttributeKey = "jp.co.artman21.jedit.presetData"
+
     // MARK: - Properties
 
     var textStorage: NSTextStorage = NSTextStorage()
@@ -367,6 +372,141 @@ class Document: NSDocument {
             self.documentType = .rtf
         } else {
             self.documentType = .plain
+        }
+    }
+
+    // MARK: - Extended Attributes for Preset Data
+
+    /// 保存完了後にプリセットデータを拡張属性に書き込む
+    override func save(to url: URL, ofType typeName: String, for saveOperation: NSDocument.SaveOperationType, completionHandler: @escaping (Error?) -> Void) {
+        // 保存前にプリセットデータを現在のウィンドウ状態で更新
+        updatePresetDataFromCurrentState()
+
+        super.save(to: url, ofType: typeName, for: saveOperation) { [weak self] error in
+            if error == nil {
+                // 保存成功後にプリセットデータを拡張属性に書き込む
+                self?.writePresetDataToExtendedAttribute(at: url)
+            }
+            completionHandler(error)
+        }
+    }
+
+    /// 現在のウィンドウ状態でプリセットデータを更新
+    private func updatePresetDataFromCurrentState() {
+        guard presetData != nil else { return }
+
+        // 最初のウィンドウコントローラからウィンドウ情報を取得
+        guard let windowController = windowControllers.first as? EditorWindowController,
+              let window = windowController.window else { return }
+
+        // ウィンドウのフレームを取得
+        let frame = window.frame
+
+        // プリセットデータを更新
+        presetData?.view.windowX = frame.origin.x
+        presetData?.view.windowY = frame.origin.y
+        presetData?.view.windowWidth = frame.size.width
+        presetData?.view.windowHeight = frame.size.height
+    }
+
+    /// プリセットデータを拡張属性に書き込む
+    private func writePresetDataToExtendedAttribute(at url: URL) {
+        guard let presetData = self.presetData else { return }
+
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(presetData)
+
+            // 拡張属性に書き込む
+            let result = data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> Int32 in
+                return setxattr(
+                    url.path,
+                    Document.presetDataExtendedAttributeKey,
+                    bytes.baseAddress,
+                    data.count,
+                    0,
+                    0
+                )
+            }
+
+            if result != 0 {
+                Swift.print("Failed to write preset data to extended attribute: \(errno)")
+            }
+        } catch {
+            Swift.print("Failed to encode preset data: \(error)")
+        }
+    }
+
+    /// 拡張属性からプリセットデータのJSONデータを読み込む（nonisolated）
+    private nonisolated static func readPresetDataRaw(at url: URL) -> Data? {
+        let key = "jp.co.artman21.jedit.presetData"
+        // 拡張属性のサイズを取得
+        let size = getxattr(url.path, key, nil, 0, 0, 0)
+        guard size > 0 else { return nil }
+
+        // データを読み込む
+        var data = Data(count: size)
+        let result = data.withUnsafeMutableBytes { (bytes: UnsafeMutableRawBufferPointer) -> ssize_t in
+            return getxattr(
+                url.path,
+                key,
+                bytes.baseAddress,
+                size,
+                0,
+                0
+            )
+        }
+
+        guard result > 0 else { return nil }
+        return data
+    }
+
+    /// 拡張属性からプリセットデータをデコードする（MainActor）
+    private static func decodePresetData(from data: Data) -> NewDocData? {
+        do {
+            let decoder = JSONDecoder()
+            let presetData = try decoder.decode(NewDocData.self, from: data)
+            return presetData
+        } catch {
+            Swift.print("Failed to decode preset data from extended attribute: \(error)")
+            return nil
+        }
+    }
+
+    /// ファイル読み込み後にプリセットデータを拡張属性から読み込んで適用
+    override nonisolated func read(from url: URL, ofType typeName: String) throws {
+        // まず通常のファイル読み込みを行う
+        try super.read(from: url, ofType: typeName)
+
+        // 拡張属性からプリセットデータのJSONを読み込む
+        if let jsonData = Document.readPresetDataRaw(at: url) {
+            MainActor.assumeIsolated {
+                // MainActorでデコードして適用
+                if let loadedPresetData = Document.decodePresetData(from: jsonData) {
+                    self.presetData = loadedPresetData
+                    // Note: プリセットデータのdocumentType設定は読み込んだファイルのタイプを優先する
+                    // （ファイル自体のフォーマットが正）
+                }
+            }
+        } else {
+            // 拡張属性がない場合は、ファイルタイプに応じたデフォルトのNewDocDataを設定
+            MainActor.assumeIsolated {
+                self.presetData = self.createDefaultPresetDataForCurrentDocumentType()
+            }
+        }
+    }
+
+    /// 現在のドキュメントタイプに応じたデフォルトのNewDocDataを作成
+    private func createDefaultPresetDataForCurrentDocumentType() -> NewDocData {
+        switch documentType {
+        case .plain:
+            return NewDocData.plainText
+        case .rtf, .rtfd:
+            return NewDocData.richText
+        default:
+            // その他のタイプはリッチテキストとして扱う
+            return NewDocData.richText
         }
     }
 }

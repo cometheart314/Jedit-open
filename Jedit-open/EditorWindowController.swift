@@ -313,7 +313,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         // スケールを適用
-        if let scrollView = scrollView1 as? ScalingScrollView {
+        if let scrollView = scrollView1 {
             scrollView.magnification = viewData.scale
         }
 
@@ -341,7 +341,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         updateRulerVisibility()
 
         // setupTextViews後にスケールを再適用（setupTextViewsで上書きされる可能性があるため）
-        if let scrollView = scrollView1 as? ScalingScrollView {
+        if let scrollView = scrollView1 {
             scrollView.magnification = viewData.scale
         }
 
@@ -414,11 +414,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.backgroundColor = colors.background.nsColor
             textView.textColor = colors.character.nsColor
             textView.insertionPointColor = colors.caret.nsColor
-            if let selectedTextAttributes = textView.selectedTextAttributes as? [NSAttributedString.Key: Any] {
-                var newAttributes = selectedTextAttributes
-                newAttributes[.backgroundColor] = colors.highlight.nsColor
-                textView.selectedTextAttributes = newAttributes
-            }
+            var newAttributes = textView.selectedTextAttributes
+            newAttributes[.backgroundColor] = colors.highlight.nsColor
+            textView.selectedTextAttributes = newAttributes
         }
         if let scrollView = scrollView2,
            !scrollView.isHidden,
@@ -1333,10 +1331,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ScalingScrollViewのautoAdjustsContainerSizeOnFrameChangeを設定
         // windowWidthモードのみScalingScrollViewにコンテナサイズ調整を任せる
         let autoAdjust = (lineWrapMode == .windowWidth)
-        if let scalingScrollView = scrollView1 as? ScalingScrollView {
+        if let scalingScrollView = scrollView1 {
             scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
         }
-        if let scalingScrollView = scrollView2 as? ScalingScrollView {
+        if let scalingScrollView = scrollView2 {
             scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
         }
 
@@ -2030,9 +2028,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // LayoutManagerにTextContainerを追加
         layoutManager.addTextContainer(textContainer)
 
-        // 新しいページのインデックスを取得
-        let pageIndex = textContainers.count
-
         // 一時的なフレームでTextViewを作成（後でupdateAllTextViewFramesで更新される、画像クリック対応）
         let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
         let textView = ImageClickableTextView(frame: tempFrame, textContainer: textContainer)
@@ -2089,20 +2084,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private func removeExcessPages(from layoutManager: NSLayoutManager, in scrollView: NSScrollView, for target: ScrollViewTarget) {
         var textContainers: [NSTextContainer]
         var textViews: [NSTextView]
-        var pagesView: MultiplePageView?
 
         switch target {
         case .scrollView1:
             textContainers = textContainers1
             textViews = textViews1
-            pagesView = pagesView1
+            guard pagesView1 != nil else { return }
         case .scrollView2:
             textContainers = textContainers2
             textViews = textViews2
-            pagesView = pagesView2
+            guard pagesView2 != nil else { return }
         }
-
-        guard let pagesView = pagesView else { return }
 
         // テキストストレージの長さを取得
         guard let textStorage = layoutManager.textStorage else { return }
@@ -2853,6 +2845,52 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.isAutomaticQuoteSubstitutionEnabled = smartQuotes
         textView.isAutomaticDashSubstitutionEnabled = smartDashes
         textView.isAutomaticSpellingCorrectionEnabled = correctSpelling
+    }
+
+    // MARK: - Basic Font
+
+    /// Format > Font > Basic Font... メニューアクション
+    @IBAction func showBasicFont(_ sender: Any?) {
+        BasicFontPanelController.shared.showBasicFontInfo(for: self)
+    }
+
+    /// Basic Font が変更された時に呼び出される
+    /// ルーラーの文字幅目盛りとドキュメント幅（文字幅指定時）を更新する
+    func basicFontDidChange(_ font: NSFont) {
+        // 文字幅を再計算
+        let charWidth = basicCharWidth(from: font)
+
+        // ルーラーの単位を更新（character単位の場合）
+        if rulerType == .character {
+            registerCharacterRulerUnit(charWidth: charWidth)
+
+            // ルーラーを再設定
+            updateRulerVisibility()
+        }
+
+        // 固定幅モードの場合、ドキュメントレイアウトを更新
+        if lineWrapMode == .fixedWidth && displayMode == .continuous {
+            applyLineWrapMode()
+        }
+
+        // ドキュメントに変更をマーク
+        textDocument?.updateChangeCount(.changeDone)
+    }
+
+    /// 現在の Basic Font を取得
+    func currentBasicFont() -> NSFont {
+        if let presetData = textDocument?.presetData {
+            let fontData = presetData.fontAndColors
+            if let font = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+                return font
+            }
+        }
+        return NSFont.systemFont(ofSize: 14)
+    }
+
+    /// 現在の Basic Character Width を取得
+    func currentBasicCharWidth() -> CGFloat {
+        return basicCharWidth(from: currentBasicFont())
     }
 }
 

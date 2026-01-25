@@ -943,7 +943,7 @@ extension NewDocumentsPreferencesViewController: FixedDocWidthMenuDelegate {
 
 extension NewDocumentsPreferencesViewController {
 
-    /// 現在のBase Fontの1スペースあたりのポイント幅を計算
+    /// 現在のBase Fontのスペース文字の幅を計算
     func spaceWidthInPoints() -> CGFloat {
         let font = NSFont(name: currentBaseFontName, size: currentBaseFontSize)
             ?? NSFont.systemFont(ofSize: currentBaseFontSize)
@@ -955,14 +955,14 @@ extension NewDocumentsPreferencesViewController {
         return size.width
     }
 
-    /// ポイントからスペース数に変換
+    /// ポイントからスペース数に変換（Base Font のスペース文字幅を基準に使用）
     func pointsToSpaces(_ points: CGFloat) -> CGFloat {
         let spaceWidth = spaceWidthInPoints()
         guard spaceWidth > 0 else { return 4 }  // デフォルト値
         return points / spaceWidth
     }
 
-    /// スペース数からポイントに変換
+    /// スペース数からポイントに変換（Base Font のスペース文字幅を基準に使用）
     func spacesToPoints(_ spaces: CGFloat) -> CGFloat {
         return spaces * spaceWidthInPoints()
     }

@@ -23,6 +23,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // File > New サブメニューを構築
         setupNewDocumentSubmenu()
+
+        // Format > Font メニューに Basic Font... 項目を追加
+        setupBasicFontMenuItem()
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -98,6 +101,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         default:
             NSApp.appearance = nil
         }
+    }
+
+    // MARK: - Basic Font Menu Item
+
+    /// Format > Font メニューに Basic Font... 項目を追加
+    private func setupBasicFontMenuItem() {
+        guard let mainMenu = NSApp.mainMenu,
+              let formatMenu = mainMenu.item(withTitle: "Format")?.submenu,
+              let fontMenuItem = formatMenu.item(withTitle: "Font"),
+              let fontSubmenu = fontMenuItem.submenu else {
+            return
+        }
+
+        // セパレータを追加
+        fontSubmenu.addItem(NSMenuItem.separator())
+
+        // Basic Font... メニュー項目を追加
+        let basicFontItem = NSMenuItem(
+            title: NSLocalizedString("Basic Font...", comment: "Menu item for Basic Font"),
+            action: #selector(EditorWindowController.showBasicFont(_:)),
+            keyEquivalent: ""
+        )
+        fontSubmenu.addItem(basicFontItem)
     }
 
     // MARK: - New Document Submenu
