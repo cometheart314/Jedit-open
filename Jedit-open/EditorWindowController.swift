@@ -2161,8 +2161,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ImageResizeControllerを設定
         textView.imageResizeController = imageResizeController
 
-        // レイアウト方向はupdateAllTextViewFramesで設定される
-        // ここでは一時的に非表示にする
+        // レイアウト方向を即座に設定（テキストがレイアウトされるために必要）
+        let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
+        textView.setLayoutOrientation(orientation)
+
+        // 一時的に非表示（フレームはupdateAllTextViewFramesで更新される）
         textView.isHidden = true
 
         // 配列に追加
