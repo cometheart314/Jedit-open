@@ -549,7 +549,14 @@ class Document: NSDocument {
     }
 
     /// 現在のドキュメントタイプに応じたデフォルトのNewDocDataを作成
+    /// Preferencesで選択されているプリセットの設定をコピーして使用
     private func createDefaultPresetDataForCurrentDocumentType() -> NewDocData {
+        // Preferencesで選択されているプリセットを取得
+        if let selectedPreset = DocumentPresetManager.shared.selectedPreset() {
+            return selectedPreset.data
+        }
+
+        // フォールバック: プリセットがない場合はドキュメントタイプに応じたデフォルト値
         switch documentType {
         case .plain:
             return NewDocData.plainText

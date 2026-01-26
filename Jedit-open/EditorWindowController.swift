@@ -578,7 +578,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         case .continuous:
             setupContinuousMode(with: textStorage)
             // lineWrapModeに応じたサイズ設定を適用（setupContinuousModeは常にウィンドウ幅で初期化するため）
-            applyLineWrapMode()
+            // 初期化時はpresetDataを更新しない（読み込んだ設定を保持するため）
+            applyLineWrapMode(updatePresetData: false)
         case .page:
             setupPageMode(with: textStorage)
         }
@@ -1369,9 +1370,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         return CGFloat(fixedWrapWidthInChars) * charWidth
     }
 
-    private func applyLineWrapMode() {
-        // presetData に反映（displayMode に関係なく常に更新）
-        updatePresetDataDocWidth()
+    private func applyLineWrapMode(updatePresetData: Bool = true) {
+        // presetData に反映（メニューからの変更時のみ更新、初期化時は更新しない）
+        if updatePresetData {
+            updatePresetDataDocWidth()
+        }
 
         guard displayMode == .continuous else { return }
 
@@ -1395,6 +1398,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// presetData の Document Width 設定を更新
     private func updatePresetDataDocWidth() {
+        syncDocWidthToPresetData()
+        markDocumentAsEdited()
+    }
+
+    /// 現在の Document Width 設定を presetData に同期
+    private func syncDocWidthToPresetData() {
         switch lineWrapMode {
         case .paperWidth:
             textDocument?.presetData?.view.docWidthType = .paperWidth
@@ -1406,7 +1415,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textDocument?.presetData?.view.docWidthType = .fixedWidth
             textDocument?.presetData?.view.fixedDocWidth = fixedWrapWidthInChars
         }
-        markDocumentAsEdited()
     }
 
     /// presetData の変更をマーク（保存時に拡張属性が更新される）
@@ -2999,8 +3007,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         // 固定幅モードの場合、ドキュメントレイアウトを更新
+        // （フォント変更によるレイアウト更新なので、presetDataは更新しない）
         if lineWrapMode == .fixedWidth && displayMode == .continuous {
-            applyLineWrapMode()
+            applyLineWrapMode(updatePresetData: false)
         }
 
         // ドキュメントに変更をマーク
