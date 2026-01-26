@@ -110,6 +110,22 @@ class ImageClickableTextView: NSTextView {
         insertText(timeString, replacementRange: selectedRange())
     }
 
+    // MARK: - Font Panel Support
+
+    /// フォントパネルからのフォント変更を処理
+    /// Format > Font メニューやインスペクターバーからのフォント変更に対応
+    @objc override func changeFont(_ sender: Any?) {
+        // BasicFontPanelController がアクティブな場合は処理をスキップ
+        // （Basic Font パネルは独自に処理する）
+        if BasicFontPanelController.shared.isFontPanelActive {
+            return
+        }
+
+        // NSTextView のデフォルト実装を使用
+        // これにより Undo/Redo も自動的にサポートされる
+        super.changeFont(sender)
+    }
+
     // MARK: - Menu Validation
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {

@@ -26,8 +26,14 @@ class BasicFontPanelController: NSObject {
     /// 現在のターゲットウィンドウコントローラ
     private weak var targetWindowController: EditorWindowController?
 
-    /// フォントパネルがアクティブかどうか
-    private var isFontPanelActive: Bool = false
+    /// フォントパネルがアクティブかどうか（Basic Font パネル用）
+    private(set) var isFontPanelActive: Bool = false
+
+    /// フォントパネルで選択中のフォント（パネルが閉じられた時に適用される）
+    private var pendingFont: NSFont?
+
+    /// フォントパネル閉鎖の監視用
+    private var fontPanelObserver: Any?
 
     // MARK: - Initialization
 
@@ -51,12 +57,75 @@ class BasicFontPanelController: NSObject {
         fontManager.target = self
         fontManager.action = #selector(changeFont(_:))
 
-        // 現在のフォントをセット
-        fontManager.setSelectedFont(currentFont, isMultiple: false)
+        // pending font をクリア
+        pendingFont = nil
 
         // フォントパネルを表示
         isFontPanelActive = true
         fontManager.orderFrontFontPanel(self)
+
+        // フォントパネル表示後にフォントを設定（表示後でないと反映されない場合がある）
+        let fontPanel = NSFontPanel.shared
+        fontPanel.setPanelFont(currentFont, isMultiple: false)
+
+        // フォントパネルが閉じられた時の監視を開始
+        startObservingFontPanel()
+    }
+
+    /// フォントパネルの閉鎖を監視開始
+    private func startObservingFontPanel() {
+        // 既存の監視を解除
+        stopObservingFontPanel()
+
+        // NSWindow の willClose 通知を監視
+        fontPanelObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.willCloseNotification,
+            object: NSFontPanel.shared,
+            queue: .main
+        ) { [weak self] _ in
+            self?.fontPanelWillClose()
+        }
+    }
+
+    /// フォントパネルの監視を停止
+    private func stopObservingFontPanel() {
+        if let observer = fontPanelObserver {
+            NotificationCenter.default.removeObserver(observer)
+            fontPanelObserver = nil
+        }
+    }
+
+    /// フォントパネルが閉じられた時の処理
+    private func fontPanelWillClose() {
+        guard isFontPanelActive else { return }
+        guard let windowController = targetWindowController else { return }
+
+        isFontPanelActive = false
+        stopObservingFontPanel()
+
+        // NSFontManager のターゲットをリセットして通常のフォント変更が機能するようにする
+        let fontManager = NSFontManager.shared
+        fontManager.target = nil
+        
+        // pending font があれば適用
+        if let font = pendingFont {
+            // ドキュメントのプリセットデータを更新
+            updateBasicFont(font, for: windowController)
+
+            // 通知を送信
+            NotificationCenter.default.post(
+                name: BasicFontPanelController.basicFontDidChangeNotification,
+                object: windowController,
+                userInfo: ["font": font]
+            )
+
+            // 更新されたBasic Font情報パネルを表示
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.showBasicFontInfo(for: windowController, font: font)
+            }
+        }
+
+        pendingFont = nil
     }
 
     /// 現在の Basic Font と Basic Character Width を表示するアラートを表示
@@ -128,36 +197,29 @@ class BasicFontPanelController: NSObject {
     // MARK: - Font Panel Delegate
 
     /// フォントパネルからフォントが変更された時
+    /// フォントパネルが開いている間は pending font として保持し、
+    /// パネルが閉じられた時に適用する
     @objc func changeFont(_ sender: Any?) {
         guard isFontPanelActive else { return }
         guard let fontManager = sender as? NSFontManager else { return }
-        guard let windowController = targetWindowController else { return }
 
-        // 現在のフォントを取得
-        let currentFont = getCurrentBasicFont(from: windowController)
+        // 現在のフォントを基準に新しいフォントを取得
+        // pending font があればそれを基準にする（連続変更に対応）
+        let baseFont = pendingFont ?? getCurrentBasicFont(from: targetWindowController)
 
         // 新しいフォントに変換
-        let newFont = fontManager.convert(currentFont)
+        let newFont = fontManager.convert(baseFont)
 
-        // ドキュメントのプリセットデータを更新
-        updateBasicFont(newFont, for: windowController)
+        // pending font として保持（パネルが閉じられた時に適用される）
+        pendingFont = newFont
+    }
 
-        // 通知を送信
-        NotificationCenter.default.post(
-            name: BasicFontPanelController.basicFontDidChangeNotification,
-            object: windowController,
-            userInfo: ["font": newFont]
-        )
-
-        // フォントパネルを閉じて、更新されたBasic Font情報パネルを再表示
-        NSFontPanel.shared.orderOut(nil)
-        isFontPanelActive = false
-
-        // 少し遅延させてパネルを再表示（フォントパネルが閉じるのを待つ）
-        // 新しいフォントを直接渡して表示
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-            self?.showBasicFontInfo(for: windowController, font: newFont)
+    /// ウィンドウコントローラから現在のフォントを取得（nil許容版）
+    private func getCurrentBasicFont(from windowController: EditorWindowController?) -> NSFont {
+        guard let windowController = windowController else {
+            return NSFont.systemFont(ofSize: 14)
         }
+        return getCurrentBasicFont(from: windowController)
     }
 
     /// Basic Font を更新
@@ -169,6 +231,9 @@ class BasicFontPanelController: NSObject {
             document.presetData?.fontAndColors.baseFontName = font.fontName
             document.presetData?.fontAndColors.baseFontSize = font.pointSize
         }
+
+        // presetDataEdited フラグを立てる（ウィンドウタイトルに「Edited」は表示されない）
+        document.presetDataEdited = true
 
         // ウィンドウコントローラにレイアウト更新を依頼
         windowController.basicFontDidChange(font)
