@@ -39,6 +39,9 @@ class Document: NSDocument {
 
     /// presetData が変更されたかどうか（保存時に拡張属性を更新するためのフラグ）
     var presetDataEdited: Bool = false
+
+    /// フォントフォールバック復帰用のDelegate
+    private var fontFallbackRecoveryDelegate: FontFallbackRecoveryDelegate?
     
 
 
@@ -46,6 +49,13 @@ class Document: NSDocument {
 
     override init() {
         super.init()
+        setupFontFallbackRecoveryDelegate()
+    }
+
+    /// フォントフォールバック復帰Delegateをセットアップ
+    private func setupFontFallbackRecoveryDelegate() {
+        fontFallbackRecoveryDelegate = FontFallbackRecoveryDelegate(document: self)
+        textStorage.delegate = fontFallbackRecoveryDelegate
     }
 
     override nonisolated class var autosavesInPlace: Bool {

@@ -68,6 +68,49 @@ func basicCharWidth(from basicFont: NSFont) -> CGFloat {
     return averageCharWidth(font: basicFont)
 }
 
+// MARK: - Latin Character Detection
+
+/// 文字がLatin文字（欧文）かどうかを判定
+/// Basic Latin (U+0000-U+007F) と Latin-1 Supplement (U+0080-U+00FF) を含む
+/// - Parameter character: 判定対象の文字
+/// - Returns: Latin文字の場合true
+func isLatinCharacter(_ character: Character) -> Bool {
+    guard let scalar = character.unicodeScalars.first else { return false }
+    // Basic Latin + Latin-1 Supplement
+    return scalar.value <= 0x00FF
+}
+
+/// 文字列がすべてLatin文字かどうかを判定
+/// - Parameter string: 判定対象の文字列
+/// - Returns: すべてLatin文字の場合true、空文字列の場合もtrue
+func isAllLatinCharacters(_ string: String) -> Bool {
+    guard !string.isEmpty else { return true }
+    return string.allSatisfy { isLatinCharacter($0) }
+}
+
+/// フォントが指定した文字をネイティブにサポートしているか（フォールバックなしで）判定
+/// - Parameters:
+///   - font: 判定対象のフォント
+///   - character: テスト対象の文字
+/// - Returns: フォントがその文字のグリフを持っていればtrue
+func fontSupportsCharacter(_ font: NSFont, character: Character) -> Bool {
+    let ctFont = font as CTFont
+    let utf16 = Array(String(character).utf16)
+    var glyphs = Array(repeating: CGGlyph(0), count: utf16.count)
+    let hasGlyphs = CTFontGetGlyphsForCharacters(ctFont, utf16, &glyphs, utf16.count)
+    return hasGlyphs && glyphs.allSatisfy { $0 != 0 }
+}
+
+/// フォントがLatin文字をサポートしているかどうかをチェック
+/// - Parameter font: チェック対象のフォント
+/// - Returns: Latin文字をサポートしていればtrue
+func fontSupportsLatin(_ font: NSFont) -> Bool {
+    // 代表的なLatin文字でテスト
+    return fontSupportsCharacter(font, character: "A") &&
+           fontSupportsCharacter(font, character: "a") &&
+           fontSupportsCharacter(font, character: "0")
+}
+
 // MARK: - Custom Ruler Unit
 
 /// カスタムルーラー単位名
