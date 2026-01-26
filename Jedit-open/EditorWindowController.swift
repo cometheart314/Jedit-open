@@ -347,11 +347,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             setupTextViews(with: textStorage)
         }
 
-        // setupTextViews後にタブ幅を適用（ポイントモードの場合のみ）
-        // スペースモードではタブキー押下時にスペース文字を挿入するため、タブ幅は変更しない
-        if formatData.tabWidthUnit == .points {
-            applyTabWidth(formatData.tabWidthPoints)
-        }
+        // setupTextViews後にパラグラフスタイル（タブ幅、行間、段落間隔）を適用
+        // スペースモードではタブ幅はデフォルト値を使用
+        let tabWidthPoints = formatData.tabWidthUnit == .points ? formatData.tabWidthPoints : 28.0
+        applyParagraphStyle(
+            tabWidthPoints: tabWidthPoints,
+            interLineSpacing: formatData.interLineSpacing,
+            paragraphSpacingBefore: formatData.paragraphSpacingBefore,
+            paragraphSpacingAfter: formatData.paragraphSpacingAfter,
+            lineHeightMultiple: formatData.lineHeightMultiple,
+            lineHeightMinimum: formatData.lineHeightMinimum,
+            lineHeightMaximum: formatData.lineHeightMaximum
+        )
 
         // setupTextViews後にルーラー設定を適用（単位設定を含む）
         updateRulerVisibility()
@@ -435,11 +442,52 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// タブ幅をテキストビューに適用
     private func applyTabWidth(_ tabWidthPoints: CGFloat) {
+        // presetDataから行間・段落間隔を取得してapplyParagraphStyleを呼び出す
+        let format = textDocument?.presetData?.format
+        let interLineSpacing = format?.interLineSpacing ?? 0
+        let paragraphSpacingBefore = format?.paragraphSpacingBefore ?? 0
+        let paragraphSpacingAfter = format?.paragraphSpacingAfter ?? 0
+        let lineHeightMultiple = format?.lineHeightMultiple ?? 1.0
+        let lineHeightMinimum = format?.lineHeightMinimum ?? 0
+        let lineHeightMaximum = format?.lineHeightMaximum ?? 0
+        applyParagraphStyle(
+            tabWidthPoints: tabWidthPoints,
+            interLineSpacing: interLineSpacing,
+            paragraphSpacingBefore: paragraphSpacingBefore,
+            paragraphSpacingAfter: paragraphSpacingAfter,
+            lineHeightMultiple: lineHeightMultiple,
+            lineHeightMinimum: lineHeightMinimum,
+            lineHeightMaximum: lineHeightMaximum
+        )
+    }
+
+    /// パラグラフスタイル（タブ幅、行間、段落間隔）をテキストビューに適用
+    /// applyToExistingText: 既存テキストにも適用するかどうか（Line Spacingパネルからの変更時はfalse）
+    private func applyParagraphStyle(
+        tabWidthPoints: CGFloat,
+        interLineSpacing: CGFloat,
+        paragraphSpacingBefore: CGFloat,
+        paragraphSpacingAfter: CGFloat,
+        lineHeightMultiple: CGFloat = 1.0,
+        lineHeightMinimum: CGFloat = 0,
+        lineHeightMaximum: CGFloat = 0,
+        applyToExistingText: Bool = true
+    ) {
         // デフォルトのパラグラフスタイルを作成
         let defaultParagraphStyle = NSMutableParagraphStyle()
         defaultParagraphStyle.defaultTabInterval = tabWidthPoints
         // タブストップをクリア（defaultTabIntervalを使用するため）
         defaultParagraphStyle.tabStops = []
+        // 行の高さの倍率
+        defaultParagraphStyle.lineHeightMultiple = lineHeightMultiple
+        // 最小・最大行高
+        defaultParagraphStyle.minimumLineHeight = lineHeightMinimum
+        defaultParagraphStyle.maximumLineHeight = lineHeightMaximum
+        // 行間（行の高さの倍率ではなく、追加の間隔）
+        defaultParagraphStyle.lineSpacing = interLineSpacing
+        // 段落前後の間隔
+        defaultParagraphStyle.paragraphSpacingBefore = paragraphSpacingBefore
+        defaultParagraphStyle.paragraphSpacing = paragraphSpacingAfter
 
         // Continuous モードの場合
         if let scrollView = scrollView1,
@@ -473,8 +521,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.typingAttributes = typingAttrs
         }
 
-        // 既存のテキストにもタブ幅を適用（既存のパラグラフスタイルを保持しつつタブ幅のみ更新）
-        if let textStorage = textDocument?.textStorage, textStorage.length > 0 {
+        // 既存のテキストにもパラグラフスタイルを適用（既存のスタイルを保持しつつ設定を更新）
+        // applyToExistingTextがfalseの場合はスキップ（Undo対応の別メソッドで適用する）
+        if applyToExistingText, let textStorage = textDocument?.textStorage, textStorage.length > 0 {
             textStorage.beginEditing()
             textStorage.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: textStorage.length), options: []) { value, range, _ in
                 let newStyle: NSMutableParagraphStyle
@@ -485,6 +534,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 }
                 newStyle.defaultTabInterval = tabWidthPoints
                 newStyle.tabStops = []
+                newStyle.lineHeightMultiple = lineHeightMultiple
+                newStyle.minimumLineHeight = lineHeightMinimum
+                newStyle.maximumLineHeight = lineHeightMaximum
+                newStyle.lineSpacing = interLineSpacing
+                newStyle.paragraphSpacingBefore = paragraphSpacingBefore
+                newStyle.paragraphSpacing = paragraphSpacingAfter
                 textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
             }
             textStorage.endEditing()
@@ -3161,6 +3216,257 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             newStyle.defaultTabInterval = tabWidthPoints
             newStyle.tabStops = []
             textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
+        }
+        textStorage.endEditing()
+    }
+
+    // MARK: - Line Spacing
+
+    /// Line Spacingパネルのインスタンス
+    private lazy var lineSpacingPanel = LineSpacingPanel()
+
+    /// Format > Text > Line Spacing... メニューアクション
+    @IBAction func showLineSpacingPanel(_ sender: Any?) {
+        guard let window = self.window,
+              let presetData = textDocument?.presetData else { return }
+
+        // 現在の値を取得（選択範囲があればその範囲の値を使用）
+        var currentData = LineSpacingPanel.LineSpacingData(
+            lineHeightMultiple: presetData.format.lineHeightMultiple,
+            lineHeightMinimum: presetData.format.lineHeightMinimum,
+            lineHeightMaximum: presetData.format.lineHeightMaximum,
+            interLineSpacing: presetData.format.interLineSpacing,
+            paragraphSpacingBefore: presetData.format.paragraphSpacingBefore,
+            paragraphSpacingAfter: presetData.format.paragraphSpacingAfter
+        )
+
+        // RTFで選択範囲がある場合、選択範囲のパラグラフスタイルから値を取得
+        let isPlainText = textDocument?.documentType == .plain
+        if !isPlainText,
+           let textView = currentTextView(),
+           let textStorage = textDocument?.textStorage,
+           textStorage.length > 0 {
+            let selectedRange = textView.selectedRange()
+            if selectedRange.length > 0 {
+                // 選択範囲の先頭のパラグラフスタイルを取得
+                let checkLocation = min(selectedRange.location, textStorage.length - 1)
+                if let paragraphStyle = textStorage.attribute(.paragraphStyle, at: checkLocation, effectiveRange: nil) as? NSParagraphStyle {
+                    currentData = LineSpacingPanel.LineSpacingData(
+                        lineHeightMultiple: paragraphStyle.lineHeightMultiple,
+                        lineHeightMinimum: paragraphStyle.minimumLineHeight,
+                        lineHeightMaximum: paragraphStyle.maximumLineHeight,
+                        interLineSpacing: paragraphStyle.lineSpacing,
+                        paragraphSpacingBefore: paragraphStyle.paragraphSpacingBefore,
+                        paragraphSpacingAfter: paragraphStyle.paragraphSpacing
+                    )
+                }
+            }
+        }
+
+        lineSpacingPanel.beginSheet(
+            for: window,
+            currentData: currentData
+        ) { [weak self] newData in
+            guard let self = self,
+                  let newData = newData else { return }
+
+            let isPlainText = self.textDocument?.documentType == .plain
+
+            if isPlainText {
+                // プレーンテキストの場合：presetDataを更新し、全文に適用
+                self.textDocument?.presetData?.format.lineHeightMultiple = newData.lineHeightMultiple
+                self.textDocument?.presetData?.format.lineHeightMinimum = newData.lineHeightMinimum
+                self.textDocument?.presetData?.format.lineHeightMaximum = newData.lineHeightMaximum
+                self.textDocument?.presetData?.format.interLineSpacing = newData.interLineSpacing
+                self.textDocument?.presetData?.format.paragraphSpacingBefore = newData.paragraphSpacingBefore
+                self.textDocument?.presetData?.format.paragraphSpacingAfter = newData.paragraphSpacingAfter
+
+                // デフォルトのパラグラフスタイルを適用（新規入力用のみ、既存テキストはapplyLineSpacingToRangeで適用）
+                let tabWidthPoints = self.textDocument?.presetData?.format.tabWidthPoints ?? 28.0
+                self.applyParagraphStyle(
+                    tabWidthPoints: tabWidthPoints,
+                    interLineSpacing: newData.interLineSpacing,
+                    paragraphSpacingBefore: newData.paragraphSpacingBefore,
+                    paragraphSpacingAfter: newData.paragraphSpacingAfter,
+                    lineHeightMultiple: newData.lineHeightMultiple,
+                    lineHeightMinimum: newData.lineHeightMinimum,
+                    lineHeightMaximum: newData.lineHeightMaximum,
+                    applyToExistingText: false  // 既存テキストへの適用はapplyLineSpacingToRangeで行う（Undo対応）
+                )
+
+                // 全文にも適用（Undo対応）
+                self.applyLineSpacingToRange(newData, range: nil)
+            } else {
+                // RTFの場合：選択範囲に適用（選択がなければ全文に適用）
+                if let textView = self.currentTextView() {
+                    let selectedRange = textView.selectedRange()
+                    if selectedRange.length > 0 {
+                        // 選択範囲に適用
+                        self.applyLineSpacingToRange(newData, range: selectedRange)
+                    } else {
+                        // 選択がない場合は全文に適用し、presetDataも更新
+                        self.textDocument?.presetData?.format.lineHeightMultiple = newData.lineHeightMultiple
+                        self.textDocument?.presetData?.format.lineHeightMinimum = newData.lineHeightMinimum
+                        self.textDocument?.presetData?.format.lineHeightMaximum = newData.lineHeightMaximum
+                        self.textDocument?.presetData?.format.interLineSpacing = newData.interLineSpacing
+                        self.textDocument?.presetData?.format.paragraphSpacingBefore = newData.paragraphSpacingBefore
+                        self.textDocument?.presetData?.format.paragraphSpacingAfter = newData.paragraphSpacingAfter
+
+                        let tabWidthPoints = self.textDocument?.presetData?.format.tabWidthPoints ?? 28.0
+                        self.applyParagraphStyle(
+                            tabWidthPoints: tabWidthPoints,
+                            interLineSpacing: newData.interLineSpacing,
+                            paragraphSpacingBefore: newData.paragraphSpacingBefore,
+                            paragraphSpacingAfter: newData.paragraphSpacingAfter,
+                            lineHeightMultiple: newData.lineHeightMultiple,
+                            lineHeightMinimum: newData.lineHeightMinimum,
+                            lineHeightMaximum: newData.lineHeightMaximum,
+                            applyToExistingText: false  // 既存テキストへの適用はapplyLineSpacingToRangeで行う（Undo対応）
+                        )
+
+                        self.applyLineSpacingToRange(newData, range: nil)
+                    }
+                }
+            }
+
+            // presetDataの変更をマーク
+            self.textDocument?.presetDataEdited = true
+        }
+    }
+
+    /// 現在アクティブなテキストビューを取得
+    private func currentTextView() -> NSTextView? {
+        // Continuous モードの場合
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView,
+           textView.window?.firstResponder === textView {
+            return textView
+        }
+        if let scrollView = scrollView2,
+           !scrollView.isHidden,
+           let textView = scrollView.documentView as? NSTextView,
+           textView.window?.firstResponder === textView {
+            return textView
+        }
+
+        // Page モードの場合
+        for textView in textViews1 {
+            if textView.window?.firstResponder === textView {
+                return textView
+            }
+        }
+        for textView in textViews2 {
+            if textView.window?.firstResponder === textView {
+                return textView
+            }
+        }
+
+        // どれもfirstResponderでない場合、最初のテキストビューを返す
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            return textView
+        }
+        if !textViews1.isEmpty {
+            return textViews1[0]
+        }
+
+        return nil
+    }
+
+    /// 指定範囲（またはnilで全文）に行間設定を適用（Undo/Redo対応）
+    private func applyLineSpacingToRange(_ data: LineSpacingPanel.LineSpacingData, range: NSRange?) {
+        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
+        guard let textView = currentTextView() else { return }
+        guard let undoManager = textView.undoManager else { return }
+
+        let targetRange = range ?? NSRange(location: 0, length: textStorage.length)
+
+        // Undo登録のため、変更前の属性を保存
+        var oldAttributes: [(range: NSRange, style: NSParagraphStyle)] = []
+        textStorage.enumerateAttribute(.paragraphStyle, in: targetRange, options: []) { value, attrRange, _ in
+            let style: NSParagraphStyle
+            if let existingStyle = value as? NSParagraphStyle {
+                style = existingStyle.copy() as! NSParagraphStyle
+            } else {
+                style = NSParagraphStyle.default
+            }
+            oldAttributes.append((range: attrRange, style: style))
+        }
+
+        // Undoアクションを登録（Undo時にRedoも登録される）
+        undoManager.registerUndo(withTarget: self) { [weak self, oldAttributes, data, targetRange] target in
+            self?.restoreLineSpacing(oldAttributes: oldAttributes, newData: data, range: targetRange)
+        }
+
+        if !undoManager.isUndoing && !undoManager.isRedoing {
+            undoManager.setActionName(NSLocalizedString("Line Spacing", comment: "Undo action name"))
+        }
+
+        // 新しい行間設定を適用
+        textStorage.beginEditing()
+        textStorage.enumerateAttribute(.paragraphStyle, in: targetRange, options: []) { value, attrRange, _ in
+            let newStyle: NSMutableParagraphStyle
+            if let existingStyle = value as? NSParagraphStyle {
+                newStyle = existingStyle.mutableCopy() as! NSMutableParagraphStyle
+            } else {
+                newStyle = NSMutableParagraphStyle()
+            }
+            newStyle.lineHeightMultiple = data.lineHeightMultiple
+            newStyle.minimumLineHeight = data.lineHeightMinimum
+            newStyle.maximumLineHeight = data.lineHeightMaximum
+            newStyle.lineSpacing = data.interLineSpacing
+            newStyle.paragraphSpacingBefore = data.paragraphSpacingBefore
+            newStyle.paragraphSpacing = data.paragraphSpacingAfter
+            textStorage.addAttribute(.paragraphStyle, value: newStyle, range: attrRange)
+        }
+        textStorage.endEditing()
+    }
+
+    /// 行間設定を復元（Undo/Redo用）
+    private func restoreLineSpacing(
+        oldAttributes: [(range: NSRange, style: NSParagraphStyle)],
+        newData: LineSpacingPanel.LineSpacingData,
+        range: NSRange
+    ) {
+        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
+        guard let textView = currentTextView() else { return }
+        guard let undoManager = textView.undoManager else { return }
+
+        // 現在の属性を保存（Redo用）
+        var currentAttributes: [(range: NSRange, style: NSParagraphStyle)] = []
+        let targetRange = NSRange(location: 0, length: min(range.location + range.length, textStorage.length))
+        if targetRange.length > 0 {
+            textStorage.enumerateAttribute(.paragraphStyle, in: range, options: []) { value, attrRange, _ in
+                let style: NSParagraphStyle
+                if let existingStyle = value as? NSParagraphStyle {
+                    style = existingStyle.copy() as! NSParagraphStyle
+                } else {
+                    style = NSParagraphStyle.default
+                }
+                currentAttributes.append((range: attrRange, style: style))
+            }
+        }
+
+        // Redo用のUndoアクションを登録
+        undoManager.registerUndo(withTarget: self) { [weak self, currentAttributes, newData, range] target in
+            self?.restoreLineSpacing(oldAttributes: currentAttributes, newData: newData, range: range)
+        }
+
+        if !undoManager.isUndoing && !undoManager.isRedoing {
+            undoManager.setActionName(NSLocalizedString("Line Spacing", comment: "Undo action name"))
+        }
+
+        // 古い属性を復元
+        textStorage.beginEditing()
+        for attr in oldAttributes {
+            // 範囲がtextStorageの範囲内にあることを確認
+            let safeRange = NSRange(
+                location: attr.range.location,
+                length: min(attr.range.length, textStorage.length - attr.range.location)
+            )
+            if safeRange.length > 0 {
+                textStorage.addAttribute(.paragraphStyle, value: attr.style, range: safeRange)
+            }
         }
         textStorage.endEditing()
     }

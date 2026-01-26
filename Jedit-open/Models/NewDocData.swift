@@ -177,6 +177,9 @@ struct NewDocData: Codable, Equatable {
         var editingDirection: EditingDirection
         var tabWidthPoints: CGFloat  // タブ幅（ポイント単位で内部保存）
         var tabWidthUnit: TabWidthUnit  // タブ幅の表示単位
+        var lineHeightMultiple: CGFloat  // 行の高さの倍率（times）
+        var lineHeightMinimum: CGFloat  // 最小行高（points）
+        var lineHeightMaximum: CGFloat  // 最大行高（points）
         var interLineSpacing: CGFloat
         var paragraphSpacingBefore: CGFloat
         var paragraphSpacingAfter: CGFloat
@@ -228,6 +231,97 @@ struct NewDocData: Codable, Equatable {
             case paragraphs = 5
         }
 
+        // MARK: - Custom Decoder（後方互換性のため）
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+
+            newDocNameType = try container.decode(NewDocNameType.self, forKey: .newDocNameType)
+            richText = try container.decode(Bool.self, forKey: .richText)
+            fileExtension = try container.decode(String.self, forKey: .fileExtension)
+            textEncoding = try container.decode(String.Encoding.RawValue.self, forKey: .textEncoding)
+            lineEndingType = try container.decode(LineEndingType.self, forKey: .lineEndingType)
+            bom = try container.decode(Bool.self, forKey: .bom)
+            editingDirection = try container.decode(EditingDirection.self, forKey: .editingDirection)
+            tabWidthPoints = try container.decode(CGFloat.self, forKey: .tabWidthPoints)
+            tabWidthUnit = try container.decode(TabWidthUnit.self, forKey: .tabWidthUnit)
+
+            // 新しいプロパティ（古いデータにはないのでデフォルト値を使用）
+            lineHeightMultiple = try container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMultiple) ?? 1.0
+            lineHeightMinimum = try container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMinimum) ?? 0
+            lineHeightMaximum = try container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMaximum) ?? 0
+
+            interLineSpacing = try container.decode(CGFloat.self, forKey: .interLineSpacing)
+            paragraphSpacingBefore = try container.decode(CGFloat.self, forKey: .paragraphSpacingBefore)
+            paragraphSpacingAfter = try container.decode(CGFloat.self, forKey: .paragraphSpacingAfter)
+            autoIndent = try container.decode(Bool.self, forKey: .autoIndent)
+            indentWrappedLines = try container.decode(Bool.self, forKey: .indentWrappedLines)
+            wrappedLineIndent = try container.decode(CGFloat.self, forKey: .wrappedLineIndent)
+            wordWrappingType = try container.decode(WordWrappingType.self, forKey: .wordWrappingType)
+            targetSizeType = try container.decode(TargetSizeType.self, forKey: .targetSizeType)
+            minTargetSize = try container.decode(Int.self, forKey: .minTargetSize)
+            maxTargetSize = try container.decode(Int.self, forKey: .maxTargetSize)
+        }
+
+        private enum CodingKeys: String, CodingKey {
+            case newDocNameType, richText, fileExtension, textEncoding, lineEndingType, bom
+            case editingDirection, tabWidthPoints, tabWidthUnit
+            case lineHeightMultiple, lineHeightMinimum, lineHeightMaximum
+            case interLineSpacing, paragraphSpacingBefore, paragraphSpacingAfter
+            case autoIndent, indentWrappedLines, wrappedLineIndent, wordWrappingType
+            case targetSizeType, minTargetSize, maxTargetSize
+        }
+
+        // MARK: - Memberwise Initializer
+
+        init(
+            newDocNameType: NewDocNameType,
+            richText: Bool,
+            fileExtension: String,
+            textEncoding: String.Encoding.RawValue,
+            lineEndingType: LineEndingType,
+            bom: Bool,
+            editingDirection: EditingDirection,
+            tabWidthPoints: CGFloat,
+            tabWidthUnit: TabWidthUnit,
+            lineHeightMultiple: CGFloat,
+            lineHeightMinimum: CGFloat,
+            lineHeightMaximum: CGFloat,
+            interLineSpacing: CGFloat,
+            paragraphSpacingBefore: CGFloat,
+            paragraphSpacingAfter: CGFloat,
+            autoIndent: Bool,
+            indentWrappedLines: Bool,
+            wrappedLineIndent: CGFloat,
+            wordWrappingType: WordWrappingType,
+            targetSizeType: TargetSizeType,
+            minTargetSize: Int,
+            maxTargetSize: Int
+        ) {
+            self.newDocNameType = newDocNameType
+            self.richText = richText
+            self.fileExtension = fileExtension
+            self.textEncoding = textEncoding
+            self.lineEndingType = lineEndingType
+            self.bom = bom
+            self.editingDirection = editingDirection
+            self.tabWidthPoints = tabWidthPoints
+            self.tabWidthUnit = tabWidthUnit
+            self.lineHeightMultiple = lineHeightMultiple
+            self.lineHeightMinimum = lineHeightMinimum
+            self.lineHeightMaximum = lineHeightMaximum
+            self.interLineSpacing = interLineSpacing
+            self.paragraphSpacingBefore = paragraphSpacingBefore
+            self.paragraphSpacingAfter = paragraphSpacingAfter
+            self.autoIndent = autoIndent
+            self.indentWrappedLines = indentWrappedLines
+            self.wrappedLineIndent = wrappedLineIndent
+            self.wordWrappingType = wordWrappingType
+            self.targetSizeType = targetSizeType
+            self.minTargetSize = minTargetSize
+            self.maxTargetSize = maxTargetSize
+        }
+
         static var `default`: FormatData {
             FormatData(
                 newDocNameType: .untitled,
@@ -239,6 +333,9 @@ struct NewDocData: Codable, Equatable {
                 editingDirection: .leftToRight,
                 tabWidthPoints: 32.0,  // 約4スペース分（8pt/スペース × 4）
                 tabWidthUnit: .points,
+                lineHeightMultiple: 1.0,
+                lineHeightMinimum: 0,
+                lineHeightMaximum: 0,
                 interLineSpacing: 0,
                 paragraphSpacingBefore: 0,
                 paragraphSpacingAfter: 0,

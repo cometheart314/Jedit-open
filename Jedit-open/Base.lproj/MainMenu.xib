@@ -869,6 +869,12 @@
                                                 <action selector="showTabWidthPanel:" target="-1" id="tab-width-act"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="Line Spacing..." id="line-spacing-menu">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="showLineSpacingPanel:" target="-1" id="line-spacing-act"/>
+                                            </connections>
+                                        </menuItem>
                                     </items>
                                 </menu>
                             </menuItem>

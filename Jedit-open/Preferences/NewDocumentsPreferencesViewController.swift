@@ -145,6 +145,18 @@ class NewDocumentsPreferencesViewController: NSViewController {
         // Tab Width フィールドのアクションを設定
         tabWidthField?.target = self
         tabWidthField?.action = #selector(tabWidthFieldChanged(_:))
+
+        // Inter-line Spacing フィールドのアクションを設定
+        interLineSpacingField?.target = self
+        interLineSpacingField?.action = #selector(interLineSpacingFieldChanged(_:))
+
+        // Paragraph Spacing Before フィールドのアクションを設定
+        paragraphSpacingBeforeField?.target = self
+        paragraphSpacingBeforeField?.action = #selector(paragraphSpacingBeforeFieldChanged(_:))
+
+        // Paragraph Spacing After フィールドのアクションを設定
+        paragraphSpacingAfterField?.target = self
+        paragraphSpacingAfterField?.action = #selector(paragraphSpacingAfterFieldChanged(_:))
     }
 
     private func setupEncodingPopup() {
@@ -778,13 +790,31 @@ class NewDocumentsPreferencesViewController: NSViewController {
         saveCurrentPreset()
     }
 
+    @objc func interLineSpacingFieldChanged(_ sender: NSTextField) {
+        // フィールドの値をステッパーに反映
+        interLineSpacingStepper?.doubleValue = sender.doubleValue
+        saveCurrentPreset()
+    }
+
     @IBAction func paragraphSpacingBeforeStepperChanged(_ sender: NSStepper) {
         paragraphSpacingBeforeField?.doubleValue = sender.doubleValue
         saveCurrentPreset()
     }
 
+    @objc func paragraphSpacingBeforeFieldChanged(_ sender: NSTextField) {
+        // フィールドの値をステッパーに反映
+        paragraphSpacingBeforeStepper?.doubleValue = sender.doubleValue
+        saveCurrentPreset()
+    }
+
     @IBAction func paragraphSpacingAfterStepperChanged(_ sender: NSStepper) {
         paragraphSpacingAfterField?.doubleValue = sender.doubleValue
+        saveCurrentPreset()
+    }
+
+    @objc func paragraphSpacingAfterFieldChanged(_ sender: NSTextField) {
+        // フィールドの値をステッパーに反映
+        paragraphSpacingAfterStepper?.doubleValue = sender.doubleValue
         saveCurrentPreset()
     }
 
