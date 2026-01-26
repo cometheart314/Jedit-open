@@ -36,6 +36,9 @@ class Document: NSDocument {
 
     /// プリセットから適用されたドキュメント設定データ
     var presetData: NewDocData?
+
+    /// presetData が変更されたかどうか（保存時に拡張属性を更新するためのフラグ）
+    var presetDataEdited: Bool = false
     
 
 
@@ -432,6 +435,54 @@ class Document: NSDocument {
 
             if result != 0 {
                 Swift.print("Failed to write preset data to extended attribute: \(errno)")
+            }
+        } catch {
+            Swift.print("Failed to encode preset data: \(error)")
+        }
+    }
+
+    /// 修正日付を保持したままプリセットデータを拡張属性に書き込む（外部から呼び出し可能）
+    func savePresetDataToExtendedAttribute(at url: URL) {
+        guard let presetData = self.presetData else { return }
+
+        // 現在の修正日付を取得
+        let originalModificationDate: Date?
+        do {
+            let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
+            originalModificationDate = attrs[.modificationDate] as? Date
+        } catch {
+            originalModificationDate = nil
+        }
+
+        do {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(presetData)
+
+            // 拡張属性に書き込む
+            let result = data.withUnsafeBytes { (bytes: UnsafeRawBufferPointer) -> Int32 in
+                return setxattr(
+                    url.path,
+                    Document.presetDataExtendedAttributeKey,
+                    bytes.baseAddress,
+                    data.count,
+                    0,
+                    0
+                )
+            }
+
+            if result != 0 {
+                Swift.print("Failed to write preset data to extended attribute: \(errno)")
+            } else {
+                // 拡張属性の書き込み成功後、修正日付を元に戻す
+                if let originalDate = originalModificationDate {
+                    try? FileManager.default.setAttributes(
+                        [.modificationDate: originalDate],
+                        ofItemAtPath: url.path
+                    )
+                }
+                // フラグをリセット
+                presetDataEdited = false
             }
         } catch {
             Swift.print("Failed to encode preset data: \(error)")

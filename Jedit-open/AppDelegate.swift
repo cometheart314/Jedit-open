@@ -29,7 +29,31 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
-        // Insert code here to tear down your application
+        // 全ての開いているドキュメントの presetData を保存
+        saveAllDocumentsPresetData()
+    }
+
+    /// 全ての開いているドキュメントの presetData を拡張属性に保存
+    private func saveAllDocumentsPresetData() {
+        let documentController = NSDocumentController.shared
+        for document in documentController.documents {
+            guard let doc = document as? Document,
+                  let url = doc.fileURL,
+                  doc.presetData != nil else { continue }
+
+            // ウィンドウフレームを更新
+            if let windowController = doc.windowControllers.first as? EditorWindowController,
+               let window = windowController.window {
+                let frame = window.frame
+                doc.presetData?.view.windowX = frame.origin.x
+                doc.presetData?.view.windowY = frame.origin.y
+                doc.presetData?.view.windowWidth = frame.size.width
+                doc.presetData?.view.windowHeight = frame.size.height
+            }
+
+            // 拡張属性に保存
+            doc.savePresetDataToExtendedAttribute(at: url)
+        }
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {

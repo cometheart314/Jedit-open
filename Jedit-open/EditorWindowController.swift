@@ -107,7 +107,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     override func windowDidLoad() {
         super.windowDidLoad()
-        print("=== windowDidLoad called ===")
 
         // WindowDelegateを設定
         self.window?.delegate = self
@@ -157,6 +156,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             window.contentView?.addObserver(self, forKeyPath: "effectiveAppearance", options: [.new], context: nil)
         }
 
+        // ツールバー可視性変更を監視（KVO）
+        if let toolbar = self.window?.toolbar {
+            toolbar.addObserver(self, forKeyPath: "visible", options: [.new], context: nil)
+        }
+
         // TextStorageを設定
         setupTextStorage()
 
@@ -178,6 +182,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 DispatchQueue.main.async { [weak self] in
                     self?.updateTextColorForAppearance()
                 }
+            }
+        } else if keyPath == "visible" {
+            // ツールバー可視性変更を presetData に反映
+            if let toolbar = object as? NSToolbar {
+                textDocument?.presetData?.view.showToolBar = toolbar.isVisible
+                textDocument?.presetDataEdited = true
             }
         } else {
             super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
@@ -340,6 +350,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // setupTextViews後にルーラー設定を適用（単位設定を含む）
         updateRulerVisibility()
 
+        // setupTextViews後に行番号表示を適用
+        updateLineNumberDisplay()
+
         // setupTextViews後にスケールを再適用（setupTextViewsで上書きされる可能性があるため）
         if let scrollView = scrollView1 {
             scrollView.magnification = viewData.scale
@@ -359,6 +372,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 height: viewData.windowHeight
             )
             window.setFrame(newFrame, display: true)
+
+            // 次のランループで再適用（システムによる上書き対策）
+            DispatchQueue.main.async { [weak self] in
+                guard let window = self?.window else { return }
+                if window.frame != newFrame {
+                    window.setFrame(newFrame, display: true)
+                }
+            }
         }
     }
 
@@ -1131,16 +1152,27 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     @IBAction func zoomIn(_ sender: Any?) {
         scrollView1?.zoomIn()
         scrollView2?.zoomIn()
+        updatePresetDataScale()
     }
 
     @IBAction func zoomOut(_ sender: Any?) {
         scrollView1?.zoomOut()
         scrollView2?.zoomOut()
+        updatePresetDataScale()
     }
 
     @IBAction func resetZoom(_ sender: Any?) {
         scrollView1?.resetZoom()
         scrollView2?.resetZoom()
+        updatePresetDataScale()
+    }
+
+    /// presetData のスケールを更新
+    private func updatePresetDataScale() {
+        if let scale = scrollView1?.magnification {
+            textDocument?.presetData?.view.scale = scale
+            markDocumentAsEdited()
+        }
     }
 
     // MARK: - Split View Actions
@@ -1220,6 +1252,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.updateRulerVisibility()
         }
+
+        // presetData に反映
+        textDocument?.presetData?.view.pageMode = (displayMode == .page)
+        markDocumentAsEdited()
     }
 
     @IBAction func switchToContinuousMode(_ sender: Any?) {
@@ -1231,6 +1267,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.updateRulerVisibility()
         }
+
+        // presetData に反映
+        textDocument?.presetData?.view.pageMode = false
+        markDocumentAsEdited()
     }
 
     @IBAction func switchToPageMode(_ sender: Any?) {
@@ -1246,6 +1286,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.updateRulerVisibility()
         }
+
+        // presetData に反映
+        textDocument.presetData?.view.pageMode = true
+        markDocumentAsEdited()
     }
 
     // MARK: - Line Wrap Mode Actions (for Continuous mode)
@@ -1326,6 +1370,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     private func applyLineWrapMode() {
+        // presetData に反映（displayMode に関係なく常に更新）
+        updatePresetDataDocWidth()
+
         guard displayMode == .continuous else { return }
 
         // ScalingScrollViewのautoAdjustsContainerSizeOnFrameChangeを設定
@@ -1344,6 +1391,28 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let scrollView = scrollView2, !scrollView.isHidden {
             updateTextViewSize(for: scrollView)
         }
+    }
+
+    /// presetData の Document Width 設定を更新
+    private func updatePresetDataDocWidth() {
+        switch lineWrapMode {
+        case .paperWidth:
+            textDocument?.presetData?.view.docWidthType = .paperWidth
+        case .windowWidth:
+            textDocument?.presetData?.view.docWidthType = .windowWidth
+        case .noWrap:
+            textDocument?.presetData?.view.docWidthType = .noWrap
+        case .fixedWidth:
+            textDocument?.presetData?.view.docWidthType = .fixedWidth
+            textDocument?.presetData?.view.fixedDocWidth = fixedWrapWidthInChars
+        }
+        markDocumentAsEdited()
+    }
+
+    /// presetData の変更をマーク（保存時に拡張属性が更新される）
+    /// ウィンドウタイトルに「Edited」は表示されない
+    private func markDocumentAsEdited() {
+        textDocument?.presetDataEdited = true
     }
 
     // MARK: - Line Number Actions
@@ -1401,6 +1470,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView1?.lineNumberMode = lineNumberMode
             pagesView2?.lineNumberMode = lineNumberMode
         }
+
+        // presetData に反映
+        switch lineNumberMode {
+        case .none:
+            textDocument?.presetData?.view.lineNumberType = .none
+        case .paragraph:
+            textDocument?.presetData?.view.lineNumberType = .logical
+        case .row:
+            textDocument?.presetData?.view.lineNumberType = .physical
+        }
+        markDocumentAsEdited()
     }
 
     private func updateLineNumberView(for scrollView: NSScrollView, textView: NSTextView, lineNumberViewRef: inout LineNumberView?, constraintRef: inout NSLayoutConstraint?) {
@@ -1444,36 +1524,52 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     @IBAction func showHideTextRuler(_ sender: Any?) {
         isRulerVisible = !isRulerVisible
         updateRulerVisibility()
+        updatePresetDataRulerType()
     }
 
     @IBAction func setRulerHide(_ sender: Any?) {
         rulerType = .none
         isRulerVisible = false
         updateRulerVisibility()
+        updatePresetDataRulerType()
     }
 
     @IBAction func setRulerPoints(_ sender: Any?) {
         rulerType = .point
         isRulerVisible = true
         updateRulerVisibility()
+        updatePresetDataRulerType()
     }
 
     @IBAction func setRulerCentimeters(_ sender: Any?) {
         rulerType = .centimeter
         isRulerVisible = true
         updateRulerVisibility()
+        updatePresetDataRulerType()
     }
 
     @IBAction func setRulerInches(_ sender: Any?) {
         rulerType = .inch
         isRulerVisible = true
         updateRulerVisibility()
+        updatePresetDataRulerType()
     }
 
     @IBAction func setRulerCharacters(_ sender: Any?) {
         rulerType = .character
         isRulerVisible = true
         updateRulerVisibility()
+        updatePresetDataRulerType()
+    }
+
+    /// presetData のルーラータイプを更新
+    private func updatePresetDataRulerType() {
+        if isRulerVisible {
+            textDocument?.presetData?.view.rulerType = rulerType
+        } else {
+            textDocument?.presetData?.view.rulerType = .none
+        }
+        markDocumentAsEdited()
     }
 
     private func updateRulerVisibility() {
@@ -1888,6 +1984,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 invisibleLayoutManager.invisibleCharacterOptions = invisibleCharacterOptions
             }
         }
+
+        // presetData に反映
+        textDocument?.presetData?.view.showInvisibles = NewDocData.ViewData.ShowInvisibles(from: invisibleCharacterOptions)
+        markDocumentAsEdited()
     }
 
     // MARK: - Layout Orientation Actions
@@ -1895,6 +1995,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     @IBAction func toggleLayoutOrientation(_ sender: Any?) {
         isVerticalLayout = !isVerticalLayout
         applyLayoutOrientation()
+
+        // presetData に反映
+        textDocument?.presetData?.format.editingDirection = isVerticalLayout ? .rightToLeft : .leftToRight
+        markDocumentAsEdited()
     }
 
     private func applyLayoutOrientation() {
@@ -1959,6 +2063,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     @IBAction func toggleInspectorBar(_ sender: Any?) {
         isInspectorBarVisible = !isInspectorBarVisible
         updateInspectorBarVisibility()
+
+        // presetData に反映
+        textDocument?.presetData?.view.showInspectorBar = isInspectorBarVisible
+        markDocumentAsEdited()
     }
 
     private func updateInspectorBarVisibility() {
@@ -2533,6 +2641,25 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     // MARK: - NSWindowDelegate
+
+    func windowWillClose(_ notification: Notification) {
+        // ウィンドウが閉じる前にプリセットデータを保存
+        guard let document = textDocument,
+              let url = document.fileURL,
+              document.presetData != nil else { return }
+
+        // 現在のウィンドウフレームを取得してプリセットデータに反映
+        if let window = self.window {
+            let frame = window.frame
+            document.presetData?.view.windowX = frame.origin.x
+            document.presetData?.view.windowY = frame.origin.y
+            document.presetData?.view.windowWidth = frame.size.width
+            document.presetData?.view.windowHeight = frame.size.height
+        }
+
+        // プリセットデータを拡張属性に保存（修正日付を保持）
+        document.savePresetDataToExtendedAttribute(at: url)
+    }
 
     func windowDidResize(_ notification: Notification) {
         // ウィンドウモードの場合のみテキストビューのサイズを更新
