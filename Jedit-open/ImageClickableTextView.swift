@@ -126,6 +126,42 @@ class ImageClickableTextView: NSTextView {
         super.changeFont(sender)
     }
 
+    // MARK: - Tab Handling
+
+    /// タブキーが押されたときの処理
+    /// タブ幅の単位が "spaces" の場合はスペース文字を挿入
+    override func insertTab(_ sender: Any?) {
+        guard let windowController = window?.windowController as? EditorWindowController,
+              let presetData = windowController.textDocument?.presetData else {
+            super.insertTab(sender)
+            return
+        }
+
+        let tabUnit = presetData.format.tabWidthUnit
+
+        if tabUnit == .spaces {
+            // スペースモード: 指定された数のスペース文字を挿入
+            let spaceCount = Int(presetData.format.tabWidthPoints)
+            let spaces = String(repeating: " ", count: max(1, spaceCount))
+            insertText(spaces, replacementRange: selectedRange())
+        } else {
+            // ポイントモード: 通常のタブ文字を挿入
+            super.insertTab(sender)
+        }
+    }
+
+    // MARK: - Ruler Update Safety
+
+    /// ルーラー更新をオーバーライドして空のtextStorageでのクラッシュを防ぐ
+    override func updateRuler() {
+        // textStorageが空または無効な場合はルーラー更新をスキップ
+        guard let textStorage = textStorage,
+              textStorage.length > 0 else {
+            return
+        }
+        super.updateRuler()
+    }
+
     // MARK: - Menu Validation
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {

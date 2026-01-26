@@ -396,7 +396,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
         preset.data.format.bom = bomCheckbox?.state == .on
         // Editing Direction: tag 0 = Horizontal (Left to Right), tag 1 = Vertical (Right to Left)
         preset.data.format.editingDirection = NewDocData.FormatData.EditingDirection(rawValue: editingDirectionMatrix?.selectedTag() ?? 0) ?? .leftToRight
-        preset.data.format.tabWidthPoints = getTabWidthInPoints()
+        preset.data.format.tabWidthPoints = getTabWidthValue()
         preset.data.format.tabWidthUnit = getSelectedTabWidthUnit()
         preset.data.format.interLineSpacing = CGFloat(interLineSpacingField?.doubleValue ?? 0)
         preset.data.format.paragraphSpacingBefore = CGFloat(paragraphSpacingBeforeField?.doubleValue ?? 0)
@@ -956,49 +956,25 @@ extension NewDocumentsPreferencesViewController: FixedDocWidthMenuDelegate {
 
 extension NewDocumentsPreferencesViewController {
 
-    /// 現在のBase Fontのスペース文字の幅を計算
-    func spaceWidthInPoints() -> CGFloat {
-        let font = NSFont(name: currentBaseFontName, size: currentBaseFontSize)
-            ?? NSFont.systemFont(ofSize: currentBaseFontSize)
-
-        // スペース文字の幅を計算
-        let spaceString = " " as NSString
-        let attributes: [NSAttributedString.Key: Any] = [.font: font]
-        let size = spaceString.size(withAttributes: attributes)
-        return size.width
-    }
-
-    /// ポイントからスペース数に変換（Base Font のスペース文字幅を基準に使用）
-    func pointsToSpaces(_ points: CGFloat) -> CGFloat {
-        let spaceWidth = spaceWidthInPoints()
-        guard spaceWidth > 0 else { return 4 }  // デフォルト値
-        return points / spaceWidth
-    }
-
-    /// スペース数からポイントに変換（Base Font のスペース文字幅を基準に使用）
-    func spacesToPoints(_ spaces: CGFloat) -> CGFloat {
-        return spaces * spaceWidthInPoints()
-    }
-
     /// タブ幅フィールドの表示を更新
     func updateTabWidthDisplay() {
         guard let preset = presetManager.preset(at: selectedPresetIndex) else { return }
-        let tabWidthPoints = preset.data.format.tabWidthPoints
+        let tabWidthValue = preset.data.format.tabWidthPoints
 
         // 保存されている単位をポップアップに反映
         tabWidthUnitPopup?.selectItem(withTag: preset.data.format.tabWidthUnit.rawValue)
 
         let unit = preset.data.format.tabWidthUnit
 
+        // 値をそのまま表示（単位に関係なく保存された値を表示）
         switch unit {
         case .points:
-            tabWidthField?.doubleValue = Double(tabWidthPoints)
-            tabWidthStepper?.integerValue = Int(tabWidthPoints)
+            tabWidthField?.doubleValue = Double(tabWidthValue)
+            tabWidthStepper?.integerValue = Int(tabWidthValue)
         case .spaces:
-            let spaces = pointsToSpaces(tabWidthPoints)
             // spacesの時は整数で表示
-            tabWidthField?.integerValue = Int(round(spaces))
-            tabWidthStepper?.integerValue = Int(round(spaces))
+            tabWidthField?.integerValue = Int(tabWidthValue)
+            tabWidthStepper?.integerValue = Int(tabWidthValue)
         }
 
         // ステッパーの増分を1に設定
@@ -1008,17 +984,10 @@ extension NewDocumentsPreferencesViewController {
         updateTabWidthDescriptionLabel(for: unit)
     }
 
-    /// タブ幅をポイントで取得（フィールドと単位から計算）
-    func getTabWidthInPoints() -> CGFloat {
-        let fieldValue = CGFloat(tabWidthField?.doubleValue ?? 28.0)
-        let unit = NewDocData.FormatData.TabWidthUnit(rawValue: tabWidthUnitPopup?.selectedTag() ?? 0) ?? .points
-
-        switch unit {
-        case .points:
-            return fieldValue
-        case .spaces:
-            return spacesToPoints(fieldValue)
-        }
+    /// タブ幅の値を取得（単位に関係なくフィールドの値をそのまま返す）
+    /// pointsモード: ポイント数、spacesモード: スペース数
+    func getTabWidthValue() -> CGFloat {
+        return CGFloat(tabWidthField?.doubleValue ?? 28.0)
     }
 
     /// 現在選択されているタブ幅単位を取得
@@ -1026,41 +995,22 @@ extension NewDocumentsPreferencesViewController {
         return NewDocData.FormatData.TabWidthUnit(rawValue: tabWidthUnitPopup?.selectedTag() ?? 0) ?? .points
     }
 
-    /// 単位切り替え時: 現在のフィールド値を新しい単位に変換して表示
-    /// previousUnit: 切り替え前の単位（nilの場合は保存されている単位を使用）
+    /// 単位切り替え時: 新しい単位に適したデフォルト値を設定
     func convertAndDisplayTabWidth() {
-        guard let preset = presetManager.preset(at: selectedPresetIndex) else { return }
+        guard presetManager.preset(at: selectedPresetIndex) != nil else { return }
 
-        // 切り替え前の単位を取得（保存されている単位）
-        let previousUnit = preset.data.format.tabWidthUnit
-        // 切り替え後の単位を取得（ポップアップで新しく選択された単位）
         let newUnit = getSelectedTabWidthUnit()
 
-        // 同じ単位なら何もしない
-        guard previousUnit != newUnit else { return }
-
-        // 現在のフィールド値を取得
-        let currentFieldValue = CGFloat(tabWidthField?.doubleValue ?? 28.0)
-
-        // 現在のフィールド値をポイントに変換
-        let tabWidthPoints: CGFloat
-        switch previousUnit {
-        case .points:
-            tabWidthPoints = currentFieldValue
-        case .spaces:
-            tabWidthPoints = spacesToPoints(currentFieldValue)
-        }
-
-        // 新しい単位で表示
+        // 新しい単位に適したデフォルト値を設定
         switch newUnit {
         case .points:
-            tabWidthField?.doubleValue = Double(tabWidthPoints)
-            tabWidthStepper?.integerValue = Int(tabWidthPoints)
+            // pointsモード: デフォルト32pt
+            tabWidthField?.doubleValue = 32.0
+            tabWidthStepper?.integerValue = 32
         case .spaces:
-            let spaces = pointsToSpaces(tabWidthPoints)
-            // spacesの時は整数で表示
-            tabWidthField?.integerValue = Int(round(spaces))
-            tabWidthStepper?.integerValue = Int(round(spaces))
+            // spacesモード: デフォルト4スペース
+            tabWidthField?.integerValue = 4
+            tabWidthStepper?.integerValue = 4
         }
 
         // 説明ラベルを更新

@@ -60,10 +60,19 @@ class InvisibleCharacterLayoutManager: NSLayoutManager {
 
         // 不可視文字の描画が無効なら終了
         guard invisibleCharacterOptions != .none,
-              let textStorage = textStorage else { return }
+              let textStorage = textStorage,
+              textStorage.length > 0 else { return }
 
         let string = textStorage.string as NSString
+
+        // 文字列が空の場合は終了
+        guard string.length > 0 else { return }
+
         let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
+
+        // 範囲チェック
+        guard charRange.location != NSNotFound,
+              charRange.location + charRange.length <= string.length else { return }
 
         // 文字範囲をスキャン
         for charIndex in charRange.location..<(charRange.location + charRange.length) {

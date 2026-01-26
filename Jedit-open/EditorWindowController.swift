@@ -347,8 +347,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             setupTextViews(with: textStorage)
         }
 
-        // setupTextViews後にタブ幅を適用
-        applyTabWidth(formatData.tabWidthPoints)
+        // setupTextViews後にタブ幅を適用（ポイントモードの場合のみ）
+        // スペースモードではタブキー押下時にスペース文字を挿入するため、タブ幅は変更しない
+        if formatData.tabWidthUnit == .points {
+            applyTabWidth(formatData.tabWidthPoints)
+        }
 
         // setupTextViews後にルーラー設定を適用（単位設定を含む）
         updateRulerVisibility()
@@ -3099,6 +3102,67 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// 現在の Basic Character Width を取得
     func currentBasicCharWidth() -> CGFloat {
         return basicCharWidth(from: currentBasicFont())
+    }
+
+    // MARK: - Tab Width
+
+    /// Tab Widthパネルのインスタンス
+    private lazy var tabWidthPanel = TabWidthPanel()
+
+    /// Format > Text > Tab Width... メニューアクション
+    @IBAction func showTabWidthPanel(_ sender: Any?) {
+        guard let window = self.window,
+              let presetData = textDocument?.presetData else { return }
+
+        let currentValue = presetData.format.tabWidthPoints
+        let currentUnit = presetData.format.tabWidthUnit
+
+        tabWidthPanel.beginSheet(
+            for: window,
+            currentValue: currentValue,
+            currentUnit: currentUnit
+        ) { [weak self] newValue, newUnit in
+            guard let self = self,
+                  let newValue = newValue,
+                  let newUnit = newUnit else { return }
+
+            // presetDataを更新
+            self.textDocument?.presetData?.format.tabWidthPoints = newValue
+            self.textDocument?.presetData?.format.tabWidthUnit = newUnit
+
+            // ポイントモードの場合のみタブ幅を適用
+            // スペースモードではタブキー押下時にスペース文字を挿入するため、タブ幅は変更しない
+            if newUnit == .points {
+                self.applyTabWidth(newValue)
+
+                // プレーンテキストの場合、全文にタブ幅を適用
+                if self.textDocument?.documentType == .plain {
+                    self.applyTabWidthToAllText(newValue)
+                }
+            }
+
+            // presetDataの変更をマーク
+            self.textDocument?.presetDataEdited = true
+        }
+    }
+
+    /// 全文にタブ幅を適用（プレーンテキスト用）
+    private func applyTabWidthToAllText(_ tabWidthPoints: CGFloat) {
+        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
+
+        textStorage.beginEditing()
+        textStorage.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: textStorage.length), options: []) { value, range, _ in
+            let newStyle: NSMutableParagraphStyle
+            if let existingStyle = value as? NSParagraphStyle {
+                newStyle = existingStyle.mutableCopy() as! NSMutableParagraphStyle
+            } else {
+                newStyle = NSMutableParagraphStyle()
+            }
+            newStyle.defaultTabInterval = tabWidthPoints
+            newStyle.tabStops = []
+            textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
+        }
+        textStorage.endEditing()
     }
 }
 

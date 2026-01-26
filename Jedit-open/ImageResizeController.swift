@@ -38,7 +38,9 @@ class ImageResizeController: NSObject {
     func handleClick(in textView: NSTextView, at point: NSPoint) -> Bool {
         // Get character index at the click point
         guard let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
+              let textContainer = textView.textContainer,
+              let textStorage = textView.textStorage,
+              textStorage.length > 0 else {
             return false
         }
 
@@ -57,8 +59,7 @@ class ImageResizeController: NSObject {
         let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
 
         // Check if there's an attachment at this character index
-        guard let textStorage = textView.textStorage,
-              charIndex < textStorage.length else {
+        guard charIndex < textStorage.length else {
             return false
         }
 

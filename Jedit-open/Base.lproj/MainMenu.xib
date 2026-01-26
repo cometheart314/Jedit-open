@@ -862,6 +862,13 @@
                                                 <action selector="pasteRuler:" target="-1" id="cSh-wd-qM2"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem isSeparatorItem="YES" id="tab-width-sep"/>
+                                        <menuItem title="Tab Width..." id="tab-width-menu">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="showTabWidthPanel:" target="-1" id="tab-width-act"/>
+                                            </connections>
+                                        </menuItem>
                                     </items>
                                 </menu>
                             </menuItem>
