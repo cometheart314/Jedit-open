@@ -539,12 +539,28 @@ class Document: NSDocument {
                     // Note: プリセットデータのdocumentType設定は読み込んだファイルのタイプを優先する
                     // （ファイル自体のフォーマットが正）
                 }
+                // プレーンテキストの場合はBasic Fontを適用
+                self.applyBasicFontIfPlainText()
             }
         } else {
             // 拡張属性がない場合は、ファイルタイプに応じたデフォルトのNewDocDataを設定
             MainActor.assumeIsolated {
                 self.presetData = self.createDefaultPresetDataForCurrentDocumentType()
+                // プレーンテキストの場合はBasic Fontを適用
+                self.applyBasicFontIfPlainText()
             }
+        }
+    }
+
+    /// プレーンテキストの場合、全文にBasic Fontを適用
+    private func applyBasicFontIfPlainText() {
+        guard documentType == .plain else { return }
+        guard let presetData = self.presetData else { return }
+
+        let fontData = presetData.fontAndColors
+        if let basicFont = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+            let range = NSRange(location: 0, length: textStorage.length)
+            textStorage.addAttribute(.font, value: basicFont, range: range)
         }
     }
 

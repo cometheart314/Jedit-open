@@ -347,6 +347,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             setupTextViews(with: textStorage)
         }
 
+        // setupTextViews後にタブ幅を適用
+        applyTabWidth(formatData.tabWidthPoints)
+
         // setupTextViews後にルーラー設定を適用（単位設定を含む）
         updateRulerVisibility()
 
@@ -424,6 +427,64 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
         for textView in textViews2 {
             textView.font = font
+        }
+    }
+
+    /// タブ幅をテキストビューに適用
+    private func applyTabWidth(_ tabWidthPoints: CGFloat) {
+        // デフォルトのパラグラフスタイルを作成
+        let defaultParagraphStyle = NSMutableParagraphStyle()
+        defaultParagraphStyle.defaultTabInterval = tabWidthPoints
+        // タブストップをクリア（defaultTabIntervalを使用するため）
+        defaultParagraphStyle.tabStops = []
+
+        // Continuous モードの場合
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.defaultParagraphStyle = defaultParagraphStyle
+            // typingAttributesにもパラグラフスタイルを設定
+            var typingAttrs = textView.typingAttributes
+            typingAttrs[.paragraphStyle] = defaultParagraphStyle
+            textView.typingAttributes = typingAttrs
+        }
+        if let scrollView = scrollView2,
+           !scrollView.isHidden,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.defaultParagraphStyle = defaultParagraphStyle
+            var typingAttrs = textView.typingAttributes
+            typingAttrs[.paragraphStyle] = defaultParagraphStyle
+            textView.typingAttributes = typingAttrs
+        }
+
+        // Page モードの場合
+        for textView in textViews1 {
+            textView.defaultParagraphStyle = defaultParagraphStyle
+            var typingAttrs = textView.typingAttributes
+            typingAttrs[.paragraphStyle] = defaultParagraphStyle
+            textView.typingAttributes = typingAttrs
+        }
+        for textView in textViews2 {
+            textView.defaultParagraphStyle = defaultParagraphStyle
+            var typingAttrs = textView.typingAttributes
+            typingAttrs[.paragraphStyle] = defaultParagraphStyle
+            textView.typingAttributes = typingAttrs
+        }
+
+        // 既存のテキストにもタブ幅を適用（既存のパラグラフスタイルを保持しつつタブ幅のみ更新）
+        if let textStorage = textDocument?.textStorage, textStorage.length > 0 {
+            textStorage.beginEditing()
+            textStorage.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: textStorage.length), options: []) { value, range, _ in
+                let newStyle: NSMutableParagraphStyle
+                if let existingStyle = value as? NSParagraphStyle {
+                    newStyle = existingStyle.mutableCopy() as! NSMutableParagraphStyle
+                } else {
+                    newStyle = NSMutableParagraphStyle()
+                }
+                newStyle.defaultTabInterval = tabWidthPoints
+                newStyle.tabStops = []
+                textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
+            }
+            textStorage.endEditing()
         }
     }
 
@@ -2997,6 +3058,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     func basicFontDidChange(_ font: NSFont) {
         // 文字幅を再計算
         let charWidth = basicCharWidth(from: font)
+
+        // プレーンテキストの場合、全文にBasic Fontを適用
+        if textDocument?.documentType == .plain {
+            if let textStorage = textDocument?.textStorage {
+                let range = NSRange(location: 0, length: textStorage.length)
+                textStorage.addAttribute(.font, value: font, range: range)
+            }
+        }
 
         // ルーラーの単位を更新（character単位の場合）
         if rulerType == .character {

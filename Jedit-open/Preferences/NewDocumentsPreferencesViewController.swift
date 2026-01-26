@@ -138,6 +138,13 @@ class NewDocumentsPreferencesViewController: NSViewController {
         setupDocWidthMenu()
         setupEncodingPopup()
         setupHeaderFooterRulers()
+        setupTextFieldActions()
+    }
+
+    private func setupTextFieldActions() {
+        // Tab Width フィールドのアクションを設定
+        tabWidthField?.target = self
+        tabWidthField?.action = #selector(tabWidthFieldChanged(_:))
     }
 
     private func setupEncodingPopup() {
@@ -757,6 +764,12 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBAction func tabWidthStepperChanged(_ sender: NSStepper) {
         // ステッパーの値をフィールドに反映
         tabWidthField?.integerValue = sender.integerValue
+        saveCurrentPreset()
+    }
+
+    @IBAction func tabWidthFieldChanged(_ sender: NSTextField) {
+        // フィールドの値をステッパーに反映
+        tabWidthStepper?.integerValue = sender.integerValue
         saveCurrentPreset()
     }
 
