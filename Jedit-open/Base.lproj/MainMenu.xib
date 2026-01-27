@@ -885,6 +885,19 @@
                                     <action selector="toggleLayoutOrientation:" target="-1" id="lay-or-act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="auto-ind-sep"/>
+                            <menuItem title="Auto Indent" id="auto-ind-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleAutoIndent:" target="-1" id="auto-ind-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Wrapped Line Indent..." id="wrap-ind-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showWrappedLineIndentPanel:" target="-1" id="wrap-ind-act"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

@@ -1055,6 +1055,9 @@
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="smallSystem"/>
                                         </buttonCell>
+                                        <connections>
+                                            <action selector="indentWrappedLinesCheckboxChanged:" target="-2" id="iwl-act-001"/>
+                                        </connections>
                                     </button>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fAa-3F-WrF">
                                         <rect key="frame" x="253" y="166" width="39" height="19"/>

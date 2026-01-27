@@ -2767,6 +2767,22 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             menuItem.title = String(format: NSLocalizedString("Fixed Width (%dchars.)...", comment: ""), fixedWrapWidthInChars)
         }
 
+        // Auto Indent menu item validation
+        if menuItem.action == #selector(toggleAutoIndent(_:)) {
+            if let presetData = textDocument?.presetData {
+                menuItem.state = presetData.format.autoIndent ? .on : .off
+            } else {
+                menuItem.state = .off
+            }
+        }
+
+        // Wrapped Line Indent menu item validation (Plain Text only)
+        if menuItem.action == #selector(showWrappedLineIndentPanel(_:)) {
+            // プレーンテキストの時だけ有効
+            let isPlainText = textDocument?.documentType == .plain
+            return isPlainText
+        }
+
         return true
     }
 
@@ -3469,6 +3485,141 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
         textStorage.endEditing()
+    }
+
+    // MARK: - Auto Indent
+
+    /// Format > Auto Indent メニューアクション
+    @IBAction func toggleAutoIndent(_ sender: Any?) {
+        guard let presetData = textDocument?.presetData else { return }
+
+        // トグル
+        let newValue = !presetData.format.autoIndent
+        textDocument?.presetData?.format.autoIndent = newValue
+
+        // presetDataの変更をマーク
+        textDocument?.presetDataEdited = true
+
+        // 設定との同期
+        syncAutoIndentToPreferences(newValue)
+    }
+
+    /// Auto Indent メニューの状態を検証
+    func validateAutoIndentMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        guard let presetData = textDocument?.presetData else { return false }
+        menuItem.state = presetData.format.autoIndent ? .on : .off
+        return true
+    }
+
+    /// Auto Indent 設定をプリファレンスに同期
+    private func syncAutoIndentToPreferences(_ enabled: Bool) {
+        // 現在選択されているプリセットの autoIndent を更新
+        let presetManager = DocumentPresetManager.shared
+        if let selectedID = presetManager.selectedPresetID,
+           let index = presetManager.presets.firstIndex(where: { $0.id == selectedID }) {
+            var preset = presetManager.presets[index]
+            preset.data.format.autoIndent = enabled
+            presetManager.updatePreset(preset)
+        }
+    }
+
+    // MARK: - Wrapped Line Indent
+
+    /// Wrapped Line Indent パネルのインスタンス
+    private lazy var wrappedLineIndentPanel = WrappedLineIndentPanel()
+
+    /// Format > Wrapped Line Indent... メニューアクション
+    @IBAction func showWrappedLineIndentPanel(_ sender: Any?) {
+        guard let window = self.window,
+              let presetData = textDocument?.presetData else { return }
+
+        let currentEnabled = presetData.format.indentWrappedLines
+        let currentValue = presetData.format.wrappedLineIndent
+
+        wrappedLineIndentPanel.beginSheet(
+            for: window,
+            enabled: currentEnabled,
+            indentValue: currentValue
+        ) { [weak self] newEnabled, newValue in
+            guard let self = self else { return }
+
+            // presetData を更新
+            self.textDocument?.presetData?.format.indentWrappedLines = newEnabled
+            self.textDocument?.presetData?.format.wrappedLineIndent = newValue
+
+            // wrapped line indent を適用
+            self.applyWrappedLineIndent(enabled: newEnabled, indent: newValue)
+
+            // presetData の変更をマーク
+            self.textDocument?.presetDataEdited = true
+
+            // 設定との同期
+            self.syncWrappedLineIndentToPreferences(enabled: newEnabled, indent: newValue)
+        }
+    }
+
+    /// Wrapped Line Indent を適用
+    private func applyWrappedLineIndent(enabled: Bool, indent: CGFloat) {
+        guard let textStorage = textDocument?.textStorage else { return }
+
+        let headIndent: CGFloat = enabled ? indent : 0
+
+        // 全てのテキストビューに適用
+        func applyToTextView(_ textView: NSTextView) {
+            textView.defaultParagraphStyle = {
+                let style = (textView.defaultParagraphStyle?.mutableCopy() as? NSMutableParagraphStyle)
+                    ?? NSMutableParagraphStyle()
+                style.headIndent = headIndent
+                return style
+            }()
+        }
+
+        // Continuous モードのテキストビュー
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            applyToTextView(textView)
+        }
+        if let scrollView = scrollView2,
+           let textView = scrollView.documentView as? NSTextView {
+            applyToTextView(textView)
+        }
+
+        // Page モードのテキストビュー
+        for textView in textViews1 {
+            applyToTextView(textView)
+        }
+        for textView in textViews2 {
+            applyToTextView(textView)
+        }
+
+        // 既存のテキストにも適用
+        if textStorage.length > 0 {
+            textStorage.beginEditing()
+            textStorage.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: textStorage.length), options: []) { value, range, _ in
+                let newStyle: NSMutableParagraphStyle
+                if let existingStyle = value as? NSParagraphStyle {
+                    newStyle = existingStyle.mutableCopy() as! NSMutableParagraphStyle
+                } else {
+                    newStyle = NSMutableParagraphStyle()
+                }
+                newStyle.headIndent = headIndent
+                textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
+            }
+            textStorage.endEditing()
+        }
+    }
+
+    /// Wrapped Line Indent 設定をプリファレンスに同期
+    private func syncWrappedLineIndentToPreferences(enabled: Bool, indent: CGFloat) {
+        // 現在選択されているプリセットの wrappedLineIndent を更新
+        let presetManager = DocumentPresetManager.shared
+        if let selectedID = presetManager.selectedPresetID,
+           let index = presetManager.presets.firstIndex(where: { $0.id == selectedID }) {
+            var preset = presetManager.presets[index]
+            preset.data.format.indentWrappedLines = enabled
+            preset.data.format.wrappedLineIndent = indent
+            presetManager.updatePreset(preset)
+        }
     }
 }
 

@@ -150,6 +150,161 @@ class ImageClickableTextView: NSTextView {
         }
     }
 
+    // MARK: - Auto Indent
+
+    /// 改行が挿入されたときの処理
+    /// Auto Indent が有効な場合、現在の行の先頭の空白文字を新しい行にコピー
+    /// プレーンテキストで Wrapped Line Indent が有効な場合、パラグラフスタイルも設定
+    override func insertNewline(_ sender: Any?) {
+        guard let windowController = window?.windowController as? EditorWindowController,
+              let presetData = windowController.textDocument?.presetData,
+              presetData.format.autoIndent else {
+            // Auto Indent が無効な場合は通常の改行
+            super.insertNewline(sender)
+            return
+        }
+
+        // 現在のカーソル位置を取得
+        let currentRange = selectedRange()
+
+        // 現在の行の先頭のインデント文字列を取得
+        let indentString = getLeadingIndent(at: currentRange.location)
+
+        // 改行 + インデント文字列を挿入
+        let newlineWithIndent = "\n" + indentString
+        insertText(newlineWithIndent, replacementRange: currentRange)
+
+        // プレーンテキストの場合のみ Wrapped Line Indent のパラグラフスタイルを適用
+        if isPlainText {
+            applyWrappedLineIndentStyle(
+                indentString: indentString,
+                presetData: presetData
+            )
+        }
+    }
+
+    /// Wrapped Line Indent のパラグラフスタイルを新しい行に適用（プレーンテキスト専用）
+    /// - Parameters:
+    ///   - indentString: Auto Indent でコピーされた空白文字列
+    ///   - presetData: ドキュメントのプリセットデータ
+    private func applyWrappedLineIndentStyle(indentString: String, presetData: NewDocData) {
+        guard let textStorage = textStorage else { return }
+
+        // 現在のカーソル位置（改行 + インデント挿入後）
+        let cursorLocation = selectedRange().location
+
+        // 新しい行の開始位置を計算（カーソル位置 - インデント文字列の長さ）
+        let newLineStart = cursorLocation - indentString.count
+
+        // 新しい行のパラグラフ範囲を取得
+        let paragraphRange = (textStorage.string as NSString).paragraphRange(for: NSRange(location: newLineStart, length: 0))
+
+        // インデント文字列の幅をポイントで計算
+        let indentWidth = calculateIndentWidth(indentString: indentString, presetData: presetData)
+
+        // 現在のパラグラフスタイルを取得または新規作成
+        let existingStyle = textStorage.attribute(.paragraphStyle, at: newLineStart, effectiveRange: nil) as? NSParagraphStyle
+        let newStyle = (existingStyle?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+
+        if presetData.format.indentWrappedLines {
+            // Wrapped Line Indent がオンの場合
+            // firstLineHeadIndent = 0
+            // headIndent = インデント幅 + wrappedLineIndent
+            newStyle.firstLineHeadIndent = 0
+            newStyle.headIndent = indentWidth + presetData.format.wrappedLineIndent
+        } else {
+            // Wrapped Line Indent がオフの場合
+            // firstLineHeadIndent = 0
+            // headIndent = 0
+            newStyle.firstLineHeadIndent = 0
+            newStyle.headIndent = 0
+        }
+
+        // パラグラフスタイルを適用
+        textStorage.addAttribute(.paragraphStyle, value: newStyle, range: paragraphRange)
+    }
+
+    /// インデント文字列の幅をポイントで計算
+    /// - Parameters:
+    ///   - indentString: 空白文字列（タブ、半角スペース、全角スペース）
+    ///   - presetData: ドキュメントのプリセットデータ
+    /// - Returns: インデント幅（ポイント）
+    private func calculateIndentWidth(indentString: String, presetData: NewDocData) -> CGFloat {
+        var totalWidth: CGFloat = 0
+
+        // フォントを取得
+        let font = NSFont(name: presetData.fontAndColors.baseFontName, size: presetData.fontAndColors.baseFontSize)
+            ?? NSFont.systemFont(ofSize: presetData.fontAndColors.baseFontSize)
+
+        // タブ幅を取得
+        let tabWidth: CGFloat
+        if presetData.format.tabWidthUnit == .spaces {
+            // スペースモードの場合、スペースの幅 × スペース数
+            let spaceWidth = " ".size(withAttributes: [.font: font]).width
+            tabWidth = spaceWidth * presetData.format.tabWidthPoints
+        } else {
+            // ポイントモードの場合、直接ポイント数を使用
+            tabWidth = presetData.format.tabWidthPoints
+        }
+
+        // 各文字の幅を計算
+        for char in indentString {
+            switch char {
+            case "\t":
+                // タブ文字
+                totalWidth += tabWidth
+            case " ":
+                // 半角スペース
+                let spaceWidth = " ".size(withAttributes: [.font: font]).width
+                totalWidth += spaceWidth
+            case "\u{3000}":
+                // 全角スペース
+                let fullWidthSpaceWidth = "　".size(withAttributes: [.font: font]).width
+                totalWidth += fullWidthSpaceWidth
+            default:
+                break
+            }
+        }
+
+        return totalWidth
+    }
+
+    /// 指定位置の行の先頭にある空白文字（タブ、半角スペース、全角スペース）を取得
+    /// - Parameter location: テキスト内の位置
+    /// - Returns: 行の先頭の空白文字列
+    private func getLeadingIndent(at location: Int) -> String {
+        guard let textStorage = textStorage else { return "" }
+        let text = textStorage.string as NSString
+
+        // 現在位置から行の先頭を探す
+        var lineStart = location
+        while lineStart > 0 {
+            let prevChar = text.character(at: lineStart - 1)
+            // 改行文字（\n, \r）を見つけたらそこで止める
+            if prevChar == 0x0A || prevChar == 0x0D {
+                break
+            }
+            lineStart -= 1
+        }
+
+        // 行の先頭から空白文字を収集
+        var indentString = ""
+        var pos = lineStart
+        while pos < text.length && pos < location {
+            let char = text.character(at: pos)
+            // タブ (0x09), 半角スペース (0x20), 全角スペース (0x3000)
+            if char == 0x09 || char == 0x20 || char == 0x3000 {
+                indentString.append(Character(UnicodeScalar(char)!))
+                pos += 1
+            } else {
+                // 空白以外の文字が出現したら終了
+                break
+            }
+        }
+
+        return indentString
+    }
+
     // MARK: - Ruler Update Safety
 
     /// ルーラー更新をオーバーライドして空のtextStorageでのクラッシュを防ぐ

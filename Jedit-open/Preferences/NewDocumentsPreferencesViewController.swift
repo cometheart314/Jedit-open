@@ -362,6 +362,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
         // Update controls enabled state based on text style
         updateEncodingControlsEnabled()
         updateColorsControlsEnabled()
+        updateWrappedLineIndentControlsEnabled()
     }
 
     private func saveCurrentPreset() {
@@ -732,6 +733,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBAction func textStyleChanged(_ sender: Any) {
         updateEncodingControlsEnabled()
         updateColorsControlsEnabled()
+        updateWrappedLineIndentControlsEnabled()
         saveCurrentPreset()
     }
 
@@ -765,6 +767,16 @@ class NewDocumentsPreferencesViewController: NSViewController {
         headerColorWell?.isEnabled = isEnabled
         footerColorWell?.isEnabled = isEnabled
         lineNumberBackgroundColorWell?.isEnabled = isEnabled
+    }
+
+    /// Wrapped Line Indent コントロールの有効/無効を更新
+    /// Plain Text の場合のみ有効
+    private func updateWrappedLineIndentControlsEnabled() {
+        let isRichText = textStyleMatrix?.selectedTag() == 1
+        let isPlainText = !isRichText
+
+        indentWrappedLinesCheckbox?.isEnabled = isPlainText
+        wrappedLineIndentField?.isEnabled = isPlainText && (indentWrappedLinesCheckbox?.state == .on)
     }
 
     @IBAction func tabWidthUnitChanged(_ sender: Any) {
@@ -815,6 +827,13 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @objc func paragraphSpacingAfterFieldChanged(_ sender: NSTextField) {
         // フィールドの値をステッパーに反映
         paragraphSpacingAfterStepper?.doubleValue = sender.doubleValue
+        saveCurrentPreset()
+    }
+
+    /// Indent Wrapped Lines チェックボックスが変更された時
+    @IBAction func indentWrappedLinesCheckboxChanged(_ sender: NSButton) {
+        // チェックボックスの状態に応じてフィールドの有効/無効を切り替え
+        wrappedLineIndentField?.isEnabled = sender.state == .on
         saveCurrentPreset()
     }
 
