@@ -124,8 +124,6 @@
                     <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="lUa-9e-pn2"/>
                 </allowedToolbarItems>
                 <defaultToolbarItems>
-                    <toolbarItem reference="Z0G-Dd-v4r"/>
-                    <toolbarItem reference="ci2-xV-jPm"/>
                     <toolbarItem reference="lUa-9e-pn2"/>
                     <toolbarItem reference="DGZ-F0-Tth"/>
                 </defaultToolbarItems>
