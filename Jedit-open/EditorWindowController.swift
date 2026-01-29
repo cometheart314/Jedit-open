@@ -793,10 +793,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // ScrollViewに設定
             scrollView.documentView = textView
-            // 縦書き/横書きに応じてスクロールバーを設定
-            scrollView.hasVerticalScroller = !isVerticalLayout
-            scrollView.hasHorizontalScroller = isVerticalLayout
-            scrollView.autohidesScrollers = false  // スクロールバーを常に表示
+            // スクロールバーを両方とも常に表示
+            scrollView.hasVerticalScroller = true
+            scrollView.hasHorizontalScroller = true
+            scrollView.autohidesScrollers = false
             // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
             scrollView.hasHorizontalRuler = !isVerticalLayout
             scrollView.hasVerticalRuler = isVerticalLayout
@@ -900,10 +900,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // ScrollViewに設定
             scrollView.documentView = textView
-            // 縦書き/横書きに応じてスクロールバーを設定
-            scrollView.hasVerticalScroller = !isVerticalLayout
-            scrollView.hasHorizontalScroller = isVerticalLayout
-            scrollView.autohidesScrollers = false  // スクロールバーを常に表示
+            // スクロールバーを両方とも常に表示
+            scrollView.hasVerticalScroller = true
+            scrollView.hasHorizontalScroller = true
+            scrollView.autohidesScrollers = false
             // 縦書き時は縦ルーラー、横書き時は横ルーラーを使用
             scrollView.hasHorizontalRuler = !isVerticalLayout
             scrollView.hasVerticalRuler = isVerticalLayout
@@ -1498,12 +1498,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard displayMode == .continuous else { return }
 
         // ScalingScrollViewのautoAdjustsContainerSizeOnFrameChangeを設定
-        // windowWidthモードのみScalingScrollViewにコンテナサイズ調整を任せる
-        let autoAdjust = (lineWrapMode == .windowWidth)
-        if let scalingScrollView = scrollView1 {
+        // 横書きのwindowWidthモードのみScalingScrollViewにコンテナサイズ調整を任せる
+        // 縦書きでは常にfalse（textViewの幅が縮小されるのを防ぐため）
+        let autoAdjust = !isVerticalLayout && (lineWrapMode == .windowWidth)
+        if let scalingScrollView = scrollView1 as? ScalingScrollView {
             scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
         }
-        if let scalingScrollView = scrollView2 {
+        if let scalingScrollView = scrollView2 as? ScalingScrollView {
             scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
         }
 
@@ -2146,19 +2147,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let scrollView = scrollView1,
            let textView = scrollView.documentView as? NSTextView {
             textView.setLayoutOrientation(orientation)
-            // スクロールバーの向きを更新
-            scrollView.hasVerticalScroller = !isVerticalLayout
-            scrollView.hasHorizontalScroller = isVerticalLayout
-            // サイズとスクロールバーを更新
+            // サイズとスクロールバーを更新（updateTextViewSize内でスクロールバー設定も行う）
             updateTextViewSize(for: scrollView)
         }
         if let scrollView = scrollView2,
            !scrollView.isHidden,
            let textView = scrollView.documentView as? NSTextView {
             textView.setLayoutOrientation(orientation)
-            // スクロールバーの向きを更新
-            scrollView.hasVerticalScroller = !isVerticalLayout
-            scrollView.hasHorizontalScroller = isVerticalLayout
             updateTextViewSize(for: scrollView)
         }
 
@@ -2568,7 +2563,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 lineHeight = pageHeight - (pageMargin * 2) + (padding * 2)
             case .windowWidth:
                 // ウィンドウ高さを1行の高さとする
-                lineHeight = availableHeight - (containerInset.height * 2)
+                // lineFragmentPaddingが上下に追加されるので、その分を引いて正確にウィンドウ高さに収める
+                var adjustedHeight = availableHeight - (containerInset.height * 2) - (padding * 2)
+                // macOS 26: ルーラー表示時はシステムがスクロールバー幅を追加するため、その分を補正
+                if scrollView.rulersVisible {
+                    let scrollerWidth = NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollView.scrollerStyle)
+                    adjustedHeight -= scrollerWidth
+                }
+                lineHeight = adjustedHeight
             case .noWrap:
                 // 折り返さない（十分大きな値を使用）
                 lineHeight = 100000
@@ -2584,15 +2586,38 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 textContainer.containerSize = NSSize(width: lineHeight, height: CGFloat.greatestFiniteMagnitude)
             }
 
-            // テキストビューは横に拡張可能
+            // テキストビューは横に拡張可能（縦書きでは水平方向がスクロール方向）
             textView.isHorizontallyResizable = true
             textView.isVerticallyResizable = lineWrapMode != .windowWidth
-            textView.setFrameSize(NSSize(width: textView.frame.width, height: availableHeight))
+            // テキストビューの高さを設定
+            // macOS 26: windowWidthモードでルーラー表示時はcontentViewが広がるため、スクロールバー幅分を引いて補正
+            let textViewHeight: CGFloat
+            if lineWrapMode == .windowWidth && scrollView.rulersVisible {
+                let scrollerWidth = NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollView.scrollerStyle)
+                textViewHeight = availableHeight - scrollerWidth
+            } else {
+                textViewHeight = availableHeight
+            }
+            // maxSizeは幅・高さとも無制限にして、テキストが水平方向に自由に拡張できるようにする
+            textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            textView.minSize = NSSize(width: 0, height: textViewHeight)
 
-            // スクロールバーの設定
+            // テキストビューの現在の幅を保持しつつ、高さだけ更新
+            // レイアウトを強制的に更新してからフレームサイズを設定
+            textView.layoutManager?.ensureLayout(for: textContainer)
+            let currentWidth = max(textView.frame.width, availableWidth)
+            textView.setFrameSize(NSSize(width: currentWidth, height: textViewHeight))
+
+            // スクロールバーの設定（両方とも常に表示）
             scrollView.hasHorizontalScroller = true
-            scrollView.hasVerticalScroller = lineWrapMode != .windowWidth
+            scrollView.hasVerticalScroller = true
             scrollView.autohidesScrollers = false
+
+            // 縦書きモードではScalingScrollViewの自動サイズ調整を無効にする
+            // （EditorWindowControllerがサイズを管理するため）
+            if let scalingScrollView = scrollView as? ScalingScrollView {
+                scalingScrollView.autoAdjustsContainerSizeOnFrameChange = false
+            }
         } else {
             // 横書きの場合
             let lineWidth: CGFloat
@@ -2603,8 +2628,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // lineFragmentPadding分を加算して正確な用紙幅位置で折り返す
                 lineWidth = pageWidth - (pageMargin * 2) + (padding * 2)
             case .windowWidth:
-                // ウィンドウ幅
-                lineWidth = availableWidth - (containerInset.width * 2)
+                // ウィンドウ幅に収める
+                // lineFragmentPaddingが左右に追加されるので、その分を引いて正確にウィンドウ幅に収める
+                var adjustedWidth = availableWidth - (containerInset.width * 2) - (padding * 2)
+                // macOS 26: ルーラー表示時はシステムがスクロールバー幅を追加するため、その分を補正
+                if scrollView.rulersVisible {
+                    let scrollerWidth = NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollView.scrollerStyle)
+                    adjustedWidth -= scrollerWidth
+                }
+                lineWidth = adjustedWidth
             case .noWrap:
                 // 折り返さない（十分大きな値を使用）
                 lineWidth = 100000
@@ -2621,15 +2653,35 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
 
             // テキストビューのサイズ設定
-            let textViewWidth = lineWrapMode == .windowWidth ? availableWidth : max(lineWidth + (containerInset.width * 2), availableWidth)
+            let textViewWidth: CGFloat
+            if lineWrapMode == .windowWidth {
+                // windowWidthモードではテキストビューの幅をcontentViewの幅に正確に合わせてスクロールを防ぐ
+                // macOS 26: ルーラー表示時はcontentViewが広がるため、スクロールバー幅分を引いて補正
+                if scrollView.rulersVisible {
+                    let scrollerWidth = NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollView.scrollerStyle)
+                    textViewWidth = availableWidth - scrollerWidth
+                } else {
+                    textViewWidth = availableWidth
+                }
+                textView.maxSize = NSSize(width: textViewWidth, height: CGFloat.greatestFiniteMagnitude)
+            } else {
+                textViewWidth = max(lineWidth + (containerInset.width * 2), availableWidth)
+                // 他のモードではmaxSizeを無制限に
+                textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+            }
             textView.isHorizontallyResizable = lineWrapMode != .windowWidth
             textView.isVerticallyResizable = true
             textView.setFrameSize(NSSize(width: textViewWidth, height: textView.frame.height))
 
-            // スクロールバーの設定
-            scrollView.hasHorizontalScroller = lineWrapMode != .windowWidth
+            // スクロールバーの設定（両方とも常に表示）
             scrollView.hasVerticalScroller = true
+            scrollView.hasHorizontalScroller = true
             scrollView.autohidesScrollers = false
+
+            // 横書きモードではwindowWidthの時のみScalingScrollViewの自動サイズ調整を有効にする
+            if let scalingScrollView = scrollView as? ScalingScrollView {
+                scalingScrollView.autoAdjustsContainerSizeOnFrameChange = (lineWrapMode == .windowWidth)
+            }
         }
 
         textView.needsDisplay = true
