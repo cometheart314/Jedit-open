@@ -1318,6 +1318,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         setSplitMode(.vertical)
     }
 
+    /// スプリットボタンから呼び出す: 単一ビューに戻す
+    @objc func collapseViews(_ sender: Any?) {
+        setSplitMode(.none)
+    }
+
+    /// スプリットボタンから呼び出す: 水平分割
+    @objc func splitHorizontally(_ sender: Any?) {
+        setSplitMode(.horizontal)
+    }
+
+    /// スプリットボタンから呼び出す: 垂直分割
+    @objc func splitVertically(_ sender: Any?) {
+        setSplitMode(.vertical)
+    }
+
     private func setSplitMode(_ mode: SplitMode) {
         guard let splitView = splitView else { return }
 
@@ -1348,6 +1363,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // splitViewの状態に合わせてtextViewsを再設定
         if let textDocument = self.textDocument {
             setupTextViews(with: textDocument.textStorage)
+        }
+
+        // ルーラーの表示状態を更新（updateContinuousModeRuler内でtile()とupdateTextViewSizeが呼ばれる）
+        updateRulerVisibility()
+
+        // スプリット直後はcontentViewのフレームがまだ更新されていない場合があるため、
+        // 次のランループでもう一度ルーラーとテキストビューサイズを更新
+        DispatchQueue.main.async { [weak self] in
+            self?.updateRulerVisibility()
         }
     }
 
@@ -1727,18 +1751,24 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let needsRulerSetup = scrollView.hasHorizontalRuler != needsHorizontalRuler ||
                               scrollView.hasVerticalRuler != needsVerticalRuler ||
                               !(currentRuler is LabeledRulerView)
+
+        // ルーラーを一度非表示にしてから再表示することで、レイアウトを強制的に再計算
+        scrollView.rulersVisible = false
+
         if needsRulerSetup {
-            scrollView.rulersVisible = false
             scrollView.hasHorizontalRuler = needsHorizontalRuler
             scrollView.hasVerticalRuler = needsVerticalRuler
             // カスタムルーラーを再設定
             setupLabeledRuler(for: scrollView)
-            scrollView.tile()
         }
+
+        // tileを呼んでレイアウトを更新
+        scrollView.tile()
 
         // ScrollViewのルーラー表示状態を更新
         scrollView.rulersVisible = isRulerVisible
         textView.isRulerVisible = isRulerVisible
+
         if isRulerVisible {
             let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
             if let ruler = ruler {
@@ -2549,8 +2579,35 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
               let textContainer = textView.textContainer else { return }
 
         let containerInset = textView.textContainerInset
-        let availableWidth = scrollView.contentView.frame.width
-        let availableHeight = scrollView.contentView.frame.height
+
+        // ルーラーの厚さを考慮してavailableサイズを計算
+        // contentView.frameはルーラー表示直後に更新されていない場合があるため、
+        // scrollViewのフレームからルーラーの厚さとスクローラーの幅を引いて計算
+        var availableWidth = scrollView.contentView.frame.width
+        var availableHeight = scrollView.contentView.frame.height
+
+        // ルーラー表示時は、ルーラーの厚さ分を引く
+        if isRulerVisible {
+            if !isVerticalLayout {
+                // 横書き時は水平ルーラーの厚さを引く
+                if let horizontalRuler = scrollView.horizontalRulerView {
+                    let rulerThickness = horizontalRuler.ruleThickness
+                    // contentViewの高さがルーラー分を含んでいる場合は引く
+                    if scrollView.contentView.frame.height > scrollView.frame.height - rulerThickness - NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollView.scrollerStyle) {
+                        availableHeight -= rulerThickness
+                    }
+                }
+            } else {
+                // 縦書き時は垂直ルーラーの厚さを引く
+                if let verticalRuler = scrollView.verticalRulerView {
+                    let rulerThickness = verticalRuler.ruleThickness
+                    // contentViewの幅がルーラー分を含んでいる場合は引く
+                    if scrollView.contentView.frame.width > scrollView.frame.width - rulerThickness - NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollView.scrollerStyle) {
+                        availableWidth -= rulerThickness
+                    }
+                }
+            }
+        }
 
         if isVerticalLayout {
             // 縦書きの場合
@@ -2701,6 +2758,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 通常モードの場合、テキストビューのサイズを更新
         guard displayMode == .continuous else { return }
 
+        // ルーラーの表示状態を更新
+        updateRulerVisibility()
+
+        // ルーラー更新後にテキストビューのサイズを更新
         if let scrollView = scrollView1 {
             updateTextViewSize(for: scrollView)
         }

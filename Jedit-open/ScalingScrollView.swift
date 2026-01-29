@@ -24,12 +24,22 @@ class ScalingScrollView: NSScrollView {
     /// falseの場合: follows paper width / fixed width / no wrapモード（EditorWindowControllerが管理）
     var autoAdjustsContainerSizeOnFrameChange: Bool = true
 
+    // MARK: - Split Buttons
+
+    private var splitNoneButton: NSButton?
+    private var splitVertButton: NSButton?
+    private var splitHoriButton: NSButton?
+
+    /// スプリットボタンのアクションターゲット（通常はEditorWindowController）
+    weak var splitButtonTarget: AnyObject?
+
     // MARK: - Initialization
 
     override func awakeFromNib() {
         super.awakeFromNib()
         setupMagnification()
         setupFrameObserver()
+        setupSplitButtons()
     }
 
     deinit {
@@ -67,12 +77,112 @@ class ScalingScrollView: NSScrollView {
         }
     }
 
+    private func setupSplitButtons() {
+        // スプリットボタンのサイズ（画像サイズに合わせる: 16x12）
+        let buttonWidth: CGFloat = 16.0
+        let buttonHeight: CGFloat = 12.0
+
+        // splitNoneButton - 単一ビューに戻す
+        let noneButton = NSButton(frame: NSRect(x: 0, y: 0, width: buttonWidth, height: buttonHeight))
+        noneButton.title = ""
+        noneButton.setButtonType(.momentaryLight)
+        noneButton.bezelStyle = .shadowlessSquare
+        noneButton.isBordered = false
+        noneButton.image = NSImage(named: "splitNone")
+        noneButton.imagePosition = .imageOnly
+        noneButton.imageScaling = .scaleNone
+        noneButton.target = nil
+        noneButton.action = #selector(EditorWindowController.collapseViews(_:))
+        noneButton.refusesFirstResponder = true
+        noneButton.toolTip = NSLocalizedString("Collapse to single view.", comment: "Split button tooltip")
+        addSubview(noneButton)
+        splitNoneButton = noneButton
+
+        // splitHoriButton - 水平分割
+        let horiButton = NSButton(frame: NSRect(x: 0, y: 0, width: buttonWidth, height: buttonHeight))
+        horiButton.title = ""
+        horiButton.setButtonType(.momentaryLight)
+        horiButton.bezelStyle = .shadowlessSquare
+        horiButton.isBordered = false
+        horiButton.image = NSImage(named: "splitHori")
+        horiButton.imagePosition = .imageOnly
+        horiButton.imageScaling = .scaleNone
+        horiButton.target = nil
+        horiButton.action = #selector(EditorWindowController.splitHorizontally(_:))
+        horiButton.refusesFirstResponder = true
+        horiButton.toolTip = NSLocalizedString("Split view horizontally.", comment: "Split button tooltip")
+        addSubview(horiButton)
+        splitHoriButton = horiButton
+
+        // splitVertButton - 垂直分割
+        let vertButton = NSButton(frame: NSRect(x: 0, y: 0, width: buttonWidth, height: buttonHeight))
+        vertButton.title = ""
+        vertButton.setButtonType(.momentaryLight)
+        vertButton.bezelStyle = .shadowlessSquare
+        vertButton.isBordered = false
+        vertButton.image = NSImage(named: "splitVert")
+        vertButton.imagePosition = .imageOnly
+        vertButton.imageScaling = .scaleNone
+        vertButton.target = nil
+        vertButton.action = #selector(EditorWindowController.splitVertically(_:))
+        vertButton.refusesFirstResponder = true
+        vertButton.toolTip = NSLocalizedString("Split view vertically.", comment: "Split button tooltip")
+        addSubview(vertButton)
+        splitVertButton = vertButton
+    }
+
     // MARK: - Live Resize
 
     override func viewDidEndLiveResize() {
         super.viewDidEndLiveResize()
         // リサイズ完了後にコンテナサイズを再計算
         updateTextContainerSize()
+    }
+
+    // MARK: - Tile Override
+
+    override func tile() {
+        super.tile()
+
+        guard let verticalScroller = verticalScroller,
+              let splitNoneButton = splitNoneButton,
+              let splitHoriButton = splitHoriButton,
+              let splitVertButton = splitVertButton else {
+            return
+        }
+
+        var verticalScrollerFrame = verticalScroller.frame
+        let buttonHeight = splitNoneButton.frame.height
+
+        // splitNoneButton - 縦スクロールバーの最上部
+        var buttonFrame = verticalScrollerFrame
+        buttonFrame.size.height = buttonHeight
+        buttonFrame.size.width = verticalScrollerFrame.width
+
+        verticalScrollerFrame.origin.y += buttonHeight
+        verticalScrollerFrame.size.height -= buttonHeight
+        verticalScroller.frame = verticalScrollerFrame
+        splitNoneButton.frame = buttonFrame
+
+        // splitHoriButton - splitNoneButtonの下
+        buttonFrame = verticalScrollerFrame
+        buttonFrame.size.height = buttonHeight
+        buttonFrame.size.width = verticalScrollerFrame.width
+
+        verticalScrollerFrame.origin.y += buttonHeight
+        verticalScrollerFrame.size.height -= buttonHeight
+        verticalScroller.frame = verticalScrollerFrame
+        splitHoriButton.frame = buttonFrame
+
+        // splitVertButton - splitHoriButtonの下
+        buttonFrame = verticalScrollerFrame
+        buttonFrame.size.height = buttonHeight
+        buttonFrame.size.width = verticalScrollerFrame.width
+
+        verticalScrollerFrame.origin.y += buttonHeight
+        verticalScrollerFrame.size.height -= buttonHeight
+        verticalScroller.frame = verticalScrollerFrame
+        splitVertButton.frame = buttonFrame
     }
 
     // MARK: - Zoom Methods
