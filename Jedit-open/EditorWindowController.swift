@@ -3606,45 +3606,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// - Parameter font: 適用するフォント
     func applyFontToEntireDocument(_ font: NSFont) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // Undo登録のため、変更前のフォント属性を保存
-        var oldFontAttributes: [(range: NSRange, font: NSFont)] = []
-        textStorage.enumerateAttribute(.font, in: targetRange, options: []) { value, attrRange, _ in
-            let attrFont: NSFont
-            if let existingFont = value as? NSFont {
-                attrFont = existingFont
-            } else {
-                attrFont = NSFont.systemFont(ofSize: 14)
-            }
-            oldFontAttributes.append((range: attrRange, font: attrFont))
-        }
+        // 全文のテキストを取得してフォントを適用
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        mutableString.addAttribute(.font, value: font, range: NSRange(location: 0, length: mutableString.length))
 
-        // 現在のpresetDataのフォント情報を保存（Undo用）
-        let oldFontName = textDocument?.presetData?.fontAndColors.baseFontName ?? font.fontName
-        let oldFontSize = textDocument?.presetData?.fontAndColors.baseFontSize ?? font.pointSize
-
-        // Undoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, oldFontAttributes, oldFontName, oldFontSize, font] _ in
-            self?.restoreFontToEntireDocument(
-                oldAttributes: oldFontAttributes,
-                oldFontName: oldFontName,
-                oldFontSize: oldFontSize,
-                newFont: font
-            )
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Change Font", comment: "Undo action name for font change"))
-        }
-
-        // 全文にフォントを適用
-        textStorage.beginEditing()
-        textStorage.addAttribute(.font, value: font, range: targetRange)
-        textStorage.endEditing()
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
 
         // presetData を更新
         textDocument?.presetData?.fontAndColors.baseFontName = font.fontName
@@ -3655,79 +3627,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         basicFontDidChange(font)
     }
 
-    /// フォントを復元（Undo/Redo用）
-    private func restoreFontToEntireDocument(
-        oldAttributes: [(range: NSRange, font: NSFont)],
-        oldFontName: String,
-        oldFontSize: CGFloat,
-        newFont: NSFont
-    ) {
-        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
-
-        let targetRange = NSRange(location: 0, length: textStorage.length)
-
-        // 現在のフォント属性を保存（Redo用）
-        var currentAttributes: [(range: NSRange, font: NSFont)] = []
-        textStorage.enumerateAttribute(.font, in: targetRange, options: []) { value, attrRange, _ in
-            let attrFont: NSFont
-            if let existingFont = value as? NSFont {
-                attrFont = existingFont
-            } else {
-                attrFont = NSFont.systemFont(ofSize: 14)
-            }
-            currentAttributes.append((range: attrRange, font: attrFont))
-        }
-
-        // 現在のpresetDataのフォント情報を保存（Redo用）
-        let currentFontName = textDocument?.presetData?.fontAndColors.baseFontName ?? newFont.fontName
-        let currentFontSize = textDocument?.presetData?.fontAndColors.baseFontSize ?? newFont.pointSize
-
-        // Redo用のUndoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, currentAttributes, currentFontName, currentFontSize, newFont] _ in
-            self?.restoreFontToEntireDocument(
-                oldAttributes: currentAttributes,
-                oldFontName: currentFontName,
-                oldFontSize: currentFontSize,
-                newFont: NSFont(name: oldFontName, size: oldFontSize) ?? newFont
-            )
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Change Font", comment: "Undo action name for font change"))
-        }
-
-        // 古いフォント属性を復元
-        textStorage.beginEditing()
-        for attr in oldAttributes {
-            // 範囲がtextStorageの範囲内にあることを確認
-            let safeRange = NSRange(
-                location: attr.range.location,
-                length: min(attr.range.length, textStorage.length - attr.range.location)
-            )
-            if safeRange.length > 0 && safeRange.location < textStorage.length {
-                textStorage.addAttribute(.font, value: attr.font, range: safeRange)
-            }
-        }
-        textStorage.endEditing()
-
-        // presetData を復元
-        textDocument?.presetData?.fontAndColors.baseFontName = oldFontName
-        textDocument?.presetData?.fontAndColors.baseFontSize = oldFontSize
-        textDocument?.presetDataEdited = true
-
-        // ルーラーの更新などを行う
-        if let restoredFont = NSFont(name: oldFontName, size: oldFontSize) {
-            basicFontDidChange(restoredFont)
-        }
-    }
-
     /// プレーンテキスト全文に下線をトグル適用（Undo/Redo対応）
     func applyUnderlineToEntireDocument() {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -3735,75 +3638,19 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let currentUnderline = textStorage.attribute(.underlineStyle, at: 0, effectiveRange: nil) as? Int ?? 0
         let hasUnderline = currentUnderline != 0
 
-        // Undo登録のため、変更前の下線属性を保存
-        var oldUnderlineAttributes: [(range: NSRange, style: Int?)] = []
-        textStorage.enumerateAttribute(.underlineStyle, in: targetRange, options: []) { value, attrRange, _ in
-            let style = value as? Int
-            oldUnderlineAttributes.append((range: attrRange, style: style))
-        }
+        // 全文のテキストを取得して下線を適用/削除
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        let fullRange = NSRange(location: 0, length: mutableString.length)
 
-        // Undoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, oldUnderlineAttributes] _ in
-            self?.restoreUnderlineToEntireDocument(oldAttributes: oldUnderlineAttributes)
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Underline", comment: "Undo action name for underline change"))
-        }
-
-        // 全文に下線をトグル適用
-        textStorage.beginEditing()
         if hasUnderline {
-            // 下線を削除
-            textStorage.removeAttribute(.underlineStyle, range: targetRange)
+            mutableString.removeAttribute(.underlineStyle, range: fullRange)
         } else {
-            // 下線を追加
-            textStorage.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: targetRange)
-        }
-        textStorage.endEditing()
-    }
-
-    /// 下線属性を復元（Undo/Redo用）
-    private func restoreUnderlineToEntireDocument(oldAttributes: [(range: NSRange, style: Int?)]) {
-        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
-
-        let targetRange = NSRange(location: 0, length: textStorage.length)
-
-        // 現在の下線属性を保存（Redo用）
-        var currentAttributes: [(range: NSRange, style: Int?)] = []
-        textStorage.enumerateAttribute(.underlineStyle, in: targetRange, options: []) { value, attrRange, _ in
-            let style = value as? Int
-            currentAttributes.append((range: attrRange, style: style))
+            mutableString.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: fullRange)
         }
 
-        // Redo用のUndoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, currentAttributes] _ in
-            self?.restoreUnderlineToEntireDocument(oldAttributes: currentAttributes)
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Underline", comment: "Undo action name for underline change"))
-        }
-
-        // 古い下線属性を復元
-        textStorage.beginEditing()
-        // まず全部削除
-        textStorage.removeAttribute(.underlineStyle, range: targetRange)
-        // 古い属性を復元
-        for attr in oldAttributes {
-            let safeRange = NSRange(
-                location: attr.range.location,
-                length: min(attr.range.length, textStorage.length - attr.range.location)
-            )
-            if safeRange.length > 0 && safeRange.location < textStorage.length {
-                if let style = attr.style, style != 0 {
-                    textStorage.addAttribute(.underlineStyle, value: style, range: safeRange)
-                }
-            }
-        }
-        textStorage.endEditing()
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
     }
 
     // MARK: - Kern Support
@@ -3811,110 +3658,43 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文にカーニングを適用（Undo/Redo対応）
     func applyKernToEntireDocument(value: Float?) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // Undo登録のため、変更前のカーニング属性を保存
-        var oldKernAttributes: [(range: NSRange, value: Float?)] = []
-        textStorage.enumerateAttribute(.kern, in: targetRange, options: []) { attrValue, attrRange, _ in
-            let kernValue = attrValue as? Float
-            oldKernAttributes.append((range: attrRange, value: kernValue))
-        }
+        // 全文のテキストを取得してカーニングを適用/削除
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        let fullRange = NSRange(location: 0, length: mutableString.length)
 
-        // Undoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, oldKernAttributes] _ in
-            self?.restoreKernToEntireDocument(oldAttributes: oldKernAttributes)
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Kern", comment: "Undo action name for kern change"))
-        }
-
-        // 全文にカーニングを適用
-        textStorage.beginEditing()
         if let kernValue = value {
-            textStorage.addAttribute(.kern, value: kernValue, range: targetRange)
+            mutableString.addAttribute(.kern, value: kernValue, range: fullRange)
         } else {
-            textStorage.removeAttribute(.kern, range: targetRange)
+            mutableString.removeAttribute(.kern, range: fullRange)
         }
-        textStorage.endEditing()
+
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
     }
 
     /// プレーンテキスト全文のカーニングを調整（Undo/Redo対応）
     func adjustKernToEntireDocument(delta: Float) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
         // 現在のカーニング値を取得
         let currentKern = textStorage.attribute(.kern, at: 0, effectiveRange: nil) as? Float ?? 0
-
-        // Undo登録のため、変更前のカーニング属性を保存
-        var oldKernAttributes: [(range: NSRange, value: Float?)] = []
-        textStorage.enumerateAttribute(.kern, in: targetRange, options: []) { attrValue, attrRange, _ in
-            let kernValue = attrValue as? Float
-            oldKernAttributes.append((range: attrRange, value: kernValue))
-        }
-
-        // Undoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, oldKernAttributes] _ in
-            self?.restoreKernToEntireDocument(oldAttributes: oldKernAttributes)
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Kern", comment: "Undo action name for kern change"))
-        }
-
-        // 全文にカーニングを適用
         let newKern = currentKern + delta
-        textStorage.beginEditing()
-        textStorage.addAttribute(.kern, value: newKern, range: targetRange)
-        textStorage.endEditing()
-    }
 
-    /// カーニング属性を復元（Undo/Redo用）
-    private func restoreKernToEntireDocument(oldAttributes: [(range: NSRange, value: Float?)]) {
-        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
+        // 全文のテキストを取得してカーニングを適用
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        mutableString.addAttribute(.kern, value: newKern, range: NSRange(location: 0, length: mutableString.length))
 
-        let targetRange = NSRange(location: 0, length: textStorage.length)
-
-        // 現在のカーニング属性を保存（Redo用）
-        var currentAttributes: [(range: NSRange, value: Float?)] = []
-        textStorage.enumerateAttribute(.kern, in: targetRange, options: []) { attrValue, attrRange, _ in
-            let kernValue = attrValue as? Float
-            currentAttributes.append((range: attrRange, value: kernValue))
-        }
-
-        // Redo用のUndoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, currentAttributes] _ in
-            self?.restoreKernToEntireDocument(oldAttributes: currentAttributes)
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Kern", comment: "Undo action name for kern change"))
-        }
-
-        // 古いカーニング属性を復元
-        textStorage.beginEditing()
-        textStorage.removeAttribute(.kern, range: targetRange)
-        for attr in oldAttributes {
-            let safeRange = NSRange(
-                location: attr.range.location,
-                length: min(attr.range.length, textStorage.length - attr.range.location)
-            )
-            if safeRange.length > 0 && safeRange.location < textStorage.length {
-                if let value = attr.value {
-                    textStorage.addAttribute(.kern, value: value, range: safeRange)
-                }
-            }
-        }
-        textStorage.endEditing()
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
     }
 
     // MARK: - Ligature Support
@@ -3922,72 +3702,57 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文に合字設定を適用（Undo/Redo対応）
     func applyLigatureToEntireDocument(value: Int) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // Undo登録のため、変更前の合字属性を保存
-        var oldLigatureAttributes: [(range: NSRange, value: Int?)] = []
-        textStorage.enumerateAttribute(.ligature, in: targetRange, options: []) { attrValue, attrRange, _ in
-            let ligatureValue = attrValue as? Int
-            oldLigatureAttributes.append((range: attrRange, value: ligatureValue))
-        }
+        // 全文のテキストを取得して合字設定を適用
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        mutableString.addAttribute(.ligature, value: value, range: NSRange(location: 0, length: mutableString.length))
 
-        // Undoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, oldLigatureAttributes] _ in
-            self?.restoreLigatureToEntireDocument(oldAttributes: oldLigatureAttributes)
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Ligatures", comment: "Undo action name for ligature change"))
-        }
-
-        // 全文に合字設定を適用
-        textStorage.beginEditing()
-        textStorage.addAttribute(.ligature, value: value, range: targetRange)
-        textStorage.endEditing()
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
     }
 
-    /// 合字属性を復元（Undo/Redo用）
-    private func restoreLigatureToEntireDocument(oldAttributes: [(range: NSRange, value: Int?)]) {
+    // MARK: - Character Color Support
+
+    /// プレーンテキスト全文に前景色を適用（Undo/Redo対応）
+    func applyForeColorToEntireDocument(_ color: NSColor) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() else { return }
-        guard let undoManager = textView.undoManager else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // 現在の合字属性を保存（Redo用）
-        var currentAttributes: [(range: NSRange, value: Int?)] = []
-        textStorage.enumerateAttribute(.ligature, in: targetRange, options: []) { attrValue, attrRange, _ in
-            let ligatureValue = attrValue as? Int
-            currentAttributes.append((range: attrRange, value: ligatureValue))
+        // 全文のテキストを取得して前景色を適用
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        mutableString.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: mutableString.length))
+
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
+    }
+
+    /// プレーンテキスト全文に背景色を適用（Undo/Redo対応）
+    func applyBackColorToEntireDocument(_ color: NSColor?) {
+        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+
+        let targetRange = NSRange(location: 0, length: textStorage.length)
+
+        // 全文のテキストを取得して背景色を適用/削除
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        let fullRange = NSRange(location: 0, length: mutableString.length)
+
+        if let color = color {
+            mutableString.addAttribute(.backgroundColor, value: color, range: fullRange)
+        } else {
+            mutableString.removeAttribute(.backgroundColor, range: fullRange)
         }
 
-        // Redo用のUndoアクションを登録
-        undoManager.registerUndo(withTarget: self) { [weak self, currentAttributes] _ in
-            self?.restoreLigatureToEntireDocument(oldAttributes: currentAttributes)
-        }
-
-        if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Ligatures", comment: "Undo action name for ligature change"))
-        }
-
-        // 古い合字属性を復元
-        textStorage.beginEditing()
-        textStorage.removeAttribute(.ligature, range: targetRange)
-        for attr in oldAttributes {
-            let safeRange = NSRange(
-                location: attr.range.location,
-                length: min(attr.range.length, textStorage.length - attr.range.location)
-            )
-            if safeRange.length > 0 && safeRange.location < textStorage.length {
-                if let value = attr.value {
-                    textStorage.addAttribute(.ligature, value: value, range: safeRange)
-                }
-            }
-        }
-        textStorage.endEditing()
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
     }
 
     // MARK: - Auto Indent

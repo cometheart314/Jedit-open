@@ -19,6 +19,14 @@ class ImageClickableTextView: NSTextView {
     /// Character index of the image attachment for context menu action
     private var contextMenuImageCharIndex: Int?
 
+    /// カラーパネルのモード（前景色か背景色か）
+    private enum ColorPanelMode {
+        case none
+        case foreground
+        case background
+    }
+    private var colorPanelMode: ColorPanelMode = .none
+
     /// Returns whether this document is plain text
     private var isPlainText: Bool {
         guard let windowController = window?.windowController as? EditorWindowController else {
@@ -30,6 +38,65 @@ class ImageClickableTextView: NSTextView {
     /// Returns whether substitutions should only apply to rich text
     private var richTextSubstitutionsOnly: Bool {
         return UserDefaults.standard.bool(forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
+    }
+
+    // MARK: - Text Replacement with Undo Support
+
+    /// テキストまたは属性付きテキストを指定範囲に置換（Undo/Redo対応）
+    /// すべてのテキスト変更はこのメソッドを経由することで、自動的にUndo/Redoがサポートされる
+    /// - Parameters:
+    ///   - range: 置換する範囲
+    ///   - string: 置換するテキスト（String または NSAttributedString）
+    func replaceString(in range: NSRange, with string: Any) {
+        if let plainString = string as? String {
+            if shouldChangeText(in: range, replacementString: plainString) {
+                replaceCharacters(in: range, with: plainString)
+                didChangeText()
+            }
+        } else if let attributedString = string as? NSAttributedString {
+            if shouldChangeText(in: range, replacementString: attributedString.string) {
+                textStorage?.beginEditing()
+                textStorage?.replaceCharacters(in: range, with: attributedString)
+                textStorage?.endEditing()
+                didChangeText()
+            }
+        }
+    }
+
+    /// 指定範囲の属性を変更（Undo/Redo対応）
+    /// - Parameters:
+    ///   - range: 変更する範囲
+    ///   - attributes: 適用する属性の辞書
+    func applyAttributes(_ attributes: [NSAttributedString.Key: Any], to range: NSRange) {
+        guard let textStorage = textStorage,
+              range.length > 0,
+              range.location + range.length <= textStorage.length else { return }
+
+        // 現在のテキストを取得して属性を変更
+        let currentAttributedString = textStorage.attributedSubstring(from: range)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        mutableString.addAttributes(attributes, range: NSRange(location: 0, length: mutableString.length))
+
+        // replaceStringを使って置換（Undo対応）
+        replaceString(in: range, with: mutableString)
+    }
+
+    /// 指定範囲から属性を削除（Undo/Redo対応）
+    /// - Parameters:
+    ///   - attributeKey: 削除する属性のキー
+    ///   - range: 変更する範囲
+    func removeAttribute(_ attributeKey: NSAttributedString.Key, from range: NSRange) {
+        guard let textStorage = textStorage,
+              range.length > 0,
+              range.location + range.length <= textStorage.length else { return }
+
+        // 現在のテキストを取得して属性を削除
+        let currentAttributedString = textStorage.attributedSubstring(from: range)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        mutableString.removeAttribute(attributeKey, range: NSRange(location: 0, length: mutableString.length))
+
+        // replaceStringを使って置換（Undo対応）
+        replaceString(in: range, with: mutableString)
     }
 
     // MARK: - Mouse Events
@@ -348,6 +415,202 @@ class ImageClickableTextView: NSTextView {
             return
         }
         super.useAllLigatures(sender)
+    }
+
+    // MARK: - Character Color Support
+
+    /// カラーパネルからの自動changeColor呼び出しを制御
+    /// カスタムカラーパネルモードがアクティブな場合は無視
+    @objc override func changeColor(_ sender: Any?) {
+        // カスタムカラーパネルモードがアクティブな場合は無視
+        // （colorPanelChanged で処理される）
+        if colorPanelMode != .none {
+            return
+        }
+        // それ以外は標準動作
+        super.changeColor(sender)
+    }
+
+    /// 文字前景色を変更 (Format > Font > Character Fore Color)
+    @objc func changeForeColor(_ sender: Any?) {
+        guard let menuItem = sender as? NSMenuItem,
+              let color = menuItem.representedObject as? NSColor else {
+            return
+        }
+
+        // プレーンテキストの場合、アラートを表示して確認
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Character Fore Color", comment: "Alert title for fore color change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+            ) { [weak self] in
+                self?.applyForeColorToEntireDocument(color)
+            }
+            return
+        }
+
+        // RTF の場合は選択範囲に適用
+        applyForeColorToSelection(color)
+    }
+
+    /// カラーパネルから前景色を選択 (Format > Font > Character Fore Color > Other Color...)
+    @objc func orderFrontForeColorPanel(_ sender: Any?) {
+        // プレーンテキストの場合、アラートを表示して確認
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Character Fore Color", comment: "Alert title for fore color change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+            ) { [weak self] in
+                self?.showForeColorPanel()
+            }
+            return
+        }
+
+        showForeColorPanel()
+    }
+
+    /// 文字背景色を変更 (Format > Font > Character Back Color)
+    @objc func changeBackColor(_ sender: Any?) {
+        guard let menuItem = sender as? NSMenuItem else {
+            return
+        }
+        let color = menuItem.representedObject as? NSColor  // nil = Clear
+
+        // プレーンテキストの場合、アラートを表示して確認
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Character Back Color", comment: "Alert title for back color change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+            ) { [weak self] in
+                self?.applyBackColorToEntireDocument(color)
+            }
+            return
+        }
+
+        // RTF の場合は選択範囲に適用
+        applyBackColorToSelection(color)
+    }
+
+    /// カラーパネルから背景色を選択 (Format > Font > Character Back Color > Other Color...)
+    @objc func orderFrontBackColorPanel(_ sender: Any?) {
+        // プレーンテキストの場合、アラートを表示して確認
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Character Back Color", comment: "Alert title for back color change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+            ) { [weak self] in
+                self?.showBackColorPanel()
+            }
+            return
+        }
+
+        showBackColorPanel()
+    }
+
+    /// 前景色カラーパネルを表示
+    private func showForeColorPanel() {
+        colorPanelMode = .foreground
+        let colorPanel = NSColorPanel.shared
+        colorPanel.setTarget(self)
+        colorPanel.setAction(#selector(colorPanelChanged(_:)))
+        colorPanel.color = self.textColor ?? .black
+        colorPanel.orderFront(nil)
+
+        // カラーパネルが閉じられた時にモードをリセット
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(colorPanelWillClose(_:)),
+            name: NSWindow.willCloseNotification,
+            object: colorPanel
+        )
+    }
+
+    /// 背景色カラーパネルを表示
+    private func showBackColorPanel() {
+        colorPanelMode = .background
+        let colorPanel = NSColorPanel.shared
+        colorPanel.setTarget(self)
+        colorPanel.setAction(#selector(colorPanelChanged(_:)))
+        colorPanel.color = self.backgroundColor
+        colorPanel.orderFront(nil)
+
+        // カラーパネルが閉じられた時にモードをリセット
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(colorPanelWillClose(_:)),
+            name: NSWindow.willCloseNotification,
+            object: colorPanel
+        )
+    }
+
+    /// カラーパネルが閉じられた時の処理
+    @objc private func colorPanelWillClose(_ notification: Notification) {
+        colorPanelMode = .none
+        // オブザーバーを解除
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSWindow.willCloseNotification,
+            object: NSColorPanel.shared
+        )
+    }
+
+    /// カラーパネルから色が変更された
+    @objc private func colorPanelChanged(_ sender: NSColorPanel) {
+        let color = sender.color
+        switch colorPanelMode {
+        case .foreground:
+            if isPlainText {
+                applyForeColorToEntireDocument(color)
+            } else {
+                applyForeColorToSelection(color)
+            }
+        case .background:
+            if isPlainText {
+                applyBackColorToEntireDocument(color)
+            } else {
+                applyBackColorToSelection(color)
+            }
+        case .none:
+            break
+        }
+    }
+
+    /// 選択範囲に前景色を適用（Undo/Redo対応）
+    private func applyForeColorToSelection(_ color: NSColor) {
+        let range = selectedRange()
+        guard range.length > 0 else { return }
+
+        // applyAttributesを使って色を適用（Undo対応）
+        applyAttributes([.foregroundColor: color], to: range)
+    }
+
+    /// 選択範囲に背景色を適用（Undo/Redo対応）
+    private func applyBackColorToSelection(_ color: NSColor?) {
+        let range = selectedRange()
+        guard range.length > 0 else { return }
+
+        // applyAttributes/removeAttributeを使って色を適用（Undo対応）
+        if let color = color {
+            applyAttributes([.backgroundColor: color], to: range)
+        } else {
+            removeAttribute(.backgroundColor, from: range)
+        }
+    }
+
+    /// プレーンテキスト全文に前景色を適用
+    private func applyForeColorToEntireDocument(_ color: NSColor) {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+        windowController.applyForeColorToEntireDocument(color)
+    }
+
+    /// プレーンテキスト全文に背景色を適用
+    private func applyBackColorToEntireDocument(_ color: NSColor?) {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+        windowController.applyBackColorToEntireDocument(color)
     }
 
     // MARK: - Plain Text Attribute Change Support

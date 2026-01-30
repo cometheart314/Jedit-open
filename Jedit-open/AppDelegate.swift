@@ -26,6 +26,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Format > Font メニューに Basic Font... 項目を追加
         setupBasicFontMenuItem()
+
+        // Format > Font メニューに Character Fore Color / Back Color サブメニューを追加
+        setupCharacterColorMenus()
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -148,6 +151,148 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             keyEquivalent: ""
         )
         fontSubmenu.addItem(basicFontItem)
+    }
+
+    // MARK: - Character Color Menus
+
+    /// Format > Font メニューに Character Fore Color / Back Color サブメニューを追加
+    private func setupCharacterColorMenus() {
+        guard let mainMenu = NSApp.mainMenu,
+              let formatMenu = mainMenu.item(withTitle: "Format")?.submenu,
+              let fontMenuItem = formatMenu.item(withTitle: "Font"),
+              let fontSubmenu = fontMenuItem.submenu else {
+            return
+        }
+
+        // セパレータを追加
+        fontSubmenu.addItem(NSMenuItem.separator())
+
+        // Character Fore Color サブメニューを追加
+        let foreColorItem = NSMenuItem(
+            title: NSLocalizedString("Character Fore Color", comment: "Menu item for character foreground color"),
+            action: nil,
+            keyEquivalent: ""
+        )
+        let foreColorSubmenu = NSMenu(title: "Character Fore Color")
+        setupCharForeColorMenu(foreColorSubmenu)
+        foreColorItem.submenu = foreColorSubmenu
+        fontSubmenu.addItem(foreColorItem)
+
+        // Character Back Color サブメニューを追加
+        let backColorItem = NSMenuItem(
+            title: NSLocalizedString("Character Back Color", comment: "Menu item for character background color"),
+            action: nil,
+            keyEquivalent: ""
+        )
+        let backColorSubmenu = NSMenu(title: "Character Back Color")
+        setupCharBackColorMenu(backColorSubmenu)
+        backColorItem.submenu = backColorSubmenu
+        fontSubmenu.addItem(backColorItem)
+    }
+
+    /// Character Fore Color サブメニューを構築
+    private func setupCharForeColorMenu(_ menu: NSMenu) {
+        let colorNames = ["Black", "Gray", "Silver", "White", "Maroon",
+                          "Red", "Purple", "Fuchsia", "Green", "Lime",
+                          "Olive", "Yellow", "Navy", "Blue", "Teal", "Aqua"]
+
+        let colors: [(CGFloat, CGFloat, CGFloat)] = [
+            (0, 0, 0),                      // Black
+            (0.5, 0.5, 0.5),                // Gray
+            (0.75, 0.75, 0.75),             // Silver
+            (1, 1, 1),                      // White
+            (0.5, 0, 0),                    // Maroon
+            (1, 0, 0),                      // Red
+            (0.5, 0, 0.5),                  // Purple
+            (1, 0, 1),                      // Fuchsia
+            (0, 0.5, 0),                    // Green
+            (0, 1, 0),                      // Lime
+            (0.5, 0.5, 0),                  // Olive
+            (1, 1, 0),                      // Yellow
+            (0, 0, 0.5),                    // Navy
+            (0, 0, 1),                      // Blue
+            (0, 0.5, 0.5),                  // Teal
+            (0, 1, 1)                       // Aqua
+        ]
+
+        for (index, name) in colorNames.enumerated() {
+            let item = NSMenuItem(
+                title: NSLocalizedString(name, comment: "Color name"),
+                action: #selector(ImageClickableTextView.changeForeColor(_:)),
+                keyEquivalent: ""
+            )
+            item.tag = index
+            let (r, g, b) = colors[index]
+            let color = NSColor(calibratedRed: r, green: g, blue: b, alpha: 1.0)
+            item.representedObject = color
+            item.image = createColorSwatchImage(color: color)
+            menu.addItem(item)
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
+        let otherItem = NSMenuItem(
+            title: NSLocalizedString("Other Color...", comment: "Other color menu item"),
+            action: #selector(ImageClickableTextView.orderFrontForeColorPanel(_:)),
+            keyEquivalent: ""
+        )
+        menu.addItem(otherItem)
+    }
+
+    /// Character Back Color サブメニューを構築
+    private func setupCharBackColorMenu(_ menu: NSMenu) {
+        let colorNames = ["Clear", "Salmon", "Carnation", "Lavender", "Ice", "Flora", "Banana"]
+
+        let colors: [(CGFloat, CGFloat, CGFloat)] = [
+            (1, 1, 1),                      // Clear (White)
+            (1, 0.75, 0.75),                // Salmon
+            (1, 0.75, 1),                   // Carnation
+            (0.75, 0.75, 1),                // Lavender
+            (0.75, 1, 1),                   // Ice
+            (0.75, 1, 0.75),                // Flora
+            (1, 1, 0.75)                    // Banana
+        ]
+
+        for (index, name) in colorNames.enumerated() {
+            let item = NSMenuItem(
+                title: NSLocalizedString(name, comment: "Color name"),
+                action: #selector(ImageClickableTextView.changeBackColor(_:)),
+                keyEquivalent: ""
+            )
+            item.tag = index
+            let (r, g, b) = colors[index]
+            let color = NSColor(calibratedRed: r, green: g, blue: b, alpha: 1.0)
+            // Clear の場合は nil を設定（背景色なし）
+            item.representedObject = (name == "Clear") ? nil : color
+            item.image = createColorSwatchImage(color: color)
+            menu.addItem(item)
+
+            // Clear の後にセパレータを追加
+            if name == "Clear" {
+                menu.addItem(NSMenuItem.separator())
+            }
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
+        let otherItem = NSMenuItem(
+            title: NSLocalizedString("Other Color...", comment: "Other color menu item"),
+            action: #selector(ImageClickableTextView.orderFrontBackColorPanel(_:)),
+            keyEquivalent: ""
+        )
+        menu.addItem(otherItem)
+    }
+
+    /// カラースウォッチ画像を作成
+    private func createColorSwatchImage(color: NSColor) -> NSImage {
+        let image = NSImage(size: NSSize(width: 20, height: 12))
+        image.lockFocus()
+        color.set()
+        NSBezierPath.fill(NSRect(x: 0, y: 0, width: 20, height: 12))
+        NSColor.black.set()
+        NSBezierPath.stroke(NSRect(x: 0, y: 0, width: 20, height: 12))
+        image.unlockFocus()
+        return image
     }
 
     // MARK: - New Document Submenu
