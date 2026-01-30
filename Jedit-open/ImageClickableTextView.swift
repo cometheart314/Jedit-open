@@ -196,9 +196,231 @@ class ImageClickableTextView: NSTextView {
             return
         }
 
-        // NSTextView のデフォルト実装を使用
+        // プレーンテキストの場合、アラートを表示して確認
+        if isPlainText {
+            guard let fontManager = sender as? NSFontManager else {
+                return
+            }
+
+            // 現在のフォントを取得
+            let currentFont = self.font ?? NSFont.systemFont(ofSize: 14)
+            let newFont = fontManager.convert(currentFont)
+
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Change Font", comment: "Alert title for font change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, font changes apply to the entire document. Do you want to continue?", comment: "Alert message for font change in plain text")
+            ) { [weak self] in
+                self?.applyFontToEntireDocument(newFont)
+            }
+            return
+        }
+
+        // RTF の場合は NSTextView のデフォルト実装を使用
         // これにより Undo/Redo も自動的にサポートされる
         super.changeFont(sender)
+    }
+
+    /// テキスト属性（色など）の変更を処理
+    override func changeAttributes(_ sender: Any?) {
+        // プレーンテキストの場合は処理しない（色はプレーンテキストでは保存されない）
+        if isPlainText {
+            return
+        }
+
+        // RTF の場合は NSTextView のデフォルト実装を使用
+        super.changeAttributes(sender)
+    }
+
+    /// 下線の変更を処理 (Format > Font > Underline)
+    @IBAction override func underline(_ sender: Any?) {
+        // プレーンテキストの場合、アラートを表示して確認
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Underline", comment: "Alert title for underline change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, underline changes apply to the entire document. Do you want to continue?", comment: "Alert message for underline change in plain text")
+            ) { [weak self] in
+                self?.applyUnderlineToEntireDocument()
+            }
+            return
+        }
+
+        // RTF の場合は NSTextView のデフォルト実装を使用
+        super.underline(sender)
+    }
+
+    // MARK: - Kern Support
+
+    /// Use Standard Kerning (Format > Font > Kern)
+    @IBAction override func useStandardKerning(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+            ) { [weak self] in
+                self?.applyKernToEntireDocument(value: 0) // 0 = standard kerning
+            }
+            return
+        }
+        super.useStandardKerning(sender)
+    }
+
+    /// Turn Off Kerning (Format > Font > Kern)
+    @IBAction override func turnOffKerning(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+            ) { [weak self] in
+                self?.applyKernToEntireDocument(value: nil) // nil = turn off
+            }
+            return
+        }
+        super.turnOffKerning(sender)
+    }
+
+    /// Tighten Kerning (Format > Font > Kern)
+    @IBAction override func tightenKerning(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+            ) { [weak self] in
+                self?.adjustKernToEntireDocument(delta: -1.0)
+            }
+            return
+        }
+        super.tightenKerning(sender)
+    }
+
+    /// Loosen Kerning (Format > Font > Kern)
+    @IBAction override func loosenKerning(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+            ) { [weak self] in
+                self?.adjustKernToEntireDocument(delta: 1.0)
+            }
+            return
+        }
+        super.loosenKerning(sender)
+    }
+
+    // MARK: - Ligature Support
+
+    /// Use Standard Ligatures (Format > Font > Ligatures)
+    @IBAction override func useStandardLigatures(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Ligatures", comment: "Alert title for ligature change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, ligature changes apply to the entire document. Do you want to continue?", comment: "Alert message for ligature change in plain text")
+            ) { [weak self] in
+                self?.applyLigatureToEntireDocument(value: 1) // 1 = standard ligatures
+            }
+            return
+        }
+        super.useStandardLigatures(sender)
+    }
+
+    /// Turn Off Ligatures (Format > Font > Ligatures)
+    @IBAction override func turnOffLigatures(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Ligatures", comment: "Alert title for ligature change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, ligature changes apply to the entire document. Do you want to continue?", comment: "Alert message for ligature change in plain text")
+            ) { [weak self] in
+                self?.applyLigatureToEntireDocument(value: 0) // 0 = no ligatures
+            }
+            return
+        }
+        super.turnOffLigatures(sender)
+    }
+
+    /// Use All Ligatures (Format > Font > Ligatures)
+    @IBAction override func useAllLigatures(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Ligatures", comment: "Alert title for ligature change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, ligature changes apply to the entire document. Do you want to continue?", comment: "Alert message for ligature change in plain text")
+            ) { [weak self] in
+                self?.applyLigatureToEntireDocument(value: 2) // 2 = all ligatures
+            }
+            return
+        }
+        super.useAllLigatures(sender)
+    }
+
+    // MARK: - Plain Text Attribute Change Support
+
+    /// プレーンテキストで属性変更時にアラートを表示
+    /// - Parameters:
+    ///   - message: アラートのタイトル
+    ///   - informativeText: アラートの説明文
+    ///   - onConfirm: OKが押された時のコールバック
+    private func showPlainTextAttributeChangeAlert(message: String, informativeText: String, onConfirm: @escaping () -> Void) {
+        guard let window = self.window else {
+            onConfirm()
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = message
+        alert.informativeText = informativeText
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+
+        alert.beginSheetModal(for: window) { response in
+            if response == .alertFirstButtonReturn {
+                onConfirm()
+            }
+        }
+    }
+
+    /// プレーンテキスト全文に下線をトグル適用
+    /// EditorWindowControllerのメソッドに委譲（Undo/Redo対応）
+    private func applyUnderlineToEntireDocument() {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+        windowController.applyUnderlineToEntireDocument()
+    }
+
+    /// プレーンテキスト全文にカーニングを適用
+    /// EditorWindowControllerのメソッドに委譲（Undo/Redo対応）
+    private func applyKernToEntireDocument(value: Float?) {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+        windowController.applyKernToEntireDocument(value: value)
+    }
+
+    /// プレーンテキスト全文のカーニングを調整
+    /// EditorWindowControllerのメソッドに委譲（Undo/Redo対応）
+    private func adjustKernToEntireDocument(delta: Float) {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+        windowController.adjustKernToEntireDocument(delta: delta)
+    }
+
+    /// プレーンテキスト全文に合字設定を適用
+    /// EditorWindowControllerのメソッドに委譲（Undo/Redo対応）
+    private func applyLigatureToEntireDocument(value: Int) {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+        windowController.applyLigatureToEntireDocument(value: value)
+    }
+
+    /// プレーンテキスト全文にフォントを適用し、presetDataを更新
+    /// EditorWindowControllerのメソッドに委譲（Undo/Redo対応）
+    private func applyFontToEntireDocument(_ font: NSFont) {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+
+        // EditorWindowControllerのメソッドを呼び出す（Undo/Redo対応済み）
+        windowController.applyFontToEntireDocument(font)
     }
 
     // MARK: - Tab Handling
@@ -396,6 +618,23 @@ class ImageClickableTextView: NSTextView {
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         let action = menuItem.action
+
+        // Baseline submenu actions are disabled for plain text
+        // (Baseline offset is not meaningful in plain text documents)
+        if isPlainText {
+            // Note: subscript is a Swift keyword, so we use Selector directly
+            let subscriptSelector = Selector(("subscript:"))
+            switch action {
+            case #selector(raiseBaseline(_:)),
+                 #selector(lowerBaseline(_:)),
+                 #selector(superscript(_:)),
+                 #selector(unscript(_:)),
+                 subscriptSelector:
+                return false
+            default:
+                break
+            }
+        }
 
         // Substitution actions that respect "Rich Text Only" setting
         // When "Following Substitutions Enabled Only in Rich Text" is ON and this is plain text,
