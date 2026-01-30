@@ -314,4 +314,47 @@ class ImageResizeController: NSObject {
         resizePanel?.close()
         resizePanel = nil
     }
+
+    /// Check if there's an image attachment at the given character index
+    /// Returns the attachment info if found
+    func getImageAttachment(in textView: NSTextView, at charIndex: Int) -> (attachment: NSTextAttachment, image: NSImage, size: NSSize)? {
+        guard let textStorage = textView.textStorage,
+              charIndex < textStorage.length else {
+            return nil
+        }
+
+        let attributes = textStorage.attributes(at: charIndex, effectiveRange: nil)
+        guard let attachment = attributes[.attachment] as? NSTextAttachment else {
+            return nil
+        }
+
+        guard let image = getImage(from: attachment) else {
+            return nil
+        }
+
+        let displaySize = getDisplaySize(attachment, image: image)
+        guard displaySize.width > 0 && displaySize.height > 0 else {
+            return nil
+        }
+
+        return (attachment, image, displaySize)
+    }
+
+    /// Show resize panel for an attachment at the specified character index
+    /// Called from context menu
+    func showResizePanelForAttachment(in textView: NSTextView, at charIndex: Int) {
+        guard let (attachment, image, displaySize) = getImageAttachment(in: textView, at: charIndex) else {
+            return
+        }
+
+        // Store the current attachment info for resizing
+        currentAttachment = attachment
+        currentAttachmentRange = NSRange(location: charIndex, length: 1)
+        originalSize = displaySize
+        originalImage = image
+        originalFileWrapper = attachment.fileWrapper
+
+        // Show resize panel
+        showResizePanel(for: attachment, currentSize: displaySize, in: textView)
+    }
 }

@@ -16,6 +16,9 @@ class ImageClickableTextView: NSTextView {
     /// Controller for handling image resize operations
     var imageResizeController: ImageResizeController?
 
+    /// Character index of the image attachment for context menu action
+    private var contextMenuImageCharIndex: Int?
+
     /// Returns whether this document is plain text
     private var isPlainText: Bool {
         guard let windowController = window?.windowController as? EditorWindowController else {
@@ -32,17 +35,89 @@ class ImageClickableTextView: NSTextView {
     // MARK: - Mouse Events
 
     override func mouseDown(with event: NSEvent) {
-        // Check if we clicked on an image attachment
+        // Check for double-click on an image attachment
+        if event.clickCount == 2 {
+            let point = convert(event.locationInWindow, from: nil)
+
+            if let controller = imageResizeController,
+               controller.handleClick(in: self, at: point) {
+                // Image was double-clicked, panel is shown, don't pass the event
+                return
+            }
+        }
+
+        // Not an image double-click, proceed with normal behavior
+        super.mouseDown(with: event)
+    }
+
+    // MARK: - Context Menu
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        // Get the base context menu
+        guard let menu = super.menu(for: event) else {
+            return nil
+        }
+
+        // Check if the click is on an image attachment
         let point = convert(event.locationInWindow, from: nil)
 
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer,
+              let textStorage = textStorage,
+              textStorage.length > 0 else {
+            return menu
+        }
+
+        // Convert point to text container coordinates
+        let textContainerOrigin = textContainerOrigin
+        let locationInContainer = NSPoint(
+            x: point.x - textContainerOrigin.x,
+            y: point.y - textContainerOrigin.y
+        )
+
+        // Get glyph index at point
+        var fraction: CGFloat = 0
+        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer, fractionOfDistanceThroughGlyph: &fraction)
+
+        // Convert glyph index to character index
+        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+
+        // Check if there's an attachment at this character index
+        guard charIndex < textStorage.length else {
+            return menu
+        }
+
+        // Check for attachment attribute using imageResizeController
         if let controller = imageResizeController,
-           controller.handleClick(in: self, at: point) {
-            // Image was clicked, panel is shown, don't pass the event
+           controller.getImageAttachment(in: self, at: charIndex) != nil {
+            // Store the character index for the menu action
+            contextMenuImageCharIndex = charIndex
+
+            // Create "Change Image Size..." menu item
+            let changeImageSizeItem = NSMenuItem(
+                title: NSLocalizedString("Change Image Size...", comment: "Context menu item for changing image size"),
+                action: #selector(changeImageSize(_:)),
+                keyEquivalent: ""
+            )
+            changeImageSizeItem.target = self
+
+            // Insert at the beginning of the menu
+            menu.insertItem(changeImageSizeItem, at: 0)
+            menu.insertItem(NSMenuItem.separator(), at: 1)
+        }
+
+        return menu
+    }
+
+    /// Action for "Change Image Size..." context menu item
+    @objc private func changeImageSize(_ sender: Any?) {
+        guard let charIndex = contextMenuImageCharIndex,
+              let controller = imageResizeController else {
             return
         }
 
-        // Not an image click, proceed with normal behavior
-        super.mouseDown(with: event)
+        controller.showResizePanelForAttachment(in: self, at: charIndex)
+        contextMenuImageCharIndex = nil
     }
 
     // MARK: - Spelling and Grammar Menu Actions
