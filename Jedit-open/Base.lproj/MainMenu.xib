@@ -71,7 +71,7 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="New" id="new-doc-submenu">
                                     <items>
-                                        <menuItem title="Default" keyEquivalent="n" tag="0" id="new-default-001">
+                                        <menuItem title="Default" keyEquivalent="n" id="new-default-001">
                                             <connections>
                                                 <action selector="newDocumentWithPreset:" target="Voe-Tx-rLC" id="new-default-act"/>
                                             </connections>
@@ -740,11 +740,6 @@
                                             </menu>
                                         </menuItem>
                                         <menuItem isSeparatorItem="YES" id="Ndw-q3-faq"/>
-                                        <menuItem title="Show Colors" keyEquivalent="C" id="bgn-CT-cEk">
-                                            <connections>
-                                                <action selector="orderFrontColorPanel:" target="-1" id="mSX-Xz-DV3"/>
-                                            </connections>
-                                        </menuItem>
                                         <menuItem isSeparatorItem="YES" id="iMs-zA-UFJ"/>
                                         <menuItem title="Copy Style" keyEquivalent="c" id="5Vv-lz-BsD">
                                             <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>

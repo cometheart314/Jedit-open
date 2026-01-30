@@ -749,24 +749,24 @@ class NewDocumentsPreferencesViewController: NSViewController {
     }
 
     /// Colors, Theme コントロールの有効/無効を更新
-    /// Plain Text の場合は無効化（グレイアウト）
+    /// Plain Text でも Rich Text でも色の設定は可能
     private func updateColorsControlsEnabled() {
-        let isRichText = textStyleMatrix?.selectedTag() == 1
-        let isEnabled = isRichText
+        // Plain Text でも色の設定ができるようにすべて有効化
+        // （プレーンテキストでも文字色・背景色等を設定可能）
 
         // Theme ボタン
-        themePopupButton?.isEnabled = isEnabled
+        themePopupButton?.isEnabled = true
 
         // 9色のカラーウェル
-        textColorWell?.isEnabled = isEnabled
-        backgroundColorWell?.isEnabled = isEnabled
-        invisibleColorWell?.isEnabled = isEnabled
-        caretColorWell?.isEnabled = isEnabled
-        highlightColorWell?.isEnabled = isEnabled
-        lineNumberColorWell?.isEnabled = isEnabled
-        headerColorWell?.isEnabled = isEnabled
-        footerColorWell?.isEnabled = isEnabled
-        lineNumberBackgroundColorWell?.isEnabled = isEnabled
+        textColorWell?.isEnabled = true
+        backgroundColorWell?.isEnabled = true
+        invisibleColorWell?.isEnabled = true
+        caretColorWell?.isEnabled = true
+        highlightColorWell?.isEnabled = true
+        lineNumberColorWell?.isEnabled = true
+        headerColorWell?.isEnabled = true
+        footerColorWell?.isEnabled = true
+        lineNumberBackgroundColorWell?.isEnabled = true
     }
 
     /// Wrapped Line Indent コントロールの有効/無効を更新

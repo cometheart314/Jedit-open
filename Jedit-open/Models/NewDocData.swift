@@ -566,8 +566,26 @@ struct CodableColor: Codable, Equatable {
     var green: CGFloat
     var blue: CGFloat
     var alpha: CGFloat
+    /// システムカラー名（動的カラー対応用）
+    var systemColorName: String?
+
+    /// サポートするシステムカラーのマッピング
+    private static let systemColors: [String: NSColor] = [
+        "textColor": .textColor,
+        "textBackgroundColor": .textBackgroundColor,
+        "labelColor": .labelColor,
+        "secondaryLabelColor": .secondaryLabelColor,
+        "tertiaryLabelColor": .tertiaryLabelColor,
+        "quaternaryLabelColor": .quaternaryLabelColor,
+        "controlBackgroundColor": .controlBackgroundColor,
+        "selectedTextBackgroundColor": .selectedTextBackgroundColor,
+        "windowBackgroundColor": .windowBackgroundColor
+    ]
 
     init(_ color: NSColor) {
+        // システムカラーかどうかチェック
+        self.systemColorName = Self.systemColors.first { $0.value == color }?.key
+
         let converted = color.usingColorSpace(.sRGB) ?? color
         self.red = converted.redComponent
         self.green = converted.greenComponent
@@ -580,9 +598,19 @@ struct CodableColor: Codable, Equatable {
         self.green = green
         self.blue = blue
         self.alpha = alpha
+        self.systemColorName = nil
     }
 
     var nsColor: NSColor {
-        NSColor(srgbRed: red, green: green, blue: blue, alpha: alpha)
+        // システムカラー名が保存されていれば動的カラーを返す
+        if let name = systemColorName, let systemColor = Self.systemColors[name] {
+            return systemColor
+        }
+        return NSColor(srgbRed: red, green: green, blue: blue, alpha: alpha)
+    }
+
+    /// 動的カラーかどうか
+    var isDynamic: Bool {
+        systemColorName != nil
     }
 }
