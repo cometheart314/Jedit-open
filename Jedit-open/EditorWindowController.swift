@@ -3889,5 +3889,31 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             presetManager.updatePreset(preset)
         }
     }
+
+    // MARK: - Document Colors
+
+    /// Document Colorsパネルのインスタンス
+    private lazy var documentColorsPanel: DocumentColorsPanel? = DocumentColorsPanel.loadFromNib()
+
+    /// View > Document Colors... メニューアクション
+    @IBAction func showDocumentColorsPanel(_ sender: Any?) {
+        guard let window = self.window,
+              let presetData = textDocument?.presetData,
+              let panel = documentColorsPanel else { return }
+
+        let currentColors = presetData.fontAndColors.colors
+
+        panel.beginSheet(
+            for: window,
+            currentColors: currentColors
+        ) { [weak self] accepted in
+            guard self != nil else { return }
+
+            if accepted {
+                // 将来的にここで色の適用を行う
+                // 現在はまだTextViewとconnectしない
+            }
+        }
+    }
 }
 
