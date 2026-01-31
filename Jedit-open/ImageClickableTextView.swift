@@ -289,13 +289,29 @@ class ImageClickableTextView: NSTextView {
 
     /// テキスト属性（色など）の変更を処理
     override func changeAttributes(_ sender: Any?) {
-        // プレーンテキストの場合は処理しない（色はプレーンテキストでは保存されない）
+        // プレーンテキストの場合は警告を表示して拒否
         if isPlainText {
+            showPlainTextColorChangeNotAllowedAlert()
             return
         }
 
         // RTF の場合は NSTextView のデフォルト実装を使用
         super.changeAttributes(sender)
+    }
+
+    /// プレーンテキストで色変更が許可されていないことを警告
+    private func showPlainTextColorChangeNotAllowedAlert() {
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Color Change Not Allowed", comment: "Alert title for color change not allowed in plain text")
+        alert.informativeText = NSLocalizedString("Character colors cannot be changed in plain text documents. To change colors, convert the document to Rich Text format.", comment: "Alert message for color change not allowed in plain text")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+
+        if let window = self.window {
+            alert.beginSheetModal(for: window, completionHandler: nil)
+        } else {
+            alert.runModal()
+        }
     }
 
     /// 下線の変更を処理 (Format > Font > Underline)
@@ -415,6 +431,197 @@ class ImageClickableTextView: NSTextView {
             return
         }
         super.useAllLigatures(sender)
+    }
+
+    // MARK: - Text Alignment Support
+
+    /// Align Left (Format > Text > Align Left)
+    @IBAction override func alignLeft(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+            ) { [weak self] in
+                self?.applyAlignmentToEntireDocument(.left)
+            }
+            return
+        }
+        super.alignLeft(sender)
+    }
+
+    /// Align Center (Format > Text > Center)
+    @IBAction override func alignCenter(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+            ) { [weak self] in
+                self?.applyAlignmentToEntireDocument(.center)
+            }
+            return
+        }
+        super.alignCenter(sender)
+    }
+
+    /// Align Right (Format > Text > Align Right)
+    @IBAction override func alignRight(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+            ) { [weak self] in
+                self?.applyAlignmentToEntireDocument(.right)
+            }
+            return
+        }
+        super.alignRight(sender)
+    }
+
+    /// Justify (Format > Text > Justify)
+    @IBAction override func alignJustified(_ sender: Any?) {
+        if isPlainText {
+            showPlainTextAttributeChangeAlert(
+                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
+                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+            ) { [weak self] in
+                self?.applyAlignmentToEntireDocument(.justified)
+            }
+            return
+        }
+        super.alignJustified(sender)
+    }
+
+    /// プレーンテキスト全文にアラインメントを適用
+    private func applyAlignmentToEntireDocument(_ alignment: NSTextAlignment) {
+        guard let windowController = window?.windowController as? EditorWindowController else {
+            return
+        }
+        windowController.applyAlignmentToEntireDocument(alignment)
+    }
+
+    // MARK: - Paragraph Style Support (Inspector Bar)
+
+    /// 段落スタイル変更前の状態を保持（リスト検出用）
+    private var previousTextLists: [NSTextList]?
+
+    /// Inspector barからのsetAlignment変更をインターセプト
+    /// プレーンテキストでは全文に適用
+    override func setAlignment(_ alignment: NSTextAlignment, range: NSRange) {
+        if isPlainText {
+            // プレーンテキストでは全文に適用
+            guard let textStorage = textStorage, textStorage.length > 0 else {
+                super.setAlignment(alignment, range: range)
+                return
+            }
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            super.setAlignment(alignment, range: fullRange)
+            return
+        }
+        super.setAlignment(alignment, range: range)
+    }
+
+    /// NSTextViewが属性変更を許可するかどうかを決定
+    /// Inspector barからのリスト変更を検出してプレーンテキストでは拒否
+    override func shouldChangeText(in affectedCharRange: NSRange, replacementString: String?) -> Bool {
+        // プレーンテキストで、テキスト変更ではなく属性変更（replacementStringがnil）の場合
+        if isPlainText && replacementString == nil {
+            // 現在のリスト状態を保存
+            if let textStorage = textStorage, affectedCharRange.location < textStorage.length {
+                let style = textStorage.attribute(.paragraphStyle, at: affectedCharRange.location, effectiveRange: nil) as? NSParagraphStyle
+                previousTextLists = style?.textLists
+            } else {
+                previousTextLists = nil
+            }
+        }
+        return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
+    }
+
+    /// テキスト変更後の処理
+    /// プレーンテキストでリスト追加を検出して元に戻す、またはLine Spacingを全文に適用
+    override func didChangeText() {
+        super.didChangeText()
+
+        guard isPlainText, let textStorage = textStorage, textStorage.length > 0 else {
+            return
+        }
+
+        // 段落スタイルの変更を検出して処理
+        let selectedRange = self.selectedRange()
+        guard selectedRange.location < textStorage.length else { return }
+
+        let currentStyle = textStorage.attribute(.paragraphStyle, at: min(selectedRange.location, textStorage.length - 1), effectiveRange: nil) as? NSParagraphStyle
+
+        // リストが追加された場合は警告を出して元に戻す
+        if let currentLists = currentStyle?.textLists, !currentLists.isEmpty {
+            let previousLists = previousTextLists ?? []
+            if previousLists.isEmpty {
+                // リストが新しく追加された - 警告を出して削除
+                showPlainTextListChangeNotAllowedAlert()
+
+                // リストを削除した段落スタイルを作成
+                let mutableStyle = (currentStyle?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+                mutableStyle.textLists = []
+
+                // 全文に適用
+                let fullRange = NSRange(location: 0, length: textStorage.length)
+                textStorage.addAttribute(.paragraphStyle, value: mutableStyle, range: fullRange)
+            }
+        } else if let currentStyle = currentStyle {
+            // リストがない場合、段落スタイル（Line Spacingなど）を全文に適用
+            // ただし、段落スタイルが変更された場合のみ
+            applyParagraphStyleToEntireDocumentIfNeeded(currentStyle)
+        }
+
+        previousTextLists = nil
+    }
+
+    /// 段落スタイル変更前の状態を保持
+    private var previousParagraphStyle: NSParagraphStyle?
+
+    /// 段落スタイルを全文に適用（プレーンテキスト用）
+    /// Line Spacing、段落間隔などが変更された場合に全文に適用
+    private func applyParagraphStyleToEntireDocumentIfNeeded(_ newStyle: NSParagraphStyle) {
+        guard let textStorage = textStorage, textStorage.length > 0 else { return }
+
+        // 全文に段落スタイルを適用
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+
+        // 現在のスタイルと同じかどうかを確認（最初の文字の段落スタイルと比較）
+        let firstCharStyle = textStorage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+        if firstCharStyle != newStyle {
+            textStorage.addAttribute(.paragraphStyle, value: newStyle, range: fullRange)
+        }
+    }
+
+    /// プレーンテキストでリスト変更が許可されていないことを警告
+    private func showPlainTextListChangeNotAllowedAlert() {
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("List Not Available", comment: "Alert title for list not available in plain text")
+        alert.informativeText = NSLocalizedString("Lists cannot be used in plain text documents. To use lists, convert the document to Rich Text format.", comment: "Alert message for list not available in plain text")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+
+        if let window = self.window {
+            alert.beginSheetModal(for: window, completionHandler: nil)
+        } else {
+            alert.runModal()
+        }
+    }
+
+    /// Inspector barからのLine Spacing変更を処理
+    /// プレーンテキストでは全文に適用
+    override func setBaseWritingDirection(_ writingDirection: NSWritingDirection, range: NSRange) {
+        if isPlainText {
+            // プレーンテキストでは全文に適用
+            guard let textStorage = textStorage, textStorage.length > 0 else {
+                super.setBaseWritingDirection(writingDirection, range: range)
+                return
+            }
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            super.setBaseWritingDirection(writingDirection, range: fullRange)
+            return
+        }
+        super.setBaseWritingDirection(writingDirection, range: range)
     }
 
     // MARK: - Character Color Support
@@ -885,8 +1092,8 @@ class ImageClickableTextView: NSTextView {
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         let action = menuItem.action
 
-        // Baseline submenu actions are disabled for plain text
-        // (Baseline offset is not meaningful in plain text documents)
+        // Baseline submenu actions and Character colors are disabled for plain text
+        // (These attributes are not meaningful in plain text documents)
         if isPlainText {
             // Note: subscript is a Swift keyword, so we use Selector directly
             let subscriptSelector = Selector(("subscript:"))
@@ -895,7 +1102,11 @@ class ImageClickableTextView: NSTextView {
                  #selector(lowerBaseline(_:)),
                  #selector(superscript(_:)),
                  #selector(unscript(_:)),
-                 subscriptSelector:
+                 subscriptSelector,
+                 #selector(changeForeColor(_:)),
+                 #selector(orderFrontForeColorPanel(_:)),
+                 #selector(changeBackColor(_:)),
+                 #selector(orderFrontBackColorPanel(_:)):
                 return false
             default:
                 break

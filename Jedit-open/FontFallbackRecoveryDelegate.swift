@@ -31,7 +31,52 @@ class FontFallbackRecoveryDelegate: NSObject, NSTextStorageDelegate {
         super.init()
     }
 
+    /// 段落スタイル変更処理中かどうか（再帰呼び出し防止用）
+    private var isProcessingParagraphStyle = false
+
     // MARK: - NSTextStorageDelegate
+
+    func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
+        // プレーンテキストで属性が変更された場合、段落スタイルを全文に適用
+        guard let document = document,
+              document.documentType == .plain,
+              editedMask.contains(.editedAttributes),
+              !isProcessingParagraphStyle,
+              textStorage.length > 0 else {
+            return
+        }
+
+        // 変更された範囲の段落スタイルを取得
+        let safeLocation = min(editedRange.location, textStorage.length - 1)
+        guard let changedStyle = textStorage.attribute(.paragraphStyle, at: safeLocation, effectiveRange: nil) as? NSParagraphStyle else {
+            return
+        }
+
+        // 全文に同じ段落スタイルが適用されているか確認
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        var needsUpdate = false
+
+        textStorage.enumerateAttribute(.paragraphStyle, in: fullRange, options: []) { value, range, stop in
+            if let style = value as? NSParagraphStyle {
+                // 行間隔、段落間隔などが異なる場合は更新が必要
+                if style.lineSpacing != changedStyle.lineSpacing ||
+                   style.paragraphSpacing != changedStyle.paragraphSpacing ||
+                   style.paragraphSpacingBefore != changedStyle.paragraphSpacingBefore ||
+                   style.lineHeightMultiple != changedStyle.lineHeightMultiple ||
+                   style.minimumLineHeight != changedStyle.minimumLineHeight ||
+                   style.maximumLineHeight != changedStyle.maximumLineHeight {
+                    needsUpdate = true
+                    stop.pointee = true
+                }
+            }
+        }
+
+        if needsUpdate {
+            isProcessingParagraphStyle = true
+            textStorage.addAttribute(.paragraphStyle, value: changedStyle, range: fullRange)
+            isProcessingParagraphStyle = false
+        }
+    }
 
     func textStorage(_ textStorage: NSTextStorage, willProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
         // 文字が追加された場合のみ処理（削除や属性変更のみの場合は無視）

@@ -302,8 +302,15 @@ class MultiplePageView: NSView {
     // MARK: - Line Number Drawing
 
     private let lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
+    /// 行番号文字色（Document Colorsから設定可能）
+    var lineNumberTextColor: NSColor? {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
     private var lineNumberColor: NSColor {
-        isPlainText ? .secondaryLabelColor : .darkGray
+        lineNumberTextColor ?? (isPlainText ? .secondaryLabelColor : .darkGray)
     }
     private let lineNumberRightMargin: CGFloat = 8.0
 

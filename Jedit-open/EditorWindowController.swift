@@ -216,6 +216,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
+        // リッチテキストでDynamic Colors（システムカラー）を使用している場合は再適用
+        if !isPlainText, let colors = textDocument?.presetData?.fontAndColors.colors {
+            // 背景色または文字色がDynamicカラーの場合は色を再適用
+            if colors.background.isDynamic || colors.character.isDynamic {
+                applyColorsToTextViews(colors)
+                return
+            }
+        }
+
         // 背景色を更新（プレーンテキストはシステムカラー、リッチテキストは白固定）
         switch displayMode {
         case .continuous:
@@ -580,7 +589,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// 色設定をテキストビューに適用
     private func applyColorsToTextViews(_ colors: NewDocData.FontAndColorsData.Colors) {
         // テキストビューの色を適用するヘルパー
-        func applyTextViewColors(_ textView: NSTextView) {
+        func applyTextViewColors(_ textView: NSTextView, scrollView: NSScrollView? = nil) {
             textView.backgroundColor = colors.background.nsColor
             textView.textColor = colors.character.nsColor
             textView.insertionPointColor = colors.caret.nsColor
@@ -592,17 +601,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             if let layoutManager = textView.layoutManager as? InvisibleCharacterLayoutManager {
                 layoutManager.invisibleCharacterColor = colors.invisible.nsColor
             }
+
+            // ScrollViewの背景色も設定（Continuousモード用）
+            scrollView?.backgroundColor = colors.background.nsColor
         }
 
         // Continuous モードの場合
         if let scrollView = scrollView1,
            let textView = scrollView.documentView as? NSTextView {
-            applyTextViewColors(textView)
+            applyTextViewColors(textView, scrollView: scrollView)
         }
         if let scrollView = scrollView2,
            !scrollView.isHidden,
            let textView = scrollView.documentView as? NSTextView {
-            applyTextViewColors(textView)
+            applyTextViewColors(textView, scrollView: scrollView)
         }
 
         // Page モードの場合
@@ -613,17 +625,19 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             applyTextViewColors(textView)
         }
 
-        // 行番号ビューの色を適用
+        // 行番号ビューの色を適用（Continuousモード）
         lineNumberView1?.lineNumberColor = colors.lineNumber.nsColor
         lineNumberView1?.lineNumberBackgroundColor = colors.lineNumberBackground.nsColor
         lineNumberView2?.lineNumberColor = colors.lineNumber.nsColor
         lineNumberView2?.lineNumberBackgroundColor = colors.lineNumberBackground.nsColor
 
-        // ページモードのヘッダー・フッター色を適用
+        // ページモードのヘッダー・フッター・行番号色を適用
         pagesView1?.headerColor = colors.header.nsColor
         pagesView1?.footerColor = colors.footer.nsColor
+        pagesView1?.lineNumberTextColor = colors.lineNumber.nsColor
         pagesView2?.headerColor = colors.header.nsColor
         pagesView2?.footerColor = colors.footer.nsColor
+        pagesView2?.lineNumberTextColor = colors.lineNumber.nsColor
     }
 
     @objc private func lineNumberSizeDidChange(_ notification: Notification) {
@@ -821,13 +835,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-            // ダークモード対応（プレーンテキストのみ）
-            // リッチテキストは白背景固定（文字色はユーザー設定を保持）
-            if textDocument?.documentType == .plain {
+            // Document Colorsが設定されている場合はそれを使用、なければデフォルト
+            if let colors = textDocument?.presetData?.fontAndColors.colors {
+                textView.backgroundColor = colors.background.nsColor
+                textView.textColor = colors.character.nsColor
+                scrollView.backgroundColor = colors.background.nsColor
+            } else if textDocument?.documentType == .plain {
+                // ダークモード対応（プレーンテキストのみ）
                 textView.backgroundColor = .textBackgroundColor
                 textView.textColor = .textColor
                 scrollView.backgroundColor = .textBackgroundColor
             } else {
+                // リッチテキストは白背景固定（文字色はユーザー設定を保持）
                 textView.backgroundColor = .white
                 scrollView.backgroundColor = .white
             }
@@ -928,13 +947,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-            // ダークモード対応（プレーンテキストのみ）
-            // リッチテキストは白背景固定（文字色はユーザー設定を保持）
-            if textDocument?.documentType == .plain {
+            // Document Colorsが設定されている場合はそれを使用、なければデフォルト
+            if let colors = textDocument?.presetData?.fontAndColors.colors {
+                textView.backgroundColor = colors.background.nsColor
+                textView.textColor = colors.character.nsColor
+                scrollView.backgroundColor = colors.background.nsColor
+            } else if textDocument?.documentType == .plain {
+                // ダークモード対応（プレーンテキストのみ）
                 textView.backgroundColor = .textBackgroundColor
                 textView.textColor = .textColor
                 scrollView.backgroundColor = .textBackgroundColor
             } else {
+                // リッチテキストは白背景固定（文字色はユーザー設定を保持）
                 textView.backgroundColor = .white
                 scrollView.backgroundColor = .white
             }
@@ -1438,6 +1462,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // TextViewsを再設定
         if let textDocument = self.textDocument {
             setupTextViews(with: textDocument.textStorage)
+            // Document Colorsを再適用
+            if let colors = textDocument.presetData?.fontAndColors.colors {
+                applyColorsToTextViews(colors)
+            }
         }
         // ルーラー表示状態を引き継ぐ（レイアウト完了後に実行）
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -1453,10 +1481,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         displayMode = .continuous
         if let textDocument = self.textDocument {
             setupTextViews(with: textDocument.textStorage)
+            // Document Colorsを再適用
+            if let colors = textDocument.presetData?.fontAndColors.colors {
+                applyColorsToTextViews(colors)
+            }
         }
         // ルーラー表示状態を引き継ぐ（レイアウト完了後に実行）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            self?.updateRulerVisibility()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
+            self.updateRulerVisibility()
         }
 
         // presetData に反映
@@ -1472,6 +1505,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard let textDocument = self.textDocument else { return }
         displayMode = .page
         setupTextViews(with: textDocument.textStorage)
+        // Document Colorsを再適用
+        if let colors = textDocument.presetData?.fontAndColors.colors {
+            applyColorsToTextViews(colors)
+        }
         // ルーラー表示状態を引き継ぐ（レイアウト完了後に実行）
         // レイアウト処理が完了するまで待つ必要があるため、遅延を長めに設定
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -2217,6 +2254,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
                 self?.updateRulerVisibility()
             }
+            // Document Colorsを再適用
+            if let colors = textDocument.presetData?.fontAndColors.colors {
+                applyColorsToTextViews(colors)
+            }
             return
         }
 
@@ -2254,6 +2295,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 setupLineNumberView(for: scrollView, lineNumberViewRef: &lineNumberView2, constraintRef: &lineNumberWidthConstraint2)
                 lineNumberView2?.textView = scrollView.documentView as? NSTextView
             }
+        }
+
+        // Document Colorsを再適用（行番号ビューの色など）
+        if let colors = textDocument?.presetData?.fontAndColors.colors {
+            applyColorsToTextViews(colors)
         }
     }
 
@@ -2486,12 +2532,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 更新中なら少し待ってから再試行（最大5回）
         if isUpdatingPages {
             if retryCount < 5 {
-                print("checkForLayoutIssues: waiting for update to finish (retry \(retryCount + 1))")
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
                     self?.checkForLayoutIssues(layoutManager: layoutManager, scrollView: scrollView, target: target, retryCount: retryCount + 1)
                 }
             } else {
-                print("checkForLayoutIssues: giving up after 5 retries, forcing isUpdatingPages to false")
                 isUpdatingPages = false
                 // 再帰呼び出しせず、直接実行
             }
@@ -2521,18 +2565,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
-        print("checkForLayoutIssues: totalLayoutedChars=\(totalLayoutedChars), textLength=\(textLength), emptyContainers=\(emptyContainerCount), containerCount=\(currentContainers.count)")
-
         // 問題があれば対処
         if totalLayoutedChars > textLength {
             // 古いデータがある場合は再構築
-            print("checkForLayoutIssues: stale data detected, rebuilding")
             isUpdatingPages = true
             defer { isUpdatingPages = false }
             rebuildAllPages(for: layoutManager, in: scrollView, target: target)
         } else if emptyContainerCount > 0 {
             // 空のコンテナがある場合は削除
-            print("checkForLayoutIssues: removing \(emptyContainerCount) empty containers")
             isUpdatingPages = true
             defer { isUpdatingPages = false }
             removeExcessPages(from: layoutManager, in: scrollView, for: target)
@@ -3120,9 +3160,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // 全テキストビューのフレームとレイアウト方向を更新
             updateAllTextViewFrames(for: target)
-
-            // デバッグ出力
-            print("layoutFinished: pages=\(currentContainers.count), lmContainers=\(layoutManager.textContainers.count)")
 
             // 余分なページの削除は遅延チェック（checkForLayoutIssues）でのみ行う
             // レイアウト中にremoveExcessPagesを呼ぶと同期ずれが発生する
@@ -3757,6 +3794,30 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
         let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
         mutableString.addAttribute(.ligature, value: value, range: NSRange(location: 0, length: mutableString.length))
+
+        // replaceStringを使って置換（Undo対応）
+        textView.replaceString(in: targetRange, with: mutableString)
+    }
+
+    // MARK: - Text Alignment Support
+
+    /// プレーンテキスト全文にアラインメントを適用（Undo/Redo対応）
+    func applyAlignmentToEntireDocument(_ alignment: NSTextAlignment) {
+        guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
+        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+
+        let targetRange = NSRange(location: 0, length: textStorage.length)
+
+        // 全文のテキストを取得してアラインメントを適用
+        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
+        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
+        let fullRange = NSRange(location: 0, length: mutableString.length)
+
+        // 既存のパラグラフスタイルを取得または新規作成
+        let existingStyle = mutableString.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+        let mutableStyle = (existingStyle?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
+        mutableStyle.alignment = alignment
+        mutableString.addAttribute(.paragraphStyle, value: mutableStyle, range: fullRange)
 
         // replaceStringを使って置換（Undo対応）
         textView.replaceString(in: targetRange, with: mutableString)
