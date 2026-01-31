@@ -58,7 +58,23 @@ class MultiplePageView: NSView {
     var showHeader: Bool = true
     var showFooter: Bool = true
     private let headerFooterFont = NSFont.systemFont(ofSize: 10)
-    private var headerFooterColor: NSColor {
+
+    /// ヘッダーの色（プリセットから設定可能）
+    var headerColor: NSColor? {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    /// フッターの色（プリセットから設定可能）
+    var footerColor: NSColor? {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    /// ヘッダー/フッターのデフォルト色
+    private var defaultHeaderFooterColor: NSColor {
         isPlainText ? .secondaryLabelColor : .darkGray
     }
 
@@ -252,7 +268,7 @@ class MultiplePageView: NSView {
     private func drawHeader(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: headerFooterFont,
-            .foregroundColor: headerFooterColor
+            .foregroundColor: headerColor ?? defaultHeaderFooterColor
         ]
 
         let headerString = documentName as NSString
@@ -268,7 +284,7 @@ class MultiplePageView: NSView {
     private func drawFooter(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: headerFooterFont,
-            .foregroundColor: headerFooterColor
+            .foregroundColor: footerColor ?? defaultHeaderFooterColor
         ]
 
         // "ページ番号 / 総ページ数" 形式

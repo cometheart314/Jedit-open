@@ -14,6 +14,7 @@ extension UserDefaults {
         static let autoStartOption = "autoStartOption"
         static let startupOption = "startupOption"
         static let appearanceOption = "appearanceOption"
+        static let richTextAlwaysUsesLightMode = "richTextAlwaysUsesLightMode"
         static let scaleMenuArray = "scaleMenuArray"
         static let dateFormatType = "dateFormatType"
         static let timeFormatType = "timeFormatType"
@@ -44,6 +45,7 @@ extension UserDefaults {
             Keys.autoStartOption: false,
             Keys.startupOption: 0,
             Keys.appearanceOption: 0,
+            Keys.richTextAlwaysUsesLightMode: false,
             Keys.scaleMenuArray: defaultScaleMenuArray,
             Keys.dateFormatType: 0,
             Keys.timeFormatType: 0,

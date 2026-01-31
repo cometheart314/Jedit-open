@@ -50,6 +50,20 @@ class LineNumberView: NSView {
 
     weak var scrollView: NSScrollView?
 
+    /// 行番号の文字色
+    var lineNumberColor: NSColor = NSColor.secondaryLabelColor {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
+    /// 行番号ビューの背景色
+    var lineNumberBackgroundColor: NSColor = NSColor.controlBackgroundColor {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
     /// 現在の拡大率（ScalingScrollViewから取得）
     private var magnification: CGFloat = 1.0
 
@@ -296,7 +310,7 @@ class LineNumberView: NSView {
         super.draw(dirtyRect)
 
         // 背景を描画
-        NSColor.controlBackgroundColor.setFill()
+        lineNumberBackgroundColor.setFill()
         dirtyRect.fill()
 
         // 境界線を描画
@@ -328,7 +342,7 @@ class LineNumberView: NSView {
         let scaledFontSize: CGFloat = 10 * magnification
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: scaledFontSize),
-            .foregroundColor: NSColor.secondaryLabelColor
+            .foregroundColor: lineNumberColor
         ]
 
         // スクロールオフセットを取得
@@ -539,7 +553,7 @@ class LineNumberView: NSView {
         let font = attributes[.font] as? NSFont ?? NSFont.systemFont(ofSize: 10)
         let charAttributes: [NSAttributedString.Key: Any] = [
             .font: font,
-            .foregroundColor: attributes[.foregroundColor] ?? NSColor.secondaryLabelColor
+            .foregroundColor: attributes[.foregroundColor] ?? lineNumberColor
         ]
 
         // 文字列のサイズを計算

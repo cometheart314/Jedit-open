@@ -185,6 +185,22 @@ class ScalingScrollView: NSScrollView {
         splitVertButton.frame = buttonFrame
     }
 
+    // MARK: - Appearance Change
+
+    override func viewDidChangeEffectiveAppearance() {
+        super.viewDidChangeEffectiveAppearance()
+        // アピアランス変更時にスプリットボタンの画像を再設定
+        updateSplitButtonImages()
+    }
+
+    private func updateSplitButtonImages() {
+        // NSImageはアセットカタログのダークモード対応画像を自動で取得するが、
+        // 既存のボタンの画像は更新されないため、明示的に再設定する
+        splitNoneButton?.image = NSImage(named: "splitNone")
+        splitHoriButton?.image = NSImage(named: "splitHori")
+        splitVertButton?.image = NSImage(named: "splitVert")
+    }
+
     // MARK: - Zoom Methods
 
     func zoomIn() {

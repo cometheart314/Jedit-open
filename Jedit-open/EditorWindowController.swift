@@ -169,8 +169,19 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         //       Document.windowControllerDidLoadNibからも呼び出される
         applyPresetData()
 
+        // リッチテキストのLightモード設定を適用
+        applyRichTextLightModeAppearance()
+
         // テキスト編集設定の変更を監視
         observeTextEditingPreferences()
+
+        // リッチテキストLightモード設定の変更を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(richTextLightModeSettingChanged(_:)),
+            name: NSNotification.Name("RichTextLightModeSettingChanged"),
+            object: nil
+        )
     }
 
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
@@ -251,6 +262,24 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    /// リッチテキストのLightモード設定を適用
+    private func applyRichTextLightModeAppearance() {
+        let isRichText = textDocument?.documentType != .plain
+        let alwaysUseLightMode = UserDefaults.standard.bool(forKey: UserDefaults.Keys.richTextAlwaysUsesLightMode)
+
+        // リッチテキストでLightモード設定がオンの場合、スクロールビューにLightアピアランスを設定
+        let appearance: NSAppearance? = (isRichText && alwaysUseLightMode) ? NSAppearance(named: .aqua) : nil
+
+        scrollView1?.appearance = appearance
+        scrollView2?.appearance = appearance
+        pagesView1?.appearance = appearance
+        pagesView2?.appearance = appearance
+    }
+
+    @objc private func richTextLightModeSettingChanged(_ notification: Notification) {
+        applyRichTextLightModeAppearance()
+    }
+
     @objc private func documentTypeDidChange(_ notification: Notification) {
         // 自分のドキュメントからの通知かを確認
         guard let document = notification.object as? Document,
@@ -262,6 +291,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             isInspectorBarVisible = (document.documentType != .plain)
             updateInspectorBarVisibility()
         }
+
+        // リッチテキストのLightモード設定を適用
+        applyRichTextLightModeAppearance()
 
         // ドキュメント読み込み後にアピアランスに応じた色を適用
         // （プレーンテキストをダークモードで開いた場合に文字色を設定）
@@ -337,15 +369,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             applyFontToTextViews(font)
         }
 
-        // 色設定を適用（リッチテキストの場合）
-        if presetData.format.richText {
-            applyColorsToTextViews(fontData.colors)
-        }
-
         // テキストビューを再セットアップ（上記の設定を反映）
         if let textStorage = textDocument?.textStorage {
             setupTextViews(with: textStorage)
         }
+
+        // 色設定を適用（setupTextViews後に適用）
+        // プレーンテキストでも色設定を適用する
+        applyColorsToTextViews(fontData.colors)
 
         // setupTextViews後にパラグラフスタイル（タブ幅、行間、段落間隔）を適用
         // スペースモードではタブ幅はデフォルト値を使用
@@ -548,35 +579,51 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// 色設定をテキストビューに適用
     private func applyColorsToTextViews(_ colors: NewDocData.FontAndColorsData.Colors) {
-        // Continuous モードの場合
-        if let scrollView = scrollView1,
-           let textView = scrollView.documentView as? NSTextView {
+        // テキストビューの色を適用するヘルパー
+        func applyTextViewColors(_ textView: NSTextView) {
             textView.backgroundColor = colors.background.nsColor
             textView.textColor = colors.character.nsColor
             textView.insertionPointColor = colors.caret.nsColor
             var newAttributes = textView.selectedTextAttributes
             newAttributes[.backgroundColor] = colors.highlight.nsColor
             textView.selectedTextAttributes = newAttributes
+
+            // 不可視文字の色を適用
+            if let layoutManager = textView.layoutManager as? InvisibleCharacterLayoutManager {
+                layoutManager.invisibleCharacterColor = colors.invisible.nsColor
+            }
+        }
+
+        // Continuous モードの場合
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            applyTextViewColors(textView)
         }
         if let scrollView = scrollView2,
            !scrollView.isHidden,
            let textView = scrollView.documentView as? NSTextView {
-            textView.backgroundColor = colors.background.nsColor
-            textView.textColor = colors.character.nsColor
-            textView.insertionPointColor = colors.caret.nsColor
+            applyTextViewColors(textView)
         }
 
         // Page モードの場合
         for textView in textViews1 {
-            textView.backgroundColor = colors.background.nsColor
-            textView.textColor = colors.character.nsColor
-            textView.insertionPointColor = colors.caret.nsColor
+            applyTextViewColors(textView)
         }
         for textView in textViews2 {
-            textView.backgroundColor = colors.background.nsColor
-            textView.textColor = colors.character.nsColor
-            textView.insertionPointColor = colors.caret.nsColor
+            applyTextViewColors(textView)
         }
+
+        // 行番号ビューの色を適用
+        lineNumberView1?.lineNumberColor = colors.lineNumber.nsColor
+        lineNumberView1?.lineNumberBackgroundColor = colors.lineNumberBackground.nsColor
+        lineNumberView2?.lineNumberColor = colors.lineNumber.nsColor
+        lineNumberView2?.lineNumberBackgroundColor = colors.lineNumberBackground.nsColor
+
+        // ページモードのヘッダー・フッター色を適用
+        pagesView1?.headerColor = colors.header.nsColor
+        pagesView1?.footerColor = colors.footer.nsColor
+        pagesView2?.headerColor = colors.header.nsColor
+        pagesView2?.footerColor = colors.footer.nsColor
     }
 
     @objc private func lineNumberSizeDidChange(_ notification: Notification) {
@@ -3906,13 +3953,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         panel.beginSheet(
             for: window,
             currentColors: currentColors
-        ) { [weak self] accepted in
-            guard self != nil else { return }
+        ) { [weak self] newColors in
+            guard let self = self else { return }
 
-            if accepted {
-                // 将来的にここで色の適用を行う
-                // 現在はまだTextViewとconnectしない
+            // Setボタンが押された場合のみ色を適用
+            if let colors = newColors {
+                self.textDocument?.presetData?.fontAndColors.colors = colors
+                self.applyColorsToTextViews(colors)
             }
+            // Cancelの場合は何もしない（元の色のまま）
         }
     }
 }

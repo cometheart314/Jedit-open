@@ -15,6 +15,7 @@ class GeneralPreferencesViewController: NSViewController {
     @IBOutlet weak var autoStartCheckBox: NSButton!
     @IBOutlet weak var startupOptionPopupButton: NSPopUpButton!
     @IBOutlet weak var appearancePopupButton: NSPopUpButton!
+    @IBOutlet weak var richTextAlwaysUsesLightModeCheckBox: NSButton!
     @IBOutlet weak var dateFormatPopupButton: NSPopUpButton!
     @IBOutlet weak var timeFormatPopupButton: NSPopUpButton!
     @IBOutlet weak var dateFormatField: NSTextField!  // プレビュー表示、カスタム時のみ編集可能
@@ -122,6 +123,10 @@ class GeneralPreferencesViewController: NSViewController {
         let appearanceOption = defaults.integer(forKey: UserDefaults.Keys.appearanceOption)
         appearancePopupButton?.selectItem(withTag: appearanceOption)
 
+        // Rich Text Always Uses Light Mode
+        let richTextLightMode = defaults.bool(forKey: UserDefaults.Keys.richTextAlwaysUsesLightMode)
+        richTextAlwaysUsesLightModeCheckBox?.state = richTextLightMode ? .on : .off
+
         // Date Format
         let dateFormatType = defaults.integer(forKey: UserDefaults.Keys.dateFormatType)
         dateFormatPopupButton?.selectItem(withTag: dateFormatType)
@@ -194,6 +199,18 @@ class GeneralPreferencesViewController: NSViewController {
 
         // 外観を即座に適用
         AppDelegate.applyAppearance(selectedTag)
+    }
+
+    @IBAction func richTextAlwaysUsesLightModeChanged(_ sender: Any) {
+        guard let checkBox = sender as? NSButton else { return }
+        let isOn = checkBox.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.richTextAlwaysUsesLightMode)
+
+        // 開いているすべてのリッチテキストドキュメントに即座に適用
+        NotificationCenter.default.post(
+            name: NSNotification.Name("RichTextLightModeSettingChanged"),
+            object: nil
+        )
     }
 
     @IBAction func dateFormatPopupSelected(_ sender: Any) {
@@ -345,6 +362,7 @@ class GeneralPreferencesViewController: NSViewController {
     @IBAction func revertViewToDefaults(_ sender: Any) {
         // Reset all View tab settings to defaults
         defaults.set(0, forKey: UserDefaults.Keys.appearanceOption)
+        defaults.set(false, forKey: UserDefaults.Keys.richTextAlwaysUsesLightMode)
         defaults.set(0, forKey: UserDefaults.Keys.dateFormatType)
         defaults.set(0, forKey: UserDefaults.Keys.timeFormatType)
         defaults.set("yyyy-MM-dd", forKey: UserDefaults.Keys.customDateFormat)
@@ -352,6 +370,7 @@ class GeneralPreferencesViewController: NSViewController {
 
         // Update UI
         appearancePopupButton?.selectItem(withTag: 0)
+        richTextAlwaysUsesLightModeCheckBox?.state = .off
         dateFormatPopupButton?.selectItem(withTag: 0)
         timeFormatPopupButton?.selectItem(withTag: 0)
         updateDateFormatDisplay()
@@ -359,6 +378,12 @@ class GeneralPreferencesViewController: NSViewController {
 
         // Apply appearance change
         AppDelegate.applyAppearance(0)
+
+        // Notify rich text light mode change
+        NotificationCenter.default.post(
+            name: NSNotification.Name("RichTextLightModeSettingChanged"),
+            object: nil
+        )
     }
 
     @IBAction func revertAdvancedToDefaults(_ sender: Any) {

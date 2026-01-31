@@ -28,9 +28,8 @@ class DocumentColorsPanel: NSPanel {
 
     // MARK: - Properties
 
-    private var completionHandler: ((Bool) -> Void)?
+    private var completionHandler: ((NewDocData.FontAndColorsData.Colors?) -> Void)?
     private weak var sheetParentWindow: NSWindow?
-    private var currentColors: NewDocData.FontAndColorsData.Colors?
 
     // MARK: - Initialization
 
@@ -66,6 +65,9 @@ class DocumentColorsPanel: NSPanel {
     private func setupThemePopup() {
         themePopup.removeAllItems()
 
+        // 最初に"Theme"タイトルを追加（未選択状態を示す）
+        themePopup.addItem(withTitle: NSLocalizedString("Theme", comment: "Theme popup title"))
+
         let manager = ThemeColorManager.shared
 
         // デフォルトテーマを追加
@@ -78,20 +80,28 @@ class DocumentColorsPanel: NSPanel {
             themePopup.addItem(withTitle: theme.themeName)
         }
 
+        // "Theme"を選択状態にする
         themePopup.selectItem(at: 0)
+
+        // ポップアップのアクションを設定
+        themePopup.target = self
+        themePopup.action = #selector(themePopupChanged(_:))
     }
 
     // MARK: - Public Methods
 
     /// シートとして表示
+    /// - Parameters:
+    ///   - window: 親ウィンドウ
+    ///   - currentColors: 現在の色設定
+    ///   - completionHandler: 完了時のコールバック（Setの場合は新しい色、Cancelの場合はnil）
     func beginSheet(
         for window: NSWindow,
         currentColors: NewDocData.FontAndColorsData.Colors,
-        completionHandler: @escaping (Bool) -> Void
+        completionHandler: @escaping (NewDocData.FontAndColorsData.Colors?) -> Void
     ) {
         self.sheetParentWindow = window
         self.completionHandler = completionHandler
-        self.currentColors = currentColors
 
         // テーマポップアップを更新
         setupThemePopup()
@@ -117,10 +127,12 @@ class DocumentColorsPanel: NSPanel {
         window.beginSheet(self) { _ in }
     }
 
-    /// 選択されたテーマを取得
+    /// 選択されたテーマを取得（インデックス0は"Theme"タイトルなので除外）
     func selectedTheme() -> ThemeColorData? {
         let index = themePopup.indexOfSelectedItem
-        return ThemeColorManager.shared.theme(at: index)
+        // インデックス0は"Theme"タイトルなので、実際のテーマはindex-1
+        guard index > 0 else { return nil }
+        return ThemeColorManager.shared.theme(at: index - 1)
     }
 
     /// 各カラーウェルの色を取得
@@ -141,16 +153,49 @@ class DocumentColorsPanel: NSPanel {
     // MARK: - Actions
 
     @IBAction func cancelClicked(_ sender: Any) {
-        endSheet(accepted: false)
+        endSheet(colors: nil)
     }
 
     @IBAction func setClicked(_ sender: Any) {
-        endSheet(accepted: true)
+        // 現在のカラーウェルの状態からColorsを作成
+        let colors = NewDocData.FontAndColorsData.Colors(
+            character: CodableColor(characterColorWell.color),
+            background: CodableColor(backgroundColorWell.color),
+            invisible: CodableColor(invisiblesColorWell.color),
+            caret: CodableColor(caretColorWell.color),
+            highlight: CodableColor(highlightColorWell.color),
+            lineNumber: CodableColor(lineNumberColorWell.color),
+            lineNumberBackground: CodableColor(lineNumberBackgroundColorWell.color),
+            header: CodableColor(headerColorWell.color),
+            footer: CodableColor(footerColorWell.color)
+        )
+        endSheet(colors: colors)
     }
 
-    private func endSheet(accepted: Bool) {
+    @IBAction func themePopupChanged(_ sender: Any) {
+        // テーマが選択されたら、その色をカラーウェルに設定
+        guard let theme = selectedTheme() else { return }
+
+        characterColorWell.color = theme.characterColor.nsColor
+        backgroundColorWell.color = theme.backgroundColor.nsColor
+        invisiblesColorWell.color = theme.invisibleColor.nsColor
+        caretColorWell.color = theme.caretColor.nsColor
+        highlightColorWell.color = theme.highlightColor.nsColor
+        lineNumberColorWell.color = theme.lineNumberColor.nsColor
+        headerColorWell.color = theme.headerColor.nsColor
+        footerColorWell.color = theme.footerColor.nsColor
+        lineNumberBackgroundColorWell.color = theme.lineNumberBackColor.nsColor
+    }
+
+    private func endSheet(colors: NewDocData.FontAndColorsData.Colors?) {
+        // カラーパネルを閉じる
+        if NSColorPanel.shared.isVisible {
+            NSColorPanel.shared.orderOut(nil)
+        }
+
+        // シートを閉じる
         sheetParentWindow?.endSheet(self)
         orderOut(nil)
-        completionHandler?(accepted)
+        completionHandler?(colors)
     }
 }

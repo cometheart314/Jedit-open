@@ -9,6 +9,7 @@
             <connections>
                 <outlet property="appearancePopupButton" destination="qYb-hE-aST" id="6Qh-Ei-TPI"/>
                 <outlet property="autoStartCheckBox" destination="eVD-Kc-0NT" id="UQW-Fe-lWA"/>
+                <outlet property="richTextAlwaysUsesLightModeCheckBox" destination="chk-rtlm-001" id="out-rtlm-001"/>
                 <outlet property="checkGrammarWithSpellingCheckBox" destination="chk-gram-001" id="out-gram-001"/>
                 <outlet property="checkSpellingAsYouTypeCheckBox" destination="chk-spell-001" id="out-spell-001"/>
                 <outlet property="correctSpellingAutomaticallyCheckBox" destination="chk-corr-001" id="out-corr-001"/>
@@ -229,8 +230,19 @@
                                             <action selector="appearancePopupSelected:" target="-2" id="ZRg-v4-gqQ"/>
                                         </connections>
                                     </popUpButton>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-rtlm-001">
+                                        <rect key="frame" x="140" y="378" width="300" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Always display rich text in Light mode" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-rtlm-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="richTextAlwaysUsesLightModeChanged:" target="-2" id="act-rtlm-001"/>
+                                        </connections>
+                                    </button>
                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iJn-ya-eaT">
-                                        <rect key="frame" x="45" y="370" width="89" height="17"/>
+                                        <rect key="frame" x="45" y="350" width="89" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Date Format" id="JQf-JN-U9K">
                                             <font key="font" metaFont="system"/>
@@ -239,7 +251,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="juc-dQ-EgR">
-                                        <rect key="frame" x="137" y="365" width="265" height="26"/>
+                                        <rect key="frame" x="137" y="345" width="265" height="26"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" lineBreakMode="clipping" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" id="GPj-9f-cfw">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -257,7 +269,7 @@
                                         </connections>
                                     </popUpButton>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="VTJ-q7-DRs">
-                                        <rect key="frame" x="137" y="344" width="258" height="21"/>
+                                        <rect key="frame" x="137" y="324" width="258" height="21"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="yyyy-MM-dd" drawsBackground="YES" id="caD-kK-Tuv">
                                             <font key="font" metaFont="system"/>
@@ -269,7 +281,7 @@
                                         </connections>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H4G-ci-5EJ">
-                                        <rect key="frame" x="45" y="320" width="89" height="18"/>
+                                        <rect key="frame" x="45" y="300" width="89" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Time Format" id="tul-rc-mPa">
                                             <font key="font" metaFont="system"/>
@@ -278,7 +290,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="N8q-7x-FKT">
-                                        <rect key="frame" x="138" y="313" width="264" height="26"/>
+                                        <rect key="frame" x="138" y="293" width="264" height="26"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Item1" bezelStyle="rounded" alignment="left" lineBreakMode="clipping" state="on" borderStyle="borderAndBezel" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" selectedItem="KQj-aY-pIq" id="PwB-aE-wMc">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -296,7 +308,7 @@
                                         </connections>
                                     </popUpButton>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="d5o-tg-aDE">
-                                        <rect key="frame" x="138" y="292" width="257" height="21"/>
+                                        <rect key="frame" x="138" y="272" width="257" height="21"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" placeholderString="HH:mm:ss" drawsBackground="YES" id="Mnb-NL-fVA">
                                             <font key="font" metaFont="system"/>

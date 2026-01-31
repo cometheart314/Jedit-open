@@ -756,6 +756,9 @@ class ImageClickableTextView: NSTextView {
         // 新しい行の開始位置を計算（カーソル位置 - インデント文字列の長さ）
         let newLineStart = cursorLocation - indentString.count
 
+        // 範囲チェック：空のテキストや範囲外の場合は何もしない
+        guard newLineStart >= 0, textStorage.length > 0, newLineStart < textStorage.length else { return }
+
         // 新しい行のパラグラフ範囲を取得
         let paragraphRange = (textStorage.string as NSString).paragraphRange(for: NSRange(location: newLineStart, length: 0))
 
