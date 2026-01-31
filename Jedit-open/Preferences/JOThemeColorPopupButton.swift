@@ -36,10 +36,10 @@ struct ThemeColorData: Codable {
     var headerColor: CodableColor
     var footerColor: CodableColor
 
-    /// デフォルトのライトテーマ
-    static var defaultLight: ThemeColorData {
+    /// Dynamicテーマ（システムカラーを使用、ライト/ダークモードに自動対応）
+    static var dynamic: ThemeColorData {
         ThemeColorData(
-            themeName: NSLocalizedString("Default (Light)", comment: ""),
+            themeName: NSLocalizedString("Dynamic", comment: ""),
             removable: false,
             characterColor: CodableColor(NSColor.textColor),
             backgroundColor: CodableColor(NSColor.textBackgroundColor),
@@ -53,10 +53,27 @@ struct ThemeColorData: Codable {
         )
     }
 
-    /// デフォルトのダークテーマ
-    static var defaultDark: ThemeColorData {
+    /// Lightテーマ（固定の明るい色）
+    static var light: ThemeColorData {
         ThemeColorData(
-            themeName: NSLocalizedString("Default (Dark)", comment: ""),
+            themeName: NSLocalizedString("Light", comment: ""),
+            removable: false,
+            characterColor: CodableColor(NSColor.black),
+            backgroundColor: CodableColor(NSColor.white),
+            invisibleColor: CodableColor(NSColor(white: 0.7, alpha: 1.0)),
+            caretColor: CodableColor(NSColor.black),
+            highlightColor: CodableColor(NSColor(red: 0.7, green: 0.85, blue: 1.0, alpha: 1.0)),
+            lineNumberColor: CodableColor(NSColor(white: 0.5, alpha: 1.0)),
+            lineNumberBackColor: CodableColor(NSColor(white: 0.95, alpha: 1.0)),
+            headerColor: CodableColor(NSColor.black),
+            footerColor: CodableColor(NSColor.black)
+        )
+    }
+
+    /// Darkテーマ（固定の暗い色）
+    static var dark: ThemeColorData {
+        ThemeColorData(
+            themeName: NSLocalizedString("Dark", comment: ""),
             removable: false,
             characterColor: CodableColor(NSColor.white),
             backgroundColor: CodableColor(NSColor(white: 0.15, alpha: 1.0)),
@@ -91,8 +108,9 @@ class ThemeColorManager {
     /// デフォルトテーマを設定
     private func setupDefaultThemes() {
         defaultThemes = [
-            .defaultLight,
-            .defaultDark
+            .dynamic,
+            .light,
+            .dark
         ]
     }
 

@@ -1399,8 +1399,22 @@
                                             <action selector="controlValueChanged:" target="-2" id="lnbcw-act-001"/>
                                         </connections>
                                     </colorWell>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="X51-SO-L89">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cHa-Lr-5Gj">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="GcJ-3K-Fe0"/>
+                                            <constraint firstAttribute="height" constant="24" id="y3Y-RA-huo"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertFontAndColorsToDefaults:" target="-2" id="rvd-fc-001"/>
+                                        </connections>
+                                    </button>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="i32-qM-aHn" customClass="JOThemeColorPopupButton" customModule="Jedit" customModuleProvider="target">
-                                        <rect key="frame" x="28" y="206" width="117" height="25"/>
+                                        <rect key="frame" x="29" y="246" width="117" height="25"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Theme" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="1ZY-y9-zdJ" id="UVo-UT-tMT">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -1420,20 +1434,6 @@
                                             <outlet property="target" destination="-2" id="tpb-tgt-001"/>
                                         </connections>
                                     </popUpButton>
-                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="X51-SO-L89">
-                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
-                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cHa-Lr-5Gj">
-                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="167" id="GcJ-3K-Fe0"/>
-                                            <constraint firstAttribute="height" constant="24" id="y3Y-RA-huo"/>
-                                        </constraints>
-                                        <connections>
-                                            <action selector="revertFontAndColorsToDefaults:" target="-2" id="rvd-fc-001"/>
-                                        </connections>
-                                    </button>
                                 </subviews>
                                 <constraints>
                                     <constraint firstItem="X51-SO-L89" firstAttribute="leading" secondItem="E7T-VR-R9U" secondAttribute="leading" constant="17" id="GqY-FN-Qxq"/>
@@ -2081,7 +2081,7 @@ individual documents</string>
                 <constraint firstItem="VDd-sl-dqH" firstAttribute="top" secondItem="5VY-dr-NPg" secondAttribute="bottom" constant="1" id="ygT-pM-Ehj"/>
                 <constraint firstItem="Orc-03-RCR" firstAttribute="leading" secondItem="5VY-dr-NPg" secondAttribute="trailing" constant="10" id="zZs-GU-R3W"/>
             </constraints>
-            <point key="canvasLocation" x="68" y="-1145.5"/>
+            <point key="canvasLocation" x="157" y="-1207"/>
         </customView>
     </objects>
     <resources>
