@@ -33,6 +33,11 @@ struct NewDocData: Codable, Equatable {
         var docWidthType: DocWidthType
         var fixedDocWidth: Int  // Fixed Width の文字数
         var showInvisibles: ShowInvisibles
+        // 選択範囲とスクロール位置（ウィンドウを閉じる時に保存、開く時に復元）
+        var selectedRangeLocation: Int?
+        var selectedRangeLength: Int?
+        var scrollPositionX: CGFloat?
+        var scrollPositionY: CGFloat?
 
         enum LineNumberType: Int, Codable {
             case none = 0
@@ -160,7 +165,11 @@ struct NewDocData: Codable, Equatable {
                 pageMode: false,
                 docWidthType: .windowWidth,
                 fixedDocWidth: 80,
-                showInvisibles: .default
+                showInvisibles: .default,
+                selectedRangeLocation: nil,
+                selectedRangeLength: nil,
+                scrollPositionX: nil,
+                scrollPositionY: nil
             )
         }
     }

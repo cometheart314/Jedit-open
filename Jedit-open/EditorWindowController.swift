@@ -434,6 +434,92 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 }
             }
         }
+
+        // 選択範囲とスクロール位置の復元（レイアウト完了後に実行）
+        DispatchQueue.main.async { [weak self] in
+            self?.restoreSelectionAndScrollPosition()
+        }
+    }
+
+    /// 保存された選択範囲とスクロール位置を復元
+    private func restoreSelectionAndScrollPosition() {
+        guard let presetData = textDocument?.presetData else { return }
+        let viewData = presetData.view
+
+        // 選択範囲を先に復元（スクロール位置より先に行う）
+        if let location = viewData.selectedRangeLocation,
+           let length = viewData.selectedRangeLength,
+           let textStorage = textDocument?.textStorage {
+            // テキストの長さを取得
+            let textLength = textStorage.length
+            // テキストの長さを超えないように調整
+            let safeLocation = min(location, textLength)
+            let safeLength = min(length, textLength - safeLocation)
+            let selectedRange = NSRange(location: safeLocation, length: safeLength)
+
+            // Continuousモードの場合
+            if displayMode == .continuous,
+               let textView = scrollView1?.documentView as? NSTextView {
+                textView.setSelectedRange(selectedRange)
+            }
+            // Pageモードの場合（textViews1配列の最初のテキストビューを使用）
+            else if displayMode == .page,
+                    let textView = textViews1.first {
+                textView.setSelectedRange(selectedRange)
+            }
+        }
+
+        // スクロール位置を復元（レイアウト完了後に実行するため少し遅延させる）
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            guard let self = self else { return }
+            if let scrollPositionX = viewData.scrollPositionX,
+               let scrollPositionY = viewData.scrollPositionY,
+               let scrollView = self.scrollView1,
+               let clipView = scrollView.contentView as? NSClipView {
+                let scrollPosition = NSPoint(x: scrollPositionX, y: scrollPositionY)
+                clipView.scroll(to: scrollPosition)
+                scrollView.reflectScrolledClipView(clipView)
+            }
+        }
+    }
+
+    /// 現在の選択範囲を取得
+    private func getCurrentSelectedRange() -> NSRange? {
+        if displayMode == .continuous,
+           let textView = scrollView1?.documentView as? NSTextView {
+            return textView.selectedRange()
+        } else if displayMode == .page,
+                  let textView = textViews1.first {
+            return textView.selectedRange()
+        }
+        return nil
+    }
+
+    /// 選択範囲を設定し、選択範囲の先頭が表示されるようにスクロール
+    private func restoreSelectionAndScrollToVisible(_ range: NSRange, delay: TimeInterval = 0.1) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+            guard let self = self else { return }
+            guard let textStorage = self.textDocument?.textStorage else { return }
+
+            // テキストの長さを超えないように調整
+            let textLength = textStorage.length
+            let safeLocation = min(range.location, textLength)
+            let safeLength = min(range.length, textLength - safeLocation)
+            let safeRange = NSRange(location: safeLocation, length: safeLength)
+
+            // Continuousモードの場合
+            if self.displayMode == .continuous,
+               let textView = self.scrollView1?.documentView as? NSTextView {
+                textView.setSelectedRange(safeRange)
+                textView.scrollRangeToVisible(safeRange)
+            }
+            // Pageモードの場合
+            else if self.displayMode == .page,
+                    let textView = self.textViews1.first {
+                textView.setSelectedRange(safeRange)
+                textView.scrollRangeToVisible(safeRange)
+            }
+        }
     }
 
     /// プリセットのウィンドウフレームのみを適用（showWindows後に呼び出される）
@@ -1449,11 +1535,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // MARK: - Display Mode Actions
 
     @IBAction func toggleDisplayMode(_ sender: Any?) {
+        // 現在の選択範囲を保存
+        let savedRange = getCurrentSelectedRange()
+
         // モードを切り替え
         switch displayMode {
         case .continuous:
             // ページモードへの切り替え時は警告チェック
-            switchToPageModeWithWarning()
+            switchToPageModeWithWarning(savedRange: savedRange)
             return
         case .page:
             displayMode = .continuous
@@ -1472,12 +1561,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             self?.updateRulerVisibility()
         }
 
+        // 選択範囲を復元してスクロール
+        if let range = savedRange {
+            restoreSelectionAndScrollToVisible(range, delay: 0.2)
+        }
+
         // presetData に反映
         textDocument?.presetData?.view.pageMode = (displayMode == .page)
         markDocumentAsEdited()
     }
 
     @IBAction func switchToContinuousMode(_ sender: Any?) {
+        // 現在の選択範囲を保存
+        let savedRange = getCurrentSelectedRange()
+
         displayMode = .continuous
         if let textDocument = self.textDocument {
             setupTextViews(with: textDocument.textStorage)
@@ -1492,16 +1589,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             self.updateRulerVisibility()
         }
 
+        // 選択範囲を復元してスクロール
+        if let range = savedRange {
+            restoreSelectionAndScrollToVisible(range, delay: 0.2)
+        }
+
         // presetData に反映
         textDocument?.presetData?.view.pageMode = false
         markDocumentAsEdited()
     }
 
     @IBAction func switchToPageMode(_ sender: Any?) {
-        switchToPageModeWithWarning()
+        switchToPageModeWithWarning(savedRange: getCurrentSelectedRange())
     }
 
-    private func switchToPageModeWithWarning() {
+    private func switchToPageModeWithWarning(savedRange: NSRange? = nil) {
         guard let textDocument = self.textDocument else { return }
         displayMode = .page
         setupTextViews(with: textDocument.textStorage)
@@ -1513,6 +1615,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // レイアウト処理が完了するまで待つ必要があるため、遅延を長めに設定
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
             self?.updateRulerVisibility()
+        }
+
+        // 選択範囲を復元してスクロール
+        if let range = savedRange {
+            restoreSelectionAndScrollToVisible(range, delay: 0.3)
         }
 
         // presetData に反映
@@ -2235,15 +2342,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // MARK: - Layout Orientation Actions
 
     @IBAction func toggleLayoutOrientation(_ sender: Any?) {
+        // 現在の選択範囲を保存
+        let savedRange = getCurrentSelectedRange()
+
         isVerticalLayout = !isVerticalLayout
-        applyLayoutOrientation()
+        applyLayoutOrientation(savedRange: savedRange)
 
         // presetData に反映
         textDocument?.presetData?.format.editingDirection = isVerticalLayout ? .rightToLeft : .leftToRight
         markDocumentAsEdited()
     }
 
-    private func applyLayoutOrientation() {
+    private func applyLayoutOrientation(savedRange: NSRange? = nil) {
         let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
 
         // ページモードの場合はTextViewを再構築（setLayoutOrientationは大量テキストでフリーズするため）
@@ -2257,6 +2367,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // Document Colorsを再適用
             if let colors = textDocument.presetData?.fontAndColors.colors {
                 applyColorsToTextViews(colors)
+            }
+            // 選択範囲を復元してスクロール
+            if let range = savedRange {
+                restoreSelectionAndScrollToVisible(range, delay: 0.3)
             }
             return
         }
@@ -2300,6 +2414,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // Document Colorsを再適用（行番号ビューの色など）
         if let colors = textDocument?.presetData?.fontAndColors.colors {
             applyColorsToTextViews(colors)
+        }
+
+        // 選択範囲を復元してスクロール
+        if let range = savedRange {
+            restoreSelectionAndScrollToVisible(range, delay: 0.2)
         }
     }
 
@@ -3001,6 +3120,30 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             document.presetData?.view.windowY = frame.origin.y
             document.presetData?.view.windowWidth = frame.size.width
             document.presetData?.view.windowHeight = frame.size.height
+        }
+
+        // 選択範囲を保存
+        // Continuousモードの場合
+        if displayMode == .continuous,
+           let textView = scrollView1?.documentView as? NSTextView {
+            let selectedRange = textView.selectedRange()
+            document.presetData?.view.selectedRangeLocation = selectedRange.location
+            document.presetData?.view.selectedRangeLength = selectedRange.length
+        }
+        // Pageモードの場合（textViews1配列の最初のテキストビューから選択範囲を取得）
+        else if displayMode == .page,
+                let textView = textViews1.first {
+            let selectedRange = textView.selectedRange()
+            document.presetData?.view.selectedRangeLocation = selectedRange.location
+            document.presetData?.view.selectedRangeLength = selectedRange.length
+        }
+
+        // スクロール位置を保存
+        if let scrollView = scrollView1,
+           let clipView = scrollView.contentView as? NSClipView {
+            let scrollPosition = clipView.bounds.origin
+            document.presetData?.view.scrollPositionX = scrollPosition.x
+            document.presetData?.view.scrollPositionY = scrollPosition.y
         }
 
         // プリセットデータを拡張属性に保存（修正日付を保持）
