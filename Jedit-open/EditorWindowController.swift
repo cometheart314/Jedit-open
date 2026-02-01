@@ -469,8 +469,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
-        // スクロール位置を復元（レイアウト完了後に実行するため少し遅延させる）
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+        // スクロール位置を復元（レイアウト完了後に実行するため遅延させる）
+        // 縦書きページモードはレイアウトに時間がかかるため、より長い遅延が必要
+        let isVerticalPageMode = (displayMode == .page && isVerticalLayout)
+        let delay: TimeInterval = isVerticalPageMode ? 0.5 : 0.1
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self = self else { return }
             if let scrollPositionX = viewData.scrollPositionX,
                let scrollPositionY = viewData.scrollPositionY,
@@ -3251,7 +3255,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                         }
 
                         // まだレイアウトされていない文字がある場合のみページを追加
-                        print("addPage: container=\(containerIndexInLM)/\(lmContainers.count-1), lastLayoutedChar=\(lastLayoutedChar)/\(totalCharacters)")
                         addPage(to: layoutManager, in: scrollView, for: target)
                     }
                 }
