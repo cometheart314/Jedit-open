@@ -4261,16 +4261,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let isPlainText = textDocument?.documentType == .plain
         popupButton.isEnabled = isPlainText
 
+        // 制約ベースのサイズ設定
+        popupButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            popupButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 100),
+            popupButton.widthAnchor.constraint(lessThanOrEqualToConstant: 180),
+            popupButton.heightAnchor.constraint(equalToConstant: 22)
+        ])
+
         // ツールバーアイテム作成
         let item = NSToolbarItem(itemIdentifier: Self.encodingToolbarItemIdentifier)
         item.label = NSLocalizedString("Encoding", comment: "Toolbar item label")
         item.paletteLabel = NSLocalizedString("Text Encoding", comment: "Toolbar item palette label")
         item.toolTip = NSLocalizedString("Document text encoding", comment: "Toolbar item tooltip")
         item.view = popupButton
-
-        // カスタムビューのサイズ設定（カスタマイズパネルでのドラッグに必要）
-        item.minSize = NSSize(width: 100, height: 22)
-        item.maxSize = NSSize(width: 180, height: 22)
 
         self.encodingToolbarItem = item
 
@@ -4456,16 +4460,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let isPlainText = textDocument?.documentType == .plain
         popupButton.isEnabled = isPlainText
 
+        // 制約ベースのサイズ設定
+        popupButton.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            popupButton.widthAnchor.constraint(greaterThanOrEqualToConstant: 70),
+            popupButton.widthAnchor.constraint(lessThanOrEqualToConstant: 120),
+            popupButton.heightAnchor.constraint(equalToConstant: 22)
+        ])
+
         // ツールバーアイテム作成
         let item = NSToolbarItem(itemIdentifier: Self.lineEndingToolbarItemIdentifier)
         item.label = NSLocalizedString("Line Ending", comment: "Toolbar item label")
         item.paletteLabel = NSLocalizedString("Line Ending", comment: "Toolbar item palette label")
         item.toolTip = NSLocalizedString("Document line ending format", comment: "Toolbar item tooltip")
         item.view = popupButton
-
-        // カスタムビューのサイズ設定（カスタマイズパネルでのドラッグに必要）
-        item.minSize = NSSize(width: 70, height: 22)
-        item.maxSize = NSSize(width: 120, height: 22)
 
         self.lineEndingToolbarItem = item
 
