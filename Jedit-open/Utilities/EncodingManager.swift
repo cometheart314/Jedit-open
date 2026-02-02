@@ -328,15 +328,12 @@ class EncodingManager: NSObject {
 
     // MARK: - Actions
 
-    /// カスタマイズパネルを表示
+    /// カスタマイズパネルを表示（Preferencesウィンドウを開いてEncodingsカテゴリを選択）
     @objc func showPanel(_ sender: Any?) {
-        // TODO: Implement encoding customization panel if needed
-        let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Customize Encodings", comment: "")
-        alert.informativeText = NSLocalizedString("Encoding customization panel is not yet implemented.", comment: "")
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.runModal()
+        // AppDelegateからPreferencesウィンドウを取得して表示
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            appDelegate.showPreferencesWindow(selectingCategory: "encodings")
+        }
     }
 }
 

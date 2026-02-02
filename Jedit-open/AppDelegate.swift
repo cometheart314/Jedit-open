@@ -114,6 +114,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         preferencesWindowController?.window?.makeKeyAndOrderFront(sender)
     }
 
+    /// Preferencesウィンドウを表示し、指定されたカテゴリを選択
+    func showPreferencesWindow(selectingCategory identifier: String) {
+        if preferencesWindowController == nil {
+            preferencesWindowController = PreferencesWindowController()
+        }
+        preferencesWindowController?.showWindow(nil)
+        preferencesWindowController?.window?.makeKeyAndOrderFront(nil)
+        preferencesWindowController?.selectCategory(identifier: identifier)
+    }
+
     // MARK: - Appearance
 
     /// 外観設定を適用

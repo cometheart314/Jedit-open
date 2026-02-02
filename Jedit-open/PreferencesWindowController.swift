@@ -136,6 +136,13 @@ class PreferencesWindowController: NSWindowController {
             return NSViewController()
         }
     }
+
+    /// 指定されたidentifierのカテゴリを選択して表示
+    func selectCategory(identifier: String) {
+        guard let index = preferenceItems.firstIndex(where: { $0.identifier == identifier }) else { return }
+        outlineView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+        showPreferencePane(at: index)
+    }
 }
 
 // MARK: - NSOutlineViewDataSource

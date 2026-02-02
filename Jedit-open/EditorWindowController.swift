@@ -161,6 +161,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             object: nil
         )
 
+        // エンコーディングリスト変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(encodingsListDidChange(_:)),
+            name: .encodingsListChanged,
+            object: nil
+        )
+
         // アピアランス変更を監視
         if let window = self.window {
             window.contentView?.addObserver(self, forKeyPath: "effectiveAppearance", options: [.new], context: nil)
@@ -4312,6 +4320,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private func refreshEncodingPopup() {
         guard let popup = getEncodingPopupButton() else { return }
         populateEncodingPopup(popup)
+    }
+
+    /// エンコーディングリスト変更通知ハンドラ
+    @objc private func encodingsListDidChange(_ notification: Notification) {
+        refreshEncodingPopup()
     }
 
     /// エンコーディングポップアップボタンを取得
