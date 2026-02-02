@@ -115,19 +115,6 @@
                     <constraint firstItem="zVL-C6-06i" firstAttribute="leading" secondItem="gIp-Ho-8D9" secondAttribute="leading" id="eGV-A3-nK7"/>
                 </constraints>
             </view>
-            <toolbar key="toolbar" implicitIdentifier="A0CF3B42-2055-4DA0-A9BE-268A6B211840" autosavesConfiguration="NO" showsBaselineSeparator="NO" displayMode="iconAndLabel" sizeMode="regular" id="uNy-7M-mhe">
-                <allowedToolbarItems>
-                    <toolbarItem implicitItemIdentifier="NSToolbarShowColorsItem" id="Z0G-Dd-v4r"/>
-                    <toolbarItem implicitItemIdentifier="NSToolbarShowFontsItem" id="ci2-xV-jPm"/>
-                    <toolbarItem implicitItemIdentifier="NSToolbarPrintItem" id="DGZ-F0-Tth"/>
-                    <toolbarItem implicitItemIdentifier="NSToolbarSpaceItem" id="cSC-ji-0Gs"/>
-                    <toolbarItem implicitItemIdentifier="NSToolbarFlexibleSpaceItem" id="lUa-9e-pn2"/>
-                </allowedToolbarItems>
-                <defaultToolbarItems>
-                    <toolbarItem reference="lUa-9e-pn2"/>
-                    <toolbarItem reference="DGZ-F0-Tth"/>
-                </defaultToolbarItems>
-            </toolbar>
             <point key="canvasLocation" x="-100.5" y="4.5"/>
         </window>
     </objects>

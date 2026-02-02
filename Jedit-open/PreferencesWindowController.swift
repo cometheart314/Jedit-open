@@ -23,7 +23,7 @@ class PreferencesWindowController: NSWindowController {
             defer: false
         )
         window.title = "Settings"
-        window.minSize = NSSize(width: 600, height: 400)
+        window.minSize = NSSize(width: 740, height: 400)
         window.center()
         
         self.init(window: window)
@@ -42,6 +42,11 @@ class PreferencesWindowController: NSWindowController {
                 title: "NewDocuments",
                 icon: NSImage(systemSymbolName: "document.on.document", accessibilityDescription: nil)!,
                 identifier: "newDocuments"
+            ),
+            PreferenceCategory(
+                title: "Encodings",
+                icon: NSImage(named: "encodingIcon") ?? NSImage(systemSymbolName: "textformat", accessibilityDescription: nil)!,
+                identifier: "encodings"
             )
         ]
     }
@@ -125,6 +130,8 @@ class PreferencesWindowController: NSWindowController {
             return GeneralPreferencesViewController(nibName: "GeneralPreferences", bundle: nil)
         case "newDocuments":
             return NewDocumentsPreferencesViewController(nibName: "NewDocumentsPreferences", bundle: nil)
+        case "encodings":
+            return EncodingsPreferencesViewController(nibName: "EncodingsPreferences", bundle: nil)
         default:
             return NSViewController()
         }

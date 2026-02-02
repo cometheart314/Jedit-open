@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="EncodingsPreferencesViewController" customModule="Jedit" customModuleProvider="target">
+            <connections>
+                <outlet property="bomForWritePopUp" destination="MBp-cy-2fs" id="bom-outlet"/>
+                <outlet property="convertFullWidthTildeCheckBox" destination="ce2-sV-7zo" id="fullwidth-outlet"/>
+                <outlet property="convertOverlineToTildeCheckBox" destination="iyM-JE-yls" id="overline-outlet"/>
+                <outlet property="convertYenToBackSlashCheckBox" destination="eXr-d2-igI" id="yen-outlet"/>
+                <outlet property="lineEndingForWritePopUp" destination="naI-Rp-unr" id="lineending-outlet"/>
+                <outlet property="plainTextEncodingForReadPopUp" destination="3Ce-DQ-lzq" id="read-outlet"/>
+                <outlet property="plainTextEncodingForWritePopUp" destination="SQ7-05-blb" id="write-outlet"/>
+                <outlet property="view" destination="rootView" id="view-outlet"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <customView id="rootView" userLabel="Root View">
+            <rect key="frame" x="0.0" y="0.0" width="493" height="417"/>
+            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+            <subviews>
+                <textField focusRingType="none" horizontalHuggingPriority="500" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="FWr-9K-uSJ">
+                    <rect key="frame" x="27" y="349" width="88" height="14"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" alignment="left" title="Opening files:" usesSingleLineMode="YES" id="vb8-ts-XeO">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    </textFieldCell>
+                </textField>
+                <textField focusRingType="none" horizontalHuggingPriority="500" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="A2z-Hr-Aqq">
+                    <rect key="frame" x="27" y="323" width="88" height="14"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" alignment="left" title="Saving files:" usesSingleLineMode="YES" id="JRH-cG-89t">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    </textFieldCell>
+                </textField>
+                <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="v3B-Kr-BIM">
+                    <rect key="frame" x="27" y="383" width="136" height="14"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="left" title="Plain Text File Encoding" id="MWR-wQ-Vya">
+                        <font key="font" metaFont="smallSystemBold"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                    </textFieldCell>
+                </textField>
+                <popUpButton verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3Ce-DQ-lzq">
+                    <rect key="frame" x="118" y="344" width="333" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <string key="toolTip">Choose the default text encoding to use when opening plain text files. To let Jedit Ω select the best encoding, choose Automatic.</string>
+                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="border" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" autoenablesItems="NO" id="La0-DJ-6jA">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="smallSystem"/>
+                        <menu key="menu" title="OtherViews" autoenablesItems="NO" id="Vpg-tH-IVT">
+                            <items>
+                                <menuItem title="Automatic" tag="-1" id="XNM-dm-WEA"/>
+                            </items>
+                        </menu>
+                        <connections>
+                            <action selector="plainTextEncodingForReadChanged:" target="-2" id="read-action"/>
+                        </connections>
+                    </popUpButtonCell>
+                    <connections>
+                        <accessibilityConnection property="title" destination="FWr-9K-uSJ" id="z3D-8x-ndR"/>
+                    </connections>
+                </popUpButton>
+                <popUpButton verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="SQ7-05-blb">
+                    <rect key="frame" x="118" y="318" width="333" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <string key="toolTip">Choose the default text encoding to use when saving plain text files. To retain the encoding used when opened, choose Automatic.</string>
+                    <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="border" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" autoenablesItems="NO" id="Wel-L6-9Je">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="smallSystem"/>
+                        <menu key="menu" title="OtherViews" autoenablesItems="NO" id="cRc-3M-2E9">
+                            <items>
+                                <menuItem title="Automatic" tag="-1" id="d9z-Q5-Taa"/>
+                            </items>
+                        </menu>
+                        <connections>
+                            <action selector="plainTextEncodingForWriteChanged:" target="-2" id="write-action"/>
+                        </connections>
+                    </popUpButtonCell>
+                    <connections>
+                        <accessibilityConnection property="title" destination="A2z-Hr-Aqq" id="HLG-E9-2cq"/>
+                    </connections>
+                </popUpButton>
+                <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="naI-Rp-unr">
+                    <rect key="frame" x="159" y="292" width="291" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <popUpButtonCell key="cell" type="push" title="Automatic" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="-1" imageScaling="proportionallyDown" inset="2" selectedItem="KyK-8k-239" id="sne-Lf-kv7">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="smallSystem"/>
+                        <menu key="menu" id="0Vh-6E-dah">
+                            <items>
+                                <menuItem title="Automatic" state="on" tag="-1" id="KyK-8k-239">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
+                                <menuItem title="macOS/Unix (LF)" id="QIZ-Z4-vW4">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
+                                <menuItem title="Mac Classic (CR)" tag="1" id="3XU-hU-39C">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
+                                <menuItem title="Windows (CR+LF)" tag="2" id="otj-MO-woY">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
+                            </items>
+                        </menu>
+                        <connections>
+                            <action selector="lineEndingForWriteChanged:" target="-2" id="lineending-action"/>
+                        </connections>
+                    </popUpButtonCell>
+                </popUpButton>
+                <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="MBp-cy-2fs">
+                    <rect key="frame" x="160" y="266" width="291" height="22"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <popUpButtonCell key="cell" type="push" title="Automatic" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="-1" imageScaling="proportionallyDown" inset="2" selectedItem="vLW-ji-syV" id="KJd-Bc-vkh">
+                        <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="smallSystem"/>
+                        <menu key="menu" id="DVp-EL-bWd">
+                            <items>
+                                <menuItem title="Automatic" state="on" tag="-1" id="vLW-ji-syV">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
+                                <menuItem title="Don't Attach BOM" id="XZV-XA-gFO">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
+                                <menuItem title="Attach BOM" tag="1" id="GH6-S5-0Pu">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
+                            </items>
+                        </menu>
+                        <connections>
+                            <action selector="bomForWriteChanged:" target="-2" id="bom-action"/>
+                        </connections>
+                    </popUpButtonCell>
+                </popUpButton>
+                <textField focusRingType="none" horizontalHuggingPriority="500" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Qdl-sH-3lL">
+                    <rect key="frame" x="69" y="271" width="88" height="14"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" alignment="left" title="BOM for saving:" usesSingleLineMode="YES" id="vi4-X6-WgN">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    </textFieldCell>
+                </textField>
+                <textField focusRingType="none" horizontalHuggingPriority="500" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="vql-fq-eU7">
+                    <rect key="frame" x="28" y="297" width="129" height="14"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <textFieldCell key="cell" lineBreakMode="truncatingTail" alignment="left" title="Line Endings for saving:" usesSingleLineMode="YES" id="Fuk-M4-6Ew">
+                        <font key="font" metaFont="smallSystem"/>
+                        <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="calibratedWhite"/>
+                    </textFieldCell>
+                </textField>
+                <button imageHugsTitle="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iyM-JE-yls">
+                    <rect key="frame" x="30" y="200" width="423" height="18"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="check" title="Convert  '¯' (0x7e) to Tilde '~' (U+007E) when Shift_JIS encoding group." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="tti-iL-xXo">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="smallSystem"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="convertOverlineToTildeChanged:" target="-2" id="overline-action"/>
+                    </connections>
+                </button>
+                <button imageHugsTitle="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ce2-sV-7zo">
+                    <rect key="frame" x="29" y="176" width="452" height="18"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="check" title="Convert  FULLWIDTH TILDE  '〜' (U+FF5E) to WAVE DASH '〜' (U+301C)." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="tjE-uI-ywr">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="smallSystem"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="convertFullWidthTildeChanged:" target="-2" id="fullwidth-action"/>
+                    </connections>
+                </button>
+                <button imageHugsTitle="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eXr-d2-igI">
+                    <rect key="frame" x="29" y="224" width="444" height="23"/>
+                    <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                    <buttonCell key="cell" type="check" title="Convert  '¥' (0x5c) to Back Slash '\' (U+005C) when Shift_JIS encoding group." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="bGf-gt-pgB">
+                        <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                        <font key="font" metaFont="smallSystem"/>
+                    </buttonCell>
+                    <connections>
+                        <action selector="convertYenToBackSlashChanged:" target="-2" id="yen-action"/>
+                    </connections>
+                </button>
+                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="revertBtn">
+                    <rect key="frame" x="20" y="20" width="133" height="24"/>
+                    <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="revertBtnCell">
+                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                        <font key="font" metaFont="system"/>
+                    </buttonCell>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="24" id="93J-YR-8AM"/>
+                        <constraint firstAttribute="width" constant="133" id="F5K-Vs-9JM"/>
+                    </constraints>
+                    <connections>
+                        <action selector="revertToDefaults:" target="-2" id="revert-action"/>
+                    </connections>
+                </button>
+            </subviews>
+            <constraints>
+                <constraint firstItem="revertBtn" firstAttribute="leading" secondItem="rootView" secondAttribute="leading" constant="20" symbolic="YES" id="WVD-e8-KLc"/>
+                <constraint firstAttribute="bottom" secondItem="revertBtn" secondAttribute="bottom" constant="20" symbolic="YES" id="eLX-0b-anZ"/>
+            </constraints>
+            <point key="canvasLocation" x="42.5" y="6.5"/>
+        </customView>
+    </objects>
+</document>

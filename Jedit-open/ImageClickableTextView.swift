@@ -27,6 +27,9 @@ class ImageClickableTextView: NSTextView {
     }
     private var colorPanelMode: ColorPanelMode = .none
 
+    /// updateRuler()の再入防止フラグ
+    private var isUpdatingRuler: Bool = false
+
     /// Returns whether this document is plain text
     private var isPlainText: Bool {
         guard let windowController = window?.windowController as? EditorWindowController else {
@@ -1078,13 +1081,41 @@ class ImageClickableTextView: NSTextView {
     // MARK: - Ruler Update Safety
 
     /// ルーラー更新をオーバーライドして空のtextStorageでのクラッシュを防ぐ
+    /// プレーンテキストの場合はアクセサリビュー（段落スタイルコントロール）を非表示にする
     override func updateRuler() {
+        // 再入防止
+        guard !isUpdatingRuler else { return }
+        isUpdatingRuler = true
+        defer { isUpdatingRuler = false }
+
+        // ウィンドウが閉じようとしている場合はスキップ
+        guard let window = window else { return }
+
         // textStorageが空または無効な場合はルーラー更新をスキップ
         guard let textStorage = textStorage,
               textStorage.length > 0 else {
             return
         }
         super.updateRuler()
+
+        // プレーンテキストの場合はルーラーのアクセサリビューを非表示にする
+        // ウィンドウが表示中かつウィンドウコントローラーにアクセス可能な場合のみ
+        if window.isVisible,
+           let windowController = window.windowController as? EditorWindowController,
+           windowController.textDocument?.documentType == .plain {
+            if let scrollView = enclosingScrollView {
+                if let horizontalRuler = scrollView.horizontalRulerView,
+                   horizontalRuler.accessoryView != nil {
+                    horizontalRuler.accessoryView = nil
+                    horizontalRuler.reservedThicknessForAccessoryView = 0
+                }
+                if let verticalRuler = scrollView.verticalRulerView,
+                   verticalRuler.accessoryView != nil {
+                    verticalRuler.accessoryView = nil
+                    verticalRuler.reservedThicknessForAccessoryView = 0
+                }
+            }
+        }
     }
 
     // MARK: - Menu Validation

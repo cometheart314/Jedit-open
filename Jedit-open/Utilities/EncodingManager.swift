@@ -8,9 +8,17 @@
 
 import Cocoa
 
+// MARK: - Global Constants for EncodingPopUpButtonCell compatibility
+
+/// Indicates no encoding (Automatic) - used by EncodingPopUpButtonCell
+let NoStringEncoding: UInt = 0xFFFFFFFF
+
+/// Tag value indicating the popup wants an "Automatic" entry
+let WantsAutomaticTag: Int = -1
+
 /// エンコーディング管理クラス
 /// ポップアップメニューへのエンコーディング一覧の設定と、カスタマイズ機能を提供
-class EncodingManager {
+class EncodingManager: NSObject {
 
     // MARK: - Constants
 
@@ -47,7 +55,9 @@ class EncodingManager {
 
     // MARK: - Initialization
 
-    private init() {}
+    private override init() {
+        super.init()
+    }
 
     // MARK: - Public Methods
 
@@ -138,6 +148,66 @@ class EncodingManager {
 
         encodings = encs
         return encs
+    }
+
+    /// ポップアップボタンセル（NSPopUpButtonCell）にエンコーディングを設定
+    /// EncodingPopUpButtonCellから呼び出される
+    /// - Parameters:
+    ///   - popup: 設定するポップアップボタンセル
+    ///   - selectedEncoding: 初期選択するエンコーディング（UInt）
+    ///   - includeDefaultItem: 「自動」項目を含めるかどうか
+    func setupPopUpCell(_ popup: NSPopUpButtonCell,
+                        selectedEncoding: UInt,
+                        withDefaultEntry includeDefaultItem: Bool) {
+        var encs = enabledEncodings()
+        var itemToSelect = 0
+
+        // Clear existing items
+        popup.removeAllItems()
+
+        // Add "Automatic" item if requested
+        if includeDefaultItem {
+            popup.addItem(withTitle: NSLocalizedString("Automatic", comment: "Encoding popup entry indicating automatic choice of encoding"))
+            if let item = popup.item(at: 0) {
+                item.representedObject = NSNumber(value: NoStringEncoding)
+                item.tag = WantsAutomaticTag
+            }
+        }
+
+        // Make sure the selected encoding appears in the list
+        if !includeDefaultItem && selectedEncoding != NoStringEncoding {
+            let selectedEnc = String.Encoding(rawValue: selectedEncoding)
+            if !encs.contains(selectedEnc) {
+                encs.append(selectedEnc)
+            }
+        }
+
+        // Fill with encodings
+        for encoding in encs {
+            if encoding.rawValue != 0 {
+                let encodingName = String.localizedName(of: encoding)
+                popup.addItem(withTitle: encodingName)
+                if let lastItem = popup.lastItem {
+                    lastItem.representedObject = NSNumber(value: encoding.rawValue)
+                    lastItem.isEnabled = true
+                    if encoding.rawValue == selectedEncoding {
+                        itemToSelect = popup.numberOfItems - 1
+                    }
+                }
+            }
+        }
+
+        // Add separator and "Customize" item
+        if popup.numberOfItems > 0 {
+            popup.menu?.addItem(NSMenuItem.separator())
+        }
+        popup.addItem(withTitle: NSLocalizedString("Customize Encodings List...", comment: "Encoding popup entry for bringing up the Customize Encodings List panel"))
+        if let lastItem = popup.lastItem {
+            lastItem.action = #selector(showPanel(_:))
+            lastItem.target = self
+        }
+
+        popup.selectItem(at: itemToSelect)
     }
 
     /// ポップアップボタンにエンコーディングを設定
@@ -254,6 +324,19 @@ class EncodingManager {
     func setEnabledEncodings(_ newEncodings: [String.Encoding]) {
         encodings = newEncodings
         noteEncodingListChange(writeDefault: true, postNotification: true)
+    }
+
+    // MARK: - Actions
+
+    /// カスタマイズパネルを表示
+    @objc func showPanel(_ sender: Any?) {
+        // TODO: Implement encoding customization panel if needed
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Customize Encodings", comment: "")
+        alert.informativeText = NSLocalizedString("Encoding customization panel is not yet implemented.", comment: "")
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.runModal()
     }
 }
 

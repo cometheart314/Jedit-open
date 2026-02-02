@@ -31,13 +31,23 @@ enum LineWrapMode {
     case fixedWidth   // 固定幅に合わせる
 }
 
-class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate, NSWindowDelegate, NSMenuItemValidation {
+class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSplitViewDelegate, NSWindowDelegate, NSMenuItemValidation, NSToolbarDelegate {
+
+    // MARK: - Toolbar Item Identifiers
+
+    private static let encodingToolbarItemIdentifier = NSToolbarItem.Identifier("EncodingItem")
+    private static let lineEndingToolbarItemIdentifier = NSToolbarItem.Identifier("LineEndingItem")
 
     // MARK: - IBOutlets
 
     @IBOutlet weak var splitView: NSSplitView!
     @IBOutlet weak var scrollView2: ScalingScrollView!
     @IBOutlet weak var scrollView1: ScalingScrollView!
+
+    // MARK: - Toolbar
+
+    private var encodingToolbarItem: NSToolbarItem?
+    private var lineEndingToolbarItem: NSToolbarItem?
 
     // MARK: - Image Resize
 
@@ -156,7 +166,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             window.contentView?.addObserver(self, forKeyPath: "effectiveAppearance", options: [.new], context: nil)
         }
 
-        // ツールバー可視性変更を監視（KVO）
+        // ツールバーのセットアップ（コードで作成）
+        setupEncodingToolbarItem()
+
+        // ツールバー可視性変更を監視（KVO）- setupEncodingToolbarItem後に実行
         if let toolbar = self.window?.toolbar {
             toolbar.addObserver(self, forKeyPath: "visible", options: [.new], context: nil)
         }
@@ -311,6 +324,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ドキュメントタイプ変更時にテキスト編集設定を再適用
         // （richTextSubstitutionsEnabled の設定に応じて置換オプションを切り替え）
         applyTextEditingPreferences()
+
+        // ツールバーアイテムを更新
+        updateEncodingToolbarItem()
+        updateLineEndingToolbarItem()
     }
 
     /// プリセットデータがあれば適用する（ウィンドウ生成時に一度だけ呼ばれる）
@@ -678,14 +695,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// 色設定をテキストビューに適用
     private func applyColorsToTextViews(_ colors: NewDocData.FontAndColorsData.Colors) {
+        let isPlainText = textDocument?.documentType == .plain
+
         // テキストビューの色を適用するヘルパー
         func applyTextViewColors(_ textView: NSTextView, scrollView: NSScrollView? = nil) {
             textView.backgroundColor = colors.background.nsColor
-            textView.textColor = colors.character.nsColor
             textView.insertionPointColor = colors.caret.nsColor
             var newAttributes = textView.selectedTextAttributes
             newAttributes[.backgroundColor] = colors.highlight.nsColor
             textView.selectedTextAttributes = newAttributes
+
+            // プレーンテキストの場合のみtextColorを設定
+            // リッチテキストでは既存の色属性を保持するため、textColorは設定しない
+            if isPlainText {
+                textView.textColor = colors.character.nsColor
+            }
 
             // 不可視文字の色を適用
             if let layoutManager = textView.layoutManager as? InvisibleCharacterLayoutManager {
@@ -926,11 +950,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             // Document Colorsが設定されている場合はそれを使用、なければデフォルト
+            let isPlainTextDoc = textDocument?.documentType == .plain
             if let colors = textDocument?.presetData?.fontAndColors.colors {
                 textView.backgroundColor = colors.background.nsColor
-                textView.textColor = colors.character.nsColor
+                // リッチテキストでは既存の色属性を保持するため、textColorは設定しない
+                if isPlainTextDoc {
+                    textView.textColor = colors.character.nsColor
+                }
                 scrollView.backgroundColor = colors.background.nsColor
-            } else if textDocument?.documentType == .plain {
+            } else if isPlainTextDoc {
                 // ダークモード対応（プレーンテキストのみ）
                 textView.backgroundColor = .textBackgroundColor
                 textView.textColor = .textColor
@@ -1038,11 +1066,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             // Document Colorsが設定されている場合はそれを使用、なければデフォルト
+            let isPlainTextDoc = textDocument?.documentType == .plain
             if let colors = textDocument?.presetData?.fontAndColors.colors {
                 textView.backgroundColor = colors.background.nsColor
-                textView.textColor = colors.character.nsColor
+                // リッチテキストでは既存の色属性を保持するため、textColorは設定しない
+                if isPlainTextDoc {
+                    textView.textColor = colors.character.nsColor
+                }
                 scrollView.backgroundColor = colors.background.nsColor
-            } else if textDocument?.documentType == .plain {
+            } else if isPlainTextDoc {
                 // ダークモード対応（プレーンテキストのみ）
                 textView.backgroundColor = .textBackgroundColor
                 textView.textColor = .textColor
@@ -1963,6 +1995,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ScrollViewのルーラー表示状態を更新
         scrollView.rulersVisible = isRulerVisible
         textView.isRulerVisible = isRulerVisible
+        textView.usesRuler = true
 
         if isRulerVisible {
             let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
@@ -1975,6 +2008,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     window?.makeFirstResponder(textView)
                 }
                 textView.updateRuler()
+
+                // プレーンテキストの場合はルーラーのアクセサリビュー（段落スタイルコントロール）を非表示
+                if textDocument?.documentType == .plain {
+                    ruler.accessoryView = nil
+                    ruler.reservedThicknessForAccessoryView = 0
+                }
             }
         }
         updateTextViewSize(for: scrollView)
@@ -1995,6 +2034,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // ルーラーの設定
         if let firstTextView = textViews.first {
+            firstTextView.usesRuler = true
+
             let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
             if let ruler = ruler {
                 ruler.clientView = firstTextView
@@ -2004,11 +2045,22 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 ruler.originOffset = pageMargin + lineFragmentPadding
                 // ルーラーの単位を設定
                 configureRulerUnit(ruler)
+
+                // プレーンテキストの場合はルーラーのアクセサリビュー（段落スタイルコントロール）を非表示
+                if textDocument?.documentType == .plain {
+                    ruler.accessoryView = nil
+                    ruler.reservedThicknessForAccessoryView = 0
+                }
             }
             if isFirstResponder {
                 window?.makeFirstResponder(firstTextView)
             }
             firstTextView.updateRuler()
+        }
+
+        // 他のテキストビューにも設定
+        for textView in textViews.dropFirst() {
+            textView.usesRuler = true
         }
     }
 
@@ -3694,7 +3746,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     /// 現在アクティブなテキストビューを取得
-    private func currentTextView() -> NSTextView? {
+    func currentTextView() -> NSTextView? {
         // Continuous モードの場合
         if let scrollView = scrollView1,
            let textView = scrollView.documentView as? NSTextView,
@@ -4171,5 +4223,360 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // Cancelの場合は何もしない（元の色のまま）
         }
     }
+
+    // MARK: - Toolbar Encoding Item
+
+    /// ツールバーにエンコーディング表示アイテムをセットアップ
+    private func setupEncodingToolbarItem() {
+        guard let window = self.window else { return }
+
+        // 共通の識別子を持つツールバーを作成（カスタマイズ設定を保存可能）
+        let toolbarIdentifier = NSToolbar.Identifier("JeditDocumentToolbar")
+        let toolbar = NSToolbar(identifier: toolbarIdentifier)
+        toolbar.delegate = self
+        toolbar.displayMode = .iconAndLabel
+        toolbar.showsBaselineSeparator = false
+        toolbar.autosavesConfiguration = true
+        toolbar.allowsUserCustomization = true
+
+        // ウィンドウに設定
+        window.toolbar = toolbar
+
+        // 初期表示を更新
+        updateEncodingToolbarItem()
+        updateLineEndingToolbarItem()
+    }
+
+    /// エンコーディングツールバーアイテムを作成（delegateから呼ばれる）
+    private func createEncodingToolbarItem() -> NSToolbarItem {
+        // ポップアップボタン作成
+        let popupButton = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 140, height: 22), pullsDown: false)
+        popupButton.font = NSFont.systemFont(ofSize: 11)
+        popupButton.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        populateEncodingPopup(popupButton)
+        popupButton.target = self
+        popupButton.action = #selector(encodingPopupChanged(_:))
+
+        // リッチテキストの場合は無効化
+        let isPlainText = textDocument?.documentType == .plain
+        popupButton.isEnabled = isPlainText
+
+        // ツールバーアイテム作成
+        let item = NSToolbarItem(itemIdentifier: Self.encodingToolbarItemIdentifier)
+        item.label = NSLocalizedString("Encoding", comment: "Toolbar item label")
+        item.paletteLabel = NSLocalizedString("Text Encoding", comment: "Toolbar item palette label")
+        item.toolTip = NSLocalizedString("Document text encoding", comment: "Toolbar item tooltip")
+        item.view = popupButton
+
+        // カスタムビューのサイズ設定（カスタマイズパネルでのドラッグに必要）
+        item.minSize = NSSize(width: 100, height: 22)
+        item.maxSize = NSSize(width: 180, height: 22)
+
+        self.encodingToolbarItem = item
+
+        return item
+    }
+
+    /// エンコーディングポップアップメニューを構築
+    private func populateEncodingPopup(_ popup: NSPopUpButton) {
+        // 現在のドキュメントエンコーディングを取得
+        let currentEncoding = textDocument?.documentEncoding ?? .utf8
+
+        // EncodingManagerを使用してポップアップを構築
+        // 「自動」項目は不要、「カスタマイズ...」項目を追加
+        EncodingManager.shared.setupPopUp(
+            popup,
+            selectedEncoding: currentEncoding,
+            withDefaultEntry: false,
+            includeCustomizeItem: true,
+            target: self,
+            action: #selector(showEncodingCustomizePanel(_:))
+        )
+    }
+
+    /// エンコーディングカスタマイズパネルを表示
+    @objc private func showEncodingCustomizePanel(_ sender: Any?) {
+        EncodingManager.shared.showPanel(sender)
+        // パネルを閉じた後にポップアップを更新するため、通知を監視
+        // EncodingManagerが更新されたら再構築
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.refreshEncodingPopup()
+        }
+    }
+
+    /// エンコーディングポップアップを再構築
+    private func refreshEncodingPopup() {
+        guard let popup = getEncodingPopupButton() else { return }
+        populateEncodingPopup(popup)
+    }
+
+    /// エンコーディングポップアップボタンを取得
+    private func getEncodingPopupButton() -> NSPopUpButton? {
+        // まずキャッシュされたアイテムから取得を試みる
+        if let popup = encodingToolbarItem?.view as? NSPopUpButton {
+            return popup
+        }
+        // ツールバーから直接検索
+        guard let toolbar = self.window?.toolbar else { return nil }
+        for item in toolbar.items {
+            if item.itemIdentifier == Self.encodingToolbarItemIdentifier,
+               let popup = item.view as? NSPopUpButton {
+                // キャッシュを更新
+                self.encodingToolbarItem = item
+                return popup
+            }
+        }
+        return nil
+    }
+
+    /// エンコーディングツールバーアイテムを更新
+    func updateEncodingToolbarItem() {
+        guard let popup = getEncodingPopupButton() else { return }
+
+        // リッチテキストの場合はエンコーディングポップアップを無効化
+        let isPlainText = textDocument?.documentType == .plain
+        popup.isEnabled = isPlainText
+
+        // 現在のドキュメントエンコーディングを取得
+        let encoding = textDocument?.documentEncoding ?? .utf8
+
+        // ポップアップを再構築して選択を更新
+        EncodingManager.shared.setupPopUp(
+            popup,
+            selectedEncoding: encoding,
+            withDefaultEntry: false,
+            includeCustomizeItem: true,
+            target: self,
+            action: #selector(showEncodingCustomizePanel(_:))
+        )
+    }
+
+    /// エンコーディングポップアップの変更ハンドラ
+    @objc private func encodingPopupChanged(_ sender: NSPopUpButton) {
+        // リッチテキストの場合はエンコーディング変更を許可しない
+        if textDocument?.documentType != .plain {
+            updateEncodingToolbarItem()
+            return
+        }
+
+        guard let selectedItem = sender.selectedItem else { return }
+
+        // 「カスタマイズ...」が選択された場合
+        if selectedItem.tag == EncodingManager.customizeEncodingsTag {
+            showEncodingCustomizePanel(sender)
+            // 選択を元に戻す
+            updateEncodingToolbarItem()
+            return
+        }
+
+        let newEncoding = String.Encoding(rawValue: UInt(selectedItem.tag))
+
+        guard let document = textDocument else { return }
+
+        // 現在のエンコーディングと同じ場合は何もしない
+        if document.documentEncoding == newEncoding {
+            return
+        }
+
+        // エンコーディングを変更
+        changeDocumentEncoding(to: newEncoding)
+    }
+
+    /// ドキュメントのエンコーディングを変更
+    private func changeDocumentEncoding(to newEncoding: String.Encoding) {
+        guard let document = textDocument,
+              let window = self.window else { return }
+
+        // 現在のテキストを新しいエンコーディングで再エンコードできるか確認
+        let currentText = document.textStorage.string
+        guard let data = currentText.data(using: newEncoding) else {
+            // 変換できない場合はアラートをシートとして表示
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString("Cannot Convert", comment: "Alert title")
+            alert.informativeText = String(format: NSLocalizedString("The document contains characters that cannot be represented in %@.", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: NSLocalizedString("OK", comment: "Button"))
+            alert.beginSheetModal(for: window) { [weak self] _ in
+                // ポップアップを元に戻す
+                self?.updateEncodingToolbarItem()
+            }
+            return
+        }
+
+        // 再変換して確認（ラウンドトリップテスト）
+        let reconverted = String(data: data, encoding: newEncoding)
+        if reconverted != currentText {
+            // ラウンドトリップできない場合はアラートをシートとして表示
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString("Encoding Warning", comment: "Alert title")
+            alert.informativeText = String(format: NSLocalizedString("Converting to %@ may result in data loss. Do you want to continue?", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Button"))
+            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Button"))
+
+            alert.beginSheetModal(for: window) { [weak self] response in
+                if response == .alertFirstButtonReturn {
+                    // 変換を実行
+                    self?.applyEncodingChange(newEncoding, to: document)
+                } else {
+                    // キャンセル - ポップアップを元に戻す
+                    self?.updateEncodingToolbarItem()
+                }
+            }
+            return
+        }
+
+        // エンコーディングを変更（ラウンドトリップテストOKの場合）
+        applyEncodingChange(newEncoding, to: document)
+    }
+
+    /// エンコーディング変更を適用
+    private func applyEncodingChange(_ newEncoding: String.Encoding, to document: Document) {
+        document.documentEncoding = newEncoding
+        document.updateChangeCount(.changeDone)
+
+        #if DEBUG
+        Swift.print("Encoding changed to: \(String.localizedName(of: newEncoding))")
+        #endif
+    }
+
+    // MARK: - Toolbar Line Ending Item
+
+    /// 改行コードツールバーアイテムを作成
+    private func createLineEndingToolbarItem() -> NSToolbarItem {
+        // ポップアップボタン作成
+        let popupButton = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 80, height: 22), pullsDown: false)
+        popupButton.font = NSFont.systemFont(ofSize: 11)
+        popupButton.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        populateLineEndingPopup(popupButton)
+        popupButton.target = self
+        popupButton.action = #selector(lineEndingPopupChanged(_:))
+
+        // リッチテキストの場合は無効化
+        let isPlainText = textDocument?.documentType == .plain
+        popupButton.isEnabled = isPlainText
+
+        // ツールバーアイテム作成
+        let item = NSToolbarItem(itemIdentifier: Self.lineEndingToolbarItemIdentifier)
+        item.label = NSLocalizedString("Line Ending", comment: "Toolbar item label")
+        item.paletteLabel = NSLocalizedString("Line Ending", comment: "Toolbar item palette label")
+        item.toolTip = NSLocalizedString("Document line ending format", comment: "Toolbar item tooltip")
+        item.view = popupButton
+
+        // カスタムビューのサイズ設定（カスタマイズパネルでのドラッグに必要）
+        item.minSize = NSSize(width: 70, height: 22)
+        item.maxSize = NSSize(width: 120, height: 22)
+
+        self.lineEndingToolbarItem = item
+
+        return item
+    }
+
+    /// 改行コードポップアップメニューを構築
+    private func populateLineEndingPopup(_ popup: NSPopUpButton) {
+        popup.removeAllItems()
+
+        // 現在の改行コードを取得
+        let currentLineEnding = textDocument?.lineEnding ?? .lf
+
+        // 改行コードの選択肢を追加
+        for lineEnding in LineEnding.allCases {
+            popup.addItem(withTitle: lineEnding.shortDescription)
+            popup.lastItem?.tag = lineEnding.rawValue
+        }
+
+        // 現在の改行コードを選択
+        popup.selectItem(withTag: currentLineEnding.rawValue)
+    }
+
+    /// 改行コードポップアップボタンを取得
+    private func getLineEndingPopupButton() -> NSPopUpButton? {
+        // まずキャッシュされたアイテムから取得を試みる
+        if let popup = lineEndingToolbarItem?.view as? NSPopUpButton {
+            return popup
+        }
+        // ツールバーから直接検索
+        guard let toolbar = self.window?.toolbar else { return nil }
+        for item in toolbar.items {
+            if item.itemIdentifier == Self.lineEndingToolbarItemIdentifier,
+               let popup = item.view as? NSPopUpButton {
+                // キャッシュを更新
+                self.lineEndingToolbarItem = item
+                return popup
+            }
+        }
+        return nil
+    }
+
+    /// 改行コードツールバーアイテムを更新
+    func updateLineEndingToolbarItem() {
+        guard let popup = getLineEndingPopupButton() else { return }
+
+        // リッチテキストの場合は改行コードポップアップを無効化
+        let isPlainText = textDocument?.documentType == .plain
+        popup.isEnabled = isPlainText
+
+        // 現在の改行コードを取得して選択を更新
+        let lineEnding = textDocument?.lineEnding ?? .lf
+        popup.selectItem(withTag: lineEnding.rawValue)
+    }
+
+    /// 改行コードポップアップの変更ハンドラ
+    @objc private func lineEndingPopupChanged(_ sender: NSPopUpButton) {
+        // リッチテキストの場合は改行コード変更を許可しない
+        if textDocument?.documentType != .plain {
+            updateLineEndingToolbarItem()
+            return
+        }
+
+        guard let selectedItem = sender.selectedItem,
+              let newLineEnding = LineEnding(rawValue: selectedItem.tag),
+              let document = textDocument else { return }
+
+        // 現在の改行コードと同じ場合は何もしない
+        if document.lineEnding == newLineEnding {
+            return
+        }
+
+        // 改行コードを変更
+        document.lineEnding = newLineEnding
+        document.updateChangeCount(.changeDone)
+
+        #if DEBUG
+        Swift.print("Line ending changed to: \(newLineEnding.description)")
+        #endif
+    }
+
+    // MARK: - NSToolbarDelegate
+
+    func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        if itemIdentifier == Self.encodingToolbarItemIdentifier {
+            return createEncodingToolbarItem()
+        }
+        if itemIdentifier == Self.lineEndingToolbarItemIdentifier {
+            return createLineEndingToolbarItem()
+        }
+        return nil
+    }
+
+    func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        return [
+            .flexibleSpace,
+            .space,
+            .showColors,
+            .showFonts,
+            .print,
+            Self.encodingToolbarItemIdentifier,
+            Self.lineEndingToolbarItemIdentifier
+        ]
+    }
+
+    func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
+        return [
+            .flexibleSpace,
+            .print
+        ]
+    }
+
 }
 

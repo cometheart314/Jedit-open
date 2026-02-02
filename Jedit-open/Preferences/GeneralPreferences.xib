@@ -9,7 +9,6 @@
             <connections>
                 <outlet property="appearancePopupButton" destination="qYb-hE-aST" id="6Qh-Ei-TPI"/>
                 <outlet property="autoStartCheckBox" destination="eVD-Kc-0NT" id="UQW-Fe-lWA"/>
-                <outlet property="richTextAlwaysUsesLightModeCheckBox" destination="chk-rtlm-001" id="out-rtlm-001"/>
                 <outlet property="checkGrammarWithSpellingCheckBox" destination="chk-gram-001" id="out-gram-001"/>
                 <outlet property="checkSpellingAsYouTypeCheckBox" destination="chk-spell-001" id="out-spell-001"/>
                 <outlet property="correctSpellingAutomaticallyCheckBox" destination="chk-corr-001" id="out-corr-001"/>
@@ -17,6 +16,7 @@
                 <outlet property="dateFormatField" destination="VTJ-q7-DRs" id="dff-out-con"/>
                 <outlet property="dateFormatPopupButton" destination="juc-dQ-EgR" id="dfp-out-con"/>
                 <outlet property="dontShowContextMenuDefaultItemsCheckBox" destination="chk-ctx-001" id="out-ctx-001"/>
+                <outlet property="richTextAlwaysUsesLightModeCheckBox" destination="chk-rtlm-001" id="out-rtlm-001"/>
                 <outlet property="richTextSubstitutionsCheckBox" destination="chk-rich-001" id="out-rich-001"/>
                 <outlet property="smartCopyPasteCheckBox" destination="chk-copy-001" id="out-copy-001"/>
                 <outlet property="smartDashesCheckBox" destination="chk-dash-001" id="out-dash-001"/>

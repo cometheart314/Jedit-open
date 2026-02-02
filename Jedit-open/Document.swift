@@ -7,6 +7,73 @@
 
 import Cocoa
 
+// MARK: - LineEnding
+
+/// 改行コードの種類
+enum LineEnding: Int, CaseIterable {
+    case lf = 0      // Unix (LF: \n)
+    case cr = 1      // Classic Mac (CR: \r)
+    case crlf = 2    // Windows (CRLF: \r\n)
+
+    var description: String {
+        switch self {
+        case .lf: return "LF (Unix)"
+        case .cr: return "CR (Classic Mac)"
+        case .crlf: return "CRLF (Windows)"
+        }
+    }
+
+    var shortDescription: String {
+        switch self {
+        case .lf: return "LF"
+        case .cr: return "CR"
+        case .crlf: return "CRLF"
+        }
+    }
+
+    /// 改行文字列
+    var string: String {
+        switch self {
+        case .lf: return "\n"
+        case .cr: return "\r"
+        case .crlf: return "\r\n"
+        }
+    }
+
+    /// 文字列から改行コードを検出
+    static func detect(in string: String) -> LineEnding {
+        var lfCount = 0
+        var crCount = 0
+        var crlfCount = 0
+
+        let chars = Array(string)
+        var i = 0
+        while i < chars.count {
+            if chars[i] == "\r" {
+                if i + 1 < chars.count && chars[i + 1] == "\n" {
+                    crlfCount += 1
+                    i += 2
+                    continue
+                } else {
+                    crCount += 1
+                }
+            } else if chars[i] == "\n" {
+                lfCount += 1
+            }
+            i += 1
+        }
+
+        // 最も多い改行コードを返す（デフォルトはLF）
+        if crlfCount >= lfCount && crlfCount >= crCount && crlfCount > 0 {
+            return .crlf
+        } else if crCount >= lfCount && crCount > 0 {
+            return .cr
+        } else {
+            return .lf
+        }
+    }
+}
+
 // MARK: - AttachmentBoundsInfo
 
 /// 画像attachmentのbounds情報を保存するための構造体
@@ -33,6 +100,12 @@ class Document: NSDocument {
     var textStorage: NSTextStorage = NSTextStorage()
     var documentType: NSAttributedString.DocumentType = .plain
     var containerInset = NSSize(width: 10, height: 10)
+
+    /// ドキュメントのエンコーディング（プレーンテキスト用）
+    var documentEncoding: String.Encoding = .utf8
+
+    /// ドキュメントの改行コード（プレーンテキスト用）
+    var lineEnding: LineEnding = .lf
 
     /// プリセットから適用されたドキュメント設定データ
     var presetData: NewDocData?
@@ -337,18 +410,102 @@ class Document: NSDocument {
 
         // ドキュメントタイプに応じて読み込み
         if docType == .plain {
-            // プレーンテキストの場合はUTF-8でデコード
-            guard let string = String(data: data, encoding: .utf8) else {
-                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
-                    NSLocalizedDescriptionKey: "Could not decode text as UTF-8"
-                ])
+            // プレーンテキストの場合はエンコーディングを自動判定
+
+            // ファイルURLを取得（MainActorでfileURLにアクセス）
+            let currentFileURL = MainActor.assumeIsolated {
+                self.fileURL
             }
 
-            // メインアクターで実行
-            MainActor.assumeIsolated {
-                self.documentType = .plain
-                self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
-                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+            #if DEBUG
+            Swift.print("=== Encoding Detection Start ===")
+            Swift.print("Data size: \(data.count) bytes")
+            Swift.print("File URL: \(currentFileURL?.path ?? "none")")
+            // 先頭バイトを表示（BOM確認用）
+            let headerBytes = data.prefix(10).map { String(format: "%02X", $0) }.joined(separator: " ")
+            Swift.print("Header bytes: \(headerBytes)")
+            #endif
+
+            // 全候補を取得してデバッグ出力
+            let allCandidates = EncodingDetector.shared.detectEncodings(from: data, fileURL: currentFileURL)
+            #if DEBUG
+            Swift.print("--- All Encoding Candidates ---")
+            for (index, candidate) in allCandidates.enumerated() {
+                Swift.print("  [\(index + 1)] \(candidate.name)")
+                Swift.print("      Encoding: \(candidate.encoding) (rawValue: \(candidate.encoding.rawValue))")
+                Swift.print("      Confidence: \(candidate.confidence)%")
+                Swift.print("      Lossy: \(candidate.usedLossyConversion)")
+            }
+            Swift.print("-------------------------------")
+            #endif
+
+            let outcome = EncodingDetector.shared.detectAndDecode(from: data, fileURL: currentFileURL)
+
+            switch outcome {
+            case .success(let encoding, let string):
+                // 自動判定成功
+                #if DEBUG
+                Swift.print("Result: SUCCESS (auto-detected)")
+                Swift.print("  Selected encoding: \(String.localizedName(of: encoding))")
+                Swift.print("  Encoding rawValue: \(encoding.rawValue)")
+                Swift.print("  Decoded string length: \(string.count) characters")
+                Swift.print("=== Encoding Detection End ===\n")
+                #endif
+
+                MainActor.assumeIsolated {
+                    self.documentType = .plain
+                    self.documentEncoding = encoding
+                    // 改行コードを判定
+                    self.lineEnding = LineEnding.detect(in: string)
+                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                    NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                }
+
+            case .needsUserSelection(let candidates):
+                // 信頼度が低い場合、ユーザーに選択を求める
+                #if DEBUG
+                Swift.print("Result: NEEDS USER SELECTION (low confidence)")
+                Swift.print("  Candidates count: \(candidates.count)")
+                if let best = candidates.first {
+                    Swift.print("  Best candidate: \(best.name) (\(best.confidence)%)")
+                }
+                Swift.print("=== Encoding Detection End ===\n")
+                #endif
+
+                // ドキュメントを開く前にモーダルダイアログでエンコーディングを選択させる
+                let selectedResult = MainActor.assumeIsolated {
+                    self.showEncodingSelectionDialogModal(candidates: candidates)
+                }
+
+                guard let selectedEncoding = selectedResult,
+                      let string = EncodingDetector.shared.decodeData(data, with: selectedEncoding) else {
+                    throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                        NSLocalizedDescriptionKey: NSLocalizedString("Could not decode text file. No valid encoding found.", comment: "")
+                    ])
+                }
+
+                #if DEBUG
+                Swift.print("User selected encoding: \(String.localizedName(of: selectedEncoding))")
+                #endif
+
+                MainActor.assumeIsolated {
+                    self.documentType = .plain
+                    self.documentEncoding = selectedEncoding
+                    // 改行コードを判定
+                    self.lineEnding = LineEnding.detect(in: string)
+                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                    NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                }
+
+            case .failure:
+                #if DEBUG
+                Swift.print("Result: FAILURE")
+                Swift.print("=== Encoding Detection End ===\n")
+                #endif
+
+                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                    NSLocalizedDescriptionKey: NSLocalizedString("Could not decode text file.", comment: "")
+                ])
             }
         } else {
             // RTFまたはRTFDの場合はNSAttributedStringを使用
@@ -370,6 +527,43 @@ class Document: NSDocument {
                     NSLocalizedDescriptionKey: "Could not read \(docType == .rtf ? "RTF" : "RTFD") document: \(error.localizedDescription)"
                 ])
             }
+        }
+    }
+
+    // MARK: - Encoding Selection
+
+    /// エンコーディング選択ダイアログをモーダルで表示（ドキュメントを開く前に使用）
+    /// - Parameter candidates: エンコーディング候補リスト
+    /// - Returns: ユーザーが選択したエンコーディング、キャンセル時は最初の候補
+    private func showEncodingSelectionDialogModal(candidates: [EncodingDetectionResult]) -> String.Encoding? {
+        guard !candidates.isEmpty else { return nil }
+
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Text Encoding", comment: "")
+        alert.informativeText = NSLocalizedString("The text encoding could not be determined with high confidence. Please select the correct encoding:", comment: "")
+        alert.alertStyle = .warning
+
+        // ポップアップボタンを作成
+        let popupButton = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 300, height: 25), pullsDown: false)
+        for candidate in candidates {
+            let title = "\(candidate.name) (\(candidate.confidence)%)"
+            popupButton.addItem(withTitle: title)
+            popupButton.lastItem?.representedObject = candidate.encoding
+        }
+        alert.accessoryView = popupButton
+
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+
+        // モーダルで表示
+        let response = alert.runModal()
+
+        if response == .alertFirstButtonReturn {
+            // ユーザーが選択したエンコーディングを返す
+            return popupButton.selectedItem?.representedObject as? String.Encoding
+        } else {
+            // キャンセル時は最初の候補を返す（ファイルを開くため）
+            return candidates.first?.encoding
         }
     }
 
@@ -592,5 +786,32 @@ class Document: NSDocument {
             // その他のタイプはリッチテキストとして扱う
             return NewDocData.richText
         }
+    }
+
+    // MARK: - Printing
+
+    override func printOperation(withSettings printSettings: [NSPrintInfo.AttributeKey: Any]) throws -> NSPrintOperation {
+        // EditorWindowControllerからテキストビューを取得
+        guard let windowController = windowControllers.first as? EditorWindowController,
+              let textView = windowController.currentTextView() else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: [
+                NSLocalizedDescriptionKey: NSLocalizedString("Cannot print: No text view available", comment: "Print error")
+            ])
+        }
+
+        // 印刷情報を取得
+        let printInfo = self.printInfo.copy() as! NSPrintInfo
+
+        // 印刷設定を適用
+        for (key, value) in printSettings {
+            printInfo.dictionary()[key] = value
+        }
+
+        // テキストビューの印刷操作を作成
+        let printOperation = NSPrintOperation(view: textView, printInfo: printInfo)
+        printOperation.showsPrintPanel = true
+        printOperation.showsProgressPanel = true
+
+        return printOperation
     }
 }

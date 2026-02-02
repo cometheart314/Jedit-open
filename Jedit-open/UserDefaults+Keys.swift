@@ -34,6 +34,19 @@ extension UserDefaults {
         static let smartQuotes = "smartQuotes"
         static let smartDashes = "smartDashes"
         static let correctSpellingAutomatically = "correctSpellingAutomatically"
+
+        // Encodings
+        static let enabledEncodings = "enabledEncodings"
+        static let defaultEncoding = "defaultEncoding"
+
+        // Plain Text File Encoding
+        static let plainTextEncodingForRead = "JOPlainTextEncoding"
+        static let plainTextEncodingForWrite = "JOPlainTextEncodingForWrite"
+        static let plainTextLineEndingForWrite = "JOPlainTextLineEndingForWrite"
+        static let plainTextBomForWrite = "JOPlainTextBomForWrite"
+        static let convertYenToBackSlash = "JOConvertYenToBackSlash"
+        static let convertOverlineToTilde = "JOConvertOverlineToTilde"
+        static let convertFullWidthTilde = "JOConvertFullWidthTidle"
     }
 
     /// スケールメニューのデフォルト値
@@ -63,7 +76,26 @@ extension UserDefaults {
             Keys.textReplacements: false,
             Keys.smartQuotes: false,
             Keys.smartDashes: false,
-            Keys.correctSpellingAutomatically: false
+            Keys.correctSpellingAutomatically: false,
+            // Encodings
+            Keys.enabledEncodings: [
+                String.Encoding.utf8.rawValue,
+                String.Encoding.utf16.rawValue,
+                String.Encoding.japaneseEUC.rawValue,
+                String.Encoding.shiftJIS.rawValue,
+                String.Encoding.iso2022JP.rawValue,
+                String.Encoding.isoLatin1.rawValue,
+                String.Encoding.ascii.rawValue
+            ],
+            Keys.defaultEncoding: Int(String.Encoding.utf8.rawValue),
+            // Plain Text File Encoding
+            Keys.plainTextEncodingForRead: 0,  // 0 = Automatic (NoStringEncoding)
+            Keys.plainTextEncodingForWrite: 0, // 0 = Automatic (NoStringEncoding)
+            Keys.plainTextLineEndingForWrite: -1, // -1 = Automatic
+            Keys.plainTextBomForWrite: -1, // -1 = Automatic
+            Keys.convertYenToBackSlash: false,
+            Keys.convertOverlineToTilde: false,
+            Keys.convertFullWidthTilde: false
         ])
     }
 }
