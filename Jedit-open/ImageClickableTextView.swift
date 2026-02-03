@@ -1118,6 +1118,107 @@ class ImageClickableTextView: NSTextView {
         }
     }
 
+    // MARK: - Paste and Drop Text Conversion
+
+    /// ペースト時に文字変換を適用
+    override func paste(_ sender: Any?) {
+        // ペーストボードからテキストを取得して変換を適用
+        let pasteboard = NSPasteboard.general
+        if let string = pasteboard.string(forType: .string) {
+            let convertedString = applyTextConversions(string)
+            // 変換後の文字列をペースト
+            insertText(convertedString, replacementRange: selectedRange())
+        } else {
+            // テキスト以外の場合は通常のペースト
+            super.paste(sender)
+        }
+    }
+
+    /// 属性付きテキストのペースト時に文字変換を適用
+    override func pasteAsRichText(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+        if let rtfData = pasteboard.data(forType: .rtf),
+           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+            let convertedString = applyTextConversionsToAttributedString(attributedString)
+            insertText(convertedString, replacementRange: selectedRange())
+        } else {
+            super.pasteAsRichText(sender)
+        }
+    }
+
+    /// プレーンテキストとしてペースト時に文字変換を適用
+    override func pasteAsPlainText(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+        if let string = pasteboard.string(forType: .string) {
+            let convertedString = applyTextConversions(string)
+            insertText(convertedString, replacementRange: selectedRange())
+        } else {
+            super.pasteAsPlainText(sender)
+        }
+    }
+
+    /// ドラッグ＆ドロップ時に文字変換を適用
+    override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        // テキストタイプの場合は変換を適用
+        if type == .string, let string = pboard.string(forType: .string) {
+            let convertedString = applyTextConversions(string)
+            insertText(convertedString, replacementRange: selectedRange())
+            return true
+        } else if type == .rtf, let rtfData = pboard.data(forType: .rtf),
+                  let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+            let convertedString = applyTextConversionsToAttributedString(attributedString)
+            insertText(convertedString, replacementRange: selectedRange())
+            return true
+        }
+        return super.readSelection(from: pboard, type: type)
+    }
+
+    /// 文字列に対して文字変換を適用
+    /// - Parameter string: 変換対象の文字列
+    /// - Returns: 変換後の文字列
+    private func applyTextConversions(_ string: String) -> String {
+        let defaults = UserDefaults.standard
+        var result = string
+
+        // 1. 改行コードをLFに統一
+        result = result.replacingOccurrences(of: "\r\n", with: "\n")
+        result = result.replacingOccurrences(of: "\r", with: "\n")
+
+        // 2. 円記号をバックスラッシュに変換（設定が有効な場合）
+        if defaults.bool(forKey: UserDefaults.Keys.convertYenToBackSlash) {
+            result = result.replacingOccurrences(of: "\u{00A5}", with: "\\")
+        }
+
+        // 3. オーバーラインをチルダに変換（設定が有効な場合）
+        if defaults.bool(forKey: UserDefaults.Keys.convertOverlineToTilde) {
+            result = result.replacingOccurrences(of: "\u{203E}", with: "~")
+        }
+
+        // 4. 全角チルダを波ダッシュに変換（設定が有効な場合）
+        if defaults.bool(forKey: UserDefaults.Keys.convertFullWidthTilde) {
+            result = result.replacingOccurrences(of: "\u{FF5E}", with: "\u{301C}")
+        }
+
+        return result
+    }
+
+    /// 属性付き文字列に対して文字変換を適用
+    /// - Parameter attributedString: 変換対象の属性付き文字列
+    /// - Returns: 変換後の属性付き文字列
+    private func applyTextConversionsToAttributedString(_ attributedString: NSAttributedString) -> NSAttributedString {
+        let mutableString = NSMutableAttributedString(attributedString: attributedString)
+        let convertedText = applyTextConversions(mutableString.string)
+
+        // 文字列の長さが変わる可能性があるため、属性を保持しながら文字列を置換
+        // 簡易的な実装: 元の属性を最初の文字から取得して適用
+        if mutableString.length > 0 {
+            let attributes = mutableString.attributes(at: 0, effectiveRange: nil)
+            return NSAttributedString(string: convertedText, attributes: attributes)
+        } else {
+            return NSAttributedString(string: convertedText)
+        }
+    }
+
     // MARK: - Menu Validation
 
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {

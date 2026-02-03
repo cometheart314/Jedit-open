@@ -501,6 +501,48 @@ class Document: NSDocument {
         }
     }
 
+    /// 改行コードをLFに統一（読み込み時に使用）
+    private func normalizeLineEndingsToLF(_ string: String) -> String {
+        var result = string.replacingOccurrences(of: "\r\n", with: "\n")
+        result = result.replacingOccurrences(of: "\r", with: "\n")
+        return result
+    }
+
+    /// Shift_JIS読み込み時の文字変換（Preferencesの設定に基づく）
+    /// - Parameters:
+    ///   - string: 変換対象の文字列
+    ///   - encoding: ファイルのエンコーディング
+    /// - Returns: 変換後の文字列
+    private func applyEncodingConversions(_ string: String, encoding: String.Encoding) -> String {
+        let defaults = UserDefaults.standard
+        var result = string
+
+        // Shift_JISエンコーディンググループかどうかを判定
+        let isShiftJIS = encoding == .shiftJIS ||
+                         encoding.rawValue == CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.dosJapanese.rawValue)) ||
+                         encoding.rawValue == CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.shiftJIS_X0213.rawValue))
+
+        // Convert '¥' (0x5c) to Back Slash '\' (U+005C) when Shift_JIS encoding group
+        if defaults.bool(forKey: UserDefaults.Keys.convertYenToBackSlash) && isShiftJIS {
+            // Shift_JISでデコードした際に円記号(U+00A5)になっている可能性がある
+            result = result.replacingOccurrences(of: "\u{00A5}", with: "\\")
+        }
+
+        // Convert '‾' (0x7e) to Tilde '~' (U+007E) when Shift_JIS encoding group
+        if defaults.bool(forKey: UserDefaults.Keys.convertOverlineToTilde) && isShiftJIS {
+            // Shift_JISでデコードした際にオーバーライン(U+203E)になっている可能性がある
+            result = result.replacingOccurrences(of: "\u{203E}", with: "~")
+        }
+
+        // Convert FULLWIDTH TILDE '～' (U+FF5E) to WAVE DASH '〜' (U+301C)
+        // これはエンコーディングに関係なく適用
+        if defaults.bool(forKey: UserDefaults.Keys.convertFullWidthTilde) {
+            result = result.replacingOccurrences(of: "\u{FF5E}", with: "\u{301C}")
+        }
+
+        return result
+    }
+
     /// BOMを追加
     private func addBOM(to data: Data, encoding: String.Encoding) -> Data {
         var result = Data()
@@ -605,13 +647,17 @@ class Document: NSDocument {
                         Swift.print("=== Encoding Detection End ===\n")
                         #endif
 
+                        // 改行コードを判定してからLFに変換、エンコーディング変換を適用
+                        let detectedLineEnding = LineEnding.detect(in: string)
+                        var normalizedString = self.normalizeLineEndingsToLF(string)
+                        normalizedString = self.applyEncodingConversions(normalizedString, encoding: specifiedEncoding)
+
                         MainActor.assumeIsolated {
                             self.documentType = .plain
                             self.documentEncoding = specifiedEncoding
                             self.hasBOM = bomDetected
-                            // 改行コードを判定
-                            self.lineEnding = LineEnding.detect(in: string)
-                            self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                            self.lineEnding = detectedLineEnding
+                            self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: normalizedString)
                             NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                         }
                         return
@@ -646,13 +692,17 @@ class Document: NSDocument {
                 Swift.print("=== Encoding Detection End ===\n")
                 #endif
 
+                // 改行コードを判定してからLFに変換、エンコーディング変換を適用
+                let detectedLineEnding = LineEnding.detect(in: string)
+                var normalizedString = self.normalizeLineEndingsToLF(string)
+                normalizedString = self.applyEncodingConversions(normalizedString, encoding: selectedEncoding)
+
                 MainActor.assumeIsolated {
                     self.documentType = .plain
                     self.documentEncoding = selectedEncoding
                     self.hasBOM = bomDetected
-                    // 改行コードを判定
-                    self.lineEnding = LineEnding.detect(in: string)
-                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                    self.lineEnding = detectedLineEnding
+                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: normalizedString)
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
                 return
@@ -687,13 +737,17 @@ class Document: NSDocument {
                 Swift.print("=== Encoding Detection End ===\n")
                 #endif
 
+                // 改行コードを判定してからLFに変換、エンコーディング変換を適用
+                let detectedLineEnding = LineEnding.detect(in: string)
+                var normalizedString = self.normalizeLineEndingsToLF(string)
+                normalizedString = self.applyEncodingConversions(normalizedString, encoding: encoding)
+
                 MainActor.assumeIsolated {
                     self.documentType = .plain
                     self.documentEncoding = encoding
                     self.hasBOM = bomDetected
-                    // 改行コードを判定
-                    self.lineEnding = LineEnding.detect(in: string)
-                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                    self.lineEnding = detectedLineEnding
+                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: normalizedString)
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
 
@@ -724,13 +778,17 @@ class Document: NSDocument {
                 Swift.print("User selected encoding: \(String.localizedName(of: selectedEncoding))")
                 #endif
 
+                // 改行コードを判定してからLFに変換、エンコーディング変換を適用
+                let detectedLineEnding = LineEnding.detect(in: string)
+                var normalizedString = self.normalizeLineEndingsToLF(string)
+                normalizedString = self.applyEncodingConversions(normalizedString, encoding: selectedEncoding)
+
                 MainActor.assumeIsolated {
                     self.documentType = .plain
                     self.documentEncoding = selectedEncoding
                     self.hasBOM = bomDetected
-                    // 改行コードを判定
-                    self.lineEnding = LineEnding.detect(in: string)
-                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                    self.lineEnding = detectedLineEnding
+                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: normalizedString)
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
 
