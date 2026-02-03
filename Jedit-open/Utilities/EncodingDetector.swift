@@ -403,7 +403,12 @@ class EncodingDetector {
     }
 
     /// デコード結果の信頼度を計算
-    private func calculateConfidence(string: String, data: Data, encoding: String.Encoding) -> Int32 {
+    /// - Parameters:
+    ///   - string: デコードされた文字列
+    ///   - data: 元のデータ
+    ///   - encoding: 使用したエンコーディング
+    /// - Returns: 信頼度 (0-100)
+    func calculateConfidence(string: String, data: Data, encoding: String.Encoding) -> Int32 {
         guard !string.isEmpty else {
             return 100 // 空文字列は常に有効
         }

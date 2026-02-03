@@ -373,14 +373,8 @@ class Document: NSDocument {
 
         // ドキュメントタイプに応じて保存
         if docType == .plain {
-            // プレーンテキストの場合はUTF-8でエンコード
-            let string = textStorage.string
-            guard let data = string.data(using: .utf8) else {
-                throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
-                    NSLocalizedDescriptionKey: "Could not encode text as UTF-8"
-                ])
-            }
-            return data
+            // プレーンテキストの場合
+            return try dataForPlainText()
         } else {
             // RTFまたはRTFDの場合はNSAttributedStringを使用
             let range = NSRange(location: 0, length: textStorage.length)
@@ -399,6 +393,158 @@ class Document: NSDocument {
         }
     }
 
+    /// プレーンテキストの保存データを生成
+    private func dataForPlainText() throws -> Data {
+        let defaults = UserDefaults.standard
+
+        // 1. エンコーディングを決定
+        let encodingForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextEncodingForWrite)
+        let saveEncoding: String.Encoding
+        if encodingForWriteInt <= 0 {
+            // Automatic: Documentのプロパティを使用
+            saveEncoding = documentEncoding
+        } else {
+            // 指定されたエンコーディングを使用
+            saveEncoding = String.Encoding(rawValue: UInt(encodingForWriteInt))
+        }
+
+        // 2. 改行コードを決定
+        let lineEndingForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextLineEndingForWrite)
+        let saveLineEnding: LineEnding
+        if lineEndingForWriteInt < 0 {
+            // Automatic: Documentのプロパティを使用
+            saveLineEnding = lineEnding
+        } else {
+            // 指定された改行コードを使用
+            saveLineEnding = LineEnding(rawValue: lineEndingForWriteInt) ?? .lf
+        }
+
+        // 3. BOMを付加するかどうかを決定
+        let bomForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextBomForWrite)
+        let shouldAddBOM: Bool
+        if bomForWriteInt < 0 {
+            // Automatic: Documentのプロパティを使用
+            shouldAddBOM = hasBOM
+        } else {
+            // 0 = OFF, 1 = ON
+            shouldAddBOM = bomForWriteInt == 1
+        }
+
+        // 4. テキストを取得し、改行コードを変換
+        var string = textStorage.string
+        string = convertLineEndings(in: string, to: saveLineEnding)
+
+        // 5. 指定エンコーディングでエンコード
+        var encodedData: Data?
+        var usedEncoding = saveEncoding
+        var needsFallback = false
+
+        encodedData = string.data(using: saveEncoding)
+
+        // エンコード成功してもラウンドトリップで確認（ロスレス変換かどうか）
+        if let data = encodedData {
+            // デコードして元のテキストと一致するか確認
+            if let decoded = String(data: data, encoding: saveEncoding) {
+                if decoded != string {
+                    // 変換中に文字が失われた
+                    needsFallback = true
+                }
+            } else {
+                // デコードに失敗
+                needsFallback = true
+            }
+        } else {
+            // エンコード自体が失敗
+            needsFallback = true
+        }
+
+        // エンコード失敗またはロスのある変換の場合はアラートを表示してUTF-8にフォールバック
+        if needsFallback {
+            showEncodingFailureAlert(encoding: saveEncoding)
+            usedEncoding = .utf8
+            encodedData = string.data(using: .utf8)
+        }
+
+        guard var data = encodedData else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                NSLocalizedDescriptionKey: "Could not encode text"
+            ])
+        }
+
+        // 6. BOMを付加（必要な場合）
+        if shouldAddBOM {
+            data = addBOM(to: data, encoding: usedEncoding)
+        }
+
+        // 保存に使用したエンコーディングでDocumentのプロパティを更新
+        self.documentEncoding = usedEncoding
+        self.lineEnding = saveLineEnding
+        self.hasBOM = shouldAddBOM
+
+        return data
+    }
+
+    /// 改行コードを変換
+    private func convertLineEndings(in string: String, to lineEnding: LineEnding) -> String {
+        // まず全ての改行を統一（CRLF → LF, CR → LF）
+        var result = string.replacingOccurrences(of: "\r\n", with: "\n")
+        result = result.replacingOccurrences(of: "\r", with: "\n")
+
+        // 目的の改行コードに変換
+        switch lineEnding {
+        case .lf:
+            return result // すでにLF
+        case .cr:
+            return result.replacingOccurrences(of: "\n", with: "\r")
+        case .crlf:
+            return result.replacingOccurrences(of: "\n", with: "\r\n")
+        }
+    }
+
+    /// BOMを追加
+    private func addBOM(to data: Data, encoding: String.Encoding) -> Data {
+        var result = Data()
+
+        switch encoding {
+        case .utf8:
+            // UTF-8 BOM: EF BB BF
+            result.append(contentsOf: [0xEF, 0xBB, 0xBF])
+        case .utf16BigEndian:
+            // UTF-16 BE BOM: FE FF
+            result.append(contentsOf: [0xFE, 0xFF])
+        case .utf16LittleEndian:
+            // UTF-16 LE BOM: FF FE
+            result.append(contentsOf: [0xFF, 0xFE])
+        case .utf16:
+            // UTF-16 (システムのエンディアンに依存、通常はLE)
+            result.append(contentsOf: [0xFF, 0xFE])
+        case .utf32BigEndian:
+            // UTF-32 BE BOM: 00 00 FE FF
+            result.append(contentsOf: [0x00, 0x00, 0xFE, 0xFF])
+        case .utf32LittleEndian:
+            // UTF-32 LE BOM: FF FE 00 00
+            result.append(contentsOf: [0xFF, 0xFE, 0x00, 0x00])
+        default:
+            // その他のエンコーディングはBOMなし
+            return data
+        }
+
+        result.append(data)
+        return result
+    }
+
+    /// エンコーディング変換失敗時のアラートを表示（同期的に表示）
+    private func showEncodingFailureAlert(encoding: String.Encoding) {
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Encoding Conversion Failed", comment: "")
+        alert.informativeText = String(format: NSLocalizedString("The text could not be converted to %@. The file will be saved as UTF-8 instead.", comment: ""), String.localizedName(of: encoding))
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+
+        // 常にモーダルで表示（保存処理をブロックしてユーザーの確認を待つ）
+        alert.runModal()
+    }
+
     override nonisolated func read(from data: Data, ofType typeName: String) throws {
         // ドキュメントタイプを判定
         let docType: NSAttributedString.DocumentType
@@ -413,21 +559,106 @@ class Document: NSDocument {
 
         // ドキュメントタイプに応じて読み込み
         if docType == .plain {
-            // プレーンテキストの場合はエンコーディングを自動判定
+            // プレーンテキストの場合
 
             // ファイルURLを取得（MainActorでfileURLにアクセス）
             let currentFileURL = MainActor.assumeIsolated {
                 self.fileURL
             }
 
+            // BOMの有無を検出
+            let bomDetected = EncodingDetector.shared.hasBOM(data)
+
+            // Preferencesの Opening Encoding 設定を取得
+            let preferredEncodingInt = UserDefaults.standard.integer(forKey: UserDefaults.Keys.plainTextEncodingForRead)
+            let preferredEncoding: String.Encoding? = preferredEncodingInt <= 0 ? nil : String.Encoding(rawValue: UInt(preferredEncodingInt))
+
             #if DEBUG
             Swift.print("=== Encoding Detection Start ===")
             Swift.print("Data size: \(data.count) bytes")
             Swift.print("File URL: \(currentFileURL?.path ?? "none")")
+            Swift.print("Preferred Encoding: \(preferredEncoding.map { String.localizedName(of: $0) } ?? "Automatic")")
             // 先頭バイトを表示（BOM確認用）
             let headerBytes = data.prefix(10).map { String(format: "%02X", $0) }.joined(separator: " ")
             Swift.print("Header bytes: \(headerBytes)")
             #endif
+
+            // 指定されたエンコーディングがある場合はそれを使用
+            if let specifiedEncoding = preferredEncoding {
+                // 指定エンコーディングでデコードを試行
+                if let string = EncodingDetector.shared.decodeData(data, with: specifiedEncoding) {
+                    // 信頼度を計算（文字化けしていないかチェック）
+                    let confidence = EncodingDetector.shared.calculateConfidence(string: string, data: data, encoding: specifiedEncoding)
+
+                    #if DEBUG
+                    Swift.print("Specified encoding decode attempt:")
+                    Swift.print("  Encoding: \(String.localizedName(of: specifiedEncoding))")
+                    Swift.print("  Decoded string length: \(string.count) characters")
+                    Swift.print("  Confidence: \(confidence)%")
+                    #endif
+
+                    // 信頼度が閾値以上の場合のみ成功とみなす
+                    if confidence >= EncodingDetector.confidenceThreshold {
+                        #if DEBUG
+                        Swift.print("Result: SUCCESS (specified encoding)")
+                        Swift.print("  Has BOM: \(bomDetected)")
+                        Swift.print("=== Encoding Detection End ===\n")
+                        #endif
+
+                        MainActor.assumeIsolated {
+                            self.documentType = .plain
+                            self.documentEncoding = specifiedEncoding
+                            self.hasBOM = bomDetected
+                            // 改行コードを判定
+                            self.lineEnding = LineEnding.detect(in: string)
+                            self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                        }
+                        return
+                    }
+
+                    #if DEBUG
+                    Swift.print("Specified encoding has low confidence (\(confidence)%), asking user for selection")
+                    #endif
+                } else {
+                    #if DEBUG
+                    Swift.print("Specified encoding failed to decode, asking user for selection")
+                    #endif
+                }
+
+                // 指定エンコーディングで開けなかった、または信頼度が低い場合、ユーザーに選択を求める
+                // 自動判定で候補を取得
+                let candidates = EncodingDetector.shared.detectEncodings(from: data, fileURL: currentFileURL)
+
+                let selectedResult = MainActor.assumeIsolated {
+                    self.showEncodingSelectionDialogModal(candidates: candidates)
+                }
+
+                guard let selectedEncoding = selectedResult,
+                      let string = EncodingDetector.shared.decodeData(data, with: selectedEncoding) else {
+                    throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                        NSLocalizedDescriptionKey: NSLocalizedString("Could not decode text file. No valid encoding found.", comment: "")
+                    ])
+                }
+
+                #if DEBUG
+                Swift.print("User selected encoding: \(String.localizedName(of: selectedEncoding))")
+                Swift.print("=== Encoding Detection End ===\n")
+                #endif
+
+                MainActor.assumeIsolated {
+                    self.documentType = .plain
+                    self.documentEncoding = selectedEncoding
+                    self.hasBOM = bomDetected
+                    // 改行コードを判定
+                    self.lineEnding = LineEnding.detect(in: string)
+                    self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
+                    NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                }
+                return
+            }
+
+            // 「自動」の場合：エンコーディングを自動判定
 
             // 全候補を取得してデバッグ出力
             let allCandidates = EncodingDetector.shared.detectEncodings(from: data, fileURL: currentFileURL)
@@ -443,9 +674,6 @@ class Document: NSDocument {
             #endif
 
             let outcome = EncodingDetector.shared.detectAndDecode(from: data, fileURL: currentFileURL)
-
-            // BOMの有無を検出
-            let bomDetected = EncodingDetector.shared.hasBOM(data)
 
             switch outcome {
             case .success(let encoding, let string):
