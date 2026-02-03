@@ -107,6 +107,9 @@ class Document: NSDocument {
     /// ドキュメントの改行コード（プレーンテキスト用）
     var lineEnding: LineEnding = .lf
 
+    /// BOM（Byte Order Mark）の有無（プレーンテキスト用）
+    var hasBOM: Bool = false
+
     /// プリセットから適用されたドキュメント設定データ
     var presetData: NewDocData?
 
@@ -441,6 +444,9 @@ class Document: NSDocument {
 
             let outcome = EncodingDetector.shared.detectAndDecode(from: data, fileURL: currentFileURL)
 
+            // BOMの有無を検出
+            let bomDetected = EncodingDetector.shared.hasBOM(data)
+
             switch outcome {
             case .success(let encoding, let string):
                 // 自動判定成功
@@ -449,12 +455,14 @@ class Document: NSDocument {
                 Swift.print("  Selected encoding: \(String.localizedName(of: encoding))")
                 Swift.print("  Encoding rawValue: \(encoding.rawValue)")
                 Swift.print("  Decoded string length: \(string.count) characters")
+                Swift.print("  Has BOM: \(bomDetected)")
                 Swift.print("=== Encoding Detection End ===\n")
                 #endif
 
                 MainActor.assumeIsolated {
                     self.documentType = .plain
                     self.documentEncoding = encoding
+                    self.hasBOM = bomDetected
                     // 改行コードを判定
                     self.lineEnding = LineEnding.detect(in: string)
                     self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)
@@ -491,6 +499,7 @@ class Document: NSDocument {
                 MainActor.assumeIsolated {
                     self.documentType = .plain
                     self.documentEncoding = selectedEncoding
+                    self.hasBOM = bomDetected
                     // 改行コードを判定
                     self.lineEnding = LineEnding.detect(in: string)
                     self.textStorage.replaceCharacters(in: NSRange(location: 0, length: self.textStorage.length), with: string)

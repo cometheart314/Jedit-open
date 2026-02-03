@@ -138,6 +138,13 @@ class EncodingDetector {
 
     // MARK: - BOM Detection
 
+    /// データにBOM（Byte Order Mark）が含まれているかどうかを判定
+    /// - Parameter data: 判定対象のデータ
+    /// - Returns: BOMが含まれている場合はtrue
+    func hasBOM(_ data: Data) -> Bool {
+        return detectEncodingFromBOM(data) != nil
+    }
+
     /// BOM（Byte Order Mark）からエンコーディングを判定
     private func detectEncodingFromBOM(_ data: Data) -> EncodingDetectionResult? {
         guard data.count >= 2 else { return nil }
