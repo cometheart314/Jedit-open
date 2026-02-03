@@ -16,8 +16,14 @@ class MultiplePageView: NSView {
 
     var pageWidth: CGFloat = 595.0  // A4
     var pageHeight: CGFloat = 842.0 // A4
-    var pageMargin: CGFloat = 72.0  // 1インチ
+    var pageMargin: CGFloat = 72.0  // 1インチ（後方互換性のため残す）
     var pageSeparatorHeight: CGFloat = 20.0
+
+    // 個別マージン（printInfoから設定）
+    var topMargin: CGFloat = 72.0
+    var bottomMargin: CGFloat = 72.0
+    var leftMargin: CGFloat = 72.0
+    var rightMargin: CGFloat = 72.0
 
     // 縦書きレイアウト
     var isVerticalLayout: Bool = false {
@@ -186,18 +192,18 @@ class MultiplePageView: NSView {
     /// ページ内のテキスト表示領域
     func documentRect(forPageNumber pageNumber: Int) -> NSRect {
         var rect = pageRect(forPageNumber: pageNumber)
-        rect.origin.x += pageMargin
-        rect.origin.y += pageMargin
-        rect.size.width -= pageMargin * 2
-        rect.size.height -= pageMargin * 2
+        rect.origin.x += leftMargin
+        rect.origin.y += topMargin
+        rect.size.width -= (leftMargin + rightMargin)
+        rect.size.height -= (topMargin + bottomMargin)
         return rect
     }
 
     /// テキストコンテナのサイズ
     /// 縦書き時は幅と高さを入れ替える（テキストの流れる方向が変わるため）
     var documentSizeInPage: NSSize {
-        let width = pageWidth - pageMargin * 2
-        let height = pageHeight - pageMargin * 2
+        let width = pageWidth - leftMargin - rightMargin
+        let height = pageHeight - topMargin - bottomMargin
         if isVerticalLayout {
             return NSSize(width: height, height: width)
         } else {

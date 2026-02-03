@@ -89,10 +89,50 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var pagesView1: MultiplePageView?
     private var pagesView2: MultiplePageView?
 
-    // ページ設定
-    private let pageWidth: CGFloat = 595.0  // A4サイズ相当（ポイント）
-    private let pageHeight: CGFloat = 842.0 // A4サイズ相当（ポイント）
-    private let pageMargin: CGFloat = 72.0  // 1インチ（72ポイント）のマージン
+    // ページ設定（document.printInfo から取得）
+    // Note: NSPrintInfo.paperSize は orientation に応じて既に調整されている
+    // （landscape の場合は width > height となっている）
+    private var pageWidth: CGFloat {
+        guard let printInfo = textDocument?.printInfo else {
+            return 595.0  // デフォルト: A4サイズ相当（ポイント）
+        }
+        return printInfo.paperSize.width
+    }
+
+    private var pageHeight: CGFloat {
+        guard let printInfo = textDocument?.printInfo else {
+            return 842.0  // デフォルト: A4サイズ相当（ポイント）
+        }
+        return printInfo.paperSize.height
+    }
+
+    private var pageMargin: CGFloat {
+        // printInfo のマージンの平均値を使用（簡略化）
+        // より正確には、各マージンを個別に使用すべきだが、
+        // 現在の MultiplePageView は均一マージンを想定している
+        guard let printInfo = textDocument?.printInfo else {
+            return 72.0  // デフォルト: 1インチ（72ポイント）
+        }
+        // 左右マージンの平均を使用（横書きの場合）
+        return (printInfo.leftMargin + printInfo.rightMargin) / 2.0
+    }
+
+    private var pageTopMargin: CGFloat {
+        textDocument?.printInfo.topMargin ?? 72.0
+    }
+
+    private var pageBottomMargin: CGFloat {
+        textDocument?.printInfo.bottomMargin ?? 72.0
+    }
+
+    private var pageLeftMargin: CGFloat {
+        textDocument?.printInfo.leftMargin ?? 72.0
+    }
+
+    private var pageRightMargin: CGFloat {
+        textDocument?.printInfo.rightMargin ?? 72.0
+    }
+
     private let pageSpacing: CGFloat = 20.0 // ページ間のスペース
 
     // NotificationCenter observers
@@ -150,6 +190,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             self,
             selector: #selector(documentTypeDidChange(_:)),
             name: Document.documentTypeDidChangeNotification,
+            object: nil
+        )
+
+        // printInfo変更通知を監視（Page Setupダイアログからの変更）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(printInfoDidChange(_:)),
+            name: Document.printInfoDidChangeNotification,
             object: nil
         )
 
@@ -336,6 +384,25 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ツールバーアイテムを更新
         updateEncodingToolbarItem()
         updateLineEndingToolbarItem()
+    }
+
+    @objc private func printInfoDidChange(_ notification: Notification) {
+        // 自分のドキュメントからの通知かを確認
+        guard let document = notification.object as? Document,
+              document === textDocument else { return }
+
+        #if DEBUG
+        Swift.print("=== printInfoDidChange notification received ===")
+        Swift.print("orientation: \(document.printInfo.orientation.rawValue)")
+        Swift.print("paperSize: \(document.printInfo.paperSize)")
+        #endif
+
+        // ページモードの場合のみ、ページサイズを更新
+        if displayMode == .page {
+            // ページモードを再設定（用紙サイズ、向き、マージンが変更された可能性がある）
+            guard let textStorage = textDocument?.textStorage else { return }
+            setupPageMode(with: textStorage)
+        }
     }
 
     /// プリセットデータがあれば適用する（ウィンドウ生成時に一度だけ呼ばれる）
@@ -1236,12 +1303,33 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let layoutManager = layoutManagers[0]
             layoutManager1 = layoutManager
 
+            // デバッグ: printInfo の値を出力
+            #if DEBUG
+            if let printInfo = textDocument?.printInfo {
+                Swift.print("=== Page Setup Debug ===")
+                Swift.print("paperSize: \(printInfo.paperSize)")
+                Swift.print("orientation: \(printInfo.orientation.rawValue) (0=portrait, 1=landscape)")
+                Swift.print("topMargin: \(printInfo.topMargin)")
+                Swift.print("bottomMargin: \(printInfo.bottomMargin)")
+                Swift.print("leftMargin: \(printInfo.leftMargin)")
+                Swift.print("rightMargin: \(printInfo.rightMargin)")
+                Swift.print("Computed pageWidth: \(pageWidth)")
+                Swift.print("Computed pageHeight: \(pageHeight)")
+                Swift.print("========================")
+            }
+            #endif
+
             // MultiplePageViewを作成
             let initialFrame = NSRect(x: 0, y: 0, width: pageWidth, height: pageHeight)
             let pagesView = MultiplePageView(frame: initialFrame)
             pagesView.pageWidth = pageWidth
             pagesView.pageHeight = pageHeight
             pagesView.pageMargin = pageMargin
+            // 個別マージンを設定（printInfoから取得）
+            pagesView.topMargin = pageTopMargin
+            pagesView.bottomMargin = pageBottomMargin
+            pagesView.leftMargin = pageLeftMargin
+            pagesView.rightMargin = pageRightMargin
             pagesView.pageSeparatorHeight = pageSpacing
             pagesView.isVerticalLayout = isVerticalLayout
             pagesView.documentName = textDocument?.displayName ?? ""
@@ -1280,6 +1368,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.pageWidth = pageWidth
             pagesView.pageHeight = pageHeight
             pagesView.pageMargin = pageMargin
+            // 個別マージンを設定（printInfoから取得）
+            pagesView.topMargin = pageTopMargin
+            pagesView.bottomMargin = pageBottomMargin
+            pagesView.leftMargin = pageLeftMargin
+            pagesView.rightMargin = pageRightMargin
             pagesView.pageSeparatorHeight = pageSpacing
             pagesView.isVerticalLayout = isVerticalLayout
             pagesView.documentName = textDocument?.displayName ?? ""
@@ -2048,9 +2141,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             if let ruler = ruler {
                 ruler.clientView = firstTextView
                 // ページモードでは、ルーラーの0地点をテキストの開始位置に合わせる
-                // pageMargin + lineFragmentPadding（テキストコンテナのデフォルト値は5.0）
+                // 縦書き: topMargin、横書き: leftMargin + lineFragmentPadding
                 let lineFragmentPadding = firstTextView.textContainer?.lineFragmentPadding ?? 5.0
-                ruler.originOffset = pageMargin + lineFragmentPadding
+                let marginOffset = isVerticalLayout ? pageTopMargin : pageLeftMargin
+                ruler.originOffset = marginOffset + lineFragmentPadding
                 // ルーラーの単位を設定
                 configureRulerUnit(ruler)
 
@@ -2228,8 +2322,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     var adjustedCaretY = caretY - lineFragmentPadding
 
                     if isPageMode {
-                        // ページモードでの調整
-                        adjustedCaretY += textView.frame.origin.y - pageMargin
+                        // ページモードでの調整（縦書き: topMarginを使用）
+                        adjustedCaretY += textView.frame.origin.y - pageTopMargin
                     }
 
                     verticalRuler.caretPosition = adjustedCaretY
@@ -2261,8 +2355,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 if let horizontalRuler = scrollView.horizontalRulerView as? LabeledRulerView {
                     var adjustedCaretX = caretX - lineFragmentPadding
                     if isPageMode {
-                        // ページモードでの調整
-                        adjustedCaretX += textView.frame.origin.x - pageMargin
+                        // ページモードでの調整（横書き: leftMarginを使用）
+                        adjustedCaretX += textView.frame.origin.x - pageLeftMargin
                     }
                     horizontalRuler.caretPosition = adjustedCaretX
                 }
@@ -2887,7 +2981,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             case .paperWidth:
                 // 用紙高さ（マージンを除く）を1行の高さとする
                 // lineFragmentPadding分を加算して正確な用紙幅位置で折り返す
-                lineHeight = pageHeight - (pageMargin * 2) + (padding * 2)
+                lineHeight = pageHeight - pageTopMargin - pageBottomMargin + (padding * 2)
             case .windowWidth:
                 // ウィンドウ高さを1行の高さとする
                 // lineFragmentPaddingが上下に追加されるので、その分を引いて正確にウィンドウ高さに収める
@@ -2953,7 +3047,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             case .paperWidth:
                 // 用紙幅（マージンを除く）
                 // lineFragmentPadding分を加算して正確な用紙幅位置で折り返す
-                lineWidth = pageWidth - (pageMargin * 2) + (padding * 2)
+                lineWidth = pageWidth - pageLeftMargin - pageRightMargin + (padding * 2)
             case .windowWidth:
                 // ウィンドウ幅に収める
                 // lineFragmentPaddingが左右に追加されるので、その分を引いて正確にウィンドウ幅に収める
@@ -4230,6 +4324,19 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
             // Cancelの場合は何もしない（元の色のまま）
         }
+    }
+
+    // MARK: - Page Layout
+
+    /// Page Layoutパネルのインスタンス
+    private lazy var pageLayoutPanel: PageLayoutPanel? = PageLayoutPanel.loadFromNib()
+
+    /// View > Page Layout... メニューアクション
+    @IBAction func showPageLayoutPanel(_ sender: Any?) {
+        guard let document = textDocument,
+              let panel = pageLayoutPanel else { return }
+
+        panel.showPanel(for: document)
     }
 
     // MARK: - Toolbar Encoding Item

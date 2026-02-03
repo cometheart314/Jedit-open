@@ -86,12 +86,13 @@ class NewDocumentsPreferencesViewController: NSViewController {
     private var currentBaseFontSize: CGFloat = 14
 
     // Page Layout Tab
+    @IBOutlet weak var pageSizePopup: NSPopUpButton!
+    @IBOutlet weak var orientationSegmentedControl: NSSegmentedControl!
     @IBOutlet weak var topMarginField: NSTextField!
     @IBOutlet weak var leftMarginField: NSTextField!
     @IBOutlet weak var rightMarginField: NSTextField!
     @IBOutlet weak var bottomMarginField: NSTextField!
     @IBOutlet weak var marginUnitPopup: NSPopUpButton!
-    @IBOutlet weak var printScaleField: NSTextField!
 
     /// 現在選択されているマージン単位（UI表示用のみ、保存されない）
     private var currentMarginUnit: NewDocData.PageLayoutData.MarginUnit = .point
@@ -139,6 +140,49 @@ class NewDocumentsPreferencesViewController: NSViewController {
         setupEncodingPopup()
         setupHeaderFooterRulers()
         setupTextFieldActions()
+        setupPageSizePopup()
+    }
+
+    /// 用紙サイズの定義
+    private struct PaperSize {
+        let name: String
+        let width: CGFloat  // ポイント
+        let height: CGFloat // ポイント
+
+        static let sizes: [PaperSize] = [
+            PaperSize(name: "A4", width: 595.28, height: 841.89),
+            PaperSize(name: "A3", width: 841.89, height: 1190.55),
+            PaperSize(name: "A5", width: 419.53, height: 595.28),
+            PaperSize(name: "B4 (JIS)", width: 728.50, height: 1031.81),
+            PaperSize(name: "B5 (JIS)", width: 515.91, height: 728.50),
+            PaperSize(name: "US Letter", width: 612.0, height: 792.0),
+            PaperSize(name: "US Legal", width: 612.0, height: 1008.0),
+            PaperSize(name: "Tabloid", width: 792.0, height: 1224.0),
+        ]
+
+        /// 幅と高さから最も近い用紙サイズのインデックスを返す
+        static func findIndex(width: CGFloat, height: CGFloat) -> Int {
+            // 縦横どちらの向きでもマッチするようにチェック
+            for (index, size) in sizes.enumerated() {
+                // Portrait
+                if abs(size.width - width) < 1.0 && abs(size.height - height) < 1.0 {
+                    return index
+                }
+                // Landscape
+                if abs(size.height - width) < 1.0 && abs(size.width - height) < 1.0 {
+                    return index
+                }
+            }
+            return 0 // デフォルトは A4
+        }
+    }
+
+    private func setupPageSizePopup() {
+        guard let popup = pageSizePopup else { return }
+        popup.removeAllItems()
+        for size in PaperSize.sizes {
+            popup.addItem(withTitle: size.name)
+        }
     }
 
     private func setupTextFieldActions() {
@@ -337,11 +381,19 @@ class NewDocumentsPreferencesViewController: NSViewController {
         lineNumberBackgroundColorWell?.color = data.fontAndColors.colors.lineNumberBackground.nsColor
 
         // Page Layout Tab
+        // Page Size と Orientation（printInfo から取得）
+        if let printInfoData = data.printInfo {
+            let sizeIndex = PaperSize.findIndex(width: printInfoData.paperWidth, height: printInfoData.paperHeight)
+            pageSizePopup?.selectItem(at: sizeIndex)
+            orientationSegmentedControl?.selectedSegment = printInfoData.orientation
+        } else {
+            // printInfo がない場合はデフォルト（A4, Portrait）
+            pageSizePopup?.selectItem(at: 0)
+            orientationSegmentedControl?.selectedSegment = 0
+        }
         // 単位はデフォルトでpoint、UIでその都度切り替え可能
         marginUnitPopup?.selectItem(withTag: currentMarginUnit.rawValue)
         updateMarginFieldsDisplay()
-        // Print Scale（100% = 1.0 で保持、表示は%）
-        printScaleField?.integerValue = Int(data.pageLayout.printScale * 100)
 
         // Header/Footer Tab
         // AttributedStringを読み込み
@@ -455,12 +507,60 @@ class NewDocumentsPreferencesViewController: NSViewController {
         }
 
         // Page Layout Tab
-        // 現在の表示単位からポイントに変換して保存
-        preset.data.pageLayout.topMarginPoints = currentMarginUnit.toPoints(CGFloat(topMarginField?.doubleValue ?? 90.0))
-        preset.data.pageLayout.leftMarginPoints = currentMarginUnit.toPoints(CGFloat(leftMarginField?.doubleValue ?? 72.0))
-        preset.data.pageLayout.rightMarginPoints = currentMarginUnit.toPoints(CGFloat(rightMarginField?.doubleValue ?? 72.0))
-        preset.data.pageLayout.bottomMarginPoints = currentMarginUnit.toPoints(CGFloat(bottomMarginField?.doubleValue ?? 90.0))
-        preset.data.pageLayout.printScale = CGFloat(printScaleField?.integerValue ?? 100) / 100.0
+        // マージン値を計算（ポイント単位）
+        let topMarginPoints = currentMarginUnit.toPoints(CGFloat(topMarginField?.doubleValue ?? 90.0))
+        let leftMarginPoints = currentMarginUnit.toPoints(CGFloat(leftMarginField?.doubleValue ?? 72.0))
+        let rightMarginPoints = currentMarginUnit.toPoints(CGFloat(rightMarginField?.doubleValue ?? 72.0))
+        let bottomMarginPoints = currentMarginUnit.toPoints(CGFloat(bottomMarginField?.doubleValue ?? 90.0))
+
+        // Page Size と Orientation を printInfo に保存
+        let selectedSizeIndex = pageSizePopup?.indexOfSelectedItem ?? 0
+        let selectedOrientation = orientationSegmentedControl?.selectedSegment ?? 0
+        if selectedSizeIndex < PaperSize.sizes.count {
+            let paperSize = PaperSize.sizes[selectedSizeIndex]
+            // Orientation に応じて幅と高さを設定
+            let (paperWidth, paperHeight): (CGFloat, CGFloat)
+            if selectedOrientation == 1 { // Landscape
+                paperWidth = paperSize.height
+                paperHeight = paperSize.width
+            } else { // Portrait
+                paperWidth = paperSize.width
+                paperHeight = paperSize.height
+            }
+
+            // 既存の printInfo があれば更新、なければ新規作成
+            if preset.data.printInfo != nil {
+                preset.data.printInfo?.paperWidth = paperWidth
+                preset.data.printInfo?.paperHeight = paperHeight
+                preset.data.printInfo?.orientation = selectedOrientation
+                // マージンも更新
+                preset.data.printInfo?.topMargin = topMarginPoints
+                preset.data.printInfo?.leftMargin = leftMarginPoints
+                preset.data.printInfo?.rightMargin = rightMarginPoints
+                preset.data.printInfo?.bottomMargin = bottomMarginPoints
+            } else {
+                preset.data.printInfo = NewDocData.PrintInfoData(
+                    paperWidth: paperWidth,
+                    paperHeight: paperHeight,
+                    orientation: selectedOrientation,
+                    topMargin: topMarginPoints,
+                    leftMargin: leftMarginPoints,
+                    rightMargin: rightMarginPoints,
+                    bottomMargin: bottomMarginPoints,
+                    scalingFactor: 1.0,
+                    horizontallyCentered: true,
+                    verticallyCentered: true,
+                    paperName: paperSize.name,
+                    printerName: nil
+                )
+            }
+        }
+
+        // pageLayout にも保存（後方互換性のため）
+        preset.data.pageLayout.topMarginPoints = topMarginPoints
+        preset.data.pageLayout.leftMarginPoints = leftMarginPoints
+        preset.data.pageLayout.rightMarginPoints = rightMarginPoints
+        preset.data.pageLayout.bottomMarginPoints = bottomMarginPoints
 
         // Header/Footer Tab
         // AttributedStringをRTFデータとして保存
@@ -638,8 +738,20 @@ class NewDocumentsPreferencesViewController: NSViewController {
         }
 
         preset.data.pageLayout = defaultPageLayoutData
+        // printInfo もリセット
+        preset.data.printInfo = nil
         presetManager.updatePreset(preset)
         loadSelectedPreset()
+    }
+
+    /// Page Size ポップアップが変更された時
+    @IBAction func pageSizeChanged(_ sender: NSPopUpButton) {
+        saveCurrentPreset()
+    }
+
+    /// Orientation セグメントコントロールが変更された時
+    @IBAction func orientationChanged(_ sender: NSSegmentedControl) {
+        saveCurrentPreset()
     }
 
     /// Header/Footer タブのみをデフォルト値にリセット

@@ -52,7 +52,9 @@
                 <outlet property="lineNumberPopup" destination="mra-s7-e3B" id="YJV-fJ-rIO"/>
                 <outlet property="marginUnitPopup" destination="Edb-gr-LrQ" id="QeE-gn-6sb"/>
                 <outlet property="newDocNamePopup" destination="eMY-Pc-2Ti" id="ndm-pop-out"/>
+                <outlet property="orientationSegmentedControl" destination="U3d-qh-y8G" id="Eps-iA-rMp"/>
                 <outlet property="pageModeMatrix" destination="Cb4-qe-HEM" id="RNE-0A-bB5"/>
+                <outlet property="pageSizePopup" destination="PXv-O2-b8x" id="0Th-wC-mi3"/>
                 <outlet property="paragraphSpacingAfterField" destination="S6z-wW-iGf" id="psa-fld-out"/>
                 <outlet property="paragraphSpacingAfterStepper" destination="6qi-ax-duK" id="psa-stp-out"/>
                 <outlet property="paragraphSpacingBeforeField" destination="oLw-zD-nTQ" id="psb-fld-out"/>
@@ -864,6 +866,9 @@
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
                                             <font key="font" metaFont="smallSystem"/>
                                         </buttonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="bom-chk-act"/>
+                                        </connections>
                                     </button>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="3ER-p1-fiT">
                                         <rect key="frame" x="163" y="342" width="223" height="22"/>
@@ -879,6 +884,9 @@
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="enc-pop-act"/>
+                                        </connections>
                                     </popUpButton>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hh5-gw-RkL">
                                         <rect key="frame" x="163" y="312" width="159" height="22"/>
@@ -894,6 +902,9 @@
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="le-pop-act"/>
+                                        </connections>
                                     </popUpButton>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="DVZ-RX-s3G">
                                         <rect key="frame" x="70" y="317" width="85" height="14"/>
@@ -1446,8 +1457,63 @@
                                 <rect key="frame" x="10" y="33" width="510" height="441"/>
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Wgj-vE-Mu3">
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="pIS-la-ZK9">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="width" constant="167" id="1Uz-pb-WGt"/>
+                                            <constraint firstAttribute="height" constant="24" id="gks-Mr-w0J"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertPageLayoutToDefaults:" target="-2" id="rvd-layout-001"/>
+                                        </connections>
+                                    </button>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="LjY-Kg-3yV">
+                                        <rect key="frame" x="23" y="402" width="77" height="16"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" lineBreakMode="clipping" title="Page Size:" id="Wk3-c8-Yc3">
+                                            <font key="font" metaFont="system"/>
+                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
+                                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PXv-O2-b8x" customClass="pa">
+                                        <rect key="frame" x="100" y="398" width="215" height="24"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <popUpButtonCell key="cell" type="push" title="Item 1" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="b5I-Om-WjH" id="jrZ-3b-u2H">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="message"/>
+                                            <menu key="menu" id="x7m-Wu-K2J">
+                                                <items>
+                                                    <menuItem title="Item 1" state="on" id="b5I-Om-WjH"/>
+                                                    <menuItem title="Item 2" id="Nmo-z9-39c"/>
+                                                    <menuItem title="Item 3" id="0d1-Jk-fPL"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                        <connections>
+                                            <action selector="pageSizeChanged:" target="-2" id="AZi-1P-hV0"/>
+                                        </connections>
+                                    </popUpButton>
+                                    <segmentedControl verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="U3d-qh-y8G">
+                                        <rect key="frame" x="100" y="360" width="215" height="24"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <segmentedCell key="cell" borderStyle="border" alignment="left" style="rounded" trackingMode="selectOne" id="56j-QM-chm">
+                                            <font key="font" metaFont="system"/>
+                                            <segments>
+                                                <segment label="Portrait" image="rectangle.portrait" catalog="system" width="107"/>
+                                                <segment label="Landscape" image="rectangle" catalog="system" width="107" selected="YES" tag="1"/>
+                                            </segments>
+                                        </segmentedCell>
+                                        <connections>
+                                            <action selector="orientationChanged:" target="-2" id="kXy-NH-tV8"/>
+                                        </connections>
+                                    </segmentedControl>
                                     <box autoresizesSubviews="NO" fixedFrame="YES" borderType="line" title="Paper Margin" translatesAutoresizingMaskIntoConstraints="NO" id="C3o-LR-P0w">
-                                        <rect key="frame" x="15" y="325" width="436" height="91"/>
+                                        <rect key="frame" x="17" y="250" width="436" height="91"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <view key="contentView" id="ggV-RN-DMt">
                                             <rect key="frame" x="0.0" y="0.0" width="436" height="79"/>
@@ -1608,20 +1674,15 @@
                                             </subviews>
                                         </view>
                                     </box>
-                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Wgj-vE-Mu3">
-                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
-                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="pIS-la-ZK9">
-                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="t3n-xO-AuL">
+                                        <rect key="frame" x="17" y="364" width="77" height="16"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" lineBreakMode="clipping" title="Orientation:" id="U9E-VZ-02P">
                                             <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <constraints>
-                                            <constraint firstAttribute="width" constant="167" id="1Uz-pb-WGt"/>
-                                            <constraint firstAttribute="height" constant="24" id="gks-Mr-w0J"/>
-                                        </constraints>
-                                        <connections>
-                                            <action selector="revertPageLayoutToDefaults:" target="-2" id="rvd-layout-001"/>
-                                        </connections>
-                                    </button>
+                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
+                                    </textField>
                                 </subviews>
                                 <constraints>
                                     <constraint firstAttribute="bottom" secondItem="Wgj-vE-Mu3" secondAttribute="bottom" constant="17" id="shM-Rf-0jB"/>
@@ -1639,7 +1700,7 @@
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="Yxb-EA-UHh">
                                             <rect key="frame" x="1" y="1" width="474" height="103"/>
-                                            <autoresizingMask key="autoresizingMask"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="MCd-yq-CCl">
                                                     <rect key="frame" x="0.0" y="0.0" width="474" height="103"/>
@@ -1780,7 +1841,7 @@
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="vCn-fD-0uC">
                                             <rect key="frame" x="1" y="1" width="474" height="104"/>
-                                            <autoresizingMask key="autoresizingMask"/>
+                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="dYM-gi-Wc0">
                                                     <rect key="frame" x="0.0" y="0.0" width="474" height="104"/>
@@ -2081,11 +2142,13 @@ individual documents</string>
                 <constraint firstItem="VDd-sl-dqH" firstAttribute="top" secondItem="5VY-dr-NPg" secondAttribute="bottom" constant="1" id="ygT-pM-Ehj"/>
                 <constraint firstItem="Orc-03-RCR" firstAttribute="leading" secondItem="5VY-dr-NPg" secondAttribute="trailing" constant="10" id="zZs-GU-R3W"/>
             </constraints>
-            <point key="canvasLocation" x="157" y="-1207"/>
+            <point key="canvasLocation" x="157" y="-1207.5"/>
         </customView>
     </objects>
     <resources>
         <image name="NSAddTemplate" width="18" height="16"/>
         <image name="NSMenuMixedStateTemplate" width="18" height="4"/>
+        <image name="rectangle" catalog="system" width="19" height="14"/>
+        <image name="rectangle.portrait" catalog="system" width="15" height="16"/>
     </resources>
 </document>

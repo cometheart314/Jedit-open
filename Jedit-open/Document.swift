@@ -89,6 +89,7 @@ class Document: NSDocument {
     // MARK: - Notifications
 
     static let documentTypeDidChangeNotification = Notification.Name("DocumentTypeDidChange")
+    static let printInfoDidChangeNotification = Notification.Name("PrintInfoDidChange")
 
     // MARK: - Extended Attribute Keys
 
@@ -126,6 +127,11 @@ class Document: NSDocument {
     override init() {
         super.init()
         setupFontFallbackRecoveryDelegate()
+
+        // Preferencesで選択されているプリセットを適用（新規書類作成時）
+        if let selectedPreset = DocumentPresetManager.shared.selectedPreset() {
+            applyPresetData(selectedPreset.data)
+        }
     }
 
     /// フォントフォールバック復帰Delegateをセットアップ
@@ -874,6 +880,28 @@ class Document: NSDocument {
             self.documentType = .rtf
         } else {
             self.documentType = .plain
+
+            // プレーンテキストの場合のみ、エンコーディング・改行コード・BOMを設定
+            // エンコーディングを設定
+            self.documentEncoding = String.Encoding(rawValue: data.format.textEncoding)
+
+            // 改行コードを設定（NewDocData.FormatData.LineEndingType → LineEnding）
+            switch data.format.lineEndingType {
+            case .lf:
+                self.lineEnding = .lf
+            case .cr:
+                self.lineEnding = .cr
+            case .crlf:
+                self.lineEnding = .crlf
+            }
+
+            // BOMを設定
+            self.hasBOM = data.format.bom
+        }
+
+        // printInfo を適用（用紙サイズ、向き、マージンなど）
+        if let printInfoData = data.printInfo {
+            printInfoData.apply(to: self.printInfo)
         }
     }
 
@@ -909,6 +937,9 @@ class Document: NSDocument {
         presetData?.view.windowY = frame.origin.y
         presetData?.view.windowWidth = frame.size.width
         presetData?.view.windowHeight = frame.size.height
+
+        // printInfo を presetData に保存
+        presetData?.printInfo = NewDocData.PrintInfoData(from: self.printInfo)
     }
 
     /// プリセットデータを拡張属性に書き込む
@@ -1037,6 +1068,9 @@ class Document: NSDocument {
                     self.presetData = loadedPresetData
                     // Note: プリセットデータのdocumentType設定は読み込んだファイルのタイプを優先する
                     // （ファイル自体のフォーマットが正）
+
+                    // printInfo を復元
+                    self.applyPrintInfoFromPresetData()
                 }
                 // プレーンテキストの場合はBasic Fontを適用
                 self.applyBasicFontIfPlainText()
@@ -1049,6 +1083,12 @@ class Document: NSDocument {
                 self.applyBasicFontIfPlainText()
             }
         }
+    }
+
+    /// presetData から printInfo を復元
+    private func applyPrintInfoFromPresetData() {
+        guard let printInfoData = presetData?.printInfo else { return }
+        printInfoData.apply(to: self.printInfo)
     }
 
     /// プレーンテキストの場合、全文にBasic Fontを適用
@@ -1080,6 +1120,41 @@ class Document: NSDocument {
         default:
             // その他のタイプはリッチテキストとして扱う
             return NewDocData.richText
+        }
+    }
+
+    // MARK: - Page Setup
+
+    override func runPageLayout(_ sender: Any?) {
+        #if DEBUG
+        Swift.print("=== runPageLayout called ===")
+        Swift.print("Before: paperSize=\(self.printInfo.paperSize), orientation=\(self.printInfo.orientation.rawValue)")
+        #endif
+
+        // NSPageLayout を作成してモーダルで表示
+        let pageLayout = NSPageLayout()
+
+        // ウィンドウがあればシートとして表示、なければモーダルダイアログ
+        if let window = self.windowControllers.first?.window {
+            pageLayout.beginSheet(with: self.printInfo, modalFor: window, delegate: self, didEnd: #selector(pageLayoutDidEnd(_:returnCode:contextInfo:)), contextInfo: nil)
+        } else {
+            let result = pageLayout.runModal(with: self.printInfo)
+            pageLayoutDidEnd(pageLayout, returnCode: result, contextInfo: nil)
+        }
+    }
+
+    @objc private func pageLayoutDidEnd(_ pageLayout: NSPageLayout, returnCode: Int, contextInfo: UnsafeMutableRawPointer?) {
+        #if DEBUG
+        Swift.print("=== pageLayoutDidEnd called ===")
+        Swift.print("returnCode: \(returnCode) (OK=1, Cancel=0)")
+        Swift.print("After: paperSize=\(self.printInfo.paperSize), orientation=\(self.printInfo.orientation.rawValue)")
+        Swift.print("topMargin=\(self.printInfo.topMargin), bottomMargin=\(self.printInfo.bottomMargin)")
+        Swift.print("leftMargin=\(self.printInfo.leftMargin), rightMargin=\(self.printInfo.rightMargin)")
+        #endif
+
+        // OKボタンが押された場合のみ通知
+        if returnCode == NSApplication.ModalResponse.OK.rawValue {
+            NotificationCenter.default.post(name: Document.printInfoDidChangeNotification, object: self)
         }
     }
 

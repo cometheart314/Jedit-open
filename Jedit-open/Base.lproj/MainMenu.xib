@@ -603,6 +603,12 @@
                                     <action selector="showDocumentColorsPanel:" target="-1" id="doc-col-act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Page Layout…" id="page-layout-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showPageLayoutPanel:" target="-1" id="page-layout-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="doc-col-sep"/>
                             <menuItem title="Enter Full Screen" keyEquivalent="f" id="4J7-dP-txa">
                                 <modifierMask key="keyEquivalentModifierMask" control="YES" command="YES"/>

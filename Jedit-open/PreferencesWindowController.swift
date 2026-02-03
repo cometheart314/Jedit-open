@@ -23,7 +23,7 @@ class PreferencesWindowController: NSWindowController {
             defer: false
         )
         window.title = "Settings"
-        window.minSize = NSSize(width: 740, height: 400)
+        window.minSize = NSSize(width: 740, height: 480)
         window.center()
         
         self.init(window: window)

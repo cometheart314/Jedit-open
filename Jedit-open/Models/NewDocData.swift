@@ -16,6 +16,7 @@ struct NewDocData: Codable, Equatable {
     var pageLayout: PageLayoutData
     var headerFooter: HeaderFooterData
     var properties: PropertiesData
+    var printInfo: PrintInfoData?
 
     // MARK: - ViewData
 
@@ -541,6 +542,106 @@ struct NewDocData: Codable, Equatable {
         }
     }
 
+    // MARK: - PrintInfoData
+
+    /// NSPrintInfo の設定を保存するためのデータ構造
+    struct PrintInfoData: Codable, Equatable {
+        /// 用紙サイズの幅（ポイント）
+        var paperWidth: CGFloat
+        /// 用紙サイズの高さ（ポイント）
+        var paperHeight: CGFloat
+        /// 用紙の向き（0: portrait, 1: landscape）
+        var orientation: Int
+        /// 上マージン（ポイント）
+        var topMargin: CGFloat
+        /// 左マージン（ポイント）
+        var leftMargin: CGFloat
+        /// 右マージン（ポイント）
+        var rightMargin: CGFloat
+        /// 下マージン（ポイント）
+        var bottomMargin: CGFloat
+        /// スケーリング係数（1.0 = 100%）
+        var scalingFactor: CGFloat
+        /// 水平方向のセンタリング
+        var horizontallyCentered: Bool
+        /// 垂直方向のセンタリング
+        var verticallyCentered: Bool
+        /// 用紙名（例: "A4", "Letter"）
+        var paperName: String?
+        /// プリンター名
+        var printerName: String?
+
+        /// NSPrintInfo から PrintInfoData を作成
+        init(from printInfo: NSPrintInfo) {
+            self.paperWidth = printInfo.paperSize.width
+            self.paperHeight = printInfo.paperSize.height
+            self.orientation = printInfo.orientation.rawValue
+            self.topMargin = printInfo.topMargin
+            self.leftMargin = printInfo.leftMargin
+            self.rightMargin = printInfo.rightMargin
+            self.bottomMargin = printInfo.bottomMargin
+            self.scalingFactor = printInfo.scalingFactor
+            self.horizontallyCentered = printInfo.isHorizontallyCentered
+            self.verticallyCentered = printInfo.isVerticallyCentered
+            self.paperName = printInfo.paperName?.rawValue
+            self.printerName = printInfo.printer.name
+        }
+
+        /// メンバーワイズイニシャライザ
+        init(
+            paperWidth: CGFloat,
+            paperHeight: CGFloat,
+            orientation: Int,
+            topMargin: CGFloat,
+            leftMargin: CGFloat,
+            rightMargin: CGFloat,
+            bottomMargin: CGFloat,
+            scalingFactor: CGFloat,
+            horizontallyCentered: Bool,
+            verticallyCentered: Bool,
+            paperName: String?,
+            printerName: String?
+        ) {
+            self.paperWidth = paperWidth
+            self.paperHeight = paperHeight
+            self.orientation = orientation
+            self.topMargin = topMargin
+            self.leftMargin = leftMargin
+            self.rightMargin = rightMargin
+            self.bottomMargin = bottomMargin
+            self.scalingFactor = scalingFactor
+            self.horizontallyCentered = horizontallyCentered
+            self.verticallyCentered = verticallyCentered
+            self.paperName = paperName
+            self.printerName = printerName
+        }
+
+        /// PrintInfoData を NSPrintInfo に適用
+        func apply(to printInfo: NSPrintInfo) {
+            printInfo.paperSize = NSSize(width: paperWidth, height: paperHeight)
+            if let orientation = NSPrintInfo.PaperOrientation(rawValue: orientation) {
+                printInfo.orientation = orientation
+            }
+            printInfo.topMargin = topMargin
+            printInfo.leftMargin = leftMargin
+            printInfo.rightMargin = rightMargin
+            printInfo.bottomMargin = bottomMargin
+            printInfo.scalingFactor = scalingFactor
+            printInfo.isHorizontallyCentered = horizontallyCentered
+            printInfo.isVerticallyCentered = verticallyCentered
+            if let paperName = paperName {
+                printInfo.paperName = NSPrinter.PaperName(rawValue: paperName)
+            }
+            // プリンターの設定はセキュリティ上の理由と可用性のため、復元しない
+            // （プリンターが存在しない場合にエラーになる可能性がある）
+        }
+
+        static var `default`: PrintInfoData {
+            // システムのデフォルト PrintInfo から作成
+            PrintInfoData(from: NSPrintInfo.shared)
+        }
+    }
+
     // MARK: - Default Instances
 
     static var `default`: NewDocData {
@@ -550,7 +651,8 @@ struct NewDocData: Codable, Equatable {
             fontAndColors: .default,
             pageLayout: .default,
             headerFooter: .default,
-            properties: .default
+            properties: .default,
+            printInfo: nil  // 新規ドキュメントはシステムのデフォルトを使用
         )
     }
 
