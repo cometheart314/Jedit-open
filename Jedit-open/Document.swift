@@ -1164,6 +1164,12 @@ class Document: NSDocument {
 
     /// ファイル読み込み後にプリセットデータを拡張属性から読み込んで適用
     override nonisolated func read(from url: URL, ofType typeName: String) throws {
+        // テキストクリッピングファイルの場合は専用の処理
+        if typeName == "com.apple.finder.textclipping" {
+            try readTextClipping(from: url)
+            return
+        }
+
         // まず通常のファイル読み込みを行う
         try super.read(from: url, ofType: typeName)
 
@@ -1197,6 +1203,189 @@ class Document: NSDocument {
                 self.applyLoadedDocumentAttributeProperties()
             }
         }
+    }
+
+    // MARK: - Text Clipping Support
+
+    /// テキストクリッピングファイルを読み込む
+    /// - Parameter url: テキストクリッピングファイルのURL
+    private nonisolated func readTextClipping(from url: URL) throws {
+        // テキストクリッピングファイル（単一ファイルまたはパッケージ）を読み込む
+        let fileManager = FileManager.default
+
+        var isDirectory: ObjCBool = false
+        guard fileManager.fileExists(atPath: url.path, isDirectory: &isDirectory) else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadNoSuchFileError, userInfo: [
+                NSLocalizedDescriptionKey: "Text clipping file not found"
+            ])
+        }
+
+        // パッケージ（ディレクトリ）の場合
+        if isDirectory.boolValue {
+            try readTextClippingPackage(from: url)
+            return
+        }
+
+        // 単一ファイルの場合 - バイナリplistを読み込む
+        let data = try Data(contentsOf: url)
+        try parseTextClippingData(data)
+    }
+
+    /// テキストクリッピングパッケージを読み込む
+    private nonisolated func readTextClippingPackage(from url: URL) throws {
+        // パッケージ内のファイルを探索
+        // 通常は拡張属性にデータが格納されているか、内部にplistがある
+
+        // まず拡張属性 com.apple.ResourceFork を試す
+        if let resourceForkData = try? getExtendedAttribute(named: "com.apple.ResourceFork", at: url) {
+            // ResourceForkからデータを読み込む（旧形式）
+            // ここでは単純にバイナリplistとして試す
+            do {
+                try parseTextClippingData(resourceForkData)
+                return
+            } catch {
+                // 続行
+            }
+        }
+
+        // パッケージ内のplistファイルを探す
+        let fileManager = FileManager.default
+        if let contents = try? fileManager.contentsOfDirectory(at: url, includingPropertiesForKeys: nil) {
+            for fileURL in contents {
+                if fileURL.pathExtension == "plist" {
+                    let plistData = try Data(contentsOf: fileURL)
+                    try parseTextClippingData(plistData)
+                    return
+                }
+            }
+        }
+
+        throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
+            NSLocalizedDescriptionKey: "Could not read text clipping package"
+        ])
+    }
+
+    /// 拡張属性を取得
+    private nonisolated func getExtendedAttribute(named name: String, at url: URL) throws -> Data? {
+        let path = url.path
+        let length = getxattr(path, name, nil, 0, 0, XATTR_NOFOLLOW)
+        guard length > 0 else { return nil }
+
+        var data = Data(count: length)
+        let result = data.withUnsafeMutableBytes { buffer in
+            getxattr(path, name, buffer.baseAddress, length, 0, XATTR_NOFOLLOW)
+        }
+        guard result == length else { return nil }
+        return data
+    }
+
+    /// テキストクリッピングのデータをパースしてテキストを抽出
+    private nonisolated func parseTextClippingData(_ data: Data) throws {
+        // バイナリplistとしてデコード
+        guard let plist = try? PropertyListSerialization.propertyList(from: data, options: [], format: nil) as? [String: Any] else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
+                NSLocalizedDescriptionKey: "Could not parse text clipping data as property list"
+            ])
+        }
+
+        // UTI-Dataディクショナリを取得
+        guard let utiData = plist["UTI-Data"] as? [String: Any] else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
+                NSLocalizedDescriptionKey: "Text clipping does not contain UTI-Data"
+            ])
+        }
+
+        // ヘルパー関数: 様々な型からDataを取得
+        func extractData(from value: Any?) -> Data? {
+            if let data = value as? Data {
+                return data
+            }
+            if let nsData = value as? NSData {
+                return nsData as Data
+            }
+            // 文字列の場合はUTF-8でエンコード
+            if let string = value as? String {
+                return string.data(using: .utf8)
+            }
+            return nil
+        }
+
+        // リッチテキスト（RTF/RTFD）を優先的に試す
+        // 1. com.apple.flat-rtfd (RTFD flattened)
+        if let rtfdData = extractData(from: utiData["com.apple.flat-rtfd"]) {
+            if let attributedString = NSAttributedString(rtfd: rtfdData, documentAttributes: nil) {
+                MainActor.assumeIsolated {
+                    self.documentType = .rtfd
+                    self.textStorage.setAttributedString(attributedString)
+                    self.presetData = NewDocData.richText
+                    // 新規ファイルとして扱う（fileURLをnilに）
+                    self.fileURL = nil
+                    NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                }
+                return
+            }
+        }
+
+        // 2. public.rtf
+        if let rtfData = extractData(from: utiData["public.rtf"]),
+           let attributedString = try? NSAttributedString(data: rtfData, options: [.documentType: NSAttributedString.DocumentType.rtf], documentAttributes: nil) {
+            MainActor.assumeIsolated {
+                self.documentType = .rtf
+                self.textStorage.setAttributedString(attributedString)
+                self.presetData = NewDocData.richText
+                // 新規ファイルとして扱う（fileURLをnilに）
+                self.fileURL = nil
+                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+            }
+            return
+        }
+
+        // 3. プレーンテキスト（UTF-8）
+        if let utf8Data = extractData(from: utiData["public.utf8-plain-text"]),
+           let text = String(data: utf8Data, encoding: .utf8) {
+            MainActor.assumeIsolated {
+                self.documentType = .plain
+                self.textStorage.setAttributedString(NSAttributedString(string: text))
+                self.presetData = NewDocData.plainText
+                // 新規ファイルとして扱う（fileURLをnilに）
+                self.fileURL = nil
+                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+            }
+            return
+        }
+
+        // 4. UTF-16プレーンテキスト
+        if let utf16Data = extractData(from: utiData["public.utf16-plain-text"]),
+           let text = String(data: utf16Data, encoding: .utf16) {
+            MainActor.assumeIsolated {
+                self.documentType = .plain
+                self.textStorage.setAttributedString(NSAttributedString(string: text))
+                self.presetData = NewDocData.plainText
+                // 新規ファイルとして扱う（fileURLをnilに）
+                self.fileURL = nil
+                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+            }
+            return
+        }
+
+        // 5. public.utf16-external-plain-text
+        if let utf16ExtData = extractData(from: utiData["public.utf16-external-plain-text"]),
+           let text = String(data: utf16ExtData, encoding: .utf16) {
+            MainActor.assumeIsolated {
+                self.documentType = .plain
+                self.textStorage.setAttributedString(NSAttributedString(string: text))
+                self.presetData = NewDocData.plainText
+                // 新規ファイルとして扱う（fileURLをnilに）
+                self.fileURL = nil
+                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+            }
+            return
+        }
+
+        // データが見つからない場合
+        throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
+            NSLocalizedDescriptionKey: "Text clipping does not contain readable text data"
+        ])
     }
 
     /// 一時保存した document attributes の properties を presetData に適用
