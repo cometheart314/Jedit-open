@@ -7,6 +7,13 @@
 
 import Foundation
 
+// MARK: - Notification Names
+
+extension Notification.Name {
+    /// プリセットが追加・削除・変更された時に送信される通知
+    static let documentPresetsDidChange = Notification.Name("documentPresetsDidChange")
+}
+
 // MARK: - DocumentPreset
 
 struct DocumentPreset: Codable, Equatable, Identifiable {
@@ -125,6 +132,7 @@ class DocumentPresetManager {
         let newPreset = DocumentPreset(name: name, data: baseData, isBuiltIn: false)
         presets.append(newPreset)
         savePresets()
+        notifyPresetsDidChange()
         return newPreset
     }
 
@@ -150,6 +158,7 @@ class DocumentPresetManager {
         }
 
         savePresets()
+        notifyPresetsDidChange()
     }
 
     func deletePreset(id: UUID) {
@@ -186,5 +195,12 @@ class DocumentPresetManager {
             presets[index] = builtIn
             savePresets()
         }
+    }
+
+    // MARK: - Notification
+
+    /// プリセットの変更を通知
+    private func notifyPresetsDidChange() {
+        NotificationCenter.default.post(name: .documentPresetsDidChange, object: self)
     }
 }

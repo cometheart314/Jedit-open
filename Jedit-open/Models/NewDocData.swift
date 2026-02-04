@@ -532,12 +532,20 @@ struct NewDocData: Codable, Equatable {
         var author: String
         var company: String
         var copyright: String
+        var title: String
+        var subject: String
+        var keywords: String
+        var comment: String
 
         static var `default`: PropertiesData {
             PropertiesData(
                 author: "",
                 company: "",
-                copyright: ""
+                copyright: "",
+                title: "",
+                subject: "",
+                keywords: "",
+                comment: ""
             )
         }
     }

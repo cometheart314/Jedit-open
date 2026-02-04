@@ -119,8 +119,10 @@ class Document: NSDocument {
 
     /// フォントフォールバック復帰用のDelegate
     private var fontFallbackRecoveryDelegate: FontFallbackRecoveryDelegate?
-    
 
+    /// RTF/RTFDファイルから読み込んだ document attributes のプロパティ
+    /// 拡張属性読み込み後に適用するために一時保存
+    private var loadedDocumentAttributeProperties: NewDocData.PropertiesData?
 
     // MARK: - Initialization
 
@@ -198,7 +200,8 @@ class Document: NSDocument {
 
         if isRTFD && fileWrapper.isDirectory {
             // RTFDはFileWrapperから直接読み込む
-            guard let attributedString = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) else {
+            var documentAttributes: NSDictionary?
+            guard let attributedString = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: &documentAttributes) else {
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
                     NSLocalizedDescriptionKey: "Could not read RTFD document"
                 ])
@@ -219,6 +222,11 @@ class Document: NSDocument {
                 // bounds情報を適用
                 if !boundsInfoList.isEmpty {
                     self.applyAttachmentBoundsMetadata(boundsInfoList)
+                }
+
+                // Document attributes から properties を取得して反映
+                if let attrs = documentAttributes as? [NSAttributedString.DocumentAttributeKey: Any] {
+                    self.applyDocumentAttributesToProperties(attrs)
                 }
 
                 NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
@@ -255,7 +263,35 @@ class Document: NSDocument {
         if shouldSaveAsRTFD {
             // RTFDはFileWrapperとして書き出す
             let range = NSRange(location: 0, length: textStorage.length)
-            guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: [:]) else {
+
+            // Document properties を document attributes に設定
+            var documentAttributes: [NSAttributedString.DocumentAttributeKey: Any] = [:]
+            if let properties = presetData?.properties {
+                if !properties.author.isEmpty {
+                    documentAttributes[.author] = properties.author
+                }
+                if !properties.company.isEmpty {
+                    documentAttributes[.company] = properties.company
+                }
+                if !properties.copyright.isEmpty {
+                    documentAttributes[.copyright] = properties.copyright
+                }
+                if !properties.title.isEmpty {
+                    documentAttributes[.title] = properties.title
+                }
+                if !properties.subject.isEmpty {
+                    documentAttributes[.subject] = properties.subject
+                }
+                if !properties.keywords.isEmpty {
+                    let keywordsArray = properties.keywords.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                    documentAttributes[.keywords] = keywordsArray
+                }
+                if !properties.comment.isEmpty {
+                    documentAttributes[.comment] = properties.comment
+                }
+            }
+
+            guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: documentAttributes) else {
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
                     NSLocalizedDescriptionKey: "Could not create RTFD file wrapper"
                 ])
@@ -384,9 +420,36 @@ class Document: NSDocument {
         } else {
             // RTFまたはRTFDの場合はNSAttributedStringを使用
             let range = NSRange(location: 0, length: textStorage.length)
-            let options: [NSAttributedString.DocumentAttributeKey: Any] = [
+            var options: [NSAttributedString.DocumentAttributeKey: Any] = [
                 .documentType: docType
             ]
+
+            // Document properties を document attributes に設定
+            if let properties = presetData?.properties {
+                if !properties.author.isEmpty {
+                    options[.author] = properties.author
+                }
+                if !properties.company.isEmpty {
+                    options[.company] = properties.company
+                }
+                if !properties.copyright.isEmpty {
+                    options[.copyright] = properties.copyright
+                }
+                if !properties.title.isEmpty {
+                    options[.title] = properties.title
+                }
+                if !properties.subject.isEmpty {
+                    options[.subject] = properties.subject
+                }
+                if !properties.keywords.isEmpty {
+                    // keywords はカンマ区切りの文字列を配列に変換
+                    let keywordsArray = properties.keywords.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                    options[.keywords] = keywordsArray
+                }
+                if !properties.comment.isEmpty {
+                    options[.comment] = properties.comment
+                }
+            }
 
             do {
                 let data = try textStorage.data(from: range, documentAttributes: options)
@@ -815,12 +878,19 @@ class Document: NSDocument {
             ]
 
             do {
-                let attributedString = try NSAttributedString(data: data, options: options, documentAttributes: nil)
+                var documentAttributes: NSDictionary?
+                let attributedString = try NSAttributedString(data: data, options: options, documentAttributes: &documentAttributes)
 
                 // メインアクターで実行
                 MainActor.assumeIsolated {
                     self.documentType = docType
                     self.textStorage.setAttributedString(attributedString)
+
+                    // Document attributes から properties を取得して反映
+                    if let attrs = documentAttributes as? [NSAttributedString.DocumentAttributeKey: Any] {
+                        self.applyDocumentAttributesToProperties(attrs)
+                    }
+
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
             } catch {
@@ -829,6 +899,43 @@ class Document: NSDocument {
                 ])
             }
         }
+    }
+
+    /// Document attributes から properties を取得して presetData に反映
+    /// ファイルにプロパティがある場合のみ上書き、ない場合はSettingsの値を維持
+    private func applyDocumentAttributesToProperties(_ attrs: [NSAttributedString.DocumentAttributeKey: Any]) {
+        // presetData がなければ作成
+        if presetData == nil {
+            presetData = createDefaultPresetDataForCurrentDocumentType()
+        }
+
+        // ファイルの属性から値を設定（空でない場合のみ上書き）
+        if let author = attrs[.author] as? String, !author.isEmpty {
+            presetData?.properties.author = author
+        }
+        if let company = attrs[.company] as? String, !company.isEmpty {
+            presetData?.properties.company = company
+        }
+        if let copyright = attrs[.copyright] as? String, !copyright.isEmpty {
+            presetData?.properties.copyright = copyright
+        }
+        if let title = attrs[.title] as? String, !title.isEmpty {
+            presetData?.properties.title = title
+        }
+        if let subject = attrs[.subject] as? String, !subject.isEmpty {
+            presetData?.properties.subject = subject
+        }
+        if let keywords = attrs[.keywords] as? [String], !keywords.isEmpty {
+            // 配列をカンマ区切りの文字列に変換
+            presetData?.properties.keywords = keywords.joined(separator: ", ")
+        }
+        if let comment = attrs[.comment] as? String, !comment.isEmpty {
+            presetData?.properties.comment = comment
+        }
+
+        // RTF/RTFDファイルから読み込んだ properties を一時保存
+        // 拡張属性読み込み後に適用するため
+        loadedDocumentAttributeProperties = presetData?.properties
     }
 
     // MARK: - Encoding Selection
@@ -1074,6 +1181,10 @@ class Document: NSDocument {
                 }
                 // プレーンテキストの場合はBasic Fontを適用
                 self.applyBasicFontIfPlainText()
+
+                // RTF/RTFDファイルから読み込んだ document attributes の properties を適用
+                // （拡張属性よりも RTF document attributes の properties を優先）
+                self.applyLoadedDocumentAttributeProperties()
             }
         } else {
             // 拡張属性がない場合は、ファイルタイプに応じたデフォルトのNewDocDataを設定
@@ -1081,8 +1192,43 @@ class Document: NSDocument {
                 self.presetData = self.createDefaultPresetDataForCurrentDocumentType()
                 // プレーンテキストの場合はBasic Fontを適用
                 self.applyBasicFontIfPlainText()
+
+                // RTF/RTFDファイルから読み込んだ document attributes の properties を適用
+                self.applyLoadedDocumentAttributeProperties()
             }
         }
+    }
+
+    /// 一時保存した document attributes の properties を presetData に適用
+    private func applyLoadedDocumentAttributeProperties() {
+        guard let loadedProperties = loadedDocumentAttributeProperties else { return }
+
+        // RTF/RTFDファイルの document attributes から読み込んだ properties を適用
+        // 空でない場合のみ上書き（Settingsの値を維持）
+        if !loadedProperties.author.isEmpty {
+            presetData?.properties.author = loadedProperties.author
+        }
+        if !loadedProperties.company.isEmpty {
+            presetData?.properties.company = loadedProperties.company
+        }
+        if !loadedProperties.copyright.isEmpty {
+            presetData?.properties.copyright = loadedProperties.copyright
+        }
+        if !loadedProperties.title.isEmpty {
+            presetData?.properties.title = loadedProperties.title
+        }
+        if !loadedProperties.subject.isEmpty {
+            presetData?.properties.subject = loadedProperties.subject
+        }
+        if !loadedProperties.keywords.isEmpty {
+            presetData?.properties.keywords = loadedProperties.keywords
+        }
+        if !loadedProperties.comment.isEmpty {
+            presetData?.properties.comment = loadedProperties.comment
+        }
+
+        // 一時保存をクリア
+        loadedDocumentAttributeProperties = nil
     }
 
     /// presetData から printInfo を復元
@@ -1121,6 +1267,29 @@ class Document: NSDocument {
             // その他のタイプはリッチテキストとして扱う
             return NewDocData.richText
         }
+    }
+
+    // MARK: - Properties Panel
+
+    /// プロパティパネル（ドキュメントごとに1つ）
+    private var propertyPanel: PropertyPanel?
+
+    /// プロパティパネルを表示
+    @IBAction func showProperties(_ sender: Any?) {
+        if propertyPanel == nil {
+            propertyPanel = PropertyPanel.loadFromNib()
+        }
+        propertyPanel?.showPanel(for: self)
+    }
+
+    // MARK: - Menu Validation
+
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        if item.action == #selector(showProperties(_:)) {
+            // 書類ウィンドウがある場合のみ有効
+            return windowControllers.first?.window != nil
+        }
+        return super.validateUserInterfaceItem(item)
     }
 
     // MARK: - Page Setup

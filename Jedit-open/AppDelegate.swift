@@ -29,6 +29,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Format > Font メニューに Character Fore Color / Back Color サブメニューを追加
         setupCharacterColorMenus()
+
+        // プリセット変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(presetsDidChange(_:)),
+            name: .documentPresetsDidChange,
+            object: nil
+        )
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
@@ -309,6 +317,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// File > New サブメニューを構築（カスタムプリセットを追加）
     private func setupNewDocumentSubmenu() {
+        rebuildNewDocumentSubmenu()
+    }
+
+    /// プリセット変更通知を受信した時の処理
+    @objc private func presetsDidChange(_ notification: Notification) {
         rebuildNewDocumentSubmenu()
     }
 

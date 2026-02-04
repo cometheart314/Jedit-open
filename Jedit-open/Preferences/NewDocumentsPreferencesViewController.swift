@@ -7,7 +7,7 @@
 
 import Cocoa
 
-class NewDocumentsPreferencesViewController: NSViewController {
+class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegate {
 
     // MARK: - IBOutlets
 
@@ -93,6 +93,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
     @IBOutlet weak var rightMarginField: NSTextField!
     @IBOutlet weak var bottomMarginField: NSTextField!
     @IBOutlet weak var marginUnitPopup: NSPopUpButton!
+    @IBOutlet weak var printScaleField: NSTextField!
 
     /// 現在選択されているマージン単位（UI表示用のみ、保存されない）
     private var currentMarginUnit: NewDocData.PageLayoutData.MarginUnit = .point
@@ -141,6 +142,13 @@ class NewDocumentsPreferencesViewController: NSViewController {
         setupHeaderFooterRulers()
         setupTextFieldActions()
         setupPageSizePopup()
+        setupHeaderFooterTextViews()
+    }
+
+    /// Header/Footer TextViewのdelegateを設定
+    private func setupHeaderFooterTextViews() {
+        headerTextView?.delegate = self
+        footerTextView?.delegate = self
     }
 
     /// 用紙サイズの定義
@@ -386,10 +394,14 @@ class NewDocumentsPreferencesViewController: NSViewController {
             let sizeIndex = PaperSize.findIndex(width: printInfoData.paperWidth, height: printInfoData.paperHeight)
             pageSizePopup?.selectItem(at: sizeIndex)
             orientationSegmentedControl?.selectedSegment = printInfoData.orientation
+            // Print Scale (scalingFactor) をパーセント表示（例: 1.0 → 100）
+            let scalePercent = Int(printInfoData.scalingFactor * 100)
+            printScaleField?.integerValue = scalePercent
         } else {
-            // printInfo がない場合はデフォルト（A4, Portrait）
+            // printInfo がない場合はデフォルト（A4, Portrait, 100%）
             pageSizePopup?.selectItem(at: 0)
             orientationSegmentedControl?.selectedSegment = 0
+            printScaleField?.integerValue = 100
         }
         // 単位はデフォルトでpoint、UIでその都度切り替え可能
         marginUnitPopup?.selectItem(withTag: currentMarginUnit.rawValue)
@@ -528,6 +540,9 @@ class NewDocumentsPreferencesViewController: NSViewController {
                 paperHeight = paperSize.height
             }
 
+            // Print Scale をパーセント値から係数に変換（例: 100 → 1.0）
+            let scalingFactor = CGFloat(printScaleField?.integerValue ?? 100) / 100.0
+
             // 既存の printInfo があれば更新、なければ新規作成
             if preset.data.printInfo != nil {
                 preset.data.printInfo?.paperWidth = paperWidth
@@ -538,6 +553,8 @@ class NewDocumentsPreferencesViewController: NSViewController {
                 preset.data.printInfo?.leftMargin = leftMarginPoints
                 preset.data.printInfo?.rightMargin = rightMarginPoints
                 preset.data.printInfo?.bottomMargin = bottomMarginPoints
+                // scalingFactor を更新
+                preset.data.printInfo?.scalingFactor = scalingFactor
             } else {
                 preset.data.printInfo = NewDocData.PrintInfoData(
                     paperWidth: paperWidth,
@@ -547,7 +564,7 @@ class NewDocumentsPreferencesViewController: NSViewController {
                     leftMargin: leftMarginPoints,
                     rightMargin: rightMarginPoints,
                     bottomMargin: bottomMarginPoints,
-                    scalingFactor: 1.0,
+                    scalingFactor: scalingFactor,
                     horizontallyCentered: true,
                     verticallyCentered: true,
                     paperName: paperSize.name,
@@ -1454,6 +1471,20 @@ extension NewDocumentsPreferencesViewController {
             textView.setSelectedRange(NSRange(location: newLocation, length: 0))
 
             // プリセットを保存
+            saveCurrentPreset()
+        }
+    }
+}
+
+// MARK: - NSTextViewDelegate
+
+extension NewDocumentsPreferencesViewController {
+
+    /// Header/Footer TextViewのテキストが変更された時に呼ばれる
+    func textDidChange(_ notification: Notification) {
+        // Header または Footer の TextView からの変更通知の場合、プリセットを保存
+        if let textView = notification.object as? NSTextView,
+           textView === headerTextView || textView === footerTextView {
             saveCurrentPreset()
         }
     }

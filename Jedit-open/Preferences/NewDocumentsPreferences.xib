@@ -2052,6 +2052,9 @@
                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="auth-fld-act"/>
+                                        </connections>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="dCu-Pj-vF9">
                                         <rect key="frame" x="30" y="376" width="68" height="17"/>
@@ -2070,6 +2073,9 @@
                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="comp-fld-act"/>
+                                        </connections>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qdW-Z7-TMj">
                                         <rect key="frame" x="24" y="346" width="75" height="17"/>
@@ -2088,6 +2094,9 @@
                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
+                                        <connections>
+                                            <action selector="controlValueChanged:" target="-2" id="cprt-fld-act"/>
+                                        </connections>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Fsy-gE-wcV">
                                         <rect key="frame" x="86" y="285" width="350" height="28"/>
