@@ -124,6 +124,14 @@ class Document: NSDocument {
     /// 拡張属性読み込み後に適用するために一時保存
     private var loadedDocumentAttributeProperties: NewDocData.PropertiesData?
 
+    /// 新規ドキュメントの表示名（fileURLがない場合に使用）
+    private var untitledDocumentName: String?
+
+    /// 新規ドキュメントのシリアル番号管理（日付別）
+    private static var dailySerialNumbers: [String: Int] = [:]
+    /// 新規ドキュメントの通し番号（Untitled用）
+    private static var untitledCounter: Int = 0
+
     // MARK: - Initialization
 
     override init() {
@@ -131,6 +139,7 @@ class Document: NSDocument {
         setupFontFallbackRecoveryDelegate()
 
         // Preferencesで選択されているプリセットを適用（新規書類作成時）
+        // ドキュメント名はdisplayName getterで遅延生成される
         if let selectedPreset = DocumentPresetManager.shared.selectedPreset() {
             applyPresetData(selectedPreset.data)
         }
@@ -1010,6 +1019,12 @@ class Document: NSDocument {
         if let printInfoData = data.printInfo {
             printInfoData.apply(to: self.printInfo)
         }
+
+        // 新規ドキュメント（fileURLがnil）の場合、ドキュメント名をリセット
+        // （displayName getterで遅延生成される）
+        if fileURL == nil {
+            untitledDocumentName = nil
+        }
     }
 
     // MARK: - Extended Attributes for Preset Data
@@ -1541,5 +1556,162 @@ class Document: NSDocument {
         printOperation.showsProgressPanel = true
 
         return printOperation
+    }
+
+    // MARK: - Display Name
+
+    override var displayName: String! {
+        get {
+            // ファイルがある場合は通常の表示名
+            if fileURL != nil {
+                return super.displayName
+            }
+            // 新規ドキュメントの場合はカスタム名を使用（遅延生成）
+            if untitledDocumentName == nil {
+                generateUntitledDocumentName()
+            }
+            return untitledDocumentName ?? super.displayName
+        }
+        set {
+            super.displayName = newValue
+        }
+    }
+
+    /// 新規ドキュメント名を生成（presetDataの設定に基づく）
+    private func generateUntitledDocumentName() {
+        guard let presetData = self.presetData else {
+            // presetDataがない場合はデフォルト（Untitled）
+            Document.untitledCounter += 1
+            if Document.untitledCounter > 1 {
+                untitledDocumentName = "Untitled \(Document.untitledCounter)"
+            } else {
+                untitledDocumentName = "Untitled"
+            }
+            return
+        }
+
+        let nameType = presetData.format.newDocNameType
+
+        switch nameType {
+        case .untitled:
+            // Untitled #
+            Document.untitledCounter += 1
+            if Document.untitledCounter > 1 {
+                untitledDocumentName = "Untitled \(Document.untitledCounter)"
+            } else {
+                untitledDocumentName = "Untitled"
+            }
+
+        case .dateTime:
+            // YYYY-MM-DD HHmmss
+            let formatter = DateFormatter()
+            formatter.dateFormat = "yyyy-MM-dd HHmmss"
+            untitledDocumentName = formatter.string(from: Date())
+
+        case .dateWithSerial:
+            // YYYY-MM-DD-###
+            let dateFormatter = DateFormatter()
+            dateFormatter.dateFormat = "yyyy-MM-dd"
+            let dateString = dateFormatter.string(from: Date())
+
+            // その日のシリアル番号を取得・更新
+            let serial = (Document.dailySerialNumbers[dateString] ?? 0) + 1
+            Document.dailySerialNumbers[dateString] = serial
+            untitledDocumentName = "\(dateString)-\(String(format: "%03d", serial))"
+
+        case .systemShortDate:
+            // System Short Date #
+            let formatter = DateFormatter()
+            formatter.dateStyle = .short
+            formatter.timeStyle = .none
+            let dateString = formatter.string(from: Date())
+
+            // シリアル番号を追加
+            Document.untitledCounter += 1
+            if Document.untitledCounter > 1 {
+                untitledDocumentName = "\(dateString) \(Document.untitledCounter)"
+            } else {
+                untitledDocumentName = dateString
+            }
+
+        case .systemLongDate:
+            // System Long Date #
+            let formatter = DateFormatter()
+            formatter.dateStyle = .long
+            formatter.timeStyle = .none
+            let dateString = formatter.string(from: Date())
+
+            // シリアル番号を追加
+            Document.untitledCounter += 1
+            if Document.untitledCounter > 1 {
+                untitledDocumentName = "\(dateString) \(Document.untitledCounter)"
+            } else {
+                untitledDocumentName = dateString
+            }
+
+        case .preferencesDate:
+            // Preferences General Date #
+            // CalendarDateHelperを使用して日付フォーマットを取得
+            let dateType = UserDefaults.standard.integer(forKey: UserDefaults.Keys.dateFormatType)
+            let dateString = CalendarDateHelper.descriptionOfDateType(dateType)
+
+            // シリアル番号を追加
+            Document.untitledCounter += 1
+            if Document.untitledCounter > 1 {
+                untitledDocumentName = "\(dateString) \(Document.untitledCounter)"
+            } else {
+                untitledDocumentName = dateString
+            }
+        }
+    }
+
+    // MARK: - Save Panel
+
+    override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
+        // 新規ドキュメント（fileURLがnil）の場合のみファイル名を提案
+        if fileURL == nil {
+            let suggestedName = generateSuggestedFileName()
+            if !suggestedName.isEmpty {
+                savePanel.nameFieldStringValue = suggestedName
+            }
+        }
+        return super.prepareSavePanel(savePanel)
+    }
+
+    /// ドキュメント内容から推奨ファイル名を生成（24文字以内）
+    private func generateSuggestedFileName() -> String {
+        let content = textStorage.string
+
+        // 空の場合は空文字を返す
+        guard !content.isEmpty else { return "" }
+
+        // 最初の行を取得（改行で分割）
+        let firstLine = content.components(separatedBy: .newlines).first ?? ""
+
+        // 空白をトリム
+        var suggestion = firstLine.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // 空の場合は全体から空白以外の文字を取得
+        if suggestion.isEmpty {
+            suggestion = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+
+        // 空の場合は空文字を返す
+        guard !suggestion.isEmpty else { return "" }
+
+        // ファイル名に使用できない文字を除去または置換
+        let invalidCharacters = CharacterSet(charactersIn: ":/\\")
+        suggestion = suggestion.components(separatedBy: invalidCharacters).joined(separator: "-")
+
+        // 24文字に制限
+        if suggestion.count > 24 {
+            let index = suggestion.index(suggestion.startIndex, offsetBy: 24)
+            suggestion = String(suggestion[..<index])
+        }
+
+        // 末尾の空白やハイフンをトリム
+        suggestion = suggestion.trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "-")))
+
+        return suggestion
     }
 }
