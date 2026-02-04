@@ -321,22 +321,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 }
             }
         case .page:
-            for textView in textViews1 {
-                if isPlainText {
-                    textView.backgroundColor = .textBackgroundColor
-                    textView.textColor = .textColor
-                } else {
-                    textView.backgroundColor = .white
-                }
-            }
-            for textView in textViews2 {
-                if isPlainText {
-                    textView.backgroundColor = .textBackgroundColor
-                    textView.textColor = .textColor
-                } else {
-                    textView.backgroundColor = .white
-                }
-            }
+            // ページモードではMultiplePageViewが背景を描画するため、
+            // TextViewの背景色更新は不要（パフォーマンス最適化）
+            // MultiplePageViewは自動的にneedsDisplay=trueになる
+
+            // プレーンテキストの場合のみテキスト色を更新（textStorageで一括更新済み）
+            // リッチテキストの場合は何もしない（背景は.clearのまま）
+            break
         }
     }
 
@@ -820,13 +811,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         lineNumberView2?.lineNumberColor = colors.lineNumber.nsColor
         lineNumberView2?.lineNumberBackgroundColor = colors.lineNumberBackground.nsColor
 
-        // ページモードのヘッダー・フッター・行番号色を適用
+        // ページモードのヘッダー・フッター・行番号色・背景色を適用
         pagesView1?.headerColor = colors.header.nsColor
         pagesView1?.footerColor = colors.footer.nsColor
         pagesView1?.lineNumberTextColor = colors.lineNumber.nsColor
+        pagesView1?.documentBackgroundColor = colors.background.nsColor
         pagesView2?.headerColor = colors.header.nsColor
         pagesView2?.footerColor = colors.footer.nsColor
         pagesView2?.lineNumberTextColor = colors.lineNumber.nsColor
+        pagesView2?.documentBackgroundColor = colors.background.nsColor
     }
 
     @objc private func lineNumberSizeDidChange(_ notification: Notification) {
@@ -1336,6 +1329,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.isPlainText = textDocument?.documentType == .plain
             pagesView.lineNumberMode = lineNumberMode
             pagesView.layoutManager = layoutManager
+            // ヘッダー・フッターのAttributedStringを設定
+            configureHeaderFooter(for: pagesView)
             scrollView.documentView = pagesView
             pagesView1 = pagesView
 
@@ -1379,6 +1374,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             pagesView.isPlainText = textDocument?.documentType == .plain
             pagesView.lineNumberMode = lineNumberMode
             pagesView.layoutManager = layoutManager
+            // ヘッダー・フッターのAttributedStringを設定
+            configureHeaderFooter(for: pagesView)
             scrollView.documentView = pagesView
             pagesView2 = pagesView
 
@@ -1454,6 +1451,48 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     self.scrollToFirstPageForVerticalLayout()
                 }
             }
+        }
+    }
+
+    /// MultiplePageViewにヘッダー・フッターを設定
+    private func configureHeaderFooter(for pagesView: MultiplePageView) {
+        guard let document = textDocument else { return }
+
+        // ヘッダー・フッターのAttributedStringを取得
+        if let headerFooterData = document.presetData?.headerFooter {
+            // ヘッダー
+            if let headerData = headerFooterData.headerRTFData {
+                pagesView.headerAttributedString = NewDocData.HeaderFooterData.attributedString(from: headerData)
+            }
+            // フッター
+            if let footerData = headerFooterData.footerRTFData {
+                pagesView.footerAttributedString = NewDocData.HeaderFooterData.attributedString(from: footerData)
+            }
+        }
+
+        // ヘッダー・フッター用のコンテキスト情報を設定
+        pagesView.filePath = document.fileURL?.path
+        pagesView.dateModified = document.fileModificationDate
+        pagesView.documentProperties = document.presetData?.properties
+
+        // ヘッダー・フッター・背景色を設定
+        let colors = document.presetData?.fontAndColors.colors
+        pagesView.headerColor = colors?.header.nsColor
+        pagesView.footerColor = colors?.footer.nsColor
+        // マージン（用紙）の背景色を設定
+        pagesView.documentBackgroundColor = colors?.background.nsColor ?? .textBackgroundColor
+    }
+
+    /// ヘッダー・フッターの設定を更新
+    /// presetDataが変更されたときに呼び出す
+    func updateHeaderFooter() {
+        if let pagesView = pagesView1 {
+            configureHeaderFooter(for: pagesView)
+            pagesView.needsDisplay = true
+        }
+        if let pagesView = pagesView2 {
+            configureHeaderFooter(for: pagesView)
+            pagesView.needsDisplay = true
         }
     }
 
@@ -3304,6 +3343,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             document.presetData?.view.scrollPositionY = scrollPosition.y
         }
 
+        // ツールバー設定を保存
+        saveToolbarConfiguration()
+
         // プリセットデータを拡張属性に保存（修正日付を保持）
         document.savePresetDataToExtendedAttribute(at: url)
     }
@@ -4345,21 +4387,76 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private func setupEncodingToolbarItem() {
         guard let window = self.window else { return }
 
-        // 共通の識別子を持つツールバーを作成（カスタマイズ設定を保存可能）
-        let toolbarIdentifier = NSToolbar.Identifier("JeditDocumentToolbar")
+        // ウィンドウごとにユニークな識別子を生成
+        // NSToolbarは同じ識別子を持つツールバー間で設定を共有するため、
+        // ドキュメントごとに異なる設定を保持するにはユニークな識別子が必要
+        let uniqueID = UUID().uuidString
+        let toolbarIdentifier = NSToolbar.Identifier("JeditDocumentToolbar-\(uniqueID)")
         let toolbar = NSToolbar(identifier: toolbarIdentifier)
         toolbar.delegate = self
         toolbar.displayMode = .iconAndLabel
         toolbar.showsBaselineSeparator = false
-        toolbar.autosavesConfiguration = true
+        toolbar.autosavesConfiguration = false  // 書類ごとに保存するため無効化
         toolbar.allowsUserCustomization = true
 
         // ウィンドウに設定
         window.toolbar = toolbar
 
+        // 保存されたツールバー設定を復元
+        restoreToolbarConfiguration()
+
         // 初期表示を更新
         updateEncodingToolbarItem()
         updateLineEndingToolbarItem()
+
+        // ツールバー変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(toolbarDidChange(_:)),
+            name: NSNotification.Name("NSToolbarWillAddItemNotification"),
+            object: toolbar
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(toolbarDidChange(_:)),
+            name: NSNotification.Name("NSToolbarDidRemoveItemNotification"),
+            object: toolbar
+        )
+    }
+
+    /// ツールバー変更時の通知ハンドラ
+    @objc private func toolbarDidChange(_ notification: Notification) {
+        // 少し遅延させて、ツールバーの変更が完了してから保存
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.saveToolbarConfiguration()
+        }
+    }
+
+    /// ツールバー設定を保存
+    func saveToolbarConfiguration() {
+        guard let toolbar = window?.toolbar else { return }
+        let identifiers = toolbar.items.map { $0.itemIdentifier.rawValue }
+        textDocument?.presetData?.view.toolbarItemIdentifiers = identifiers
+    }
+
+    /// ツールバー設定を復元
+    private func restoreToolbarConfiguration() {
+        guard let toolbar = window?.toolbar,
+              let savedIdentifiers = textDocument?.presetData?.view.toolbarItemIdentifiers,
+              !savedIdentifiers.isEmpty else {
+            return
+        }
+
+        // 現在のツールバー項目を全て削除
+        while toolbar.items.count > 0 {
+            toolbar.removeItem(at: 0)
+        }
+
+        // 保存された順序で項目を挿入
+        for (index, identifierString) in savedIdentifiers.enumerated() {
+            let identifier = NSToolbarItem.Identifier(identifierString)
+            toolbar.insertItem(withItemIdentifier: identifier, at: index)
+        }
     }
 
     /// エンコーディングツールバーアイテムを作成（delegateから呼ばれる）

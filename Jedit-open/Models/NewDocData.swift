@@ -39,6 +39,8 @@ struct NewDocData: Codable, Equatable {
         var selectedRangeLength: Int?
         var scrollPositionX: CGFloat?
         var scrollPositionY: CGFloat?
+        // ツールバー項目のカスタマイズ状態
+        var toolbarItemIdentifiers: [String]?
 
         enum LineNumberType: Int, Codable {
             case none = 0

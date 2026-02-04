@@ -48,15 +48,23 @@ class MultiplePageView: NSView {
     // 行番号描画用のtextViews参照
     weak var layoutManager: NSLayoutManager?
 
-    // 色はプレーンテキストの場合のみダークモード対応
+    // ダークモード対応の色（プレーンテキストとリッチテキストで共通）
     var lineColor: NSColor {
-        isPlainText ? .separatorColor : .gray
+        .separatorColor
     }
+
+    /// マージン（用紙）の背景色（Document Colorsから設定可能）
+    var documentBackgroundColor: NSColor? {
+        didSet {
+            needsDisplay = true
+        }
+    }
+
     var marginColor: NSColor {
-        isPlainText ? .textBackgroundColor : .white
+        documentBackgroundColor ?? .textBackgroundColor
     }
     var backgroundColor: NSColor {
-        isPlainText ? .underPageBackgroundColor : .lightGray
+        .underPageBackgroundColor
     }
 
     // ヘッダー・フッター
@@ -64,6 +72,33 @@ class MultiplePageView: NSView {
     var showHeader: Bool = true
     var showFooter: Bool = true
     private let headerFooterFont = NSFont.systemFont(ofSize: 10)
+
+    /// ヘッダーのAttributedString（RTFデータから読み込み）
+    var headerAttributedString: NSAttributedString? {
+        didSet {
+            // ヘッダーが設定されている場合は表示する
+            showHeader = (headerAttributedString != nil && headerAttributedString!.length > 0)
+            needsDisplay = true
+        }
+    }
+
+    /// フッターのAttributedString（RTFデータから読み込み）
+    var footerAttributedString: NSAttributedString? {
+        didSet {
+            // フッターが設定されている場合は表示する
+            showFooter = (footerAttributedString != nil && footerAttributedString!.length > 0)
+            needsDisplay = true
+        }
+    }
+
+    /// ファイルパス（ヘッダー・フッター変数用）
+    var filePath: String?
+
+    /// ファイル更新日（ヘッダー・フッター変数用）
+    var dateModified: Date?
+
+    /// ドキュメントプロパティ（ヘッダー・フッター変数用）
+    var documentProperties: NewDocData.PropertiesData?
 
     /// ヘッダーの色（プリセットから設定可能）
     var headerColor: NSColor? {
@@ -81,7 +116,7 @@ class MultiplePageView: NSView {
 
     /// ヘッダー/フッターのデフォルト色
     private var defaultHeaderFooterColor: NSColor {
-        isPlainText ? .secondaryLabelColor : .darkGray
+        .secondaryLabelColor
     }
 
     // MARK: - Initialization
@@ -252,12 +287,14 @@ class MultiplePageView: NSView {
             let borderRect = docRect.insetBy(dx: -0.5, dy: -0.5)
             borderRect.frame(withWidth: 1.0)
 
-            // ヘッダーを描画（ファイル名）
-            if showHeader && !documentName.isEmpty {
+            // ヘッダーを描画
+            // headerAttributedStringが設定されている場合、またはdocumentNameがある場合に描画
+            if showHeader && (headerAttributedString != nil || !documentName.isEmpty) {
                 drawHeader(forPageNumber: pageNum, in: pageRect, docRect: docRect)
             }
 
-            // フッターを描画（ページ番号/総ページ数）
+            // フッターを描画
+            // footerAttributedStringが設定されている場合、または常にページ番号を表示
             if showFooter {
                 drawFooter(forPageNumber: pageNum, in: pageRect, docRect: docRect)
             }
@@ -271,38 +308,127 @@ class MultiplePageView: NSView {
 
     // MARK: - Header/Footer Drawing
 
+    /// HeaderFooterParser用のコンテキストを作成
+    private func createParserContext(forPageNumber pageNumber: Int) -> HeaderFooterParser.Context {
+        return HeaderFooterParser.Context(
+            pageNumber: pageNumber,
+            totalPages: numPages,
+            documentName: documentName,
+            filePath: filePath,
+            dateModified: dateModified,
+            properties: documentProperties
+        )
+    }
+
     private func drawHeader(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: headerFooterFont,
-            .foregroundColor: headerColor ?? defaultHeaderFooterColor
-        ]
+        // ヘッダーAttributedStringがある場合はパースして使用
+        if let headerAttrString = headerAttributedString, headerAttrString.length > 0 {
+            let context = createParserContext(forPageNumber: pageNumber)
+            let parsedHeader = HeaderFooterParser.parse(headerAttrString, with: context)
 
-        let headerString = documentName as NSString
-        _ = headerString.size(withAttributes: attributes)
+            // ヘッダー色を適用（設定されている場合）
+            if let color = headerColor {
+                parsedHeader.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: parsedHeader.length))
+            }
 
-        // ヘッダーはページ上部マージン内に左寄せ
-        let headerY = pageRect.minY + 20  // ページ上端から20ポイント下
-        let headerX = docRect.minX  // ドキュメント領域の左端に合わせる
+            // ヘッダーはページ上部マージン内に描画
+            let headerY = pageRect.minY + 20  // ページ上端から20ポイント下
 
-        headerString.draw(at: NSPoint(x: headerX, y: headerY), withAttributes: attributes)
+            // パラグラフスタイルからアラインメントを取得
+            let alignment: NSTextAlignment
+            if parsedHeader.length > 0,
+               let paragraphStyle = parsedHeader.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
+                alignment = paragraphStyle.alignment
+            } else {
+                alignment = .left
+            }
+
+            // アラインメントに応じてX位置を計算
+            let headerSize = parsedHeader.size()
+            let headerX: CGFloat
+            switch alignment {
+            case .center:
+                headerX = pageRect.midX - headerSize.width / 2
+            case .right:
+                headerX = docRect.maxX - headerSize.width
+            default:
+                headerX = docRect.minX
+            }
+
+            parsedHeader.draw(at: NSPoint(x: headerX, y: headerY))
+        } else {
+            // 従来の単純な描画（後方互換性）
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: headerFooterFont,
+                .foregroundColor: headerColor ?? defaultHeaderFooterColor
+            ]
+
+            let headerString = documentName as NSString
+
+            // ヘッダーはページ上部マージン内に左寄せ
+            let headerY = pageRect.minY + 20  // ページ上端から20ポイント下
+            let headerX = docRect.minX  // ドキュメント領域の左端に合わせる
+
+            headerString.draw(at: NSPoint(x: headerX, y: headerY), withAttributes: attributes)
+        }
     }
 
     private func drawFooter(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: headerFooterFont,
-            .foregroundColor: footerColor ?? defaultHeaderFooterColor
-        ]
+        // フッターAttributedStringがある場合はパースして使用
+        if let footerAttrString = footerAttributedString, footerAttrString.length > 0 {
+            let context = createParserContext(forPageNumber: pageNumber)
+            let parsedFooter = HeaderFooterParser.parse(footerAttrString, with: context)
 
-        // "ページ番号 / 総ページ数" 形式
-        let footerText = "\(pageNumber + 1) / \(numPages)"
-        let footerString = footerText as NSString
-        let footerSize = footerString.size(withAttributes: attributes)
+            // フッター色を適用（設定されている場合）
+            if let color = footerColor {
+                parsedFooter.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: parsedFooter.length))
+            }
 
-        // フッターはページ下部マージン内に中央配置
-        let footerY = pageRect.maxY - footerSize.height - 20  // ページ下端から20ポイント上
-        let footerX = pageRect.midX - footerSize.width / 2
+            // パラグラフスタイルからアラインメントを取得
+            let alignment: NSTextAlignment
+            if parsedFooter.length > 0,
+               let paragraphStyle = parsedFooter.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
+                alignment = paragraphStyle.alignment
+            } else {
+                alignment = .center
+            }
 
-        footerString.draw(at: NSPoint(x: footerX, y: footerY), withAttributes: attributes)
+            // フッターサイズを計算
+            let footerSize = parsedFooter.size()
+
+            // フッターはページ下部マージン内に描画
+            let footerY = pageRect.maxY - footerSize.height - 20  // ページ下端から20ポイント上
+
+            // アラインメントに応じてX位置を計算
+            let footerX: CGFloat
+            switch alignment {
+            case .left:
+                footerX = docRect.minX
+            case .right:
+                footerX = docRect.maxX - footerSize.width
+            default:
+                footerX = pageRect.midX - footerSize.width / 2
+            }
+
+            parsedFooter.draw(at: NSPoint(x: footerX, y: footerY))
+        } else {
+            // 従来の単純な描画（後方互換性）
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: headerFooterFont,
+                .foregroundColor: footerColor ?? defaultHeaderFooterColor
+            ]
+
+            // "ページ番号 / 総ページ数" 形式
+            let footerText = "\(pageNumber + 1) / \(numPages)"
+            let footerString = footerText as NSString
+            let footerSize = footerString.size(withAttributes: attributes)
+
+            // フッターはページ下部マージン内に中央配置
+            let footerY = pageRect.maxY - footerSize.height - 20  // ページ下端から20ポイント上
+            let footerX = pageRect.midX - footerSize.width / 2
+
+            footerString.draw(at: NSPoint(x: footerX, y: footerY), withAttributes: attributes)
+        }
     }
 
     // MARK: - Line Number Drawing
@@ -316,7 +442,7 @@ class MultiplePageView: NSView {
     }
 
     private var lineNumberColor: NSColor {
-        lineNumberTextColor ?? (isPlainText ? .secondaryLabelColor : .darkGray)
+        lineNumberTextColor ?? .secondaryLabelColor
     }
     private let lineNumberRightMargin: CGFloat = 8.0
 
