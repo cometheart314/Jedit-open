@@ -99,7 +99,7 @@ class Document: NSDocument {
 
     // MARK: - Properties
 
-    var textStorage: JeditTextStorage = JeditTextStorage()
+    var textStorage: JOTextStorage = JOTextStorage()
     var documentType: NSAttributedString.DocumentType = .plain
     var containerInset = NSSize(width: 10, height: 10)
 
@@ -391,8 +391,8 @@ class Document: NSDocument {
         // 位置でも検索（ファイル名がない場合のフォールバック）
         for info in boundsInfoList {
             if info.location < textStorage.length {
-                let attrs = textStorage.attributes(at: info.location, effectiveRange: nil)
-                if let attachment = attrs[.attachment] as? NSTextAttachment {
+                let attrs = textStorage.attributes(at: UInt(info.location), effectiveRange: nil) as? [NSAttributedString.Key: Any] ?? [:]
+                if let attachment = attrs[NSAttributedString.Key.attachment] as? NSTextAttachment {
                     // すでにリストに含まれているかチェック
                     if !replacements.contains(where: { $0.range.location == info.location }) {
                         let newBounds = CGRect(x: 0, y: 0, width: info.width, height: info.height)
@@ -1047,7 +1047,7 @@ class Document: NSDocument {
         }
 
         // TextStorageに行折り返しタイプを設定
-        textStorage.lineBreakingType = data.format.wordWrappingType.rawValue
+        textStorage.setLineBreakingType(data.format.wordWrappingType.rawValue)
     }
 
     // MARK: - Extended Attributes for Preset Data

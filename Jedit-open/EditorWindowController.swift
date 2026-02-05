@@ -1918,9 +1918,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textDocument?.presetData?.format.wordWrappingType = type
         textDocument?.presetDataEdited = true
 
-        // JeditTextStorageに反映
+        // JOTextStorageに反映
         if let textStorage = textDocument?.textStorage {
-            textStorage.lineBreakingType = type.rawValue
+            textStorage.setLineBreakingType(type.rawValue)
         }
 
         // 文書幅を再計算してレイアウトを更新
