@@ -1918,11 +1918,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textDocument?.presetData?.format.wordWrappingType = type
         textDocument?.presetDataEdited = true
 
-        // JeditTextStorageに反映してレイアウトを更新
+        // JeditTextStorageに反映
         if let textStorage = textDocument?.textStorage {
             textStorage.lineBreakingType = type.rawValue
-            textStorage.invalidateLayout()
         }
+
+        // 文書幅を再計算してレイアウトを更新
+        applyLineWrapMode(updatePresetData: false)
     }
 
     /// 固定幅をポイント値で取得（文字数 × 基本文字幅）
