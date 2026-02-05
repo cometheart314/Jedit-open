@@ -99,7 +99,7 @@ class Document: NSDocument {
 
     // MARK: - Properties
 
-    var textStorage: NSTextStorage = NSTextStorage()
+    var textStorage: JeditTextStorage = JeditTextStorage()
     var documentType: NSAttributedString.DocumentType = .plain
     var containerInset = NSSize(width: 10, height: 10)
 
@@ -1045,6 +1045,9 @@ class Document: NSDocument {
         if fileURL == nil {
             untitledDocumentName = nil
         }
+
+        // TextStorageに行折り返しタイプを設定
+        textStorage.lineBreakingType = data.format.wordWrappingType.rawValue
     }
 
     // MARK: - Extended Attributes for Preset Data
