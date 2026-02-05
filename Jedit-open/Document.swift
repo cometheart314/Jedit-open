@@ -40,8 +40,8 @@ enum LineEnding: Int, CaseIterable {
         }
     }
 
-    /// 文字列から改行コードを検出
-    static func detect(in string: String) -> LineEnding {
+    /// 文字列から改行コードを検出（任意のスレッドから呼び出し可能）
+    static nonisolated func detect(in string: String) -> LineEnding {
         var lfCount = 0
         var crCount = 0
         var crlfCount = 0
@@ -579,19 +579,19 @@ class Document: NSDocument {
         }
     }
 
-    /// 改行コードをLFに統一（読み込み時に使用）
-    private func normalizeLineEndingsToLF(_ string: String) -> String {
+    /// 改行コードをLFに統一（読み込み時に使用、任意のスレッドから呼び出し可能）
+    private nonisolated func normalizeLineEndingsToLF(_ string: String) -> String {
         var result = string.replacingOccurrences(of: "\r\n", with: "\n")
         result = result.replacingOccurrences(of: "\r", with: "\n")
         return result
     }
 
-    /// Shift_JIS読み込み時の文字変換（Preferencesの設定に基づく）
+    /// Shift_JIS読み込み時の文字変換（Preferencesの設定に基づく、任意のスレッドから呼び出し可能）
     /// - Parameters:
     ///   - string: 変換対象の文字列
     ///   - encoding: ファイルのエンコーディング
     /// - Returns: 変換後の文字列
-    private func applyEncodingConversions(_ string: String, encoding: String.Encoding) -> String {
+    private nonisolated func applyEncodingConversions(_ string: String, encoding: String.Encoding) -> String {
         let defaults = UserDefaults.standard
         var result = string
 
@@ -601,20 +601,21 @@ class Document: NSDocument {
                          encoding.rawValue == CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.shiftJIS_X0213.rawValue))
 
         // Convert '¥' (0x5c) to Back Slash '\' (U+005C) when Shift_JIS encoding group
-        if defaults.bool(forKey: UserDefaults.Keys.convertYenToBackSlash) && isShiftJIS {
+        // 直接キー文字列を使用（nonisolatedコンテキストでのアクセス）
+        if defaults.bool(forKey: "JOConvertYenToBackSlash") && isShiftJIS {
             // Shift_JISでデコードした際に円記号(U+00A5)になっている可能性がある
             result = result.replacingOccurrences(of: "\u{00A5}", with: "\\")
         }
 
         // Convert '‾' (0x7e) to Tilde '~' (U+007E) when Shift_JIS encoding group
-        if defaults.bool(forKey: UserDefaults.Keys.convertOverlineToTilde) && isShiftJIS {
+        if defaults.bool(forKey: "JOConvertOverlineToTilde") && isShiftJIS {
             // Shift_JISでデコードした際にオーバーライン(U+203E)になっている可能性がある
             result = result.replacingOccurrences(of: "\u{203E}", with: "~")
         }
 
         // Convert FULLWIDTH TILDE '～' (U+FF5E) to WAVE DASH '〜' (U+301C)
         // これはエンコーディングに関係なく適用
-        if defaults.bool(forKey: UserDefaults.Keys.convertFullWidthTilde) {
+        if defaults.bool(forKey: "JOConvertFullWidthTidle") {
             result = result.replacingOccurrences(of: "\u{FF5E}", with: "\u{301C}")
         }
 
@@ -689,8 +690,8 @@ class Document: NSDocument {
             // BOMの有無を検出
             let bomDetected = EncodingDetector.shared.hasBOM(data)
 
-            // Preferencesの Opening Encoding 設定を取得
-            let preferredEncodingInt = UserDefaults.standard.integer(forKey: UserDefaults.Keys.plainTextEncodingForRead)
+            // Preferencesの Opening Encoding 設定を取得（直接キー文字列を使用）
+            let preferredEncodingInt = UserDefaults.standard.integer(forKey: "JOPlainTextEncoding")
             let preferredEncoding: String.Encoding? = preferredEncodingInt <= 0 ? nil : String.Encoding(rawValue: UInt(preferredEncodingInt))
 
             #if DEBUG

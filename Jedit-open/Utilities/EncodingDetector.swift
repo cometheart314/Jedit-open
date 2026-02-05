@@ -8,7 +8,7 @@
 import Foundation
 
 /// エンコーディング検出結果
-struct EncodingDetectionResult {
+struct EncodingDetectionResult: Sendable {
     /// 検出されたエンコーディング
     let encoding: String.Encoding
     /// エンコーディング名
@@ -18,7 +18,7 @@ struct EncodingDetectionResult {
     /// ロスのある変換が発生したか
     let usedLossyConversion: Bool
 
-    init(encoding: String.Encoding, name: String? = nil, confidence: Int32, usedLossyConversion: Bool = false) {
+    nonisolated init(encoding: String.Encoding, name: String? = nil, confidence: Int32, usedLossyConversion: Bool = false) {
         self.encoding = encoding
         self.name = name ?? String.localizedName(of: encoding)
         self.confidence = confidence
@@ -27,7 +27,7 @@ struct EncodingDetectionResult {
 }
 
 /// エンコーディング検出の結果型
-enum EncodingDetectionOutcome {
+enum EncodingDetectionOutcome: Sendable {
     /// 自動判定成功
     case success(encoding: String.Encoding, string: String)
     /// 信頼度が低いため候補リストを返す（ユーザーに選択を求める）
@@ -37,23 +37,24 @@ enum EncodingDetectionOutcome {
 }
 
 /// テキストファイルのエンコーディングを自動判定するクラス
-class EncodingDetector {
+/// Sendableとしてマークし、任意のスレッドから呼び出し可能
+final class EncodingDetector: Sendable {
 
     // MARK: - Singleton
 
-    static let shared = EncodingDetector()
+    nonisolated static let shared = EncodingDetector()
 
     private init() {}
 
     // MARK: - Constants
 
     /// 信頼度の閾値（これ以下の場合はユーザーに選択を求める）
-    static let confidenceThreshold: Int32 = 50
+    nonisolated static let confidenceThreshold: Int32 = 50
 
     // MARK: - Extended Attribute Key
 
     /// テキストエンコーディングを保存する拡張属性のキー
-    static let textEncodingXattrKey = "com.apple.TextEncoding"
+    nonisolated static let textEncodingXattrKey = "com.apple.TextEncoding"
 
     // MARK: - Public Methods
 
@@ -63,7 +64,7 @@ class EncodingDetector {
     ///   - fileURL: ファイルURL（拡張属性取得用、オプション）
     ///   - suggestedEncodings: 候補となるエンコーディングのリスト（nilの場合はEncodingManagerから取得）
     /// - Returns: 検出結果の配列（信頼度順）
-    func detectEncodings(from data: Data, fileURL: URL? = nil, suggestedEncodings: [String.Encoding]? = nil) -> [EncodingDetectionResult] {
+    nonisolated func detectEncodings(from data: Data, fileURL: URL? = nil, suggestedEncodings: [String.Encoding]? = nil) -> [EncodingDetectionResult] {
         // 空データの場合
         guard !data.isEmpty else {
             return [EncodingDetectionResult(encoding: .utf8, confidence: 100)]
@@ -114,7 +115,7 @@ class EncodingDetector {
     ///   - suggestedEncodings: 候補となるエンコーディングのリスト
     ///   - allowUserSelection: 信頼度が低い場合にユーザーに選択を求めるかどうか（デフォルト: true）
     /// - Returns: 判定結果
-    func detectAndDecode(from data: Data, fileURL: URL? = nil, suggestedEncodings: [String.Encoding]? = nil, allowUserSelection: Bool = true) -> EncodingDetectionOutcome {
+    nonisolated func detectAndDecode(from data: Data, fileURL: URL? = nil, suggestedEncodings: [String.Encoding]? = nil, allowUserSelection: Bool = true) -> EncodingDetectionOutcome {
         let results = detectEncodings(from: data, fileURL: fileURL, suggestedEncodings: suggestedEncodings)
 
         guard let bestResult = results.first else {
@@ -141,12 +142,12 @@ class EncodingDetector {
     /// データにBOM（Byte Order Mark）が含まれているかどうかを判定
     /// - Parameter data: 判定対象のデータ
     /// - Returns: BOMが含まれている場合はtrue
-    func hasBOM(_ data: Data) -> Bool {
+    nonisolated func hasBOM(_ data: Data) -> Bool {
         return detectEncodingFromBOM(data) != nil
     }
 
     /// BOM（Byte Order Mark）からエンコーディングを判定
-    private func detectEncodingFromBOM(_ data: Data) -> EncodingDetectionResult? {
+    private nonisolated func detectEncodingFromBOM(_ data: Data) -> EncodingDetectionResult? {
         guard data.count >= 2 else { return nil }
 
         let bytes = [UInt8](data.prefix(4))
@@ -186,7 +187,7 @@ class EncodingDetector {
     ///   - url: ファイルURL
     ///   - data: データ（デコード確認用）
     /// - Returns: 検出結果（デコード成功時のみ）
-    private func detectEncodingFromExtendedAttribute(_ url: URL, data: Data) -> EncodingDetectionResult? {
+    private nonisolated func detectEncodingFromExtendedAttribute(_ url: URL, data: Data) -> EncodingDetectionResult? {
         // 拡張属性を読み取る
         guard let encoding = readTextEncodingFromExtendedAttribute(url) else {
             return nil
@@ -207,7 +208,7 @@ class EncodingDetector {
     /// 拡張属性からテキストエンコーディングを読み取る
     /// - Parameter url: ファイルURL
     /// - Returns: エンコーディング（取得できない場合はnil）
-    func readTextEncodingFromExtendedAttribute(_ url: URL) -> String.Encoding? {
+    nonisolated func readTextEncodingFromExtendedAttribute(_ url: URL) -> String.Encoding? {
         let path = url.path
         let name = Self.textEncodingXattrKey
 
@@ -255,7 +256,7 @@ class EncodingDetector {
     ///   - url: ファイルURL
     /// - Returns: 成功したかどうか
     @discardableResult
-    func writeTextEncodingToExtendedAttribute(_ encoding: String.Encoding, to url: URL) -> Bool {
+    nonisolated func writeTextEncodingToExtendedAttribute(_ encoding: String.Encoding, to url: URL) -> Bool {
         let path = url.path
         let name = Self.textEncodingXattrKey
 
@@ -278,7 +279,7 @@ class EncodingDetector {
     }
 
     /// IANA文字セット名からエンコーディングを取得
-    private func encodingFromIANAName(_ name: String) -> String.Encoding? {
+    private nonisolated func encodingFromIANAName(_ name: String) -> String.Encoding? {
         let cfEncoding = CFStringConvertIANACharSetNameToEncoding(name as CFString)
         guard cfEncoding != kCFStringEncodingInvalidId else {
             return nil
@@ -290,7 +291,7 @@ class EncodingDetector {
     // MARK: - NSString Detection
 
     /// NSString.stringEncoding を使用してエンコーディングを検出
-    private func detectWithNSString(_ data: Data, suggestedEncodings: [String.Encoding]?) -> [EncodingDetectionResult] {
+    private nonisolated func detectWithNSString(_ data: Data, suggestedEncodings: [String.Encoding]?) -> [EncodingDetectionResult] {
         var results: [EncodingDetectionResult] = []
 
         // 候補エンコーディングを取得（日本語系を優先）
@@ -345,7 +346,7 @@ class EncodingDetector {
     // MARK: - Trial Detection
 
     /// 候補エンコーディングを順に試行して検出
-    private func detectByTrial(_ data: Data, encodings: [String.Encoding]) -> [EncodingDetectionResult] {
+    private nonisolated func detectByTrial(_ data: Data, encodings: [String.Encoding]) -> [EncodingDetectionResult] {
         var results: [EncodingDetectionResult] = []
 
         for encoding in encodings {
@@ -366,7 +367,7 @@ class EncodingDetector {
     // MARK: - Helper Methods
 
     /// 日本語系エンコーディングを優先したリストを取得
-    private func getJapanesePrioritizedEncodings() -> [String.Encoding] {
+    private nonisolated func getJapanesePrioritizedEncodings() -> [String.Encoding] {
         var encodings: [String.Encoding] = []
 
         // UTF-8を最優先
@@ -391,11 +392,13 @@ class EncodingDetector {
         encodings.append(.isoLatin1)
         encodings.append(.windowsCP1252)
 
-        // EncodingManagerから追加
-        let enabledEncodings = EncodingManager.shared.enabledEncodings()
-        for enc in enabledEncodings {
-            if !encodings.contains(enc) {
-                encodings.append(enc)
+        // UserDefaultsから有効化されているエンコーディングを追加（スレッドセーフ）
+        if let savedEncodings = UserDefaults.standard.array(forKey: "Encodings") as? [UInt] {
+            for rawValue in savedEncodings {
+                let enc = String.Encoding(rawValue: rawValue)
+                if !encodings.contains(enc) {
+                    encodings.append(enc)
+                }
             }
         }
 
@@ -408,7 +411,7 @@ class EncodingDetector {
     ///   - data: 元のデータ
     ///   - encoding: 使用したエンコーディング
     /// - Returns: 信頼度 (0-100)
-    func calculateConfidence(string: String, data: Data, encoding: String.Encoding) -> Int32 {
+    nonisolated func calculateConfidence(string: String, data: Data, encoding: String.Encoding) -> Int32 {
         guard !string.isEmpty else {
             return 100 // 空文字列は常に有効
         }
@@ -460,7 +463,7 @@ class EncodingDetector {
     }
 
     /// BOMを除去してデータをデコード
-    func decodeData(_ data: Data, with encoding: String.Encoding) -> String? {
+    nonisolated func decodeData(_ data: Data, with encoding: String.Encoding) -> String? {
         var dataToUse = data
 
         // BOMを除去
