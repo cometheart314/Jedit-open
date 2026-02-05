@@ -41,6 +41,8 @@ struct NewDocData: Codable, Equatable {
         var scrollPositionY: CGFloat?
         // ツールバー項目のカスタマイズ状態
         var toolbarItemIdentifiers: [String]?
+        // ツールバー表示モード（0: iconAndLabel, 1: iconOnly, 2: labelOnly）
+        var toolbarDisplayMode: Int?
 
         enum LineNumberType: Int, Codable {
             case none = 0

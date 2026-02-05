@@ -185,6 +185,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             object: nil
         )
 
+        // 行番号モード変更通知を監視（行番号ビューからのクリックメニュー）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(lineNumberModeDidChange(_:)),
+            name: LineNumberView.lineNumberModeDidChangeNotification,
+            object: nil
+        )
+
         // ドキュメントタイプ変更通知を監視
         NotificationCenter.default.addObserver(
             self,
@@ -468,15 +476,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let formatData = presetData.format
         isVerticalLayout = (formatData.editingDirection == .rightToLeft)
 
-        // フォント設定を適用
-        let fontData = presetData.fontAndColors
-        if let font = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
-            applyFontToTextViews(font)
-        }
-
         // テキストビューを再セットアップ（上記の設定を反映）
         if let textStorage = textDocument?.textStorage {
             setupTextViews(with: textStorage)
+        }
+
+        // フォント設定を適用（setupTextViews後に適用、新しいTextViewに反映するため）
+        let fontData = presetData.fontAndColors
+        if let font = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+            applyFontToTextViews(font)
         }
 
         // 色設定を適用（setupTextViews後に適用）
@@ -854,6 +862,22 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 }
             }
         }
+    }
+
+    @objc private func lineNumberModeDidChange(_ notification: Notification) {
+        // 自分のドキュメントの行番号ビューからの通知かを確認
+        guard let lineNumberView = notification.object as? LineNumberView,
+              (lineNumberView === lineNumberView1 || lineNumberView === lineNumberView2) else {
+            return
+        }
+
+        guard let modeValue = notification.userInfo?["mode"] as? LineNumberMode else {
+            return
+        }
+
+        // lineNumberModeを更新して表示を更新
+        lineNumberMode = modeValue
+        updateLineNumberDisplay()
     }
 
     // MARK: - Setup Methods
@@ -4450,12 +4474,23 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard let toolbar = window?.toolbar else { return }
         let identifiers = toolbar.items.map { $0.itemIdentifier.rawValue }
         textDocument?.presetData?.view.toolbarItemIdentifiers = identifiers
+        // displayMode を保存
+        textDocument?.presetData?.view.toolbarDisplayMode = Int(toolbar.displayMode.rawValue)
+        textDocument?.presetDataEdited = true
     }
 
     /// ツールバー設定を復元
     private func restoreToolbarConfiguration() {
-        guard let toolbar = window?.toolbar,
-              let savedIdentifiers = textDocument?.presetData?.view.toolbarItemIdentifiers,
+        guard let toolbar = window?.toolbar else { return }
+
+        // displayMode を復元
+        if let displayModeValue = textDocument?.presetData?.view.toolbarDisplayMode,
+           let displayMode = NSToolbar.DisplayMode(rawValue: UInt(displayModeValue)) {
+            toolbar.displayMode = displayMode
+        }
+
+        // ツールバー項目を復元
+        guard let savedIdentifiers = textDocument?.presetData?.view.toolbarItemIdentifiers,
               !savedIdentifiers.isEmpty else {
             return
         }

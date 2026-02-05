@@ -140,6 +140,7 @@ class DocumentPresetManager {
         if let index = presets.firstIndex(where: { $0.id == preset.id }) {
             presets[index] = preset
             savePresets()
+            notifyPresetsDidChange()
         }
     }
 

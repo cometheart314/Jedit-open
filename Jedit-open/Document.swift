@@ -1080,6 +1080,11 @@ class Document: NSDocument {
         presetData?.view.windowWidth = frame.size.width
         presetData?.view.windowHeight = frame.size.height
 
+        // ツールバー displayMode を保存
+        if let toolbar = window.toolbar {
+            presetData?.view.toolbarDisplayMode = Int(toolbar.displayMode.rawValue)
+        }
+
         // printInfo を presetData に保存
         presetData?.printInfo = NewDocData.PrintInfoData(from: self.printInfo)
     }

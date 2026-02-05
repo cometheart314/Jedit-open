@@ -334,15 +334,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return
         }
 
-        // XIBで定義されたビルトイン項目（Default, Plain Text, Rich Text）以外を削除
-        // tag 0, 1, 2 はビルトインプリセット
+        // DocumentPresetManagerからプリセットを取得
+        let presets = DocumentPresetManager.shared.presets
+
+        // ビルトイン項目（tag 0, 1, 2）の名前を更新
         let builtInCount = 3
+        for index in 0..<builtInCount {
+            if index < presets.count,
+               let menuItem = newSubmenu.item(withTag: index) {
+                menuItem.title = presets[index].name
+            }
+        }
+
+        // カスタムプリセット（index 3以降）を削除して再追加
         while newSubmenu.items.count > builtInCount {
             newSubmenu.removeItem(at: builtInCount)
         }
-
-        // DocumentPresetManagerからカスタムプリセットを取得して追加
-        let presets = DocumentPresetManager.shared.presets
 
         // カスタムプリセット（index 3以降）を追加
         for index in builtInCount..<presets.count {

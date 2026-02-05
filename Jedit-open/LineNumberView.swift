@@ -585,4 +585,83 @@ class LineNumberView: NSView {
         // グラフィックスコンテキストを復元
         NSGraphicsContext.current?.restoreGraphicsState()
     }
+
+    // MARK: - Context Menu
+
+    override func mouseDown(with event: NSEvent) {
+        // クリック位置を取得
+        let location = convert(event.locationInWindow, from: nil)
+
+        // ビュー内であればメニューを表示
+        if bounds.contains(location) {
+            showLineNumberMenu(at: location, with: event)
+        } else {
+            super.mouseDown(with: event)
+        }
+    }
+
+    /// 行番号表示モードを選択するメニューを表示
+    private func showLineNumberMenu(at location: NSPoint, with event: NSEvent) {
+        let menu = NSMenu(title: "Line Number")
+
+        // None
+        let noneItem = NSMenuItem(
+            title: NSLocalizedString("None", comment: "Line number mode: none"),
+            action: #selector(setLineNumberModeNone(_:)),
+            keyEquivalent: ""
+        )
+        noneItem.target = self
+        noneItem.state = (lineNumberMode == .none) ? .on : .off
+        menu.addItem(noneItem)
+
+        // Paragraph Number
+        let paragraphItem = NSMenuItem(
+            title: NSLocalizedString("Paragraph Number", comment: "Line number mode: paragraph"),
+            action: #selector(setLineNumberModeParagraph(_:)),
+            keyEquivalent: ""
+        )
+        paragraphItem.target = self
+        paragraphItem.state = (lineNumberMode == .paragraph) ? .on : .off
+        menu.addItem(paragraphItem)
+
+        // Row Number
+        let rowItem = NSMenuItem(
+            title: NSLocalizedString("Row Number", comment: "Line number mode: row"),
+            action: #selector(setLineNumberModeRow(_:)),
+            keyEquivalent: ""
+        )
+        rowItem.target = self
+        rowItem.state = (lineNumberMode == .row) ? .on : .off
+        menu.addItem(rowItem)
+
+        // メニューを表示
+        menu.popUp(positioning: nil, at: location, in: self)
+    }
+
+    @objc private func setLineNumberModeNone(_ sender: Any?) {
+        setLineNumberModeAndNotify(.none)
+    }
+
+    @objc private func setLineNumberModeParagraph(_ sender: Any?) {
+        setLineNumberModeAndNotify(.paragraph)
+    }
+
+    @objc private func setLineNumberModeRow(_ sender: Any?) {
+        setLineNumberModeAndNotify(.row)
+    }
+
+    /// 行番号モードを設定し、変更を通知
+    private func setLineNumberModeAndNotify(_ mode: LineNumberMode) {
+        lineNumberMode = mode
+
+        // EditorWindowControllerに変更を通知してpresetDataに保存
+        NotificationCenter.default.post(
+            name: LineNumberView.lineNumberModeDidChangeNotification,
+            object: self,
+            userInfo: ["mode": mode]
+        )
+    }
+
+    // 行番号モード変更通知
+    static let lineNumberModeDidChangeNotification = Notification.Name("LineNumberViewLineNumberModeDidChange")
 }
