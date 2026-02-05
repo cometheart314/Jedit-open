@@ -1668,11 +1668,14 @@ class Document: NSDocument {
     // MARK: - Save Panel
 
     override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
-        // 新規ドキュメント（fileURLがnil）の場合のみファイル名を提案
+        // 新規ドキュメント（fileURLがnil）かつnewDocNameTypeがuntitledの場合のみファイル名を提案
         if fileURL == nil {
-            let suggestedName = generateSuggestedFileName()
-            if !suggestedName.isEmpty {
-                savePanel.nameFieldStringValue = suggestedName
+            let nameType = presetData?.format.newDocNameType ?? .untitled
+            if nameType == .untitled {
+                let suggestedName = generateSuggestedFileName()
+                if !suggestedName.isEmpty {
+                    savePanel.nameFieldStringValue = suggestedName
+                }
             }
         }
         return super.prepareSavePanel(savePanel)
