@@ -1899,6 +1899,32 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    // MARK: - Word Wrapping Actions
+
+    @IBAction func setWordWrappingSystemDefault(_ sender: Any?) {
+        setWordWrappingType(.systemDefault)
+    }
+
+    @IBAction func setWordWrappingJapanese(_ sender: Any?) {
+        setWordWrappingType(.japaneseWordwrap)
+    }
+
+    @IBAction func setWordWrappingNone(_ sender: Any?) {
+        setWordWrappingType(.dontWordwrap)
+    }
+
+    private func setWordWrappingType(_ type: NewDocData.FormatData.WordWrappingType) {
+        guard textDocument?.presetData != nil else { return }
+        textDocument?.presetData?.format.wordWrappingType = type
+        textDocument?.presetDataEdited = true
+
+        // JeditTextStorageに反映してレイアウトを更新
+        if let textStorage = textDocument?.textStorage {
+            textStorage.lineBreakingType = type.rawValue
+            textStorage.invalidateLayout()
+        }
+    }
+
     /// 固定幅をポイント値で取得（文字数 × 基本文字幅）
     private func getFixedWrapWidthInPoints() -> CGFloat {
         let charWidth: CGFloat
@@ -1914,7 +1940,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let systemFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
             charWidth = basicCharWidth(from: systemFont)
         }
-        return CGFloat(fixedWrapWidthInChars) * charWidth
+
+        // 日本語禁則処理（japaneseWordwrap = 1）の場合、ぶら下げ用に+1文字分の幅を追加
+        let extraChar: Int
+        if let presetData = textDocument?.presetData,
+           presetData.format.wordWrappingType == .japaneseWordwrap {
+            extraChar = 1
+        } else {
+            extraChar = 0
+        }
+
+        return CGFloat(fixedWrapWidthInChars + extraChar) * charWidth
     }
 
     private func applyLineWrapMode(updatePresetData: Bool = true) {
@@ -3324,6 +3360,29 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if menuItem.action == #selector(toggleAutoIndent(_:)) {
             if let presetData = textDocument?.presetData {
                 menuItem.state = presetData.format.autoIndent ? .on : .off
+            } else {
+                menuItem.state = .off
+            }
+        }
+
+        // Word Wrapping menu items validation
+        if menuItem.action == #selector(setWordWrappingSystemDefault(_:)) {
+            if let presetData = textDocument?.presetData {
+                menuItem.state = presetData.format.wordWrappingType == .systemDefault ? .on : .off
+            } else {
+                menuItem.state = .off
+            }
+        }
+        if menuItem.action == #selector(setWordWrappingJapanese(_:)) {
+            if let presetData = textDocument?.presetData {
+                menuItem.state = presetData.format.wordWrappingType == .japaneseWordwrap ? .on : .off
+            } else {
+                menuItem.state = .off
+            }
+        }
+        if menuItem.action == #selector(setWordWrappingNone(_:)) {
+            if let presetData = textDocument?.presetData {
+                menuItem.state = presetData.format.wordWrappingType == .dontWordwrap ? .on : .off
             } else {
                 menuItem.state = .off
             }
