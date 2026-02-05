@@ -47,12 +47,6 @@ extension UserDefaults {
         static let convertYenToBackSlash = "JOConvertYenToBackSlash"
         static let convertOverlineToTilde = "JOConvertOverlineToTilde"
         static let convertFullWidthTilde = "JOConvertFullWidthTidle"
-
-        // Line Breaking
-        static let cantBeTopChars = "CantBeTopChars"
-        static let cantBeEndChars = "CantBeEndChars"
-        static let burasagariChars = "BurasagariChars"
-        static let cantSeparateChars = "CantSeparateChars"
     }
 
     /// スケールメニューのデフォルト値
@@ -101,12 +95,7 @@ extension UserDefaults {
             Keys.plainTextBomForWrite: -1, // -1 = Automatic
             Keys.convertYenToBackSlash: false,
             Keys.convertOverlineToTilde: false,
-            Keys.convertFullWidthTilde: false,
-            // Line Breaking
-            Keys.cantBeTopChars: "、。，．・：；？！゛゜´｀¨ヽヾゝゞ々ー）］｝〕〉》」』】°′″℃¢％‰",
-            Keys.cantBeEndChars: "（［｛〔〈《「『【",
-            Keys.burasagariChars: "、。，．",
-            Keys.cantSeparateChars: "—…‥"
+            Keys.convertFullWidthTilde: false
         ])
     }
 }

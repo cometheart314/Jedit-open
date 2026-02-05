@@ -890,32 +890,6 @@
                                                 <action selector="showLineSpacingPanel:" target="-1" id="line-spacing-act"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem isSeparatorItem="YES" id="word-wrap-sep"/>
-                                        <menuItem title="Word Wrapping" id="word-wrap-menu">
-                                            <modifierMask key="keyEquivalentModifierMask"/>
-                                            <menu key="submenu" title="Word Wrapping" id="word-wrap-sub">
-                                                <items>
-                                                    <menuItem title="System Default" id="word-wrap-sys">
-                                                        <modifierMask key="keyEquivalentModifierMask"/>
-                                                        <connections>
-                                                            <action selector="setWordWrappingSystemDefault:" target="-1" id="word-wrap-sys-act"/>
-                                                        </connections>
-                                                    </menuItem>
-                                                    <menuItem title="Japanese Word Wrap" id="word-wrap-jp">
-                                                        <modifierMask key="keyEquivalentModifierMask"/>
-                                                        <connections>
-                                                            <action selector="setWordWrappingJapanese:" target="-1" id="word-wrap-jp-act"/>
-                                                        </connections>
-                                                    </menuItem>
-                                                    <menuItem title="Don't Word Wrap" id="word-wrap-no">
-                                                        <modifierMask key="keyEquivalentModifierMask"/>
-                                                        <connections>
-                                                            <action selector="setWordWrappingNone:" target="-1" id="word-wrap-no-act"/>
-                                                        </connections>
-                                                    </menuItem>
-                                                </items>
-                                            </menu>
-                                        </menuItem>
                                     </items>
                                 </menu>
                             </menuItem>
