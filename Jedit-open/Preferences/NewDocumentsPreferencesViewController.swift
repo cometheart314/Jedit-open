@@ -866,8 +866,8 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         saveCurrentPreset()
     }
 
-    /// Encoding, Line Ending, BOM コントロールの有効/無効を更新
-    /// Rich Text の場合は無効化（グレイアウト）
+    /// Encoding, Line Ending, BOM, Ext. コントロールの有効/無効を更新
+    /// Rich Text の場合は無効化（グレイアウト）し、Ext.フィールドは空にする
     private func updateEncodingControlsEnabled() {
         let isRichText = textStyleMatrix?.selectedTag() == 1
         let isEnabled = !isRichText
@@ -875,6 +875,12 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         encodingPopup?.isEnabled = isEnabled
         lineEndingPopup?.isEnabled = isEnabled
         bomCheckbox?.isEnabled = isEnabled
+        fileExtensionField?.isEnabled = isEnabled
+
+        // Rich Textの場合、Ext.フィールドを空にする
+        if isRichText {
+            fileExtensionField?.stringValue = ""
+        }
     }
 
     /// Colors, Theme コントロールの有効/無効を更新

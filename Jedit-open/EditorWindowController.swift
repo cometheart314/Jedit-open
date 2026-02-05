@@ -241,6 +241,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // リッチテキストのLightモード設定を適用
         applyRichTextLightModeAppearance()
 
+        // テキストタイプボタンの初期化
+        updateTextTypeButtons()
+
         // テキスト編集設定の変更を監視
         observeTextEditingPreferences()
 
@@ -349,6 +352,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         applyRichTextLightModeAppearance()
     }
 
+    /// テキストタイプボタンを更新
+    private func updateTextTypeButtons() {
+        let isRichText = textDocument?.documentType != .plain
+        scrollView1?.updateTextTypeButton(isRichText: isRichText)
+        scrollView2?.updateTextTypeButton(isRichText: isRichText)
+    }
+
     @objc private func documentTypeDidChange(_ notification: Notification) {
         // 自分のドキュメントからの通知かを確認
         guard let document = notification.object as? Document,
@@ -375,6 +385,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ツールバーアイテムを更新
         updateEncodingToolbarItem()
         updateLineEndingToolbarItem()
+
+        // テキストタイプボタンを更新
+        updateTextTypeButtons()
     }
 
     @objc private func printInfoDidChange(_ notification: Notification) {

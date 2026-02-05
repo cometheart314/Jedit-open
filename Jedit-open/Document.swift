@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import UniformTypeIdentifiers
 
 // MARK: - LineEnding
 
@@ -142,6 +143,24 @@ class Document: NSDocument {
         // ドキュメント名はdisplayName getterで遅延生成される
         if let selectedPreset = DocumentPresetManager.shared.selectedPreset() {
             applyPresetData(selectedPreset.data)
+        }
+
+        // NSDocumentのfileTypeをdocumentTypeに応じて設定
+        // これにより保存時に正しいファイルタイプが使用される
+        updateFileTypeFromDocumentType()
+    }
+
+    /// documentTypeに応じてNSDocumentのfileTypeを更新
+    private func updateFileTypeFromDocumentType() {
+        switch documentType {
+        case .rtf:
+            fileType = "public.rtf"
+        case .rtfd:
+            fileType = "com.apple.rtfd"
+        case .plain:
+            fileType = "public.plain-text"
+        default:
+            fileType = "public.rtf"
         }
     }
 
@@ -1668,14 +1687,35 @@ class Document: NSDocument {
 
     // MARK: - Save Panel
 
+    /// ドキュメントの保存可能なタイプを返す
+    /// documentTypeに応じて適切なファイルタイプを優先的に返す
+    override nonisolated func writableTypes(for saveOperation: NSDocument.SaveOperationType) -> [String] {
+        // nonisolatedコンテキストからMainActor分離プロパティにアクセスできないため、
+        // デフォルトの順序を返す（RTFを優先）
+        // Note: documentTypeはMainActor分離されているため直接アクセスできない
+        return ["public.rtf", "com.apple.rtfd", "public.plain-text"]
+    }
+
     override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
-        // 新規ドキュメント（fileURLがnil）かつnewDocNameTypeがuntitledの場合のみファイル名を提案
+        // 新規ドキュメント（fileURLがnil）の場合
         if fileURL == nil {
             let nameType = presetData?.format.newDocNameType ?? .untitled
+
+            // newDocNameTypeがuntitledの場合のみファイル名を提案
             if nameType == .untitled {
                 let suggestedName = generateSuggestedFileName()
                 if !suggestedName.isEmpty {
                     savePanel.nameFieldStringValue = suggestedName
+                }
+            }
+
+            // プレーンテキストの場合、FormatData.fileExtensionを使用
+            if documentType == .plain,
+               let fileExtension = presetData?.format.fileExtension,
+               !fileExtension.isEmpty {
+                // allowedContentTypesを設定してファイル拡張子を強制
+                if let utType = UTType(filenameExtension: fileExtension) {
+                    savePanel.allowedContentTypes = [utType]
                 }
             }
         }

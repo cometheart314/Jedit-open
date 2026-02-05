@@ -33,6 +33,11 @@ class ScalingScrollView: NSScrollView {
     /// スプリットボタンのアクションターゲット（通常はEditorWindowController）
     weak var splitButtonTarget: AnyObject?
 
+    // MARK: - Text Type Button
+
+    /// テキストタイプボタン（水平スクロールバーの左端に配置）
+    private var textTypeButton: NSButton?
+
     // MARK: - Initialization
 
     override func awakeFromNib() {
@@ -40,6 +45,7 @@ class ScalingScrollView: NSScrollView {
         setupMagnification()
         setupFrameObserver()
         setupSplitButtons()
+        setupTextTypeButton()
     }
 
     deinit {
@@ -131,6 +137,28 @@ class ScalingScrollView: NSScrollView {
         splitVertButton = vertButton
     }
 
+    private func setupTextTypeButton() {
+        // テキストタイプボタン（水平スクロールバーの左端に配置）
+        let button = NSButton(frame: NSRect(x: 0, y: 0, width: 36, height: 15))
+        button.title = "Plain"
+        button.setButtonType(.momentaryLight)
+        button.bezelStyle = .smallSquare
+        button.isBordered = true
+        button.font = NSFont.systemFont(ofSize: 9)
+        button.target = nil
+        button.action = nil  // アクションは後で実装
+        button.refusesFirstResponder = true
+        button.toolTip = NSLocalizedString("Document type", comment: "Text type button tooltip")
+        addSubview(button)
+        textTypeButton = button
+    }
+
+    /// テキストタイプボタンのタイトルを更新
+    /// - Parameter isRichText: trueの場合は"Rich"、falseの場合は"Plain"を表示
+    func updateTextTypeButton(isRichText: Bool) {
+        textTypeButton?.title = isRichText ? "Rich" : "Plain"
+    }
+
     // MARK: - Live Resize
 
     override func viewDidEndLiveResize() {
@@ -183,6 +211,24 @@ class ScalingScrollView: NSScrollView {
         verticalScrollerFrame.size.height -= buttonHeight
         verticalScroller.frame = verticalScrollerFrame
         splitVertButton.frame = buttonFrame
+
+        // テキストタイプボタン - 水平スクロールバーの左端に配置
+        if let horizontalScroller = horizontalScroller,
+           let textTypeButton = textTypeButton {
+            var horizontalScrollerFrame = horizontalScroller.frame
+            let textTypeButtonWidth = textTypeButton.frame.width
+
+            // テキストタイプボタンのフレームを設定
+            var textTypeButtonFrame = horizontalScrollerFrame
+            textTypeButtonFrame.size.width = textTypeButtonWidth
+            textTypeButtonFrame.size.height = horizontalScrollerFrame.height
+            textTypeButton.frame = textTypeButtonFrame
+
+            // 水平スクロールバーを右にずらす
+            horizontalScrollerFrame.origin.x += textTypeButtonWidth
+            horizontalScrollerFrame.size.width -= textTypeButtonWidth
+            horizontalScroller.frame = horizontalScrollerFrame
+        }
     }
 
     // MARK: - Appearance Change
