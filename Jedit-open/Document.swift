@@ -199,6 +199,10 @@ class Document: NSDocument {
         if presetData != nil, let editorWC = windowController as? EditorWindowController {
             editorWC.applyPresetData()
         }
+
+        // ウィンドウ復元のために復元状態を保存対象としてマーク
+        invalidateRestorableState()
+        windowController.window?.invalidateRestorableState()
     }
 
     // MARK: - Helper Methods
@@ -1215,6 +1219,11 @@ class Document: NSDocument {
 
         // まず通常のファイル読み込みを行う
         try super.read(from: url, ofType: typeName)
+
+        // Open Recent に登録（nonisolatedコンテキストのため明示的に呼び出す）
+        MainActor.assumeIsolated {
+            NSDocumentController.shared.noteNewRecentDocumentURL(url)
+        }
 
         // 拡張属性からプリセットデータのJSONを読み込む
         if let jsonData = Document.readPresetDataRaw(at: url) {

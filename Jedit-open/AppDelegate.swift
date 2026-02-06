@@ -37,11 +37,32 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             name: .documentPresetsDidChange,
             object: nil
         )
+
+        // ドキュメントの開閉を監視して、開いているドキュメントのURLリストを随時保存
+        // （強制終了やクラッシュ時にも復元できるようにするため）
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentListDidChange(_:)),
+            name: NSWindow.didBecomeMainNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentListDidChange(_:)),
+            name: NSWindow.willCloseNotification,
+            object: nil
+        )
+
+        // 前回開いていたドキュメントを復元
+        restoreOpenDocuments()
     }
 
     func applicationWillTerminate(_ aNotification: Notification) {
         // 全ての開いているドキュメントの presetData を保存
         saveAllDocumentsPresetData()
+
+        // 開いているドキュメントのURLをUserDefaultsに保存（次回起動時の復元用）
+        saveOpenDocumentURLs()
     }
 
     /// 全ての開いているドキュメントの presetData を拡張属性に保存
@@ -64,6 +85,62 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
             // 拡張属性に保存
             doc.savePresetDataToExtendedAttribute(at: url)
+        }
+    }
+
+    /// ドキュメントの開閉時に呼ばれる（開いているドキュメントのURLリストを更新）
+    @objc private func documentListDidChange(_ notification: Notification) {
+        saveOpenDocumentURLs()
+    }
+
+    /// 開いているドキュメントのURLをUserDefaultsに保存
+    private func saveOpenDocumentURLs() {
+        let urls = NSDocumentController.shared.documents.compactMap { document -> String? in
+            guard let doc = document as? Document,
+                  let url = doc.fileURL else { return nil }
+            // セキュリティスコープ付きブックマークデータとしてURLを保存
+            do {
+                let bookmarkData = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
+                return bookmarkData.base64EncodedString()
+            } catch {
+                // ブックマークが作れない場合はパスで保存
+                return url.path
+            }
+        }
+        UserDefaults.standard.set(urls, forKey: UserDefaults.Keys.openDocumentURLs)
+    }
+
+    /// 前回開いていたドキュメントを復元
+    private func restoreOpenDocuments() {
+        guard let savedURLs = UserDefaults.standard.stringArray(forKey: UserDefaults.Keys.openDocumentURLs),
+              !savedURLs.isEmpty else {
+            return
+        }
+
+        // 保存されたURLリストをクリア（復元は一度だけ）
+        UserDefaults.standard.removeObject(forKey: UserDefaults.Keys.openDocumentURLs)
+
+        // Shiftキーが押されている場合は復元をスキップ（壊れたファイルによるフリーズ対策）
+        if NSEvent.modifierFlags.contains(.shift) {
+            return
+        }
+
+        for savedURL in savedURLs {
+            // まずブックマークとして復元を試みる
+            if let bookmarkData = Data(base64Encoded: savedURL) {
+                var isStale = false
+                if let url = try? URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale) {
+                    _ = url.startAccessingSecurityScopedResource()
+                    NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
+                    continue
+                }
+            }
+
+            // ブックマーク復元に失敗した場合はパスとして扱う
+            let url = URL(fileURLWithPath: savedURL)
+            if FileManager.default.fileExists(atPath: savedURL) {
+                NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
+            }
         }
     }
 

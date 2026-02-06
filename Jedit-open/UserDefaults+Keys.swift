@@ -48,6 +48,9 @@ extension UserDefaults {
         static let convertOverlineToTilde = "JOConvertOverlineToTilde"
         static let convertFullWidthTilde = "JOConvertFullWidthTidle"
 
+        // Window Restoration
+        static let openDocumentURLs = "OpenDocumentURLs"
+
         // Line Breaking
         static let cantBeTopChars = "CantBeTopChars"
         static let cantBeEndChars = "CantBeEndChars"

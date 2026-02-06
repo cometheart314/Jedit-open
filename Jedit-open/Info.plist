@@ -40,6 +40,8 @@
 	<string></string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
+	<key>NSQuitAlwaysKeepsWindows</key>
+	<true/>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>
