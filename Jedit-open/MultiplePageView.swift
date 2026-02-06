@@ -237,8 +237,12 @@ class MultiplePageView: NSView {
     /// テキストコンテナのサイズ
     /// 縦書き時は幅と高さを入れ替える（テキストの流れる方向が変わるため）
     var documentSizeInPage: NSSize {
-        let width = pageWidth - leftMargin - rightMargin
-        let height = pageHeight - topMargin - bottomMargin
+        // lineFragmentPadding分を加算して、ContinuousモードのPaper Widthと同じ折り返し幅にする
+        // TextContainerはlineFragmentPadding（デフォルト5.0）を内側余白として使用するため、
+        // その分をコンテナサイズに加算しないと実質的なテキスト描画幅が狭くなる
+        let padding: CGFloat = 5.0  // NSTextContainer.lineFragmentPadding のデフォルト値
+        let width = pageWidth - leftMargin - rightMargin + (padding * 2)
+        let height = pageHeight - topMargin - bottomMargin + (padding * 2)
         if isVerticalLayout {
             return NSSize(width: height, height: width)
         } else {
@@ -469,25 +473,29 @@ class MultiplePageView: NSView {
 
         case .paragraph:
             // 前のページまでのパラグラフ数をカウント
+            // ページ0の先頭から現在のページの直前までの文字範囲内のパラグラフ数を数える
             if pageNumber > 0, let textStorage = layoutManager.textStorage {
-                var paragraphCount = 0
-                for i in 0..<pageNumber {
-                    let container = layoutManager.textContainers[i]
-                    let containerGlyphRange = layoutManager.glyphRange(for: container)
-                    if containerGlyphRange.length > 0 {
-                        let charRange = layoutManager.characterRange(forGlyphRange: containerGlyphRange, actualGlyphRange: nil)
-                        if charRange.length > 0 {
-                            let rangeEnd = min(charRange.location + charRange.length, textStorage.length)
-                            let searchRange = NSRange(location: 0, length: rangeEnd)
-                            if let stringRange = Range(searchRange, in: textStorage.string) {
-                                textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { _, _, _, _ in
-                                    paragraphCount += 1
-                                }
-                            }
+                let firstContainer = layoutManager.textContainers[0]
+                let firstGlyphRange = layoutManager.glyphRange(for: firstContainer)
+                let firstCharRange = layoutManager.characterRange(forGlyphRange: firstGlyphRange, actualGlyphRange: nil)
+
+                let prevContainer = layoutManager.textContainers[pageNumber - 1]
+                let prevGlyphRange = layoutManager.glyphRange(for: prevContainer)
+                let prevCharRange = layoutManager.characterRange(forGlyphRange: prevGlyphRange, actualGlyphRange: nil)
+
+                let rangeStart = firstCharRange.location
+                let rangeEnd = min(prevCharRange.location + prevCharRange.length, textStorage.length)
+
+                if rangeEnd > rangeStart {
+                    let searchRange = NSRange(location: rangeStart, length: rangeEnd - rangeStart)
+                    if let stringRange = Range(searchRange, in: textStorage.string) {
+                        var paragraphCount = 0
+                        textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { _, _, _, _ in
+                            paragraphCount += 1
                         }
+                        startingNumber = paragraphCount + 1
                     }
                 }
-                startingNumber = paragraphCount + 1
             }
 
             // このページのパラグラフ番号を描画

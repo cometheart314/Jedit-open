@@ -2265,33 +2265,37 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ルーラーの設定
         if let firstTextView = textViews.first {
             firstTextView.usesRuler = true
+            firstTextView.isRulerVisible = isRulerVisible
 
-            let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
-            if let ruler = ruler {
-                ruler.clientView = firstTextView
-                // ページモードでは、ルーラーの0地点をテキストの開始位置に合わせる
-                // 縦書き: topMargin、横書き: leftMargin + lineFragmentPadding
-                let lineFragmentPadding = firstTextView.textContainer?.lineFragmentPadding ?? 5.0
-                let marginOffset = isVerticalLayout ? pageTopMargin : pageLeftMargin
-                ruler.originOffset = marginOffset + lineFragmentPadding
-                // ルーラーの単位を設定
-                configureRulerUnit(ruler)
+            if isRulerVisible {
+                let ruler = isVerticalLayout ? scrollView.verticalRulerView : scrollView.horizontalRulerView
+                if let ruler = ruler {
+                    ruler.clientView = firstTextView
+                    // ページモードでは、ルーラーの0地点をテキストの開始位置に合わせる
+                    // 縦書き: topMargin、横書き: leftMargin + lineFragmentPadding
+                    let lineFragmentPadding = firstTextView.textContainer?.lineFragmentPadding ?? 5.0
+                    let marginOffset = isVerticalLayout ? pageTopMargin : pageLeftMargin
+                    ruler.originOffset = marginOffset + lineFragmentPadding
+                    // ルーラーの単位を設定
+                    configureRulerUnit(ruler)
 
-                // プレーンテキストの場合はルーラーのアクセサリビュー（段落スタイルコントロール）を非表示
-                if textDocument?.documentType == .plain {
-                    ruler.accessoryView = nil
-                    ruler.reservedThicknessForAccessoryView = 0
+                    // プレーンテキストの場合はルーラーのアクセサリビュー（段落スタイルコントロール）を非表示
+                    if textDocument?.documentType == .plain {
+                        ruler.accessoryView = nil
+                        ruler.reservedThicknessForAccessoryView = 0
+                    }
                 }
+                if isFirstResponder {
+                    window?.makeFirstResponder(firstTextView)
+                }
+                firstTextView.updateRuler()
             }
-            if isFirstResponder {
-                window?.makeFirstResponder(firstTextView)
-            }
-            firstTextView.updateRuler()
         }
 
         // 他のテキストビューにも設定
         for textView in textViews.dropFirst() {
             textView.usesRuler = true
+            textView.isRulerVisible = isRulerVisible
         }
     }
 
