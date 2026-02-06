@@ -115,8 +115,8 @@ final class EncodingDetector: Sendable {
     ///   - suggestedEncodings: 候補となるエンコーディングのリスト
     ///   - allowUserSelection: 信頼度が低い場合にユーザーに選択を求めるかどうか（デフォルト: true）
     /// - Returns: 判定結果
-    nonisolated func detectAndDecode(from data: Data, fileURL: URL? = nil, suggestedEncodings: [String.Encoding]? = nil, allowUserSelection: Bool = true) -> EncodingDetectionOutcome {
-        let results = detectEncodings(from: data, fileURL: fileURL, suggestedEncodings: suggestedEncodings)
+    nonisolated func detectAndDecode(from data: Data, fileURL: URL? = nil, suggestedEncodings: [String.Encoding]? = nil, allowUserSelection: Bool = true, precomputedResults: [EncodingDetectionResult]? = nil) -> EncodingDetectionOutcome {
+        let results = precomputedResults ?? detectEncodings(from: data, fileURL: fileURL, suggestedEncodings: suggestedEncodings)
 
         guard let bestResult = results.first else {
             // フォールバック: ISO Latin-1
@@ -418,9 +418,18 @@ final class EncodingDetector: Sendable {
 
         var score: Int32 = 50 // 基本スコア
 
-        // Unicode置換文字（U+FFFD）の数をチェック
-        let replacementCount = string.filter { $0 == "\u{FFFD}" }.count
-        let totalLength = string.count
+        // 1回のループで置換文字と制御文字の両方をカウント（string.filterによる配列生成を回避）
+        var replacementCount = 0
+        var invalidControlCount = 0
+        var totalLength = 0
+        for scalar in string.unicodeScalars {
+            totalLength += 1
+            if scalar == "\u{FFFD}" {
+                replacementCount += 1
+            } else if scalar.value < 32 && scalar != "\n" && scalar != "\r" && scalar != "\t" && scalar != "\u{0C}" {
+                invalidControlCount += 1
+            }
+        }
 
         if replacementCount > 0 {
             let ratio = Double(replacementCount) / Double(totalLength)
@@ -430,13 +439,6 @@ final class EncodingDetector: Sendable {
             score -= Int32(ratio * 100)
         }
 
-        // 制御文字のチェック
-        let allowedControlChars: Set<Character> = ["\n", "\r", "\t", "\u{0C}"]
-        let invalidControlCount = string.filter { char in
-            guard let scalar = char.unicodeScalars.first else { return false }
-            return scalar.value < 32 && !allowedControlChars.contains(char)
-        }.count
-
         if invalidControlCount > 0 {
             let ratio = Double(invalidControlCount) / Double(totalLength)
             if ratio > 0.05 {
@@ -445,8 +447,15 @@ final class EncodingDetector: Sendable {
             score -= Int32(ratio * 100)
         }
 
-        // 再エンコードテスト（マルチバイトエンコーディングの場合）
-        if let reencoded = string.data(using: encoding) {
+        // 再エンコードテスト
+        // UTF-8の場合はBOMを除いたデータサイズとUTF-8バイト数の比較で簡略化
+        if encoding == .utf8 {
+            let utf8Count = string.utf8.count
+            let dataSize = data.count - (hasBOM(data) ? 3 : 0)
+            if utf8Count == dataSize {
+                score += 30
+            }
+        } else if let reencoded = string.data(using: encoding) {
             if reencoded == data {
                 score += 30 // 完全一致でボーナス
             } else if reencoded.count == data.count {

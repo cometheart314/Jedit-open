@@ -763,23 +763,32 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 既存のテキストにもパラグラフスタイルを適用（既存のスタイルを保持しつつ設定を更新）
         // applyToExistingTextがfalseの場合はスキップ（Undo対応の別メソッドで適用する）
         if applyToExistingText, let textStorage = textDocument?.textStorage, textStorage.length > 0 {
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            let isPlainText = textDocument?.documentType == .plain
+
             textStorage.beginEditing()
-            textStorage.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: textStorage.length), options: []) { value, range, _ in
-                let newStyle: NSMutableParagraphStyle
-                if let existingStyle = value as? NSParagraphStyle {
-                    newStyle = existingStyle.mutableCopy() as! NSMutableParagraphStyle
-                } else {
-                    newStyle = NSMutableParagraphStyle()
+            if isPlainText {
+                // プレーンテキストの場合は全範囲に一括で設定（enumerateAttribute不要）
+                textStorage.addAttribute(.paragraphStyle, value: defaultParagraphStyle, range: fullRange)
+            } else {
+                // リッチテキストの場合は既存のスタイルを保持しつつ設定を更新
+                textStorage.enumerateAttribute(.paragraphStyle, in: fullRange, options: []) { value, range, _ in
+                    let newStyle: NSMutableParagraphStyle
+                    if let existingStyle = value as? NSParagraphStyle {
+                        newStyle = existingStyle.mutableCopy() as! NSMutableParagraphStyle
+                    } else {
+                        newStyle = NSMutableParagraphStyle()
+                    }
+                    newStyle.defaultTabInterval = tabWidthPoints
+                    newStyle.tabStops = []
+                    newStyle.lineHeightMultiple = lineHeightMultiple
+                    newStyle.minimumLineHeight = lineHeightMinimum
+                    newStyle.maximumLineHeight = lineHeightMaximum
+                    newStyle.lineSpacing = interLineSpacing
+                    newStyle.paragraphSpacingBefore = paragraphSpacingBefore
+                    newStyle.paragraphSpacing = paragraphSpacingAfter
+                    textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
                 }
-                newStyle.defaultTabInterval = tabWidthPoints
-                newStyle.tabStops = []
-                newStyle.lineHeightMultiple = lineHeightMultiple
-                newStyle.minimumLineHeight = lineHeightMinimum
-                newStyle.maximumLineHeight = lineHeightMaximum
-                newStyle.lineSpacing = interLineSpacing
-                newStyle.paragraphSpacingBefore = paragraphSpacingBefore
-                newStyle.paragraphSpacing = paragraphSpacingAfter
-                textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
             }
             textStorage.endEditing()
         }
@@ -1007,6 +1016,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         for _ in 0..<numberOfViews {
             let layoutManager = InvisibleCharacterLayoutManager()
             layoutManager.invisibleCharacterOptions = invisibleCharacterOptions
+            layoutManager.allowsNonContiguousLayout = true
             textStorage.addLayoutManager(layoutManager)
             layoutManagers.append(layoutManager)
         }

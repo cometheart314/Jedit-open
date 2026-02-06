@@ -825,7 +825,7 @@ class Document: NSDocument {
             Swift.print("-------------------------------")
             #endif
 
-            let outcome = EncodingDetector.shared.detectAndDecode(from: data, fileURL: currentFileURL)
+            let outcome = EncodingDetector.shared.detectAndDecode(from: data, fileURL: currentFileURL, precomputedResults: allCandidates)
 
             switch outcome {
             case .success(let encoding, let string):
