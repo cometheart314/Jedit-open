@@ -12,6 +12,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     private var preferencesWindowController: PreferencesWindowController?
     private var hasHandledStartup = false
+    private var isTerminating = false
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // UserDefaultsのデフォルト値を登録
@@ -57,12 +58,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         restoreOpenDocuments()
     }
 
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        // 終了処理開始：ウィンドウが閉じられてもURLリストを上書きしないようにする
+        isTerminating = true
+
+        // 終了前に現在開いているドキュメントのURLを保存
+        saveOpenDocumentURLs()
+
+        return .terminateNow
+    }
+
     func applicationWillTerminate(_ aNotification: Notification) {
         // 全ての開いているドキュメントの presetData を保存
         saveAllDocumentsPresetData()
-
-        // 開いているドキュメントのURLをUserDefaultsに保存（次回起動時の復元用）
-        saveOpenDocumentURLs()
     }
 
     /// 全ての開いているドキュメントの presetData を拡張属性に保存
@@ -90,6 +98,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// ドキュメントの開閉時に呼ばれる（開いているドキュメントのURLリストを更新）
     @objc private func documentListDidChange(_ notification: Notification) {
+        // アプリ終了処理中はスキップ（ウィンドウが順次閉じられてリストが空になるのを防ぐ）
+        guard !isTerminating else { return }
         saveOpenDocumentURLs()
     }
 
