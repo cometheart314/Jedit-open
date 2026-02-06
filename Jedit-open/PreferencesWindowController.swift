@@ -47,6 +47,11 @@ class PreferencesWindowController: NSWindowController {
                 title: "Encodings",
                 icon: NSImage(named: "encodingIcon") ?? NSImage(systemSymbolName: "textformat", accessibilityDescription: nil)!,
                 identifier: "encodings"
+            ),
+            PreferenceCategory(
+                title: "Line Breaking",
+                icon: NSImage(systemSymbolName: "return", accessibilityDescription: nil)!,
+                identifier: "lineBreaking"
             )
         ]
     }
@@ -132,6 +137,8 @@ class PreferencesWindowController: NSWindowController {
             return NewDocumentsPreferencesViewController(nibName: "NewDocumentsPreferences", bundle: nil)
         case "encodings":
             return EncodingsPreferencesViewController(nibName: "EncodingsPreferences", bundle: nil)
+        case "lineBreaking":
+            return LineBreakingPreferencesViewController(nibName: "LineBreakingPreferences", bundle: nil)
         default:
             return NSViewController()
         }

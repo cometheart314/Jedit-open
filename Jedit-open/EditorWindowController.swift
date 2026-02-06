@@ -476,6 +476,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let formatData = presetData.format
         isVerticalLayout = (formatData.editingDirection == .rightToLeft)
 
+        // TextStorageに行折り返しタイプを設定（setupTextViewsの前に設定する必要がある）
+        if let textStorage = textDocument?.textStorage {
+            textStorage.setLineBreakingType(presetData.format.wordWrappingType.rawValue)
+        }
+
         // テキストビューを再セットアップ（上記の設定を反映）
         if let textStorage = textDocument?.textStorage {
             setupTextViews(with: textStorage)
