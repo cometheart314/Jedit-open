@@ -659,23 +659,51 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// フォントをテキストビューに適用
     private func applyFontToTextViews(_ font: NSFont) {
+        let isPlainText = textDocument?.documentType == .plain
+
         // Continuous モードの場合
         if let scrollView = scrollView1,
            let textView = scrollView.documentView as? NSTextView {
-            textView.font = font
+            if isPlainText {
+                // プレーンテキスト: textStorage全体のフォントを設定
+                textView.font = font
+            } else {
+                // リッチテキスト: typingAttributesのみ更新（既存の属性を保持）
+                var attrs = textView.typingAttributes
+                attrs[.font] = font
+                textView.typingAttributes = attrs
+            }
         }
         if let scrollView = scrollView2,
            !scrollView.isHidden,
            let textView = scrollView.documentView as? NSTextView {
-            textView.font = font
+            if isPlainText {
+                textView.font = font
+            } else {
+                var attrs = textView.typingAttributes
+                attrs[.font] = font
+                textView.typingAttributes = attrs
+            }
         }
 
         // Page モードの場合
         for textView in textViews1 {
-            textView.font = font
+            if isPlainText {
+                textView.font = font
+            } else {
+                var attrs = textView.typingAttributes
+                attrs[.font] = font
+                textView.typingAttributes = attrs
+            }
         }
         for textView in textViews2 {
-            textView.font = font
+            if isPlainText {
+                textView.font = font
+            } else {
+                var attrs = textView.typingAttributes
+                attrs[.font] = font
+                textView.typingAttributes = attrs
+            }
         }
     }
 
@@ -2630,6 +2658,302 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         markDocumentAsEdited()
     }
 
+    // MARK: - Plain/Rich Text Toggle
+
+    @IBAction func toggleRichText(_ sender: Any?) {
+        guard let document = textDocument else { return }
+        let isRich = document.documentType != .plain
+
+        // Rich → Plain で情報が失われる場合はアラートを表示
+        if isRich && toggleRichWillLoseInformation() {
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString("Convert this document to plain text?", comment: "Title of alert confirming Make Plain Text")
+            alert.informativeText = NSLocalizedString("Making a rich text document plain will lose all text styles (such as fonts and colors), and images.", comment: "Subtitle of alert confirming Make Plain Text")
+            alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK"))
+            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel"))
+            alert.beginSheetModal(for: self.window!) { response in
+                if response == .alertFirstButtonReturn {
+                    self.performToggleRichText(newFileType: nil)
+                }
+            }
+        } else {
+            performToggleRichText(newFileType: nil)
+        }
+    }
+
+    /// リッチテキスト→プレーンテキストに変換するときに情報が失われるかどうかを判定
+    private func toggleRichWillLoseInformation() -> Bool {
+        guard let document = textDocument else { return false }
+        let textStorage = document.textStorage
+        let length = textStorage.length
+        guard document.documentType != .plain, length > 0 else { return false }
+
+        // プリセットからデフォルトの属性を構築
+        var defaultAttrs: [NSAttributedString.Key: Any] = [:]
+        if let fontData = document.presetData?.fontAndColors,
+           let font = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+            defaultAttrs[.font] = font
+        }
+        if let colors = document.presetData?.fontAndColors.colors {
+            defaultAttrs[.foregroundColor] = colors.character.nsColor
+        }
+
+        var range = NSRange()
+        let attrs = textStorage.attributes(at: 0, effectiveRange: &range)
+
+        // 属性が全体に統一されていない場合は情報が失われる
+        if range.length < length {
+            return true
+        }
+
+        // アタッチメントが含まれている場合は情報が失われる
+        if textStorage.containsAttachments {
+            return true
+        }
+
+        // フォントがデフォルトと異なる場合は情報が失われる
+        if let defaultFont = defaultAttrs[NSAttributedString.Key.font] as? NSFont,
+           let existingFont = attrs[NSAttributedString.Key.font] as? NSFont,
+           defaultFont != existingFont {
+            return true
+        }
+
+        return false
+    }
+
+    /// 実際のリッチ/プレーン切り替えを実行する（Undo対応）
+    private func performToggleRichText(newFileType: String?) {
+        guard let document = textDocument else { return }
+        let isRich = document.documentType != .plain
+        let textStorage = document.textStorage
+
+        guard let undoManager = document.undoManager else { return }
+        undoManager.beginUndoGrouping()
+
+        // Undo用に元のファイルタイプを記録
+        let oldFileType: String
+        if isRich {
+            oldFileType = textStorage.containsAttachments || document.documentType == .rtfd
+                ? "com.apple.rtfd" : "public.rtf"
+        } else {
+            oldFileType = "public.plain-text"
+        }
+        undoManager.registerUndo(withTarget: self) { [weak self] target in
+            self?.performToggleRichText(newFileType: oldFileType)
+        }
+
+        // テキストビューのリッチテキスト関連プロパティを更新
+        updateForRichTextState(!isRich)
+
+        // テキスト属性を変換
+        convertTextForRichTextState(!isRich, removeAttachments: isRich)
+
+        // ドキュメントタイプを切り替え
+        if isRich {
+            // Rich → Plain
+            document.documentType = .plain
+
+            // プレーンテキスト用のエンコーディング・改行コード・BOMをデフォルトに設定
+            document.documentEncoding = .utf8
+            document.lineEnding = .lf
+            document.hasBOM = false
+
+            // presetDataを更新
+            document.presetData?.format.richText = false
+            document.presetData?.format.fileExtension = "txt"
+        } else {
+            // Plain → Rich
+            let type = newFileType ?? "public.rtf"
+            document.documentType = (type == "com.apple.rtfd") ? .rtfd : .rtf
+
+            // presetDataを更新
+            document.presetData?.format.richText = true
+        }
+
+        // Undoアクション名を設定
+        let actionName: String
+        if undoManager.isUndoing != isRich {
+            // Undo中なら逆のアクション名
+            actionName = NSLocalizedString("Make Plain Text", comment: "Undo action name for making a document plain text")
+        } else {
+            actionName = NSLocalizedString("Make Rich Text", comment: "Undo action name for making a document rich text")
+        }
+        undoManager.setActionName(actionName)
+
+        undoManager.endUndoGrouping()
+
+        // ファイルタイプを更新
+        // テキストタイプが変わるため、元のfileURLへのautosaveは行わず
+        // fileURLをクリアして新規ドキュメント扱いにする（ユーザーが「名前を付けて保存」で保存する）
+        let targetFileType = newFileType ?? (isRich ? "public.plain-text" : "public.rtf")
+        if document.fileURL != nil {
+            document.fileURL = nil
+        }
+        document.fileType = targetFileType
+
+        // 通知を発行してUIを更新
+        NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+
+        // テキストビューを再構築してUIを完全に更新
+        setupTextViews(with: textStorage)
+
+        document.presetDataEdited = true
+    }
+
+    /// テキストビューのリッチテキスト関連プロパティを更新する
+    private func updateForRichTextState(_ rich: Bool) {
+        // リッチテキストで縦書きの場合はインスペクタバーを強制表示
+        if rich && isVerticalLayout && displayMode == .continuous {
+            isInspectorBarVisible = true
+        }
+
+        // Continuousモード
+        if let scrollView = scrollView1,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.isRichText = rich
+            textView.usesRuler = rich
+            textView.importsGraphics = rich
+        }
+        if let scrollView = scrollView2,
+           !scrollView.isHidden,
+           let textView = scrollView.documentView as? NSTextView {
+            textView.isRichText = rich
+            textView.usesRuler = rich
+            textView.importsGraphics = rich
+        }
+
+        // Pageモード
+        for textView in textViews1 {
+            textView.isRichText = rich
+            textView.usesRuler = rich
+            textView.importsGraphics = rich
+        }
+        for textView in textViews2 {
+            textView.isRichText = rich
+            textView.usesRuler = rich
+            textView.importsGraphics = rich
+        }
+    }
+
+    /// テキスト属性をリッチ/プレーンに合わせて変換する
+    private func convertTextForRichTextState(_ rich: Bool, removeAttachments: Bool) {
+        guard let document = textDocument else { return }
+        let textStorage = document.textStorage
+        guard let undoManager = document.undoManager else { return }
+
+        // デフォルトの属性を構築
+        var textAttributes: [NSAttributedString.Key: Any] = [:]
+        if let fontData = document.presetData?.fontAndColors,
+           let font = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
+            textAttributes[.font] = font
+        } else {
+            let fallbackFont: NSFont = NSFont.userFont(ofSize: 0) ?? NSFont.systemFont(ofSize: 13)
+            textAttributes[.font] = fallbackFont
+        }
+
+        if let colors = document.presetData?.fontAndColors.colors {
+            textAttributes[.foregroundColor] = colors.character.nsColor
+        } else {
+            textAttributes[.foregroundColor] = NSColor.textColor
+        }
+
+        // デフォルトのパラグラフスタイルをpresetDataから構築
+        let formatData = document.presetData?.format
+        let tabWidth: CGFloat = {
+            if let fmt = formatData {
+                return fmt.tabWidthUnit == .points ? fmt.tabWidthPoints : 28.0
+            }
+            return 28.0
+        }()
+
+        let paraStyle = NSMutableParagraphStyle()
+        paraStyle.defaultTabInterval = tabWidth
+        paraStyle.tabStops = []
+        paraStyle.lineHeightMultiple = formatData?.lineHeightMultiple ?? 1.0
+        paraStyle.minimumLineHeight = formatData?.lineHeightMinimum ?? 0
+        paraStyle.maximumLineHeight = formatData?.lineHeightMaximum ?? 0
+        paraStyle.lineSpacing = formatData?.interLineSpacing ?? 0
+        paraStyle.paragraphSpacingBefore = formatData?.paragraphSpacingBefore ?? 0
+        paraStyle.paragraphSpacing = formatData?.paragraphSpacingAfter ?? 0
+        textAttributes[.paragraphStyle] = paraStyle
+
+        // Undo/Redo時はテキスト変換をスキップ（textView自身がUndo処理を行う）
+        if !undoManager.isUndoing && !undoManager.isRedoing {
+            // アタッチメントの除去（Rich → Plain）
+            if !rich && removeAttachments {
+                self.removeAttachments(from: textStorage)
+            }
+
+            // 属性を一括適用
+            let range = NSRange(location: 0, length: textStorage.length)
+            if let textView = currentTextView() ?? (scrollView1?.documentView as? NSTextView) {
+                if textView.shouldChangeText(in: range, replacementString: nil) {
+                    textStorage.beginEditing()
+                    // 書字方向を保持しながら属性を適用
+                    textStorage.enumerateAttribute(.paragraphStyle, in: range, options: []) { value, paragraphRange, _ in
+                        let writingDirection: NSWritingDirection = (value as? NSParagraphStyle)?.baseWritingDirection ?? .natural
+                        textStorage.enumerateAttribute(.writingDirection, in: paragraphRange, options: []) { dirValue, attrRange, _ in
+                            textStorage.setAttributes(textAttributes, range: attrRange)
+                            if let dirValue = dirValue {
+                                textStorage.addAttribute(.writingDirection, value: dirValue, range: attrRange)
+                            }
+                        }
+                        if writingDirection != .natural {
+                            textStorage.setBaseWritingDirection(writingDirection, range: paragraphRange)
+                        }
+                    }
+                    textStorage.endEditing()
+                    textView.didChangeText()
+                }
+            }
+        }
+
+        // typingAttributesとdefaultParagraphStyleを更新
+        let allTextViews: [NSTextView] = {
+            var views: [NSTextView] = []
+            if let tv = scrollView1?.documentView as? NSTextView { views.append(tv) }
+            if let tv = scrollView2?.documentView as? NSTextView { views.append(tv) }
+            views.append(contentsOf: textViews1)
+            views.append(contentsOf: textViews2)
+            return views
+        }()
+
+        for textView in allTextViews {
+            textView.typingAttributes = textAttributes
+            textView.defaultParagraphStyle = paraStyle
+        }
+    }
+
+    /// テキストストレージからアタッチメント文字を除去する
+    private func removeAttachments(from textStorage: NSTextStorage) {
+        var loc = 0
+        let textView = currentTextView() ?? (scrollView1?.documentView as? NSTextView)
+
+        textStorage.beginEditing()
+        while loc < textStorage.length {
+            var attachmentRange = NSRange()
+            let attachment = textStorage.attribute(.attachment, at: loc, longestEffectiveRange: &attachmentRange, in: NSRange(location: loc, length: textStorage.length - loc))
+            if attachment != nil {
+                let ch = (textStorage.string as NSString).character(at: loc)
+                if ch == unichar(NSTextAttachment.character) {
+                    if let textView = textView,
+                       textView.shouldChangeText(in: NSRange(location: loc, length: 1), replacementString: "") {
+                        textStorage.replaceCharacters(in: NSRange(location: loc, length: 1), with: "")
+                        textView.didChangeText()
+                    } else {
+                        textStorage.replaceCharacters(in: NSRange(location: loc, length: 1), with: "")
+                    }
+                    // lengthが変わったのでlocは進めない
+                } else {
+                    loc += 1
+                }
+            } else {
+                loc = NSMaxRange(attachmentRange)
+            }
+        }
+        textStorage.endEditing()
+    }
+
     // MARK: - Layout Orientation Actions
 
     @IBAction func toggleLayoutOrientation(_ sender: Any?) {
@@ -3354,6 +3678,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
         if menuItem.action == #selector(toggleShowVerticalTab(_:)) {
             menuItem.state = invisibleCharacterOptions.contains(.verticalTab) ? .on : .off
+        }
+
+        // Plain/Rich text toggle menu item validation
+        if menuItem.action == #selector(toggleRichText(_:)) {
+            let isPlainText = textDocument?.documentType == .plain
+            menuItem.title = isPlainText ? "Make Rich Text" : "Make Plain Text"
         }
 
         // Layout orientation menu item validation

@@ -919,6 +919,13 @@
                                     </items>
                                 </menu>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="txt-fmt-sep"/>
+                            <menuItem title="Make Rich Text" id="txt-fmt-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="toggleRichText:" target="-1" id="txt-fmt-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="lay-or-sep"/>
                             <menuItem title="Make Vertical Layout" id="lay-or-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>

@@ -1707,10 +1707,16 @@ class Document: NSDocument {
     /// ドキュメントの保存可能なタイプを返す
     /// documentTypeに応じて適切なファイルタイプを優先的に返す
     override nonisolated func writableTypes(for saveOperation: NSDocument.SaveOperationType) -> [String] {
-        // nonisolatedコンテキストからMainActor分離プロパティにアクセスできないため、
-        // デフォルトの順序を返す（RTFを優先）
-        // Note: documentTypeはMainActor分離されているため直接アクセスできない
-        return ["public.rtf", "com.apple.rtfd", "public.plain-text"]
+        // ドキュメントタイプに応じた順序で返す（現在のタイプを先頭にする）
+        let docType = MainActor.assumeIsolated { self.documentType }
+        switch docType {
+        case .plain:
+            return ["public.plain-text", "public.rtf", "com.apple.rtfd"]
+        case .rtfd:
+            return ["com.apple.rtfd", "public.rtf", "public.plain-text"]
+        default:
+            return ["public.rtf", "com.apple.rtfd", "public.plain-text"]
+        }
     }
 
     override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
