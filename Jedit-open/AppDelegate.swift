@@ -297,38 +297,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// Character Fore Color サブメニューを構築
     private func setupCharForeColorMenu(_ menu: NSMenu) {
-        let colorNames = ["Black", "Gray", "Silver", "White", "Maroon",
-                          "Red", "Purple", "Fuchsia", "Green", "Lime",
-                          "Olive", "Yellow", "Navy", "Blue", "Teal", "Aqua"]
-
-        let colors: [(CGFloat, CGFloat, CGFloat)] = [
-            (0, 0, 0),                      // Black
-            (0.5, 0.5, 0.5),                // Gray
-            (0.75, 0.75, 0.75),             // Silver
-            (1, 1, 1),                      // White
-            (0.5, 0, 0),                    // Maroon
-            (1, 0, 0),                      // Red
-            (0.5, 0, 0.5),                  // Purple
-            (1, 0, 1),                      // Fuchsia
-            (0, 0.5, 0),                    // Green
-            (0, 1, 0),                      // Lime
-            (0.5, 0.5, 0),                  // Olive
-            (1, 1, 0),                      // Yellow
-            (0, 0, 0.5),                    // Navy
-            (0, 0, 1),                      // Blue
-            (0, 0.5, 0.5),                  // Teal
-            (0, 1, 1)                       // Aqua
+        let colorEntries: [(String, NSColor)] = [
+            ("Text Color",  .textColor),
+            ("Red",         .systemRed),
+            ("Orange",      .systemOrange),
+            ("Yellow",      .systemYellow),
+            ("Green",       .systemGreen),
+            ("Mint",        .systemMint),
+            ("Teal",        .systemTeal),
+            ("Cyan",        .systemCyan),
+            ("Blue",        .systemBlue),
+            ("Indigo",      .systemIndigo),
+            ("Purple",      .systemPurple),
+            ("Pink",        .systemPink),
+            ("Brown",       .systemBrown),
+            ("Gray",        .systemGray),
         ]
 
-        for (index, name) in colorNames.enumerated() {
+        for (index, (name, color)) in colorEntries.enumerated() {
             let item = NSMenuItem(
                 title: NSLocalizedString(name, comment: "Color name"),
                 action: #selector(ImageClickableTextView.changeForeColor(_:)),
                 keyEquivalent: ""
             )
             item.tag = index
-            let (r, g, b) = colors[index]
-            let color = NSColor(calibratedRed: r, green: g, blue: b, alpha: 1.0)
             item.representedObject = color
             item.image = createColorSwatchImage(color: color)
             menu.addItem(item)
