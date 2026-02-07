@@ -146,7 +146,7 @@ class ScalingScrollView: NSScrollView {
         button.isBordered = true
         button.font = NSFont.systemFont(ofSize: 9)
         button.target = nil
-        button.action = nil  // アクションは後で実装
+        button.action = #selector(EditorWindowController.toggleRichText(_:))
         button.refusesFirstResponder = true
         button.toolTip = NSLocalizedString("Document type", comment: "Text type button tooltip")
         addSubview(button)

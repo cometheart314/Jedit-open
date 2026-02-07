@@ -450,6 +450,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             menuItem.target = self
             newSubmenu.addItem(menuItem)
         }
+
+        // セパレータとClipboard項目を追加
+        newSubmenu.addItem(NSMenuItem.separator())
+        let clipboardItem = NSMenuItem(
+            title: "Clipboard",
+            action: #selector(newDocumentFromClipboard(_:)),
+            keyEquivalent: ""
+        )
+        clipboardItem.target = self
+        newSubmenu.addItem(clipboardItem)
     }
 
     /// プリセットを使用して新規書類を作成
@@ -488,11 +498,101 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
     }
 
+    // MARK: - New Document from Clipboard
+
+    /// クリップボードにテキストや画像がペースト可能かどうかを判定
+    private func clipboardHasPasteableContent() -> Bool {
+        let pasteboard = NSPasteboard.general
+        let types: [NSPasteboard.PasteboardType] = [.rtfd, .rtf, .tiff, .png, .string]
+        return pasteboard.availableType(from: types) != nil
+    }
+
+    /// クリップボードの内容から新規書類を作成
+    @IBAction func newDocumentFromClipboard(_ sender: Any?) {
+        let pasteboard = NSPasteboard.general
+
+        // RTFD（画像含むリッチテキスト）を優先チェック
+        if let rtfdData = pasteboard.data(forType: .rtfd),
+           let attributedString = NSAttributedString(rtfd: rtfdData, documentAttributes: nil) {
+            createRichTextDocument(with: attributedString)
+            return
+        }
+
+        // RTF をチェック
+        if let rtfData = pasteboard.data(forType: .rtf),
+           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+            createRichTextDocument(with: attributedString)
+            return
+        }
+
+        // 画像データ（TIFF/PNG）をチェック
+        if let imageData = pasteboard.data(forType: .tiff) ?? pasteboard.data(forType: .png),
+           let image = NSImage(data: imageData) {
+            let attachment = NSTextAttachment()
+            let cell = NSTextAttachmentCell(imageCell: image)
+            attachment.attachmentCell = cell
+            let attributedString = NSAttributedString(attachment: attachment)
+            createRichTextDocument(with: attributedString)
+            return
+        }
+
+        // プレーンテキストをチェック
+        if let string = pasteboard.string(forType: .string) {
+            createPlainTextDocument(with: string)
+            return
+        }
+    }
+
+    /// Rich Text の新規書類を作成してAttributedStringを設定
+    private func createRichTextDocument(with attributedString: NSAttributedString) {
+        do {
+            guard let document = try NSDocumentController.shared.makeUntitledDocument(ofType: "public.plain-text") as? Document else { return }
+
+            document.applyPresetData(NewDocData.richText)
+            NSDocumentController.shared.addDocument(document)
+            document.makeWindowControllers()
+            document.showWindows()
+
+            // ウィンドウ表示後にコンテンツを設定
+            document.textStorage.setAttributedString(attributedString)
+
+            if let windowController = document.windowControllers.first as? EditorWindowController {
+                windowController.applyWindowFrameFromPreset()
+            }
+        } catch {
+            print("Error creating rich text document from clipboard: \(error)")
+        }
+    }
+
+    /// Plain Text の新規書類を作成してテキストを設定
+    private func createPlainTextDocument(with text: String) {
+        do {
+            guard let document = try NSDocumentController.shared.makeUntitledDocument(ofType: "public.plain-text") as? Document else { return }
+
+            document.applyPresetData(NewDocData.plainText)
+            NSDocumentController.shared.addDocument(document)
+            document.makeWindowControllers()
+            document.showWindows()
+
+            // ウィンドウ表示後にコンテンツを設定
+            document.textStorage.replaceCharacters(in: NSRange(location: 0, length: document.textStorage.length), with: text)
+
+            if let windowController = document.windowControllers.first as? EditorWindowController {
+                windowController.applyWindowFrameFromPreset()
+            }
+        } catch {
+            print("Error creating plain text document from clipboard: \(error)")
+        }
+    }
+
     // MARK: - NSMenuItemValidation
 
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if menuItem.action == #selector(newDocumentWithPreset(_:)) {
             return true
+        }
+        if menuItem.action == #selector(newDocumentFromClipboard(_:)) {
+            return clipboardHasPasteableContent()
         }
         return true
     }
