@@ -317,7 +317,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         for (index, (name, color)) in colorEntries.enumerated() {
             let item = NSMenuItem(
                 title: "",
-                action: #selector(ImageClickableTextView.changeForeColor(_:)),
+                action: #selector(JeditTextView.changeForeColor(_:)),
                 keyEquivalent: ""
             )
             item.tag = index
@@ -338,7 +338,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         let otherItem = NSMenuItem(
             title: NSLocalizedString("Other Color...", comment: "Other color menu item"),
-            action: #selector(ImageClickableTextView.orderFrontForeColorPanel(_:)),
+            action: #selector(JeditTextView.orderFrontForeColorPanel(_:)),
             keyEquivalent: ""
         )
         menu.addItem(otherItem)
@@ -361,7 +361,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         for (index, name) in colorNames.enumerated() {
             let item = NSMenuItem(
                 title: NSLocalizedString(name, comment: "Color name"),
-                action: #selector(ImageClickableTextView.changeBackColor(_:)),
+                action: #selector(JeditTextView.changeBackColor(_:)),
                 keyEquivalent: ""
             )
             item.tag = index
@@ -382,7 +382,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         let otherItem = NSMenuItem(
             title: NSLocalizedString("Other Color...", comment: "Other color menu item"),
-            action: #selector(ImageClickableTextView.orderFrontBackColorPanel(_:)),
+            action: #selector(JeditTextView.orderFrontBackColorPanel(_:)),
             keyEquivalent: ""
         )
         menu.addItem(otherItem)

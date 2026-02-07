@@ -151,7 +151,7 @@ class Document: NSDocument {
     }
 
     /// documentTypeに応じてNSDocumentのfileTypeを更新
-    private func updateFileTypeFromDocumentType() {
+    func updateFileTypeFromDocumentType() {
         switch documentType {
         case .rtf:
             fileType = "public.rtf"
@@ -432,19 +432,9 @@ class Document: NSDocument {
     }
 
     override func data(ofType typeName: String) throws -> Data {
-        // ドキュメントタイプを判定
-        let docType: NSAttributedString.DocumentType
-        switch typeName {
-        case "public.rtf":
-            docType = .rtf
-        case "com.apple.rtfd":
-            docType = .rtfd
-        default:
-            docType = .plain
-        }
-
-        // ドキュメントタイプを保存
-        self.documentType = docType
+        // 保存時は既存の documentType を使用する
+        // （autosave等で typeName が実際の書類タイプと異なる場合があるため）
+        let docType = self.documentType
 
         // ドキュメントタイプに応じて保存
         if docType == .plain {
@@ -1067,6 +1057,8 @@ class Document: NSDocument {
             if error == nil {
                 // 保存成功後にプリセットデータを拡張属性に書き込む
                 self?.writePresetDataToExtendedAttribute(at: url)
+                // Open Recent に登録
+                NSDocumentController.shared.noteNewRecentDocumentURL(url)
             }
             completionHandler(error)
         }

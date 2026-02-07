@@ -1,5 +1,5 @@
 //
-//  ImageClickableTextView.swift
+//  JeditTextView.swift
 //  Jedit-open
 //
 //  Custom NSTextView subclass that detects clicks on image attachments
@@ -7,9 +7,9 @@
 
 import Cocoa
 
-// MARK: - ImageClickableTextView
+// MARK: - JeditTextView
 
-class ImageClickableTextView: NSTextView {
+class JeditTextView: NSTextView {
 
     // MARK: - Properties
 
@@ -30,6 +30,12 @@ class ImageClickableTextView: NSTextView {
     /// updateRuler()の再入防止フラグ
     private var isUpdatingRuler: Bool = false
 
+    /// 画像添付ファイル上でドラッグ中かどうか
+    private var isDraggingImage: Bool = false
+
+    /// RTFD昇格済みフラグ（performDragOperationでアラート表示後にreadSelectionで再チェックしない）
+    private var rtfdUpgradeHandled: Bool = false
+
     /// Returns whether this document is plain text
     private var isPlainText: Bool {
         guard let windowController = window?.windowController as? EditorWindowController else {
@@ -41,6 +47,106 @@ class ImageClickableTextView: NSTextView {
     /// Returns whether substitutions should only apply to rich text
     private var richTextSubstitutionsOnly: Bool {
         return UserDefaults.standard.bool(forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
+    }
+
+    /// 同期的にdocumentTypeをRTFDに昇格させる（アラートなし）
+    /// readSelection(from:type:)のような同期メソッドから呼ばれる
+    /// ドラッグ＆ドロップ時は既にRTFDであるはずだが、念のため昇格を確認する
+    private func performUpgradeToRTFD() {
+        guard let windowController = window?.windowController as? EditorWindowController,
+              let document = windowController.textDocument else {
+            return
+        }
+
+        // すでにRTFDなら何もしない
+        if document.documentType == .rtfd {
+            return
+        }
+
+        // RTFの場合はサイレントに昇格
+        if document.documentType == .rtf {
+            document.documentType = .rtfd
+            document.updateFileTypeFromDocumentType()
+            // fileURLをクリアして次回保存時にSave Panelを表示させる（.rtfd拡張子で保存）
+            document.fileURL = nil
+            document.autosavedContentsFileURL = nil
+            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+        }
+    }
+
+    /// 画像挿入時にdocumentTypeをRTFDに昇格させる（必要に応じてアラートを表示）
+    /// - Parameter completion: 昇格が完了（または不要）した場合にtrueを渡して呼び出される。キャンセルの場合はfalse。
+    private func upgradeToRTFDIfNeeded(completion: @escaping (Bool) -> Void) {
+        guard let windowController = window?.windowController as? EditorWindowController,
+              let document = windowController.textDocument else {
+            completion(false)
+            return
+        }
+
+        // すでにRTFDなら何もしない
+        if document.documentType == .rtfd {
+            completion(true)
+            return
+        }
+
+        // RTFの場合はアラートを表示
+        guard document.documentType == .rtf else {
+            completion(false)
+            return
+        }
+
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
+        alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
+        alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
+        alert.addButton(withTitle: NSLocalizedString("Duplicate", comment: "Duplicate button"))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+
+        guard let parentWindow = window else {
+            completion(false)
+            return
+        }
+
+        alert.beginSheetModal(for: parentWindow) { response in
+            switch response {
+            case .alertFirstButtonReturn:
+                // 変換: そのままRTFDに昇格
+                document.documentType = .rtfd
+                document.updateFileTypeFromDocumentType()
+                // fileURLをクリアして次回保存時にSave Panelを表示させる（.rtfd拡張子で保存）
+                document.fileURL = nil
+                document.autosavedContentsFileURL = nil
+                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+                completion(true)
+
+            case .alertSecondButtonReturn:
+                // 複製: 新しいRTFD書類を作成してコンテンツをコピー
+                do {
+                    guard let newDocument = try NSDocumentController.shared.makeUntitledDocument(ofType: "com.apple.rtfd") as? Document else {
+                        completion(false)
+                        return
+                    }
+                    newDocument.applyPresetData(NewDocData.richText)
+                    newDocument.documentType = .rtfd
+                    newDocument.updateFileTypeFromDocumentType()
+                    NSDocumentController.shared.addDocument(newDocument)
+                    newDocument.makeWindowControllers()
+                    newDocument.showWindows()
+
+                    // 元の書類のコンテンツをコピー
+                    newDocument.textStorage.setAttributedString(document.textStorage)
+
+                    completion(true)
+                } catch {
+                    completion(false)
+                }
+
+            default:
+                // キャンセル
+                completion(false)
+            }
+        }
     }
 
     // MARK: - Text Replacement with Undo Support
@@ -102,13 +208,51 @@ class ImageClickableTextView: NSTextView {
         replaceString(in: range, with: mutableString)
     }
 
+    // MARK: - Image Attachment Hit Testing
+
+    /// 指定ポイントに画像添付ファイルがあるかどうかを判定する
+    /// - Parameter point: テキストビュー座標系でのポイント
+    /// - Returns: 画像添付ファイルがある場合はその文字インデックス、なければnil
+    private func imageAttachmentCharIndex(at point: NSPoint) -> Int? {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer,
+              let textStorage = textStorage,
+              textStorage.length > 0 else {
+            return nil
+        }
+
+        let locationInContainer = NSPoint(
+            x: point.x - textContainerOrigin.x,
+            y: point.y - textContainerOrigin.y
+        )
+
+        var fraction: CGFloat = 0
+        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer, fractionOfDistanceThroughGlyph: &fraction)
+        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+
+        guard charIndex < textStorage.length else { return nil }
+
+        // NSTextAttachment.character であるかチェック
+        let str = textStorage.string as NSString
+        if str.character(at: charIndex) == unichar(NSTextAttachment.character) {
+            // グリフの実際の矩形内にポイントがあるか確認
+            let glyphRange = NSRange(location: glyphIndex, length: 1)
+            let glyphRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            let adjustedRect = glyphRect.offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+            if adjustedRect.contains(point) {
+                return charIndex
+            }
+        }
+        return nil
+    }
+
     // MARK: - Mouse Events
 
     override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+
         // Check for double-click on an image attachment
         if event.clickCount == 2 {
-            let point = convert(event.locationInWindow, from: nil)
-
             if let controller = imageResizeController,
                controller.handleClick(in: self, at: point) {
                 // Image was double-clicked, panel is shown, don't pass the event
@@ -116,8 +260,54 @@ class ImageClickableTextView: NSTextView {
             }
         }
 
-        // Not an image double-click, proceed with normal behavior
+        // 画像上でのクリック → ドラッグフラグをセット
+        if !isPlainText, imageAttachmentCharIndex(at: point) != nil {
+            isDraggingImage = true
+        }
+
+        // Proceed with normal behavior (NSTextView handles drag internally)
+        // mouseDown returns after mouse tracking loop ends (mouseUp)
         super.mouseDown(with: event)
+
+        // mouseDown returns after mouseUp, so reset here
+        isDraggingImage = false
+    }
+
+    // MARK: - NSDraggingSource (Drag Cursor Control)
+
+    /// ドラッグセッション開始時にクローズドハンドカーソルを設定
+    override func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
+        super.draggingSession(session, willBeginAt: screenPoint)
+        if isDraggingImage {
+            NSCursor.closedHand.set()
+        }
+    }
+
+    /// ドラッグ移動中にクローズドハンドカーソルを維持
+    override func draggingSession(_ session: NSDraggingSession, movedTo screenPoint: NSPoint) {
+        super.draggingSession(session, movedTo: screenPoint)
+        if isDraggingImage {
+            NSCursor.closedHand.set()
+        }
+    }
+
+    /// ドラッグ終了時にカーソルを復元
+    override func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        super.draggingSession(session, endedAt: screenPoint, operation: operation)
+        isDraggingImage = false
+    }
+
+    /// カーソルが画像添付ファイル上にある時はオープンハンドカーソルを表示
+    override func cursorUpdate(with event: NSEvent) {
+        // ドラッグ中はカーソル変更を抑制（クローズドハンドを維持）
+        if isDraggingImage { return }
+
+        let point = convert(event.locationInWindow, from: nil)
+        if !isPlainText, imageAttachmentCharIndex(at: point) != nil {
+            NSCursor.openHand.set()
+        } else {
+            super.cursorUpdate(with: event)
+        }
     }
 
     // MARK: - Context Menu
@@ -1120,10 +1310,45 @@ class ImageClickableTextView: NSTextView {
 
     // MARK: - Paste and Drop Text Conversion
 
+    /// リッチテキスト書類の場合、画像タイプも読み取り可能に追加
+    override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
+        var types = super.readablePasteboardTypes
+        if !isPlainText {
+            // 画像タイプがまだ含まれていなければ追加
+            for imageType in [NSPasteboard.PasteboardType.tiff, .png] {
+                if !types.contains(imageType) {
+                    types.append(imageType)
+                }
+            }
+        }
+        return types
+    }
+
+    /// superのpasteを呼び出す（クロージャ内から呼ぶため）
+    private func performSuperPaste(_ sender: Any?) {
+        super.paste(sender)
+    }
+
     /// ペースト時に文字変換を適用
     override func paste(_ sender: Any?) {
-        // ペーストボードからテキストを取得して変換を適用
         let pasteboard = NSPasteboard.general
+
+        // リッチテキスト書類の場合、クリップボードに画像があれば画像としてペースト
+        // （RTFDに画像が埋め込まれている場合はそちらを優先）
+        if !isPlainText {
+            // RTFDデータまたは画像データがある場合はRTFDに昇格してsuperに委譲
+            let hasRTFD = pasteboard.availableType(from: [.rtfd]) != nil
+            let hasImage = pasteboard.availableType(from: [.tiff, .png]) != nil
+            if hasRTFD || hasImage {
+                upgradeToRTFDIfNeeded { [weak self] proceed in
+                    guard let self = self, proceed else { return }
+                    self.performSuperPaste(sender)
+                }
+                return
+            }
+        }
+
+        // ペーストボードからテキストを取得して変換を適用
         if let string = pasteboard.string(forType: .string) {
             let convertedString = applyTextConversions(string)
             // 変換後の文字列をペースト
@@ -1157,9 +1382,103 @@ class ImageClickableTextView: NSTextView {
         }
     }
 
+    /// ペーストボードに画像コンテンツが含まれているかを判定する
+    /// データとして直接含まれる場合と、ファイルURLとして含まれる場合の両方をチェック
+    private func pasteboardContainsImageContent(_ pboard: NSPasteboard) -> Bool {
+        // 直接的な画像/RTFDデータのチェック
+        let imageTypes: [NSPasteboard.PasteboardType] = [
+            .rtfd,
+            NSPasteboard.PasteboardType("NeXT RTFD pasteboard type"),
+            NSPasteboard.PasteboardType("com.apple.flat-rtfd"),
+            .tiff, .png
+        ]
+        if pboard.availableType(from: imageTypes) != nil {
+            return true
+        }
+
+        // ファイルURLのチェック（画像ファイルがドロップされた場合）
+        if let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [
+            .urlReadingFileURLsOnly: true
+        ]) as? [URL] {
+            let imageExtensions: Set<String> = ["png", "jpg", "jpeg", "gif", "tiff", "tif", "bmp", "heic", "webp", "pdf", "eps"]
+            for url in fileURLs {
+                if imageExtensions.contains(url.pathExtension.lowercased()) {
+                    return true
+                }
+            }
+        }
+
+        return false
+    }
+
+    /// ドロップ前にRTFD変換アラートを表示（外部からの画像ドロップ時）
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        let pboard = sender.draggingPasteboard
+
+        // RTFDや画像を含むドロップで、現在RTF書類の場合はアラートを表示
+        if !isPlainText, !rtfdUpgradeHandled {
+            if pasteboardContainsImageContent(pboard) {
+                guard let windowController = window?.windowController as? EditorWindowController,
+                      let document = windowController.textDocument else {
+                    return super.performDragOperation(sender)
+                }
+
+                // すでにRTFDなら問題なし
+                if document.documentType == .rtfd {
+                    return super.performDragOperation(sender)
+                }
+
+                // RTFの場合はアラートを表示（同期的にモーダルで実行）
+                if document.documentType == .rtf {
+                    let alert = NSAlert()
+                    alert.alertStyle = .warning
+                    alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
+                    alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
+                    alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
+                    alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+
+                    let response: NSApplication.ModalResponse
+                    if let parentWindow = window {
+                        response = alert.runModal()  // シートではなくモーダルで実行（同期的に結果を得る）
+                    } else {
+                        response = alert.runModal()
+                    }
+
+                    if response == .alertFirstButtonReturn {
+                        // 変換を承認
+                        document.documentType = .rtfd
+                        document.updateFileTypeFromDocumentType()
+                        document.fileURL = nil
+                        document.autosavedContentsFileURL = nil
+                        NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+                        rtfdUpgradeHandled = true
+                        let result = super.performDragOperation(sender)
+                        rtfdUpgradeHandled = false
+                        return result
+                    } else {
+                        // キャンセル
+                        return false
+                    }
+                }
+            }
+        }
+
+        return super.performDragOperation(sender)
+    }
+
     /// ドラッグ＆ドロップ時に文字変換を適用
     override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
-        // テキストタイプの場合は変換を適用
+        // 画像コンテンツ（RTFD、画像データ、画像ファイルURL）が含まれている場合は
+        // RTFD昇格を行い、superに委譲して画像を正しく処理させる
+        if !isPlainText, pasteboardContainsImageContent(pboard) {
+            // performDragOperationで昇格済みでなければサイレントに昇格（同一ビュー内ドラッグ等）
+            if !rtfdUpgradeHandled {
+                performUpgradeToRTFD()
+            }
+            return super.readSelection(from: pboard, type: type)
+        }
+
+        // テキストのみの場合は変換を適用
         if type == .string, let string = pboard.string(forType: .string) {
             let convertedString = applyTextConversions(string)
             insertText(convertedString, replacementRange: selectedRange())
@@ -1261,6 +1580,30 @@ class ImageClickableTextView: NSTextView {
             }
         }
 
+        // リッチテキスト書類でクリップボードに画像がある場合、Pasteを有効化
+        if action == #selector(paste(_:)) {
+            if !isPlainText {
+                let pasteboard = NSPasteboard.general
+                if pasteboard.availableType(from: [.tiff, .png]) != nil {
+                    return true
+                }
+            }
+        }
+
         return super.validateMenuItem(menuItem)
+    }
+
+    override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        // リッチテキスト書類でクリップボードに画像がある場合、Pasteを有効化
+        if item.action == #selector(paste(_:)) {
+            if !isPlainText {
+                let pasteboard = NSPasteboard.general
+                if pasteboard.availableType(from: [.tiff, .png]) != nil {
+                    return true
+                }
+            }
+        }
+
+        return super.validateUserInterfaceItem(item)
     }
 }

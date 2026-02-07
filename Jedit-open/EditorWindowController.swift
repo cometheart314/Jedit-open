@@ -1083,7 +1083,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let availableWidth = scrollView.contentView.frame.width
             let availableHeight = scrollView.contentView.frame.height
             let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
-            let textView = ImageClickableTextView(frame: textViewFrame, textContainer: textContainer)
+            let textView = JeditTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
@@ -1099,6 +1099,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             // Document Colorsが設定されている場合はそれを使用、なければデフォルト
             let isPlainTextDoc = textDocument?.documentType == .plain
+            // リッチテキスト書類の場合はisRichTextとimportsGraphicsを設定
+            textView.isRichText = !isPlainTextDoc
+            textView.importsGraphics = !isPlainTextDoc
             if let colors = textDocument?.presetData?.fontAndColors.colors {
                 textView.backgroundColor = colors.background.nsColor
                 // リッチテキストでは既存の色属性を保持するため、textColorは設定しない
@@ -1199,7 +1202,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let availableWidth = scrollView.contentView.frame.width
             let availableHeight = scrollView.contentView.frame.height
             let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
-            let textView = ImageClickableTextView(frame: textViewFrame, textContainer: textContainer)
+            let textView = JeditTextView(frame: textViewFrame, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
@@ -1215,6 +1218,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             // Document Colorsが設定されている場合はそれを使用、なければデフォルト
             let isPlainTextDoc = textDocument?.documentType == .plain
+            // リッチテキスト書類の場合はisRichTextとimportsGraphicsを設定
+            textView.isRichText = !isPlainTextDoc
+            textView.importsGraphics = !isPlainTextDoc
             if let colors = textDocument?.presetData?.fontAndColors.colors {
                 textView.backgroundColor = colors.background.nsColor
                 // リッチテキストでは既存の色属性を保持するため、textColorは設定しない
@@ -1627,7 +1633,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // TextViewを作成（画像クリック対応）
             let documentRect = pagesView.documentRect(forPageNumber: pageIndex)
-            let textView = ImageClickableTextView(frame: documentRect, textContainer: textContainer)
+            let textView = JeditTextView(frame: documentRect, textContainer: textContainer)
             textView.isEditable = true
             textView.isSelectable = true
             textView.allowsUndo = true
@@ -1635,9 +1641,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.isVerticallyResizable = false
             textView.autoresizingMask = []
             textView.textContainerInset = NSSize(width: 0, height: 0)
+            // リッチテキスト書類の場合はisRichTextとimportsGraphicsを設定
+            let isPlainTextPage = textDocument?.documentType == .plain
+            textView.isRichText = !isPlainTextPage
+            textView.importsGraphics = !isPlainTextPage
             // ダークモード対応（プレーンテキストのみ）
             // リッチテキストは白背景固定（文字色はユーザー設定を保持）
-            if textDocument?.documentType == .plain {
+            if isPlainTextPage {
                 textView.backgroundColor = .textBackgroundColor
                 textView.textColor = .textColor
             } else {
@@ -3117,7 +3127,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // 一時的なフレームでTextViewを作成（後でupdateAllTextViewFramesで更新される、画像クリック対応）
         let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
-        let textView = ImageClickableTextView(frame: tempFrame, textContainer: textContainer)
+        let textView = JeditTextView(frame: tempFrame, textContainer: textContainer)
         textView.isEditable = true
         textView.isSelectable = true
         textView.allowsUndo = true
@@ -3125,9 +3135,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.isVerticallyResizable = false
         textView.autoresizingMask = []
         textView.textContainerInset = NSSize(width: 0, height: 0)
+        // リッチテキスト書類の場合はisRichTextとimportsGraphicsを設定
+        let isPlainTextNewPage = textDocument?.documentType == .plain
+        textView.isRichText = !isPlainTextNewPage
+        textView.importsGraphics = !isPlainTextNewPage
         // ダークモード対応（プレーンテキストのみ）
         // リッチテキストは白背景固定（文字色はユーザー設定を保持）
-        if textDocument?.documentType == .plain {
+        if isPlainTextNewPage {
             textView.backgroundColor = .textBackgroundColor
             textView.textColor = .textColor
         } else {
@@ -4479,7 +4493,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// - Parameter font: 適用するフォント
     func applyFontToEntireDocument(_ font: NSFont) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -4503,7 +4517,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文に下線をトグル適用（Undo/Redo対応）
     func applyUnderlineToEntireDocument() {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -4531,7 +4545,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文にカーニングを適用（Undo/Redo対応）
     func applyKernToEntireDocument(value: Float?) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -4553,7 +4567,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文のカーニングを調整（Undo/Redo対応）
     func adjustKernToEntireDocument(delta: Float) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -4575,7 +4589,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文に合字設定を適用（Undo/Redo対応）
     func applyLigatureToEntireDocument(value: Int) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -4593,7 +4607,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文にアラインメントを適用（Undo/Redo対応）
     func applyAlignmentToEntireDocument(_ alignment: NSTextAlignment) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -4617,7 +4631,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文に前景色を適用（Undo/Redo対応）
     func applyForeColorToEntireDocument(_ color: NSColor) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
@@ -4633,7 +4647,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// プレーンテキスト全文に背景色を適用（Undo/Redo対応）
     func applyBackColorToEntireDocument(_ color: NSColor?) {
         guard let textStorage = textDocument?.textStorage, textStorage.length > 0 else { return }
-        guard let textView = currentTextView() as? ImageClickableTextView else { return }
+        guard let textView = currentTextView() as? JeditTextView else { return }
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
