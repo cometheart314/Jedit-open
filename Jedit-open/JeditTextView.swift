@@ -606,17 +606,90 @@ class JeditTextView: NSTextView {
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
 
-        // Check for double-click on an image attachment
+        // Check for double-click on an attachment
         if event.clickCount == 2 {
+            // アタッチメントがファイルアタッチメント（非画像）の場合は対応アプリで開く
+            if let attachment = attachmentAtPoint(point),
+               isFileAttachment(attachment) {
+                openFileAttachment(attachment)
+                return
+            }
+
+            // 画像アタッチメントの場合はリサイズパネルを表示
             if let controller = imageResizeController,
                controller.handleClick(in: self, at: point) {
-                // Image was double-clicked, panel is shown, don't pass the event
                 return
             }
         }
 
-        // Not an image double-click, proceed with normal behavior
+        // Not an attachment double-click, proceed with normal behavior
         super.mouseDown(with: event)
+    }
+
+    /// 指定座標にあるNSTextAttachmentを取得
+    private func attachmentAtPoint(_ point: NSPoint) -> NSTextAttachment? {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer,
+              let textStorage = textStorage,
+              textStorage.length > 0 else {
+            return nil
+        }
+
+        let textContainerOrigin = textContainerOrigin
+        let locationInContainer = NSPoint(
+            x: point.x - textContainerOrigin.x,
+            y: point.y - textContainerOrigin.y
+        )
+
+        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer)
+        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+        guard charIndex < textStorage.length else { return nil }
+
+        let attributes = textStorage.attributes(at: charIndex, effectiveRange: nil)
+        return attributes[.attachment] as? NSTextAttachment
+    }
+
+    /// アタッチメントがファイルアタッチメント（非画像）かどうかを判定
+    /// 画像拡張子を持つファイルは画像アタッチメントとして扱う
+    private func isFileAttachment(_ attachment: NSTextAttachment) -> Bool {
+        guard let fileWrapper = attachment.fileWrapper,
+              let filename = fileWrapper.preferredFilename ?? fileWrapper.filename else {
+            return false
+        }
+
+        // 画像拡張子の場合は画像アタッチメント（リサイズ対象）
+        let ext = (filename as NSString).pathExtension.lowercased()
+        let imageExtensions: Set<String> = [
+            "png", "jpg", "jpeg", "gif", "tiff", "tif", "bmp", "ico", "heic", "heif", "webp", "svg"
+        ]
+        if imageExtensions.contains(ext) {
+            return false  // 画像アタッチメント
+        }
+
+        // ファイルラッパーがディレクトリの場合もファイルアタッチメント
+        // 拡張子が画像でない場合はファイルアタッチメント
+        return true
+    }
+
+    /// ファイルアタッチメントを対応アプリで開く
+    private func openFileAttachment(_ attachment: NSTextAttachment) {
+        guard let fileWrapper = attachment.fileWrapper else { return }
+
+        // 一時ディレクトリにファイルを書き出してから開く
+        let tempDir = FileManager.default.temporaryDirectory
+        let filename = fileWrapper.preferredFilename ?? fileWrapper.filename ?? "attachment"
+        let tempURL = tempDir.appendingPathComponent(filename)
+
+        do {
+            // 既存ファイルがあれば削除
+            if FileManager.default.fileExists(atPath: tempURL.path) {
+                try FileManager.default.removeItem(at: tempURL)
+            }
+            try fileWrapper.write(to: tempURL, options: .atomic, originalContentsURL: nil)
+            NSWorkspace.shared.open(tempURL)
+        } catch {
+            NSSound.beep()
+        }
     }
 
     // MARK: - Context Menu
