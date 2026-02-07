@@ -30,9 +30,6 @@ class JeditTextView: NSTextView {
     /// updateRuler()の再入防止フラグ
     private var isUpdatingRuler: Bool = false
 
-    /// 画像添付ファイル上でドラッグ中かどうか
-    private var isDraggingImage: Bool = false
-
     /// RTFD昇格済みフラグ（performDragOperationでアラート表示後にreadSelectionで再チェックしない）
     private var rtfdUpgradeHandled: Bool = false
 
@@ -208,42 +205,173 @@ class JeditTextView: NSTextView {
         replaceString(in: range, with: mutableString)
     }
 
-    // MARK: - Image Attachment Hit Testing
+    // MARK: - Drag Source / Destination Operation
 
-    /// 指定ポイントに画像添付ファイルがあるかどうかを判定する
-    /// - Parameter point: テキストビュー座標系でのポイント
-    /// - Returns: 画像添付ファイルがある場合はその文字インデックス、なければnil
-    private func imageAttachmentCharIndex(at point: NSPoint) -> Int? {
-        guard let layoutManager = layoutManager,
-              let textContainer = textContainer,
-              let textStorage = textStorage,
-              textStorage.length > 0 else {
-            return nil
+    /// ソース側: 同一アプリ内ではmove+copyを許可
+    override func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        switch context {
+        case .withinApplication:
+            return [.move, .copy]
+        case .outsideApplication:
+            return [.copy]
+        @unknown default:
+            return super.draggingSession(session, sourceOperationMaskFor: context)
         }
+    }
 
+    /// ドラッグソースが同一書類内のテキストビューかどうかを判定
+    private func isDragFromSameDocument(_ sender: any NSDraggingInfo) -> Bool {
+        guard let sourceView = sender.draggingSource as? JeditTextView,
+              let sourceDocument = (sourceView.window?.windowController as? EditorWindowController)?.textDocument,
+              let myDocument = (window?.windowController as? EditorWindowController)?.textDocument else {
+            return false
+        }
+        return sourceDocument === myDocument
+    }
+
+    /// デスティネーション側: 同一書類内はデフォルトmove、別書類はcopy
+    override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        // superを呼んでドロップ先カーソル表示等の内部処理を実行
+        let _ = super.draggingUpdated(sender)
+
+        if isDragFromSameDocument(sender) {
+            // Optionキーが押されていればcopy、そうでなければmove
+            if NSEvent.modifierFlags.contains(.option) {
+                return .copy
+            }
+            return .move
+        }
+        // 別書類またはアプリ外からはsuperの結果をそのまま返す
+        return super.draggingUpdated(sender)
+    }
+
+    /// 同一書類内ドラッグ時のドロップ先文字位置を取得
+    private func characterIndex(for draggingInfo: any NSDraggingInfo) -> Int? {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer else { return nil }
+        let point = convert(draggingInfo.draggingLocation, from: nil)
         let locationInContainer = NSPoint(
             x: point.x - textContainerOrigin.x,
             y: point.y - textContainerOrigin.y
         )
+        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer)
+        return layoutManager.characterIndexForGlyph(at: glyphIndex)
+    }
 
-        var fraction: CGFloat = 0
-        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer, fractionOfDistanceThroughGlyph: &fraction)
-        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+    /// 同一書類内のドラッグ＆ドロップで移動を実現
+    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        let pboard = sender.draggingPasteboard
 
-        guard charIndex < textStorage.length else { return nil }
+        // 同一書類内のドラッグで、Optionキーが押されていなければ移動処理
+        if isDragFromSameDocument(sender) && !NSEvent.modifierFlags.contains(.option) {
+            guard let sourceView = sender.draggingSource as? JeditTextView,
+                  let textStorage = textStorage else {
+                return super.performDragOperation(sender)
+            }
 
-        // NSTextAttachment.character であるかチェック
-        let str = textStorage.string as NSString
-        if str.character(at: charIndex) == unichar(NSTextAttachment.character) {
-            // グリフの実際の矩形内にポイントがあるか確認
-            let glyphRange = NSRange(location: glyphIndex, length: 1)
-            let glyphRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-            let adjustedRect = glyphRect.offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
-            if adjustedRect.contains(point) {
-                return charIndex
+            // ソース側の選択範囲を保存
+            let sourceRange = sourceView.selectedRange()
+            guard sourceRange.length > 0 else {
+                return super.performDragOperation(sender)
+            }
+
+            // ドロップ先の文字位置を取得
+            guard let dropIndex = characterIndex(for: sender) else {
+                return super.performDragOperation(sender)
+            }
+
+            // ソースのコンテンツを取得
+            let draggedContent = textStorage.attributedSubstring(from: sourceRange)
+
+            // ドロップ先がソース範囲内なら何もしない
+            if dropIndex >= sourceRange.location && dropIndex <= sourceRange.location + sourceRange.length {
+                return true
+            }
+
+            // Undo グループ開始
+            undoManager?.beginUndoGrouping()
+
+            // ドロップ先がソース範囲より前か後かで処理を分岐
+            if dropIndex < sourceRange.location {
+                // ドロップ先が前: 先に挿入、後で削除
+                let insertRange = NSRange(location: dropIndex, length: 0)
+                if shouldChangeText(in: insertRange, replacementString: draggedContent.string) {
+                    textStorage.insert(draggedContent, at: dropIndex)
+                    didChangeText()
+                }
+                // ソース範囲は挿入分だけ後ろにずれる
+                let adjustedSourceRange = NSRange(location: sourceRange.location + draggedContent.length, length: sourceRange.length)
+                if shouldChangeText(in: adjustedSourceRange, replacementString: "") {
+                    textStorage.deleteCharacters(in: adjustedSourceRange)
+                    didChangeText()
+                }
+                // 挿入したテキストを選択
+                setSelectedRange(NSRange(location: dropIndex, length: draggedContent.length))
+            } else {
+                // ドロップ先が後: 先に削除、後で挿入
+                let adjustedDropIndex = dropIndex - sourceRange.length
+                if shouldChangeText(in: sourceRange, replacementString: "") {
+                    textStorage.deleteCharacters(in: sourceRange)
+                    didChangeText()
+                }
+                let insertRange = NSRange(location: adjustedDropIndex, length: 0)
+                if shouldChangeText(in: insertRange, replacementString: draggedContent.string) {
+                    textStorage.insert(draggedContent, at: adjustedDropIndex)
+                    didChangeText()
+                }
+                // 挿入したテキストを選択
+                setSelectedRange(NSRange(location: adjustedDropIndex, length: draggedContent.length))
+            }
+
+            // Undo グループ終了
+            undoManager?.endUndoGrouping()
+            return true
+        }
+
+        // --- 以下は別書類・アプリ外からのドロップ、またはOption+ドラッグ（コピー）---
+
+        // RTFDや画像を含むドロップで、現在RTF書類の場合はアラートを表示
+        if !isPlainText, !rtfdUpgradeHandled {
+            if pasteboardContainsImageContent(pboard) {
+                guard let windowController = window?.windowController as? EditorWindowController,
+                      let document = windowController.textDocument else {
+                    return super.performDragOperation(sender)
+                }
+
+                // すでにRTFDなら問題なし
+                if document.documentType == .rtfd {
+                    return super.performDragOperation(sender)
+                }
+
+                // RTFの場合はアラートを表示（同期的にモーダルで実行）
+                if document.documentType == .rtf {
+                    let alert = NSAlert()
+                    alert.alertStyle = .warning
+                    alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
+                    alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
+                    alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
+                    alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+
+                    let response = alert.runModal()
+
+                    if response == .alertFirstButtonReturn {
+                        document.documentType = .rtfd
+                        document.updateFileTypeFromDocumentType()
+                        document.fileURL = nil
+                        document.autosavedContentsFileURL = nil
+                        NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+                        rtfdUpgradeHandled = true
+                        let result = super.performDragOperation(sender)
+                        rtfdUpgradeHandled = false
+                        return result
+                    } else {
+                        return false
+                    }
+                }
             }
         }
-        return nil
+
+        return super.performDragOperation(sender)
     }
 
     // MARK: - Mouse Events
@@ -260,54 +388,8 @@ class JeditTextView: NSTextView {
             }
         }
 
-        // 画像上でのクリック → ドラッグフラグをセット
-        if !isPlainText, imageAttachmentCharIndex(at: point) != nil {
-            isDraggingImage = true
-        }
-
-        // Proceed with normal behavior (NSTextView handles drag internally)
-        // mouseDown returns after mouse tracking loop ends (mouseUp)
+        // Not an image double-click, proceed with normal behavior
         super.mouseDown(with: event)
-
-        // mouseDown returns after mouseUp, so reset here
-        isDraggingImage = false
-    }
-
-    // MARK: - NSDraggingSource (Drag Cursor Control)
-
-    /// ドラッグセッション開始時にクローズドハンドカーソルを設定
-    override func draggingSession(_ session: NSDraggingSession, willBeginAt screenPoint: NSPoint) {
-        super.draggingSession(session, willBeginAt: screenPoint)
-        if isDraggingImage {
-            NSCursor.closedHand.set()
-        }
-    }
-
-    /// ドラッグ移動中にクローズドハンドカーソルを維持
-    override func draggingSession(_ session: NSDraggingSession, movedTo screenPoint: NSPoint) {
-        super.draggingSession(session, movedTo: screenPoint)
-        if isDraggingImage {
-            NSCursor.closedHand.set()
-        }
-    }
-
-    /// ドラッグ終了時にカーソルを復元
-    override func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
-        super.draggingSession(session, endedAt: screenPoint, operation: operation)
-        isDraggingImage = false
-    }
-
-    /// カーソルが画像添付ファイル上にある時はオープンハンドカーソルを表示
-    override func cursorUpdate(with event: NSEvent) {
-        // ドラッグ中はカーソル変更を抑制（クローズドハンドを維持）
-        if isDraggingImage { return }
-
-        let point = convert(event.locationInWindow, from: nil)
-        if !isPlainText, imageAttachmentCharIndex(at: point) != nil {
-            NSCursor.openHand.set()
-        } else {
-            super.cursorUpdate(with: event)
-        }
     }
 
     // MARK: - Context Menu
@@ -1409,61 +1491,6 @@ class JeditTextView: NSTextView {
         }
 
         return false
-    }
-
-    /// ドロップ前にRTFD変換アラートを表示（外部からの画像ドロップ時）
-    override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
-        let pboard = sender.draggingPasteboard
-
-        // RTFDや画像を含むドロップで、現在RTF書類の場合はアラートを表示
-        if !isPlainText, !rtfdUpgradeHandled {
-            if pasteboardContainsImageContent(pboard) {
-                guard let windowController = window?.windowController as? EditorWindowController,
-                      let document = windowController.textDocument else {
-                    return super.performDragOperation(sender)
-                }
-
-                // すでにRTFDなら問題なし
-                if document.documentType == .rtfd {
-                    return super.performDragOperation(sender)
-                }
-
-                // RTFの場合はアラートを表示（同期的にモーダルで実行）
-                if document.documentType == .rtf {
-                    let alert = NSAlert()
-                    alert.alertStyle = .warning
-                    alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
-                    alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
-                    alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
-                    alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
-
-                    let response: NSApplication.ModalResponse
-                    if let parentWindow = window {
-                        response = alert.runModal()  // シートではなくモーダルで実行（同期的に結果を得る）
-                    } else {
-                        response = alert.runModal()
-                    }
-
-                    if response == .alertFirstButtonReturn {
-                        // 変換を承認
-                        document.documentType = .rtfd
-                        document.updateFileTypeFromDocumentType()
-                        document.fileURL = nil
-                        document.autosavedContentsFileURL = nil
-                        NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
-                        rtfdUpgradeHandled = true
-                        let result = super.performDragOperation(sender)
-                        rtfdUpgradeHandled = false
-                        return result
-                    } else {
-                        // キャンセル
-                        return false
-                    }
-                }
-            }
-        }
-
-        return super.performDragOperation(sender)
     }
 
     /// ドラッグ＆ドロップ時に文字変換を適用
