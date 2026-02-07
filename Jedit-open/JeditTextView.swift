@@ -33,6 +33,9 @@ class JeditTextView: NSTextView {
     /// RTFD昇格済みフラグ（performDragOperationでアラート表示後にreadSelectionで再チェックしない）
     private var rtfdUpgradeHandled: Bool = false
 
+    /// テキストファイルドロップ処理中フラグ（readSelectionでのパス名挿入を抑制）
+    private var handlingTextFileDrop: Bool = false
+
     /// Returns whether this document is plain text
     private var isPlainText: Bool {
         guard let windowController = window?.windowController as? EditorWindowController else {
@@ -207,11 +210,11 @@ class JeditTextView: NSTextView {
 
     // MARK: - Drag Source / Destination Operation
 
-    /// ソース側: 同一アプリ内ではmove+copyを許可
+    /// ソース側: 同一アプリ内ではmove+copy+genericを許可
     override func draggingSession(_ session: NSDraggingSession, sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
         switch context {
         case .withinApplication:
-            return [.move, .copy]
+            return [.move, .copy, .generic]
         case .outsideApplication:
             return [.copy]
         @unknown default:
@@ -229,10 +232,50 @@ class JeditTextView: NSTextView {
         return sourceDocument === myDocument
     }
 
+    /// ドロップ可能なテキスト/RTFファイルURLがペーストボードに含まれているか判定
+    private func pasteboardContainsDroppableTextFile(_ pboard: NSPasteboard) -> Bool {
+        guard let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [
+            .urlReadingFileURLsOnly: true
+        ]) as? [URL] else { return false }
+
+        for url in fileURLs {
+            let ext = url.pathExtension.lowercased()
+            if Self.textFileExtensions.contains(ext) ||
+               Self.rtfFileExtensions.contains(ext) ||
+               Self.rtfdFileExtensions.contains(ext) {
+                return true
+            }
+        }
+        return false
+    }
+
+    /// ファイルURLドラッグ時のオペレーションを判定
+    /// Ctrl押下時は.link（↩マーク）、通常はsuperの結果を使用
+    private func dragOperationForFileDrop(_ sender: any NSDraggingInfo) -> NSDragOperation? {
+        guard pasteboardContainsDroppableTextFile(sender.draggingPasteboard) else { return nil }
+        if NSApp.currentEvent?.modifierFlags.contains(.control) == true {
+            return .link
+        }
+        return nil
+    }
+
+    /// ドラッグ進入時: Ctrl+ファイルドロップは.link、通常ファイルドロップはsuperに委譲
+    override func draggingEntered(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        if let op = dragOperationForFileDrop(sender) {
+            return op
+        }
+        return super.draggingEntered(sender)
+    }
+
     /// デスティネーション側: 同一書類内はデフォルトmove、別書類はcopy
     override func draggingUpdated(_ sender: any NSDraggingInfo) -> NSDragOperation {
+        // Ctrl+ファイルドロップは.link（↩マーク）
+        if let op = dragOperationForFileDrop(sender) {
+            return op
+        }
+
         // superを呼んでドロップ先カーソル表示等の内部処理を実行
-        let _ = super.draggingUpdated(sender)
+        let superResult = super.draggingUpdated(sender)
 
         if isDragFromSameDocument(sender) {
             // Optionキーが押されていればcopy、そうでなければmove
@@ -241,8 +284,16 @@ class JeditTextView: NSTextView {
             }
             return .move
         }
-        // 別書類またはアプリ外からはsuperの結果をそのまま返す
-        return super.draggingUpdated(sender)
+
+        return superResult
+    }
+
+    /// ドロップ準備: テキスト/RTFファイルドロップを受け入れる
+    override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        if pasteboardContainsDroppableTextFile(sender.draggingPasteboard) {
+            return true
+        }
+        return super.prepareForDragOperation(sender)
     }
 
     /// 同一書類内ドラッグ時のドロップ先文字位置を取得
@@ -288,47 +339,44 @@ class JeditTextView: NSTextView {
                 return true
             }
 
-            // Undo グループ開始
-            undoManager?.beginUndoGrouping()
-
-            // ドロップ先がソース範囲より前か後かで処理を分岐
+            // 移動先の最終位置を計算
+            let finalInsertIndex: Int
             if dropIndex < sourceRange.location {
-                // ドロップ先が前: 先に挿入、後で削除
-                let insertRange = NSRange(location: dropIndex, length: 0)
-                if shouldChangeText(in: insertRange, replacementString: draggedContent.string) {
-                    textStorage.insert(draggedContent, at: dropIndex)
-                    didChangeText()
-                }
-                // ソース範囲は挿入分だけ後ろにずれる
-                let adjustedSourceRange = NSRange(location: sourceRange.location + draggedContent.length, length: sourceRange.length)
-                if shouldChangeText(in: adjustedSourceRange, replacementString: "") {
-                    textStorage.deleteCharacters(in: adjustedSourceRange)
-                    didChangeText()
-                }
-                // 挿入したテキストを選択
-                setSelectedRange(NSRange(location: dropIndex, length: draggedContent.length))
+                finalInsertIndex = dropIndex
             } else {
-                // ドロップ先が後: 先に削除、後で挿入
-                let adjustedDropIndex = dropIndex - sourceRange.length
-                if shouldChangeText(in: sourceRange, replacementString: "") {
-                    textStorage.deleteCharacters(in: sourceRange)
-                    didChangeText()
-                }
-                let insertRange = NSRange(location: adjustedDropIndex, length: 0)
-                if shouldChangeText(in: insertRange, replacementString: draggedContent.string) {
-                    textStorage.insert(draggedContent, at: adjustedDropIndex)
-                    didChangeText()
-                }
-                // 挿入したテキストを選択
-                setSelectedRange(NSRange(location: adjustedDropIndex, length: draggedContent.length))
+                finalInsertIndex = dropIndex - sourceRange.length
             }
 
-            // Undo グループ終了
-            undoManager?.endUndoGrouping()
+            // 単一のUndoableな操作として実行: 元の範囲を削除してから挿入
+            // shouldChangeTextで全体の変更を通知し、didChangeTextは1回だけ呼ぶ
+            if shouldChangeText(in: sourceRange, replacementString: "") {
+                textStorage.beginEditing()
+                // 1. ソースを削除
+                textStorage.deleteCharacters(in: sourceRange)
+                // 2. 調整後の位置に挿入
+                textStorage.insert(draggedContent, at: finalInsertIndex)
+                textStorage.endEditing()
+                didChangeText()
+            }
+
+            // 挿入したテキストを選択
+            setSelectedRange(NSRange(location: finalInsertIndex, length: draggedContent.length))
             return true
         }
 
         // --- 以下は別書類・アプリ外からのドロップ、またはOption+ドラッグ（コピー）---
+
+        // ファイルURLがドロップされた場合のテキストファイル/RTFファイル処理
+        if let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [
+            .urlReadingFileURLsOnly: true
+        ]) as? [URL], !fileURLs.isEmpty {
+            handlingTextFileDrop = true
+            let result = handleTextFilesDrop(fileURLs: fileURLs, draggingInfo: sender)
+            handlingTextFileDrop = false
+            if result {
+                return true
+            }
+        }
 
         // RTFDや画像を含むドロップで、現在RTF書類の場合はアラートを表示
         if !isPlainText, !rtfdUpgradeHandled {
@@ -372,6 +420,185 @@ class JeditTextView: NSTextView {
         }
 
         return super.performDragOperation(sender)
+    }
+
+    // MARK: - Text/RTF File Drop Handling
+
+    /// テキストファイル拡張子の判定用
+    private static let textFileExtensions: Set<String> = [
+        "txt", "text", "md", "markdown", "csv", "tsv", "log",
+        "json", "xml", "html", "htm", "css", "js", "ts",
+        "swift", "m", "h", "c", "cpp", "java", "py", "rb", "sh",
+        "yaml", "yml", "toml", "ini", "conf", "cfg",
+        "tex", "sty", "cls", "bib",
+        "sql", "r", "pl", "php", "go", "rs", "kt", "scala"
+    ]
+
+    /// RTFファイル拡張子の判定用
+    private static let rtfFileExtensions: Set<String> = ["rtf"]
+
+    /// RTFDファイル拡張子の判定用
+    private static let rtfdFileExtensions: Set<String> = ["rtfd"]
+
+    /// ドロップされたファイルURLがテキスト/RTFファイルの場合に処理する
+    /// - Returns: 処理した場合はtrue
+    private func handleTextFilesDrop(fileURLs: [URL], draggingInfo: any NSDraggingInfo) -> Bool {
+        let isCtrlPressed = NSEvent.modifierFlags.contains(.control)
+
+        // ドロップ先の文字位置を取得
+        guard let dropIndex = characterIndex(for: draggingInfo) else { return false }
+
+        var handledAny = false
+
+        for url in fileURLs {
+            let ext = url.pathExtension.lowercased()
+            if isCtrlPressed {
+                // Ctrl+ドロップ
+                if isPlainText {
+                    // プレーンテキスト → 常にパス名挿入（ファイル種別を問わない）
+                    let path = url.path
+                    let insertRange = NSRange(location: dropIndex, length: 0)
+                    replaceString(in: insertRange, with: path)
+                    handledAny = true
+                } else {
+                    // リッチテキスト → テキストアタッチメントとして挿入
+                    // RTFD変換が必要
+                    if let windowController = window?.windowController as? EditorWindowController,
+                       let document = windowController.textDocument,
+                       document.documentType != .rtfd {
+                        let alert = NSAlert()
+                        alert.alertStyle = .warning
+                        alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
+                        alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
+                        alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
+                        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+
+                        let response = alert.runModal()
+                        if response == .alertFirstButtonReturn {
+                            document.documentType = .rtfd
+                            document.updateFileTypeFromDocumentType()
+                            document.fileURL = nil
+                            document.autosavedContentsFileURL = nil
+                            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+                        } else {
+                            return true  // キャンセル
+                        }
+                    }
+                    insertFileAsAttachment(url, at: dropIndex)
+                    handledAny = true
+                }
+
+            } else if Self.textFileExtensions.contains(ext) {
+                // テキストファイル → エンコーディング自動判定して内容を読み込んでペースト
+                if let data = try? Data(contentsOf: url) {
+                    let outcome = EncodingDetector.shared.detectAndDecode(
+                        from: data, fileURL: url, allowUserSelection: false)
+                    var content: String?
+                    switch outcome {
+                    case .success(_, let str):
+                        content = str
+                    case .needsUserSelection(let candidates):
+                        if let best = candidates.first {
+                            content = String(data: data, encoding: best.encoding)
+                        }
+                    case .failure:
+                        break
+                    }
+                    if let content = content {
+                        let convertedContent = applyTextConversions(content)
+                        setSelectedRange(NSRange(location: dropIndex, length: 0))
+                        insertText(convertedContent, replacementRange: NSRange(location: dropIndex, length: 0))
+                        handledAny = true
+                    }
+                }
+
+            } else if Self.rtfFileExtensions.contains(ext) {
+                // RTFファイル
+                if isPlainText {
+                    // プレーンテキスト書類 → テキスト部分のみペースト
+                    if let data = try? Data(contentsOf: url),
+                       let attrStr = NSAttributedString(rtf: data, documentAttributes: nil) {
+                        let convertedContent = applyTextConversions(attrStr.string)
+                        let insertRange = NSRange(location: dropIndex, length: 0)
+                        replaceString(in: insertRange, with: convertedContent)
+                        handledAny = true
+                    }
+                } else {
+                    // リッチテキスト書類 → リッチテキストとしてペースト
+                    if let data = try? Data(contentsOf: url),
+                       let attrStr = NSAttributedString(rtf: data, documentAttributes: nil) {
+                        let insertRange = NSRange(location: dropIndex, length: 0)
+                        replaceString(in: insertRange, with: attrStr)
+                        handledAny = true
+                    }
+                }
+
+            } else if Self.rtfdFileExtensions.contains(ext) {
+                // RTFDファイル
+                if isPlainText {
+                    // プレーンテキスト書類 → テキスト部分のみペースト
+                    if let fileWrapper = try? FileWrapper(url: url, options: .immediate),
+                       let attrStr = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) {
+                        let convertedContent = applyTextConversions(attrStr.string)
+                        let insertRange = NSRange(location: dropIndex, length: 0)
+                        replaceString(in: insertRange, with: convertedContent)
+                        handledAny = true
+                    }
+                } else {
+                    // リッチテキスト書類 → RTFD変換アラートを表示してリッチテキストとしてペースト
+                    guard let windowController = window?.windowController as? EditorWindowController,
+                          let document = windowController.textDocument else {
+                        return false
+                    }
+
+                    // RTFD変換が必要か判定（すでにRTFDなら不要）
+                    if document.documentType != .rtfd {
+                        let alert = NSAlert()
+                        alert.alertStyle = .warning
+                        alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
+                        alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
+                        alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
+                        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+
+                        let response = alert.runModal()
+                        if response == .alertFirstButtonReturn {
+                            document.documentType = .rtfd
+                            document.updateFileTypeFromDocumentType()
+                            document.fileURL = nil
+                            document.autosavedContentsFileURL = nil
+                            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+                        } else {
+                            return true  // キャンセル：何もしない
+                        }
+                    }
+
+                    // RTFDファイルをリッチテキストとしてペースト
+                    if let fileWrapper = try? FileWrapper(url: url, options: .immediate),
+                       let attrStr = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) {
+                        let insertRange = NSRange(location: dropIndex, length: 0)
+                        replaceString(in: insertRange, with: attrStr)
+                        handledAny = true
+                    }
+                }
+            } else {
+                // テキスト/RTF/画像以外のファイル → 処理しない（superに委譲）
+                return false
+            }
+        }
+
+        return handledAny
+    }
+
+    /// ファイルをテキストアタッチメントとして挿入
+    private func insertFileAsAttachment(_ url: URL, at index: Int) {
+        let attachment = NSTextAttachment()
+        let fileWrapper = try? FileWrapper(url: url, options: .immediate)
+        attachment.fileWrapper = fileWrapper
+        attachment.fileWrapper?.preferredFilename = url.lastPathComponent
+
+        let attrStr = NSAttributedString(attachment: attachment)
+        let insertRange = NSRange(location: index, length: 0)
+        replaceString(in: insertRange, with: attrStr)
     }
 
     // MARK: - Mouse Events
@@ -1495,6 +1722,17 @@ class JeditTextView: NSTextView {
 
     /// ドラッグ＆ドロップ時に文字変換を適用
     override func readSelection(from pboard: NSPasteboard, type: NSPasteboard.PasteboardType) -> Bool {
+        // ファイルURLのドロップ: performDragOperationで処理中の場合はパス名挿入を抑制
+        // （handleTextFilesDrop → replaceString → readSelectionと再帰的に呼ばれるため）
+        if type == NSPasteboard.PasteboardType("NSFilenamesPboardType") ||
+           type == .fileURL {
+            if handlingTextFileDrop {
+                // performDragOperationのhandleTextFilesDropで処理中
+                // trueを返してNSTextViewのデフォルトのパス名挿入を抑制
+                return true
+            }
+        }
+
         // 画像コンテンツ（RTFD、画像データ、画像ファイルURL）が含まれている場合は
         // RTFD昇格を行い、superに委譲して画像を正しく処理させる
         if !isPlainText, pasteboardContainsImageContent(pboard) {
