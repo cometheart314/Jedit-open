@@ -316,13 +316,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         for (index, (name, color)) in colorEntries.enumerated() {
             let item = NSMenuItem(
-                title: NSLocalizedString(name, comment: "Color name"),
+                title: "",
                 action: #selector(ImageClickableTextView.changeForeColor(_:)),
                 keyEquivalent: ""
             )
             item.tag = index
             item.representedObject = color
             item.image = createColorSwatchImage(color: color)
+
+            // attributedTitle でシステムカラーを使ってタイトルを表示
+            let localizedName = NSLocalizedString(name, comment: "Color name")
+            let attrTitle = NSAttributedString(
+                string: localizedName,
+                attributes: [.foregroundColor: color]
+            )
+            item.attributedTitle = attrTitle
             menu.addItem(item)
         }
 
@@ -380,15 +388,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         menu.addItem(otherItem)
     }
 
-    /// カラースウォッチ画像を作成
+    /// カラースウォッチ画像を作成（ダイナミックカラー対応）
     private func createColorSwatchImage(color: NSColor) -> NSImage {
-        let image = NSImage(size: NSSize(width: 20, height: 12))
-        image.lockFocus()
-        color.set()
-        NSBezierPath.fill(NSRect(x: 0, y: 0, width: 20, height: 12))
-        NSColor.black.set()
-        NSBezierPath.stroke(NSRect(x: 0, y: 0, width: 20, height: 12))
-        image.unlockFocus()
+        let size = NSSize(width: 20, height: 12)
+        let image = NSImage(size: size, flipped: false) { rect in
+            color.setFill()
+            NSBezierPath.fill(rect)
+            NSColor.separatorColor.setStroke()
+            NSBezierPath.stroke(rect)
+            return true
+        }
+        image.isTemplate = false
         return image
     }
 
