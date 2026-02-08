@@ -125,6 +125,10 @@ class Document: NSDocument {
     /// 拡張属性読み込み後に適用するために一時保存
     private var loadedDocumentAttributeProperties: NewDocData.PropertiesData?
 
+    /// RTF/RTFDファイルから読み込んだ document attributes のビュー・ページ設定
+    /// 拡張属性読み込み後に適用するために一時保存（Document Attributesを優先するため）
+    private var loadedDocumentAttributeViewSettings: [NSAttributedString.DocumentAttributeKey: Any]?
+
     /// 新規ドキュメントの表示名（fileURLがない場合に使用）
     private var untitledDocumentName: String?
 
@@ -324,6 +328,9 @@ class Document: NSDocument {
                 }
             }
 
+            // ビュー・ページ設定を document attributes に設定
+            setViewAndPageLayoutDocumentAttributes(&documentAttributes)
+
             guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: documentAttributes) else {
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
                     NSLocalizedDescriptionKey: "Could not create RTFD file wrapper"
@@ -473,6 +480,9 @@ class Document: NSDocument {
                     options[.comment] = properties.comment
                 }
             }
+
+            // ビュー・ページ設定を document attributes に設定
+            setViewAndPageLayoutDocumentAttributes(&options)
 
             do {
                 let data = try textStorage.data(from: range, documentAttributes: options)
@@ -961,6 +971,24 @@ class Document: NSDocument {
         // RTF/RTFDファイルから読み込んだ properties を一時保存
         // 拡張属性読み込み後に適用するため
         loadedDocumentAttributeProperties = presetData?.properties
+
+        // ビュー・ページ設定を Document Attributes から一時保存
+        // 拡張属性読み込み後に適用するため（Document Attributes を presetData より優先）
+        loadedDocumentAttributeViewSettings = [:]
+        let viewSettingKeys: [NSAttributedString.DocumentAttributeKey] = [
+            .paperSize, .topMargin, .bottomMargin, .leftMargin, .rightMargin,
+            .viewMode, .viewSize, .viewZoom, .backgroundColor, .defaultTabInterval,
+            .textLayoutSections
+        ]
+        for key in viewSettingKeys {
+            if let value = attrs[key] {
+                loadedDocumentAttributeViewSettings?[key] = value
+            }
+        }
+        // 値が一つもなければnilにする
+        if loadedDocumentAttributeViewSettings?.isEmpty == true {
+            loadedDocumentAttributeViewSettings = nil
+        }
     }
 
     // MARK: - Encoding Selection
@@ -1237,6 +1265,8 @@ class Document: NSDocument {
                 // RTF/RTFDファイルから読み込んだ document attributes の properties を適用
                 // （拡張属性よりも RTF document attributes の properties を優先）
                 self.applyLoadedDocumentAttributeProperties()
+                // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
+                self.applyLoadedDocumentAttributeViewSettings()
             }
         } else {
             // 拡張属性がない場合は、ファイルタイプに応じたデフォルトのNewDocDataを設定
@@ -1247,6 +1277,8 @@ class Document: NSDocument {
 
                 // RTF/RTFDファイルから読み込んだ document attributes の properties を適用
                 self.applyLoadedDocumentAttributeProperties()
+                // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
+                self.applyLoadedDocumentAttributeViewSettings()
             }
         }
     }
@@ -1464,6 +1496,116 @@ class Document: NSDocument {
 
         // 一時保存をクリア
         loadedDocumentAttributeProperties = nil
+    }
+
+    /// 一時保存した document attributes のビュー・ページ設定を presetData に適用
+    /// Document Attributes の値で presetData を上書きすることで、presetData よりも優先する
+    private func applyLoadedDocumentAttributeViewSettings() {
+        guard let settings = loadedDocumentAttributeViewSettings else { return }
+
+        // 用紙サイズ
+        if let paperSize = settings[.paperSize] as? NSSize {
+            if presetData?.printInfo == nil {
+                presetData?.printInfo = .default
+            }
+            presetData?.printInfo?.paperWidth = paperSize.width
+            presetData?.printInfo?.paperHeight = paperSize.height
+        }
+
+        // マージン
+        if let top = settings[.topMargin] as? CGFloat {
+            presetData?.pageLayout.topMarginPoints = top
+        }
+        if let bottom = settings[.bottomMargin] as? CGFloat {
+            presetData?.pageLayout.bottomMarginPoints = bottom
+        }
+        if let left = settings[.leftMargin] as? CGFloat {
+            presetData?.pageLayout.leftMarginPoints = left
+        }
+        if let right = settings[.rightMargin] as? CGFloat {
+            presetData?.pageLayout.rightMarginPoints = right
+        }
+
+        // 表示モード（0=continuous, 1=page）
+        if let viewMode = settings[.viewMode] as? Int {
+            presetData?.view.pageMode = (viewMode == 1)
+        }
+
+        // ウィンドウサイズ
+        if let viewSize = settings[.viewSize] as? NSSize {
+            presetData?.view.windowWidth = viewSize.width
+            presetData?.view.windowHeight = viewSize.height
+        }
+
+        // ズーム（100 = 100%）
+        if let viewZoom = settings[.viewZoom] as? CGFloat, viewZoom > 0 {
+            presetData?.view.scale = viewZoom / 100.0
+        }
+
+        // 背景色
+        if let bgColor = settings[.backgroundColor] as? NSColor {
+            presetData?.fontAndColors.colors.background = CodableColor(bgColor)
+        }
+
+        // タブ幅
+        if let tabInterval = settings[.defaultTabInterval] as? CGFloat, tabInterval > 0 {
+            presetData?.format.tabWidthPoints = tabInterval
+        }
+
+        // 縦書き/横書き（.textLayoutSections）
+        if let sections = settings[.textLayoutSections] as? [[String: Any]],
+           let first = sections.first,
+           let orientation = first["NSTextLayoutSectionOrientation"] as? Int {
+            presetData?.format.editingDirection = (orientation == 1) ? .rightToLeft : .leftToRight
+        }
+
+        // 一時保存をクリア
+        loadedDocumentAttributeViewSettings = nil
+    }
+
+    /// presetData のビュー・ページ設定を document attributes に設定する（保存時に使用）
+    private func setViewAndPageLayoutDocumentAttributes(_ documentAttributes: inout [NSAttributedString.DocumentAttributeKey: Any]) {
+        // ページレイアウト設定（マージン）
+        if let pageLayout = presetData?.pageLayout {
+            documentAttributes[.topMargin] = pageLayout.topMarginPoints
+            documentAttributes[.bottomMargin] = pageLayout.bottomMarginPoints
+            documentAttributes[.leftMargin] = pageLayout.leftMarginPoints
+            documentAttributes[.rightMargin] = pageLayout.rightMarginPoints
+        }
+
+        // 用紙サイズ
+        if let printInfoData = presetData?.printInfo {
+            documentAttributes[.paperSize] = NSSize(width: printInfoData.paperWidth, height: printInfoData.paperHeight)
+        }
+
+        // 表示モード（0=continuous, 1=page）
+        if let viewData = presetData?.view {
+            documentAttributes[.viewMode] = viewData.pageMode ? 1 : 0
+            documentAttributes[.viewSize] = NSSize(width: viewData.windowWidth, height: viewData.windowHeight)
+            documentAttributes[.viewZoom] = viewData.scale * 100  // 1.0 → 100
+        }
+
+        // 背景色（システムデフォルト以外の場合のみ）
+        if let bgColor = presetData?.fontAndColors.colors.background {
+            if !bgColor.isDynamic || bgColor.systemColorName != "textBackgroundColor" {
+                documentAttributes[.backgroundColor] = bgColor.nsColor
+            }
+        }
+
+        // タブ幅
+        if let tabWidth = presetData?.format.tabWidthPoints, tabWidth > 0 {
+            documentAttributes[.defaultTabInterval] = tabWidth
+        }
+
+        // 縦書き/横書き（.textLayoutSections）
+        if let editingDirection = presetData?.format.editingDirection {
+            let orientation = (editingDirection == .rightToLeft) ? 1 : 0
+            let section: [String: Any] = [
+                "NSTextLayoutSectionOrientation": orientation,
+                "NSTextLayoutSectionRange": NSValue(range: NSRange(location: 0, length: textStorage.length))
+            ]
+            documentAttributes[.textLayoutSections] = [section]
+        }
     }
 
     /// presetData から printInfo を復元
