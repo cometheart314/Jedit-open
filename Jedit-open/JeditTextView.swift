@@ -637,8 +637,16 @@ class JeditTextView: NSTextView {
         performUpgradeToRTFD()
 
         // ペーストボードから画像を取得して挿入
-        if let image = NSImage(pasteboard: pboard) {
+        // TIFFデータを優先（保存時にfileWrapperが必要）
+        if let imageData = pboard.data(forType: .tiff) ?? pboard.data(forType: .png),
+           let image = NSImage(data: imageData) {
             let attachment = NSTextAttachment()
+            // fileWrapperにデータを設定（RTFD保存時に必要）
+            let fileWrapper = FileWrapper(regularFileWithContents: imageData)
+            let ext = pboard.data(forType: .png) != nil ? "png" : "tiff"
+            fileWrapper.preferredFilename = "image.\(ext)"
+            attachment.fileWrapper = fileWrapper
+            // 表示用のセルを設定
             let cell = NSTextAttachmentCell(imageCell: image)
             attachment.attachmentCell = cell
             let attrStr = NSAttributedString(attachment: attachment)
