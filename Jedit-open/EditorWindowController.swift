@@ -1093,6 +1093,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.autoresizingMask = []
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
+            textView.usesFindBar = true
+            textView.isIncrementalSearchingEnabled = true
             // textContainerInsetで左右と上下のインセットを設定
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
@@ -1212,6 +1214,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.autoresizingMask = []
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
+            textView.usesFindBar = true
+            textView.isIncrementalSearchingEnabled = true
             // textContainerInsetで左右と上下のインセットを設定
             textView.textContainerInset = containerInset
             textView.minSize = NSSize(width: 0, height: 0)
@@ -1657,6 +1661,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
+            textView.usesFindBar = true
+            textView.isIncrementalSearchingEnabled = true
             // 縦書き/横書きレイアウトを適用
             textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
             // ImageResizeControllerを設定
@@ -3151,6 +3157,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.usesInspectorBar = isInspectorBarVisible
         textView.usesRuler = true
+        textView.usesFindBar = true
+        textView.isIncrementalSearchingEnabled = true
         // ImageResizeControllerを設定
         textView.imageResizeController = imageResizeController
 
