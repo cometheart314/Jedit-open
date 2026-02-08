@@ -87,6 +87,13 @@ class LineNumberView: NSView {
     private(set) var currentWidth: CGFloat = 40.0
     private(set) var currentHeight: CGFloat = 25.0
 
+    // MARK: - パラグラフキャッシュ
+    // 各パラグラフの開始文字位置を保持する配列（インデックス0 = パラグラフ1の開始位置）
+    // テキスト変更時にのみ再構築し、draw()時にはバイナリサーチで高速に番号を特定する
+    private var paragraphStartLocations: [Int] = []
+    private var paragraphCacheVersion: Int = 0
+    private var lastKnownTextLength: Int = -1
+
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
         commonInit()
@@ -106,6 +113,69 @@ class LineNumberView: NSView {
     // 座標系を上から下に設定（NSTextViewと同じ）
     override var isFlipped: Bool {
         return true
+    }
+
+    // MARK: - パラグラフキャッシュ管理
+
+    /// パラグラフの開始位置キャッシュを再構築する
+    /// テキスト変更時にのみ呼び出される（draw()からは呼ばない）
+    private func rebuildParagraphCacheIfNeeded() {
+        guard let textView = textView,
+              let textStorage = textView.textStorage else { return }
+
+        let currentLength = textStorage.length
+        if currentLength == lastKnownTextLength { return }
+        lastKnownTextLength = currentLength
+
+        let textString = textStorage.string
+        // バックグラウンドスレッドで構築（大きなファイル対応）
+        let version = paragraphCacheVersion + 1
+        paragraphCacheVersion = version
+
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            var locations: [Int] = []
+            textString.enumerateSubstrings(
+                in: textString.startIndex..<textString.endIndex,
+                options: .byParagraphs
+            ) { _, substringRange, _, _ in
+                let nsRange = NSRange(substringRange, in: textString)
+                locations.append(nsRange.location)
+            }
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                // 古いバージョンの結果は捨てる
+                if self.paragraphCacheVersion == version {
+                    self.paragraphStartLocations = locations
+                    self.needsDisplay = true
+                }
+            }
+        }
+    }
+
+    /// キャッシュを無効化する
+    private func invalidateParagraphCache() {
+        lastKnownTextLength = -1
+    }
+
+    /// 指定した文字位置が属するパラグラフ番号を返す（1始まり）
+    /// バイナリサーチでO(log n)
+    private func paragraphNumber(forCharacterAt location: Int) -> Int {
+        let locations = paragraphStartLocations
+        if locations.isEmpty { return 1 }
+
+        // upperBound: locationより大きい最初の要素のインデックスを探す
+        var lo = 0
+        var hi = locations.count
+        while lo < hi {
+            let mid = (lo + hi) / 2
+            if locations[mid] <= location {
+                lo = mid + 1
+            } else {
+                hi = mid
+            }
+        }
+        return lo  // 1始まりのパラグラフ番号（loは「location以下の要素数」）
     }
 
     deinit {
@@ -176,12 +246,14 @@ class LineNumberView: NSView {
             self?.needsDisplay = true
         }
 
-        // テキスト変更時に幅を再計算
+        // テキスト変更時に幅を再計算＋パラグラフキャッシュを再構築
         textChangeObserver = NotificationCenter.default.addObserver(
             forName: NSText.didChangeNotification,
             object: textView,
             queue: .main
         ) { [weak self] _ in
+            self?.invalidateParagraphCache()
+            self?.rebuildParagraphCacheIfNeeded()
             self?.debounceUpdateSize()
         }
 
@@ -192,6 +264,8 @@ class LineNumberView: NSView {
                 object: textStorage,
                 queue: .main
             ) { [weak self] _ in
+                self?.invalidateParagraphCache()
+                self?.rebuildParagraphCacheIfNeeded()
                 // 即時再描画
                 self?.needsDisplay = true
                 // レイアウトが確定するまで待ってから再描画
@@ -201,8 +275,9 @@ class LineNumberView: NSView {
             }
         }
 
-        // 初期サイズを計算
+        // 初期サイズを計算＋パラグラフキャッシュを構築
         DispatchQueue.main.async { [weak self] in
+            self?.rebuildParagraphCacheIfNeeded()
             self?.updateSizeAsync()
         }
     }
@@ -234,17 +309,24 @@ class LineNumberView: NSView {
             break
 
         case .paragraph:
-            let textString = textStorage.string
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
-                guard let self = self else { return }
+            // キャッシュがあればそこからパラグラフ数を取得（O(1)）
+            if !paragraphStartLocations.isEmpty {
+                let maxLineNumber = paragraphStartLocations.count
+                applySize(for: maxLineNumber)
+            } else {
+                // キャッシュ未構築時はバックグラウンドでカウント
+                let textString = textStorage.string
+                DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                    guard let self = self else { return }
 
-                var maxLineNumber = 0
-                textString.enumerateSubstrings(in: textString.startIndex..<textString.endIndex, options: .byParagraphs) { _, _, _, _ in
-                    maxLineNumber += 1
-                }
+                    var maxLineNumber = 0
+                    textString.enumerateSubstrings(in: textString.startIndex..<textString.endIndex, options: .byParagraphs) { _, _, _, _ in
+                        maxLineNumber += 1
+                    }
 
-                DispatchQueue.main.async { [weak self] in
-                    self?.applySize(for: maxLineNumber)
+                    DispatchQueue.main.async { [weak self] in
+                        self?.applySize(for: maxLineNumber)
+                    }
                 }
             }
 
@@ -348,9 +430,14 @@ class LineNumberView: NSView {
         // スクロールオフセットを取得
         let contentBounds = scrollView.contentView.bounds
 
+        // 可視範囲のglyphRangeを計算（横書き・縦書き共通）
+        let textViewVisibleRect = textView.visibleRect
+        let glyphRange = layoutManager.glyphRange(forBoundingRect: textViewVisibleRect, in: textContainer)
+
         if isVerticalLayout {
             // 縦書き時の描画
             drawVerticalLayoutLineNumbers(
+                glyphRange: glyphRange,
                 layoutManager: layoutManager,
                 textContainer: textContainer,
                 textStorage: textStorage,
@@ -360,8 +447,6 @@ class LineNumberView: NSView {
             )
         } else {
             // 横書き時の描画
-            let textViewVisibleRect = textView.visibleRect
-            let glyphRange = layoutManager.glyphRange(forBoundingRect: textViewVisibleRect, in: textContainer)
             drawHorizontalLayoutLineNumbers(
                 glyphRange: glyphRange,
                 layoutManager: layoutManager,
@@ -390,52 +475,49 @@ class LineNumberView: NSView {
             break
 
         case .paragraph:
-            let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-            var paragraphNumber = 0
-            var drawnParagraphs = Set<Int>()
-
-            let searchRange = NSRange(location: 0, length: min(charRange.location + charRange.length, textStorage.length))
-            guard let stringRange = Range(searchRange, in: textStorage.string) else { return }
+            // キャッシュが未構築の場合は構築を開始して次回描画を待つ
+            if paragraphStartLocations.isEmpty {
+                rebuildParagraphCacheIfNeeded()
+                return
+            }
 
             let mag = self.magnification
             // textContainerInsetはテキストコンテナ座標系の値
             let containerInsetY = textView.textContainerInset.height
-
             // contentBounds.origin.yはdocumentView座標系（magnification前）の値
             let scrollOffset = contentBounds.origin.y
 
-            textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (substring, substringRange, enclosingRange, stop) in
-                paragraphNumber += 1
+            // 可視範囲のlineFragmentを列挙し、各行の先頭文字位置からパラグラフ番号を特定する
+            var drawnParagraphs = Set<Int>()
 
-                let nsSubstringRange = NSRange(substringRange, in: textStorage.string)
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rectInContainer, usedRect, textContainerParam, glyphRangeInFrag, stop) in
+                // この行の先頭文字位置を取得
+                let charIndex = layoutManager.characterIndexForGlyph(at: glyphRangeInFrag.location)
 
-                if nsSubstringRange.location >= charRange.location {
-                    let glyphRange = layoutManager.glyphRange(forCharacterRange: nsSubstringRange, actualCharacterRange: nil)
-                    let rectInContainer = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+                // キャッシュからO(log n)でパラグラフ番号を特定
+                let paraNum = self.paragraphNumber(forCharacterAt: charIndex)
 
-                    // パラグラフの最初の行のlineFragmentRectを取得して行の高さを得る
-                    let firstLineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphRange.location, effectiveRange: nil)
+                // 同じパラグラフ番号は1回だけ描画（折り返し行では2行目以降をスキップ）
+                guard !drawnParagraphs.contains(paraNum) else { return }
+                drawnParagraphs.insert(paraNum)
 
-                    // テキストコンテナ座標をテキストビュー座標に変換
-                    let yInTextView = rectInContainer.minY + containerInsetY
+                // テキストコンテナ座標をテキストビュー座標に変換
+                let yInTextView = rectInContainer.minY + containerInsetY
 
-                    // テキストビュー座標からLineNumberView座標に変換
-                    // scrollOffsetはdocumentView座標なのでそのまま引き、結果にmagnificationを適用
-                    let yInLineNumberView = (yInTextView - scrollOffset) * mag
+                // テキストビュー座標からLineNumberView座標に変換
+                let yInLineNumberView = (yInTextView - scrollOffset) * mag
 
-                    let scaledLineHeight = firstLineRect.height * mag
+                let scaledLineHeight = rectInContainer.height * mag
 
-                    if yInLineNumberView >= dirtyRect.minY - 20 * mag && yInLineNumberView <= dirtyRect.maxY + 20 * mag && !drawnParagraphs.contains(paragraphNumber) {
-                        let numberString = "\(paragraphNumber)" as NSString
-                        let size = numberString.size(withAttributes: attributes)
-                        let scaledRightMargin = self.rightMargin * mag
-                        let xPosition = self.currentWidth - size.width - scaledRightMargin
-                        // 行の中央に配置（スケーリングされた行の高さを使用）
-                        let yCenter = yInLineNumberView + (scaledLineHeight - size.height) / 2
-                        let drawPoint = NSPoint(x: xPosition, y: yCenter)
-                        numberString.draw(at: drawPoint, withAttributes: attributes)
-                        drawnParagraphs.insert(paragraphNumber)
-                    }
+                if yInLineNumberView >= dirtyRect.minY - 20 * mag && yInLineNumberView <= dirtyRect.maxY + 20 * mag {
+                    let numberString = "\(paraNum)" as NSString
+                    let size = numberString.size(withAttributes: attributes)
+                    let scaledRightMargin = self.rightMargin * mag
+                    let xPosition = self.currentWidth - size.width - scaledRightMargin
+                    // 行の中央に配置（スケーリングされた行の高さを使用）
+                    let yCenter = yInLineNumberView + (scaledLineHeight - size.height) / 2
+                    let drawPoint = NSPoint(x: xPosition, y: yCenter)
+                    numberString.draw(at: drawPoint, withAttributes: attributes)
                 }
             }
 
@@ -477,6 +559,7 @@ class LineNumberView: NSView {
     }
 
     private func drawVerticalLayoutLineNumbers(
+        glyphRange: NSRange,
         layoutManager: NSLayoutManager,
         textContainer: NSTextContainer,
         textStorage: NSTextStorage,
@@ -487,7 +570,6 @@ class LineNumberView: NSView {
         // 縦書きでは列（行）が右から左に並ぶ
         // lineRect.origin.y = 0 が最初の列（右端）
 
-        let fullGlyphRange = layoutManager.glyphRange(for: textContainer)
         let documentWidth = textView.frame.width
         let mag = self.magnification
         // contentBounds.origin.xはdocumentView座標系（magnification前）の値
@@ -498,40 +580,42 @@ class LineNumberView: NSView {
             break
 
         case .paragraph:
-            var paragraphNumber = 0
+            // キャッシュが未構築の場合は構築を開始して次回描画を待つ
+            if paragraphStartLocations.isEmpty {
+                rebuildParagraphCacheIfNeeded()
+                return
+            }
+
+            // 可視範囲のlineFragmentのみ列挙し、キャッシュからパラグラフ番号を特定する
             var drawnParagraphs = Set<Int>()
 
-            let fullRange = textStorage.string.startIndex..<textStorage.string.endIndex
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { [self] (lineRect, usedRect, textContainerParam, glyphRangeInFrag, stop) in
+                let charIndex = layoutManager.characterIndexForGlyph(at: glyphRangeInFrag.location)
+                let paraNum = self.paragraphNumber(forCharacterAt: charIndex)
 
-            textStorage.string.enumerateSubstrings(in: fullRange, options: .byParagraphs) { (substring, substringRange, enclosingRange, stop) in
-                paragraphNumber += 1
+                guard !drawnParagraphs.contains(paraNum) else { return }
+                drawnParagraphs.insert(paraNum)
 
-                let nsSubstringRange = NSRange(substringRange, in: textStorage.string)
-                let glyphRangeForPara = layoutManager.glyphRange(forCharacterRange: nsSubstringRange, actualCharacterRange: nil)
+                let scaledColumnWidth = lineRect.height * mag
 
-                if glyphRangeForPara.location < layoutManager.numberOfGlyphs {
-                    let glyphIndex = glyphRangeForPara.location
-                    let lineRect = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+                // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置（列の左端）を計算
+                // textView座標系でのX位置
+                let xInTextView = documentWidth - lineRect.origin.y - lineRect.height
+                // スクロールオフセットを引いてからmagnificationを適用
+                let xInLineNumberView = (xInTextView - scrollOffsetX) * mag - scaledColumnWidth / 2
 
-                    let scaledColumnWidth = lineRect.height * mag
-
-                    // 縦書き：documentWidth - origin.y - height でドキュメント内のX位置（列の左端）を計算
-                    // textView座標系でのX位置
-                    let xInTextView = documentWidth - lineRect.origin.y - lineRect.height
-                    // スクロールオフセットを引いてからmagnificationを適用
-                    let xInLineNumberView = (xInTextView - scrollOffsetX) * mag - scaledColumnWidth / 2
-
-                    if !drawnParagraphs.contains(paragraphNumber) {
-                        self.drawVerticalNumber(paragraphNumber, at: xInLineNumberView, columnWidth: scaledColumnWidth, attributes: attributes)
-                        drawnParagraphs.insert(paragraphNumber)
-                    }
-                }
+                self.drawVerticalNumber(paraNum, at: xInLineNumberView, columnWidth: scaledColumnWidth, attributes: attributes)
             }
 
         case .row:
+            // 可視範囲「前」の行数をカウント（横書きと同じアプローチ）
             var rowNumber = 0
+            layoutManager.enumerateLineFragments(forGlyphRange: NSRange(location: 0, length: glyphRange.location)) { _, _, _, _, _ in
+                rowNumber += 1
+            }
 
-            layoutManager.enumerateLineFragments(forGlyphRange: fullGlyphRange) { [self] (lineRect, usedRect, textContainerParam, glyphRangeInFrag, stop) in
+            // 可視範囲のlineFragmentのみ描画
+            layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { [self] (lineRect, usedRect, textContainerParam, glyphRangeInFrag, stop) in
                 rowNumber += 1
 
                 let scaledColumnWidth = lineRect.height * mag
