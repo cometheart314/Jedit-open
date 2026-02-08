@@ -618,6 +618,38 @@ class JeditTextView: NSTextView {
         }
     }
 
+    // MARK: - Continuity Camera (Import from iPhone or iPad)
+
+    override func validRequestor(forSendType sendType: NSPasteboard.PasteboardType?, returnType: NSPasteboard.PasteboardType?) -> Any? {
+        // リッチテキストかつ画像受け入れ可能な場合、Continuity Cameraをサポート
+        if sendType == nil, let returnType = returnType {
+            if !isPlainText && NSImage.imageTypes.contains(returnType.rawValue) {
+                return self
+            }
+        }
+        return super.validRequestor(forSendType: sendType, returnType: returnType)
+    }
+
+    override func readSelection(from pboard: NSPasteboard) -> Bool {
+        guard !isPlainText else { return false }
+
+        // RTFD昇格
+        performUpgradeToRTFD()
+
+        // ペーストボードから画像を取得して挿入
+        if let image = NSImage(pasteboard: pboard) {
+            let attachment = NSTextAttachment()
+            let cell = NSTextAttachmentCell(imageCell: image)
+            attachment.attachmentCell = cell
+            let attrStr = NSAttributedString(attachment: attachment)
+            let insertRange = selectedRange()
+            replaceString(in: insertRange, with: attrStr)
+            return true
+        }
+
+        return super.readSelection(from: pboard)
+    }
+
     /// ファイルをテキストアタッチメントとして挿入
     private func insertFileAsAttachment(_ url: URL, at index: Int) {
         let attachment = NSTextAttachment()

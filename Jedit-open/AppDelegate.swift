@@ -31,6 +31,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // Format > Font メニューに Character Fore Color / Back Color サブメニューを追加
         setupCharacterColorMenus()
 
+        // Edit > Import from iPhone or iPad メニューを設定
+        setupImportFromDeviceMenuItem()
+
+        // Continuity Camera用: アプリが画像を受け取れることをServicesに登録
+        let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
+        NSApp.registerServicesMenuSendTypes([.string, .rtf, .rtfd], returnTypes: imageReturnTypes + [.tiff, .png])
+
         // プリセット変更通知を監視
         NotificationCenter.default.addObserver(
             self,
@@ -256,6 +263,44 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             keyEquivalent: ""
         )
         fontSubmenu.addItem(basicFontItem)
+    }
+
+    // MARK: - Import from iPhone or iPad
+
+    /// Edit > Import from iPhone or iPad メニュー項目をコードから追加
+    private func setupImportFromDeviceMenuItem() {
+        guard let mainMenu = NSApp.mainMenu,
+              let editMenu = mainMenu.item(withTitle: "Edit")?.submenu else {
+            return
+        }
+
+        // Insertサブメニューの後（セパレータの前）に挿入
+        // セパレータ "attach-files-sep" の位置を探す
+        var insertIndex = editMenu.numberOfItems
+        for i in 0..<editMenu.numberOfItems {
+            let item = editMenu.items[i]
+            if item.isSeparatorItem,
+               i > 0,
+               editMenu.items[i - 1].title == "Insert" {
+                insertIndex = i
+                break
+            }
+        }
+
+        // Import from iPhone or iPad メニュー項目を作成
+        // standardImportFromDeviceMenuItem を使用（SidecarSubmenuを含む標準メニュー項目を取得）
+        let sel = NSSelectorFromString("standardImportFromDeviceMenuItem")
+        if NSMenuItem.responds(to: sel),
+           let result = NSMenuItem.perform(sel),
+           let importItem = result.takeUnretainedValue() as? NSMenuItem {
+            editMenu.insertItem(importItem, at: insertIndex)
+        } else {
+            // フォールバック: 手動で作成
+            let importItem = NSMenuItem(title: "Import from iPhone or iPad", action: nil, keyEquivalent: "")
+            importItem.identifier = NSMenuItem.importFromDeviceIdentifier
+            importItem.submenu = NSMenu()
+            editMenu.insertItem(importItem, at: insertIndex)
+        }
     }
 
     // MARK: - Character Color Menus
