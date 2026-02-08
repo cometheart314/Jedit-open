@@ -252,6 +252,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // テキストタイプボタンの初期化
         updateTextTypeButtons()
 
+        // 編集ロックボタンの初期化
+        updateEditLockButtons()
+
         // テキスト編集設定の変更を監視
         observeTextEditingPreferences()
 
@@ -367,6 +370,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         scrollView2?.updateTextTypeButton(isRichText: isRichText)
     }
 
+    /// 編集ロックボタンを更新
+    private func updateEditLockButtons() {
+        let isEditable = currentTextView()?.isEditable ?? true
+        scrollView1?.updateEditLockButton(isEditable: isEditable)
+        scrollView2?.updateEditLockButton(isEditable: isEditable)
+    }
+
     @objc private func documentTypeDidChange(_ notification: Notification) {
         // 自分のドキュメントからの通知かを確認
         guard let document = notification.object as? Document,
@@ -396,6 +406,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // テキストタイプボタンを更新
         updateTextTypeButtons()
+
+        // 編集ロックボタンを更新
+        updateEditLockButtons()
     }
 
     @objc private func printInfoDidChange(_ notification: Notification) {
@@ -1084,7 +1097,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let availableHeight = scrollView.contentView.frame.height
             let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
             let textView = JeditTextView(frame: textViewFrame, textContainer: textContainer)
-            textView.isEditable = true
+            textView.isEditable = !(textDocument?.presetData?.view.preventEditing ?? false)
             textView.isSelectable = true
             textView.allowsUndo = true
             // 縦書き/横書きに応じてリサイズ方向を設定
@@ -1205,7 +1218,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let availableHeight = scrollView.contentView.frame.height
             let textViewFrame = NSRect(x: 0, y: 0, width: availableWidth, height: availableHeight)
             let textView = JeditTextView(frame: textViewFrame, textContainer: textContainer)
-            textView.isEditable = true
+            textView.isEditable = !(textDocument?.presetData?.view.preventEditing ?? false)
             textView.isSelectable = true
             textView.allowsUndo = true
             // 縦書き/横書きに応じてリサイズ方向を設定
@@ -1638,7 +1651,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // TextViewを作成（画像クリック対応）
             let documentRect = pagesView.documentRect(forPageNumber: pageIndex)
             let textView = JeditTextView(frame: documentRect, textContainer: textContainer)
-            textView.isEditable = true
+            textView.isEditable = !(textDocument?.presetData?.view.preventEditing ?? false)
             textView.isSelectable = true
             textView.allowsUndo = true
             textView.isHorizontallyResizable = false
@@ -3134,7 +3147,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 一時的なフレームでTextViewを作成（後でupdateAllTextViewFramesで更新される、画像クリック対応）
         let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
         let textView = JeditTextView(frame: tempFrame, textContainer: textContainer)
-        textView.isEditable = true
+        textView.isEditable = !(textDocument?.presetData?.view.preventEditing ?? false)
         textView.isSelectable = true
         textView.allowsUndo = true
         textView.isHorizontallyResizable = false
@@ -3759,6 +3772,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             } else {
                 menuItem.state = .off
             }
+        }
+
+        // Prevent Editing menu item validation
+        if menuItem.action == #selector(togglePreventEditing(_:)) {
+            let isEditable = currentTextView()?.isEditable ?? true
+            menuItem.title = isEditable ? "Prevent Editing" : "Allow Editing"
         }
 
         // Wrapped Line Indent menu item validation (Plain Text only)
@@ -4708,6 +4727,51 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             preset.data.format.autoIndent = enabled
             presetManager.updatePreset(preset)
         }
+    }
+
+    // MARK: - Prevent Editing
+
+    /// 編集のロック/アンロックをトグル
+    @IBAction func togglePreventEditing(_ sender: Any?) {
+        let isCurrentlyEditable = currentTextView()?.isEditable ?? true
+
+        if isCurrentlyEditable {
+            // 編集可能 → 読み取り専用にする場合は確認アラートを表示
+            guard let window = self.window else { return }
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString("Are you sure?", comment: "Prevent editing confirmation title")
+            alert.informativeText = NSLocalizedString("Make the current document read-only.", comment: "Prevent editing confirmation message")
+            alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+            alert.beginSheetModal(for: window) { [weak self] response in
+                if response == .alertFirstButtonReturn {
+                    self?.performSetPreventEditing(editable: false)
+                }
+            }
+        } else {
+            // 読み取り専用 → 編集可能にする場合はそのまま実行
+            performSetPreventEditing(editable: true)
+        }
+    }
+
+    /// 編集ロック状態を実際に変更する
+    private func performSetPreventEditing(editable: Bool) {
+        var views: [NSTextView] = []
+        if let tv = scrollView1?.documentView as? NSTextView { views.append(tv) }
+        if let tv = scrollView2?.documentView as? NSTextView { views.append(tv) }
+        views.append(contentsOf: textViews1)
+        views.append(contentsOf: textViews2)
+
+        for textView in views {
+            textView.isEditable = editable
+        }
+
+        // presetDataに状態を保存
+        textDocument?.presetData?.view.preventEditing = !editable
+        markDocumentAsEdited()
+
+        // 編集ロックボタンを更新
+        updateEditLockButtons()
     }
 
     // MARK: - Wrapped Line Indent

@@ -43,6 +43,8 @@ struct NewDocData: Codable, Equatable {
         var toolbarItemIdentifiers: [String]?
         // ツールバー表示モード（0: iconAndLabel, 1: iconOnly, 2: labelOnly）
         var toolbarDisplayMode: Int?
+        // 編集ロック状態
+        var preventEditing: Bool?
 
         enum LineNumberType: Int, Codable {
             case none = 0

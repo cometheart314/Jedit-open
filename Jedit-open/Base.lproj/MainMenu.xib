@@ -983,6 +983,26 @@
                                     <action selector="showWrappedLineIndentPanel:" target="-1" id="wrap-ind-act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="list-table-sep"/>
+                            <menuItem title="List…" id="list-panel-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="orderFrontListPanel:" target="-1" id="list-panel-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Table…" id="table-panel-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="orderFrontTablePanel:" target="-1" id="table-panel-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="prevent-edit-sep"/>
+                            <menuItem title="Prevent Editing" id="prevent-edit-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="togglePreventEditing:" target="-1" id="prevent-edit-act"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

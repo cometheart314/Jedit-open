@@ -33,6 +33,11 @@ class ScalingScrollView: NSScrollView {
     /// スプリットボタンのアクションターゲット（通常はEditorWindowController）
     weak var splitButtonTarget: AnyObject?
 
+    // MARK: - Edit Lock Button
+
+    /// 編集ロックボタン（水平スクロールバーの左端、テキストタイプボタンの左に配置）
+    private var editLockButton: NSButton?
+
     // MARK: - Text Type Button
 
     /// テキストタイプボタン（水平スクロールバーの左端に配置）
@@ -45,6 +50,7 @@ class ScalingScrollView: NSScrollView {
         setupMagnification()
         setupFrameObserver()
         setupSplitButtons()
+        setupEditLockButton()
         setupTextTypeButton()
     }
 
@@ -137,6 +143,28 @@ class ScalingScrollView: NSScrollView {
         splitVertButton = vertButton
     }
 
+    private func setupEditLockButton() {
+        // 編集ロックボタン（水平スクロールバーの左端に配置）
+        let button = NSButton(frame: NSRect(x: 0, y: 0, width: 20, height: 15))
+        button.title = ""
+        button.setButtonType(.momentaryLight)
+        button.bezelStyle = .smallSquare
+        button.isBordered = true
+        button.imagePosition = .imageOnly
+        button.imageScaling = .scaleProportionallyDown
+        // 初期状態: 編集可能 (pencil)
+        if let image = NSImage(systemSymbolName: "pencil", accessibilityDescription: "Editable") {
+            let config = NSImage.SymbolConfiguration(pointSize: 9, weight: .regular)
+            button.image = image.withSymbolConfiguration(config)
+        }
+        button.target = nil
+        button.action = #selector(EditorWindowController.togglePreventEditing(_:))
+        button.refusesFirstResponder = true
+        button.toolTip = NSLocalizedString("Toggle editing lock", comment: "Edit lock button tooltip")
+        addSubview(button)
+        editLockButton = button
+    }
+
     private func setupTextTypeButton() {
         // テキストタイプボタン（水平スクロールバーの左端に配置）
         let button = NSButton(frame: NSRect(x: 0, y: 0, width: 36, height: 15))
@@ -157,6 +185,21 @@ class ScalingScrollView: NSScrollView {
     /// - Parameter isRichText: trueの場合は"Rich"、falseの場合は"Plain"を表示
     func updateTextTypeButton(isRichText: Bool) {
         textTypeButton?.title = isRichText ? "Rich" : "Plain"
+    }
+
+    /// 編集ロックボタンの表示を更新
+    /// - Parameter isEditable: trueの場合は"pencil"（編集可能）、falseの場合は"pencil.slash"（ロック）を表示
+    func updateEditLockButton(isEditable: Bool) {
+        guard let button = editLockButton else { return }
+        let symbolName = isEditable ? "pencil" : "pencil.slash"
+        let description = isEditable ? "Editable" : "Read Only"
+        if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: description) {
+            let config = NSImage.SymbolConfiguration(pointSize: 9, weight: .regular)
+            button.image = image.withSymbolConfiguration(config)
+        }
+        button.toolTip = isEditable
+            ? NSLocalizedString("Prevent Editing", comment: "Edit lock button tooltip - editable")
+            : NSLocalizedString("Allow Editing", comment: "Edit lock button tooltip - locked")
     }
 
     // MARK: - Live Resize
@@ -212,21 +255,37 @@ class ScalingScrollView: NSScrollView {
         verticalScroller.frame = verticalScrollerFrame
         splitVertButton.frame = buttonFrame
 
-        // テキストタイプボタン - 水平スクロールバーの左端に配置
-        if let horizontalScroller = horizontalScroller,
-           let textTypeButton = textTypeButton {
+        // 編集ロックボタンとテキストタイプボタン - 水平スクロールバーの左端に配置
+        if let horizontalScroller = horizontalScroller {
             var horizontalScrollerFrame = horizontalScroller.frame
-            let textTypeButtonWidth = textTypeButton.frame.width
 
-            // テキストタイプボタンのフレームを設定
-            var textTypeButtonFrame = horizontalScrollerFrame
-            textTypeButtonFrame.size.width = textTypeButtonWidth
-            textTypeButtonFrame.size.height = horizontalScrollerFrame.height
-            textTypeButton.frame = textTypeButtonFrame
+            // 編集ロックボタン - 最左端
+            if let editLockButton = editLockButton {
+                let editLockButtonWidth = editLockButton.frame.width
 
-            // 水平スクロールバーを右にずらす
-            horizontalScrollerFrame.origin.x += textTypeButtonWidth
-            horizontalScrollerFrame.size.width -= textTypeButtonWidth
+                var editLockButtonFrame = horizontalScrollerFrame
+                editLockButtonFrame.size.width = editLockButtonWidth
+                editLockButtonFrame.size.height = horizontalScrollerFrame.height
+                editLockButton.frame = editLockButtonFrame
+
+                horizontalScrollerFrame.origin.x += editLockButtonWidth
+                horizontalScrollerFrame.size.width -= editLockButtonWidth
+            }
+
+            // テキストタイプボタン - 編集ロックボタンの右
+            if let textTypeButton = textTypeButton {
+                let textTypeButtonWidth = textTypeButton.frame.width
+
+                var textTypeButtonFrame = horizontalScrollerFrame
+                textTypeButtonFrame.size.width = textTypeButtonWidth
+                textTypeButtonFrame.size.height = horizontalScrollerFrame.height
+                textTypeButton.frame = textTypeButtonFrame
+
+                horizontalScrollerFrame.origin.x += textTypeButtonWidth
+                horizontalScrollerFrame.size.width -= textTypeButtonWidth
+            }
+
+            // 水平スクロールバーのフレームを更新
             horizontalScroller.frame = horizontalScrollerFrame
         }
     }

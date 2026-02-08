@@ -978,7 +978,7 @@ class Document: NSDocument {
         let viewSettingKeys: [NSAttributedString.DocumentAttributeKey] = [
             .paperSize, .topMargin, .bottomMargin, .leftMargin, .rightMargin,
             .viewMode, .viewSize, .viewZoom, .backgroundColor, .defaultTabInterval,
-            .textLayoutSections
+            .textLayoutSections, .readOnly
         ]
         for key in viewSettingKeys {
             if let value = attrs[key] {
@@ -1559,6 +1559,11 @@ class Document: NSDocument {
             presetData?.format.editingDirection = (orientation == 1) ? .rightToLeft : .leftToRight
         }
 
+        // 編集ロック状態（.readOnly）
+        if let readOnly = settings[.readOnly] as? Int {
+            presetData?.view.preventEditing = (readOnly > 0)
+        }
+
         // 一時保存をクリア
         loadedDocumentAttributeViewSettings = nil
     }
@@ -1605,6 +1610,11 @@ class Document: NSDocument {
                 "NSTextLayoutSectionRange": NSValue(range: NSRange(location: 0, length: textStorage.length))
             ]
             documentAttributes[.textLayoutSections] = [section]
+        }
+
+        // 編集ロック状態（.readOnly）
+        if let preventEditing = presetData?.view.preventEditing, preventEditing {
+            documentAttributes[.readOnly] = 1
         }
     }
 
