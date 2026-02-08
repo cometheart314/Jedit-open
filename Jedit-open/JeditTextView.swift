@@ -589,6 +589,35 @@ class JeditTextView: NSTextView {
         return handledAny
     }
 
+    // MARK: - Attach Files
+
+    /// Edit > Attach Files... メニューアクション
+    @IBAction func attachFile(_ sender: Any?) {
+        // プレーンテキストでは使用不可
+        guard !isPlainText else { return }
+
+        let openPanel = NSOpenPanel()
+        openPanel.canChooseFiles = true
+        openPanel.canChooseDirectories = false
+        openPanel.allowsMultipleSelection = true
+        openPanel.prompt = NSLocalizedString("Attach", comment: "Attach button in open panel")
+
+        guard let parentWindow = window else { return }
+
+        openPanel.beginSheetModal(for: parentWindow) { [weak self] response in
+            guard response == .OK, let self = self else { return }
+
+            self.upgradeToRTFDIfNeeded { [weak self] proceed in
+                guard proceed, let self = self else { return }
+
+                let insertionPoint = self.selectedRange().location
+                for (i, url) in openPanel.urls.enumerated() {
+                    self.insertFileAsAttachment(url, at: insertionPoint + i)
+                }
+            }
+        }
+    }
+
     /// ファイルをテキストアタッチメントとして挿入
     private func insertFileAsAttachment(_ url: URL, at index: Int) {
         let attachment = NSTextAttachment()
@@ -1881,7 +1910,15 @@ class JeditTextView: NSTextView {
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         let action = menuItem.action
 
-        // Baseline submenu actions and Character colors are disabled for plain text
+        // Set paperclip image for Attach Files menu item
+        if action == #selector(attachFile(_:)), menuItem.image == nil {
+            if let image = NSImage(systemSymbolName: "paperclip", accessibilityDescription: "Attach Files") {
+                image.size = NSSize(width: 16, height: 16)
+                menuItem.image = image
+            }
+        }
+
+        // Baseline submenu actions, Character colors, and Attach Files are disabled for plain text
         // (These attributes are not meaningful in plain text documents)
         if isPlainText {
             // Note: subscript is a Swift keyword, so we use Selector directly
@@ -1895,7 +1932,8 @@ class JeditTextView: NSTextView {
                  #selector(changeForeColor(_:)),
                  #selector(orderFrontForeColorPanel(_:)),
                  #selector(changeBackColor(_:)),
-                 #selector(orderFrontBackColorPanel(_:)):
+                 #selector(orderFrontBackColorPanel(_:)),
+                 #selector(attachFile(_:)):
                 return false
             default:
                 break

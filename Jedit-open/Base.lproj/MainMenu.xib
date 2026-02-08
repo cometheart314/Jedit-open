@@ -200,6 +200,43 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="uyl-h8-XO2"/>
+                            <menuItem title="Attach Files…" id="attach-files-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="attachFile:" target="-1" id="attach-files-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Link…" keyEquivalent="k" id="link-panel-001">
+                                <connections>
+                                    <action selector="orderFrontLinkPanel:" target="-1" id="link-panel-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Insert" id="insert-submenu-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <menu key="submenu" title="Insert" id="insert-submenu-menu">
+                                    <items>
+                                        <menuItem title="Line Break" id="insert-line-break-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="insertLineBreak:" target="-1" id="insert-line-break-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Paragraph Break" id="insert-para-break-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="insertParagraphSeparator:" target="-1" id="insert-para-break-act"/>
+                                            </connections>
+                                        </menuItem>
+                                        <menuItem title="Page Break" id="insert-page-break-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="insertContainerBreak:" target="-1" id="insert-page-break-act"/>
+                                            </connections>
+                                        </menuItem>
+                                    </items>
+                                </menu>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="attach-files-sep"/>
                             <menuItem title="Stamp Date" id="stamp-date-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
