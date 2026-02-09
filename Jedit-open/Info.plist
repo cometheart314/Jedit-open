@@ -42,6 +42,23 @@
 	<string>AppIcon</string>
 	<key>NSQuitAlwaysKeepsWindows</key>
 	<true/>
+	<key>NSUbiquitousContainers</key>
+	<dict>
+		<key>iCloud.jp.co.artman21.Jedit-open</key>
+		<dict>
+			<key>NSUbiquitousContainerIsDocumentScopePublic</key>
+			<true/>
+			<key>NSUbiquitousContainerName</key>
+			<string>Jedit</string>
+			<key>NSUbiquitousContainerSupportedDocumentTypes</key>
+			<array>
+				<string>public.plain-text</string>
+				<string>public.text</string>
+				<string>public.rtf</string>
+				<string>com.apple.rtfd</string>
+			</array>
+		</dict>
+	</dict>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>
