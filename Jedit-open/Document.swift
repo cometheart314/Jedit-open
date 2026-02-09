@@ -112,6 +112,9 @@ class Document: NSDocument {
     /// BOM（Byte Order Mark）の有無（プレーンテキスト用）
     var hasBOM: Bool = false
 
+    /// Word/ODTからインポートした書類かどうか（編集ロック解除時の警告表示に使用）
+    var isImportedDocument: Bool = false
+
     /// プリセットから適用されたドキュメント設定データ
     var presetData: NewDocData?
 
@@ -1239,6 +1242,17 @@ class Document: NSDocument {
             return
         }
 
+        // Word / OpenDocument ファイルの場合は新規リッチテキスト書類として読み込む
+        let wordODTTypes = [
+            "com.microsoft.word.doc",
+            "org.openxmlformats.wordprocessingml.document",
+            "org.oasis-open.opendocument.text"
+        ]
+        if wordODTTypes.contains(typeName) {
+            try readWordOrODTDocument(from: url, ofType: typeName)
+            return
+        }
+
         // まず通常のファイル読み込みを行う
         try super.read(from: url, ofType: typeName)
 
@@ -1280,6 +1294,79 @@ class Document: NSDocument {
                 // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
                 self.applyLoadedDocumentAttributeViewSettings()
             }
+        }
+    }
+
+    // MARK: - Word / OpenDocument Support
+
+    /// Word (.doc/.docx) または OpenDocument (.odt) ファイルを読み込む
+    /// 元のfileURLを維持し、readOnly（編集ロック）状態で開く
+    /// - Parameters:
+    ///   - url: ファイルのURL
+    ///   - typeName: UTI文字列
+    private nonisolated func readWordOrODTDocument(from url: URL, ofType typeName: String) throws {
+        let data = try Data(contentsOf: url)
+
+        // UTI から NSAttributedString.DocumentType を判定
+        let docType: NSAttributedString.DocumentType
+        switch typeName {
+        case "com.microsoft.word.doc":
+            docType = .docFormat
+        case "org.openxmlformats.wordprocessingml.document":
+            docType = .officeOpenXML
+        default:
+            // .odt など：まず .officeOpenXML で試行する
+            docType = .officeOpenXML
+        }
+
+        var documentAttributes: NSDictionary?
+        var attributedString: NSAttributedString?
+
+        // 指定された DocumentType で読み込みを試行
+        let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [
+            .documentType: docType
+        ]
+        attributedString = try? NSAttributedString(data: data, options: options, documentAttributes: &documentAttributes)
+
+        // 失敗した場合、DocumentType を指定せずに自動判定で再試行
+        if attributedString == nil {
+            documentAttributes = nil
+            attributedString = try? NSAttributedString(data: data, options: [:], documentAttributes: &documentAttributes)
+        }
+
+        guard let result = attributedString else {
+            let formatName: String
+            switch typeName {
+            case "com.microsoft.word.doc":
+                formatName = "Word (.doc)"
+            case "org.openxmlformats.wordprocessingml.document":
+                formatName = "Word (.docx)"
+            case "org.oasis-open.opendocument.text":
+                formatName = "OpenDocument (.odt)"
+            default:
+                formatName = typeName
+            }
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
+                NSLocalizedDescriptionKey: String(format: NSLocalizedString("Could not read %@ document.", comment: "Error message when Word/ODT file cannot be read"), formatName)
+            ])
+        }
+
+        // リッチテキストとして読み込み、readOnly（編集ロック）で開く
+        MainActor.assumeIsolated {
+            self.documentType = .rtf
+            self.textStorage.setAttributedString(result)
+            self.presetData = NewDocData.richText
+            self.isImportedDocument = true
+
+            // 編集ロック状態にする
+            self.presetData?.view.preventEditing = true
+
+            // Document attributes から properties を適用
+            if let attrs = documentAttributes as? [NSAttributedString.DocumentAttributeKey: Any] {
+                self.applyDocumentAttributesToProperties(attrs)
+            }
+
+            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
         }
     }
 

@@ -4749,8 +4749,23 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 }
             }
         } else {
-            // 読み取り専用 → 編集可能にする場合はそのまま実行
-            performSetPreventEditing(editable: true)
+            // 読み取り専用 → 編集可能にする
+            if textDocument?.isImportedDocument == true {
+                // Word/ODTからインポートした書類の場合は互換性に関する警告を表示
+                guard let window = self.window else { return }
+                let alert = NSAlert()
+                alert.messageText = NSLocalizedString("Allow Editing?", comment: "Imported document unlock confirmation title")
+                alert.informativeText = NSLocalizedString("This document was imported from a format with limited compatibility. Some formatting may not be fully preserved when saved.", comment: "Imported document unlock warning message")
+                alert.addButton(withTitle: NSLocalizedString("Allow Editing", comment: "Imported document unlock button"))
+                alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+                alert.beginSheetModal(for: window) { [weak self] response in
+                    if response == .alertFirstButtonReturn {
+                        self?.performSetPreventEditing(editable: true)
+                    }
+                }
+            } else {
+                performSetPreventEditing(editable: true)
+            }
         }
     }
 
