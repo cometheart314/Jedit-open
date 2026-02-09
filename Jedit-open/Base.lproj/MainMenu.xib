@@ -37,7 +37,7 @@
                                 <menu key="submenu" title="Services" systemMenu="services" id="hz9-B4-Xy5"/>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="4je-JR-u6R"/>
-                            <menuItem title="Hide Jedit-open" keyEquivalent="h" id="Olw-nP-bQN">
+                            <menuItem title="Hide Jedit" keyEquivalent="h" id="Olw-nP-bQN">
                                 <connections>
                                     <action selector="hide:" target="-1" id="PnN-Uc-m68"/>
                                 </connections>
@@ -123,6 +123,12 @@
                             <menuItem title="Save As…" keyEquivalent="S" id="Bw7-FT-i3A">
                                 <connections>
                                     <action selector="saveDocumentAs:" target="-1" id="mDf-zr-I0C"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Export…" image="square.and.arrow.up" catalog="system" keyEquivalent="e" id="export-menu-001">
+                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
+                                <connections>
+                                    <action selector="exportDocument:" target="-1" id="export-act-001"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Revert to Saved" keyEquivalent="r" id="KaW-ft-85H">
@@ -1047,4 +1053,7 @@
             <point key="canvasLocation" x="558" y="-3"/>
         </menu>
     </objects>
+    <resources>
+        <image name="square.and.arrow.up" catalog="system" width="16" height="18"/>
+    </resources>
 </document>

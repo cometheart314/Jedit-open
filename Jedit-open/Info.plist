@@ -46,6 +46,7 @@
 		<array>
 			<string>com.microsoft.word.doc</string>
 			<string>org.openxmlformats.wordprocessingml.document</string>
+			<string>com.microsoft.word.wordml</string>
 			<string>org.oasis-open.opendocument.text</string>
 		</array>
 		<key>NSDocumentClass</key>

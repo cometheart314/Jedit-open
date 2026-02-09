@@ -1246,11 +1246,20 @@ class Document: NSDocument {
         let wordODTTypes = [
             "com.microsoft.word.doc",
             "org.openxmlformats.wordprocessingml.document",
+            "com.microsoft.word.wordml",
             "org.oasis-open.opendocument.text"
         ]
         if wordODTTypes.contains(typeName) {
             try readWordOrODTDocument(from: url, ofType: typeName)
             return
+        }
+
+        // .xml ファイルが Word 2003 XML (WordML) かどうかを内容で判定
+        if typeName == "public.xml" || url.pathExtension.lowercased() == "xml" {
+            if Self.isWordMLFile(url: url) {
+                try readWordOrODTDocument(from: url, ofType: "com.microsoft.word.wordml")
+                return
+            }
         }
 
         // まず通常のファイル読み込みを行う
@@ -1299,6 +1308,19 @@ class Document: NSDocument {
 
     // MARK: - Word / OpenDocument Support
 
+    /// XML ファイルが Word 2003 XML (WordML) 形式かどうかをファイル先頭の内容で判定
+    private static func isWordMLFile(url: URL) -> Bool {
+        guard let fileHandle = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { fileHandle.closeFile() }
+        guard let headerData = try? fileHandle.read(upToCount: 1024),
+              let header = String(data: headerData, encoding: .utf8) else { return false }
+        // Word 2003 XML は "<?xml" で始まり、"w:wordDocument" または
+        // "schemas-microsoft-com:office:word" namespace を含む
+        return header.contains("w:wordDocument")
+            || header.contains("schemas-microsoft-com:office:word")
+            || header.contains("urn:schemas-microsoft-com:office:word")
+    }
+
     /// Word (.doc/.docx) または OpenDocument (.odt) ファイルを読み込む
     /// 元のfileURLを維持し、readOnly（編集ロック）状態で開く
     /// - Parameters:
@@ -1314,6 +1336,8 @@ class Document: NSDocument {
             docType = .docFormat
         case "org.openxmlformats.wordprocessingml.document":
             docType = .officeOpenXML
+        case "com.microsoft.word.wordml":
+            docType = .wordML
         default:
             // .odt など：まず .officeOpenXML で試行する
             docType = .officeOpenXML
@@ -1341,6 +1365,8 @@ class Document: NSDocument {
                 formatName = "Word (.doc)"
             case "org.openxmlformats.wordprocessingml.document":
                 formatName = "Word (.docx)"
+            case "com.microsoft.word.wordml":
+                formatName = "Word 2003 XML (.xml)"
             case "org.oasis-open.opendocument.text":
                 formatName = "OpenDocument (.odt)"
             default:
@@ -1976,6 +2002,373 @@ class Document: NSDocument {
             }
         }
         return super.prepareSavePanel(savePanel)
+    }
+
+    // MARK: - Export
+
+    /// エクスポートパネルのフォーマットポップアップ変更時コールバック
+    private var exportFormatAction: (() -> Void)?
+    /// エクスポートパネルのエンコーディングポップアップ変更時コールバック
+    private var exportEncodingAction: (() -> Void)?
+
+    @objc private func exportFormatPopUpChanged(_ sender: Any?) {
+        exportFormatAction?()
+    }
+
+    @objc private func exportEncodingPopUpChanged(_ sender: Any?) {
+        exportEncodingAction?()
+    }
+
+    /// Export... メニューアクション
+    @IBAction func exportDocument(_ sender: Any?) {
+        guard let window = windowControllers.first?.window else { return }
+
+        // ExportAccessoryView.xib を読み込む
+        var topLevelObjects: NSArray?
+        guard Bundle.main.loadNibNamed("ExportAccessoryView", owner: nil, topLevelObjects: &topLevelObjects),
+              let objects = topLevelObjects,
+              let accessoryView = objects.compactMap({ $0 as? NSView }).first(where: { $0.frame.size.height > 0 })
+        else { return }
+
+        // アクセサリビュー内のコントロールをプロパティで特定
+        let allButtons = accessoryView.subviews.compactMap { $0 as? NSButton }
+        let allPopUps = accessoryView.subviews.compactMap { $0 as? NSPopUpButton }
+        let allLabels = accessoryView.subviews.compactMap { $0 as? NSTextField }
+
+        // Encoding ポップアップ（toolTipで特定。XIBの customClass=EncodingPopUpButtonCell は
+        // loadNibNamed 時に NSPopUpButtonCell としてロードされるため cell is では判定不可）
+        let encodingPopUp = allPopUps.first(where: { $0.toolTip?.contains("encoding") == true })
+        // 8項目以上のメニューを持つポップアップ = File Format ポップアップ
+        let formatPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0.numberOfItems > 4 })
+        // 3項目のポップアップ (LF/CR/CR+LF) = 改行コードポップアップ
+        let lineEndingPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0 !== formatPopUp })
+        // チェックボックスの中で "BOM" を含むもの
+        let bomCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title == "BOM" })
+        // チェックボックスの中で "Selection" を含むもの
+        let selectionOnlyCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title.contains("Selection") == true })
+        // "Encoding:" ラベル
+        let encodingLabel = allLabels.first(where: { ($0.cell as? NSTextFieldCell)?.title == "Encoding:" })
+
+        // NIBロード後にエンコーディングポップアップを手動で構築
+        // （XIBの EncodingPopUpButtonCell が NSPopUpButtonCell としてロードされ、
+        //   init(coder:) の自動構築が機能しないため、手動でエンコーディングリストを設定する）
+        if let encodingCell = encodingPopUp?.cell as? NSPopUpButtonCell {
+            EncodingManager.shared.setupPopUpCell(encodingCell,
+                                                   selectedEncoding: UInt(documentEncoding.rawValue),
+                                                   withDefaultEntry: false)
+
+            // テキスト内容で変換できないエンコーディングをグレイアウト
+            let text = textStorage.string
+            for i in 0..<encodingCell.numberOfItems {
+                guard let item = encodingCell.item(at: i),
+                      let encNumber = item.representedObject as? NSNumber else { continue }
+                let encoding = String.Encoding(rawValue: encNumber.uintValue)
+                if text.data(using: encoding) == nil {
+                    item.isEnabled = false
+                }
+            }
+        }
+
+        // 現在のドキュメントタイプに基づいて初期フォーマットを選択
+        switch documentType {
+        case .plain:
+            formatPopUp?.selectItem(withTag: 0)
+        case .rtfd:
+            formatPopUp?.selectItem(withTag: 2)
+        default:
+            formatPopUp?.selectItem(withTag: 1)
+        }
+
+        // 改行コードの初期値を設定
+        lineEndingPopUp?.selectItem(withTag: lineEnding.rawValue)
+
+        // BOMの初期値を設定
+        bomCheckbox?.state = hasBOM ? .on : .off
+
+        // 選択中のエンコーディングがUnicode系かどうかを判定するクロージャ
+        let isUnicodeEncoding: () -> Bool = {
+            guard let cell = encodingPopUp?.cell as? NSPopUpButtonCell,
+                  let selectedItem = cell.selectedItem,
+                  let encNumber = selectedItem.representedObject as? NSNumber else { return false }
+            let enc = String.Encoding(rawValue: encNumber.uintValue)
+            return enc == .utf8 || enc == .utf16 || enc == .utf16BigEndian
+                || enc == .utf16LittleEndian || enc == .utf32 || enc == .utf32BigEndian
+                || enc == .utf32LittleEndian
+        }
+
+        // BOMチェックボックスの初期状態
+        bomCheckbox?.isEnabled = isUnicodeEncoding()
+
+        // 選択範囲がない場合は「Export Only Selection」を無効化
+        if let textView = windowControllers.first.flatMap({ ($0 as? EditorWindowController)?.currentTextView() }) {
+            let hasSelection = textView.selectedRange().length > 0
+            selectionOnlyCheckbox?.isEnabled = hasSelection
+            if !hasSelection {
+                selectionOnlyCheckbox?.state = .off
+            }
+        }
+
+        // Save パネルを構成
+        let savePanel = NSSavePanel()
+        savePanel.accessoryView = accessoryView
+        savePanel.isExtensionHidden = false
+        savePanel.canSelectHiddenExtension = true
+        savePanel.title = NSLocalizedString("Export", comment: "Export panel title")
+
+        // ファイル名を提案
+        if let url = fileURL {
+            savePanel.nameFieldStringValue = url.deletingPathExtension().lastPathComponent
+        } else {
+            let suggestedName = generateSuggestedFileName()
+            if !suggestedName.isEmpty {
+                savePanel.nameFieldStringValue = suggestedName
+            }
+        }
+
+        // フォーマットに基づいてパネルのallowedContentTypesを更新
+        updateExportPanelContentTypes(savePanel: savePanel, formatTag: formatPopUp?.selectedTag() ?? 1)
+
+        // フォーマットポップアップ変更時のアクション
+        exportFormatAction = { [weak self, weak savePanel] in
+            guard let self = self, let panel = savePanel,
+                  let currentTag = formatPopUp?.selectedTag() else { return }
+            self.updateExportPanelContentTypes(savePanel: panel, formatTag: currentTag)
+            // プレーンテキスト以外では Encoding/改行/BOM を非表示
+            let isPlainText = currentTag == 0
+            encodingPopUp?.isHidden = !isPlainText
+            encodingLabel?.isHidden = !isPlainText
+            lineEndingPopUp?.isHidden = !isPlainText
+            bomCheckbox?.isHidden = !isPlainText
+        }
+        formatPopUp?.target = self
+        formatPopUp?.action = #selector(exportFormatPopUpChanged(_:))
+
+        // エンコーディングポップアップ変更時のアクション
+        exportEncodingAction = {
+            bomCheckbox?.isEnabled = isUnicodeEncoding()
+            if !(bomCheckbox?.isEnabled ?? false) {
+                bomCheckbox?.state = .off
+            }
+        }
+        encodingPopUp?.target = self
+        encodingPopUp?.action = #selector(exportEncodingPopUpChanged(_:))
+
+        // 初期状態でプレーンテキスト以外は Encoding/改行/BOM を非表示
+        let isPlainText = (formatPopUp?.selectedTag() ?? 1) == 0
+        encodingPopUp?.isHidden = !isPlainText
+        encodingLabel?.isHidden = !isPlainText
+        lineEndingPopUp?.isHidden = !isPlainText
+        bomCheckbox?.isHidden = !isPlainText
+
+        savePanel.beginSheetModal(for: window) { [weak self] response in
+            // コールバックをクリーンアップ
+            self?.exportFormatAction = nil
+            self?.exportEncodingAction = nil
+
+            guard response == .OK, let self = self, let url = savePanel.url else { return }
+
+            let tag = formatPopUp?.selectedTag() ?? 1
+            let exportSelectionOnly = selectionOnlyCheckbox?.state == .on
+
+            do {
+                let data = try self.generateExportData(
+                    formatTag: tag,
+                    selectionOnly: exportSelectionOnly,
+                    encodingPopUp: encodingPopUp,
+                    lineEndingPopUp: lineEndingPopUp,
+                    bomCheckbox: bomCheckbox
+                )
+
+                // RTFD の場合は FileWrapper で保存
+                if tag == 2 {
+                    let fileWrapper = try self.generateExportFileWrapper(selectionOnly: exportSelectionOnly)
+                    try fileWrapper.write(to: url, options: .atomic, originalContentsURL: nil)
+                } else {
+                    try data.write(to: url, options: .atomic)
+                }
+            } catch {
+                let alert = NSAlert(error: error)
+                alert.beginSheetModal(for: window)
+            }
+        }
+    }
+
+    /// エクスポートパネルの allowedContentTypes をフォーマットタグに基づいて更新
+    private func updateExportPanelContentTypes(savePanel: NSSavePanel, formatTag: Int) {
+        switch formatTag {
+        case 0: // Plain Text
+            savePanel.allowedContentTypes = [.plainText]
+        case 1: // RTF
+            savePanel.allowedContentTypes = [.rtf]
+        case 2: // RTFD
+            savePanel.allowedContentTypes = [.rtfd]
+        case 3: // Word 97 (.doc)
+            if let type = UTType("com.microsoft.word.doc") {
+                savePanel.allowedContentTypes = [type]
+            }
+        case 4: // Word 2003 XML (.xml)
+            if let type = UTType("com.microsoft.word.wordml") {
+                savePanel.allowedContentTypes = [type]
+            } else {
+                savePanel.allowedContentTypes = [.xml]
+            }
+        case 5: // Word 2007 (.docx)
+            if let type = UTType("org.openxmlformats.wordprocessingml.document") {
+                savePanel.allowedContentTypes = [type]
+            }
+        case 6: // OpenDocument (.odt)
+            if let type = UTType("org.oasis-open.opendocument.text") {
+                savePanel.allowedContentTypes = [type]
+            }
+        default:
+            savePanel.allowedContentTypes = [.rtf]
+        }
+    }
+
+    /// エクスポート用のデータを生成
+    private func generateExportData(
+        formatTag: Int,
+        selectionOnly: Bool,
+        encodingPopUp: NSPopUpButton?,
+        lineEndingPopUp: NSPopUpButton?,
+        bomCheckbox: NSButton?
+    ) throws -> Data {
+        // テキスト範囲を決定
+        let range: NSRange
+        if selectionOnly,
+           let textView = windowControllers.first.flatMap({ ($0 as? EditorWindowController)?.currentTextView() }),
+           textView.selectedRange().length > 0 {
+            range = textView.selectedRange()
+        } else {
+            range = NSRange(location: 0, length: textStorage.length)
+        }
+
+        // フォーマットタグに対応する DocumentType を決定
+        let docType: NSAttributedString.DocumentType
+        switch formatTag {
+        case 0: return try generateExportPlainTextData(range: range, encodingPopUp: encodingPopUp, lineEndingPopUp: lineEndingPopUp, bomCheckbox: bomCheckbox)
+        case 1: docType = .rtf
+        case 2: docType = .rtfd
+        case 3: docType = .docFormat
+        case 4: docType = .wordML
+        case 5: docType = .officeOpenXML
+        case 6: docType = .officeOpenXML  // ODTは直接サポートされないためdocxで試行
+        default: docType = .rtf
+        }
+
+        var options: [NSAttributedString.DocumentAttributeKey: Any] = [
+            .documentType: docType
+        ]
+
+        // Document properties を設定
+        if let properties = presetData?.properties {
+            if !properties.author.isEmpty { options[.author] = properties.author }
+            if !properties.company.isEmpty { options[.company] = properties.company }
+            if !properties.copyright.isEmpty { options[.copyright] = properties.copyright }
+            if !properties.title.isEmpty { options[.title] = properties.title }
+            if !properties.subject.isEmpty { options[.subject] = properties.subject }
+            if !properties.keywords.isEmpty {
+                let keywordsArray = properties.keywords.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                options[.keywords] = keywordsArray
+            }
+            if !properties.comment.isEmpty { options[.comment] = properties.comment }
+        }
+
+        return try textStorage.data(from: range, documentAttributes: options)
+    }
+
+    /// エクスポート用の RTFD FileWrapper を生成
+    private func generateExportFileWrapper(selectionOnly: Bool) throws -> FileWrapper {
+        let range: NSRange
+        if selectionOnly,
+           let textView = windowControllers.first.flatMap({ ($0 as? EditorWindowController)?.currentTextView() }),
+           textView.selectedRange().length > 0 {
+            range = textView.selectedRange()
+        } else {
+            range = NSRange(location: 0, length: textStorage.length)
+        }
+
+        var documentAttributes: [NSAttributedString.DocumentAttributeKey: Any] = [
+            .documentType: NSAttributedString.DocumentType.rtfd
+        ]
+
+        // Document properties を設定
+        if let properties = presetData?.properties {
+            if !properties.author.isEmpty { documentAttributes[.author] = properties.author }
+            if !properties.company.isEmpty { documentAttributes[.company] = properties.company }
+            if !properties.copyright.isEmpty { documentAttributes[.copyright] = properties.copyright }
+            if !properties.title.isEmpty { documentAttributes[.title] = properties.title }
+            if !properties.subject.isEmpty { documentAttributes[.subject] = properties.subject }
+            if !properties.keywords.isEmpty {
+                let keywordsArray = properties.keywords.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+                documentAttributes[.keywords] = keywordsArray
+            }
+            if !properties.comment.isEmpty { documentAttributes[.comment] = properties.comment }
+        }
+
+        guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: documentAttributes) else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteUnknownError, userInfo: [
+                NSLocalizedDescriptionKey: "Could not create RTFD file wrapper"
+            ])
+        }
+        return fileWrapper
+    }
+
+    /// エクスポート用のプレーンテキストデータを生成
+    private func generateExportPlainTextData(
+        range: NSRange,
+        encodingPopUp: NSPopUpButton?,
+        lineEndingPopUp: NSPopUpButton?,
+        bomCheckbox: NSButton?
+    ) throws -> Data {
+        // テキストを取得
+        let fullText = textStorage.string
+        let text: String
+        if let swiftRange = Range(range, in: fullText) {
+            text = String(fullText[swiftRange])
+        } else {
+            text = fullText
+        }
+
+        // エンコーディングを決定
+        var encoding: String.Encoding = documentEncoding
+        if let encodingCell = encodingPopUp?.cell as? NSPopUpButtonCell,
+           let selectedItem = encodingCell.selectedItem,
+           let enc = selectedItem.representedObject as? NSNumber {
+            let rawValue = enc.uintValue
+            if rawValue != NoStringEncoding {
+                encoding = String.Encoding(rawValue: UInt(rawValue))
+            }
+        }
+
+        // 改行コードを決定
+        let lineEndingTag = lineEndingPopUp?.selectedTag() ?? 0
+        let exportLineEnding = LineEnding(rawValue: lineEndingTag) ?? .lf
+
+        // 改行コードを変換
+        let convertedText = convertLineEndings(in: text, to: exportLineEnding)
+
+        // エンコード
+        var exportData: Data
+        if let encoded = convertedText.data(using: encoding) {
+            exportData = encoded
+        } else {
+            // フォールバック: UTF-8
+            guard let utf8Data = convertedText.data(using: .utf8) else {
+                throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteInapplicableStringEncodingError, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not encode text"
+                ])
+            }
+            exportData = utf8Data
+            encoding = .utf8
+        }
+
+        // BOM を付加
+        if bomCheckbox?.state == .on {
+            exportData = addBOM(to: exportData, encoding: encoding)
+        }
+
+        return exportData
     }
 
     /// ドキュメント内容から推奨ファイル名を生成（24文字以内）
