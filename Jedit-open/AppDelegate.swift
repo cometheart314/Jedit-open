@@ -253,9 +253,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// ドキュメントウィンドウが閉じられる時にDocument Info パネルを更新
     /// ウィンドウが閉じた後に次のドキュメントを反映するため少し遅延させる
+    /// 全てのドキュメントウィンドウが閉じられた場合はパネルも閉じる
     @objc private func documentWindowWillClose(_ notification: Notification) {
         DispatchQueue.main.async {
-            DocumentInfoPanelController.shared.updateForCurrentDocument()
+            // 残りのドキュメントウィンドウがあるか確認
+            let hasDocumentWindow = NSApp.orderedWindows.contains { window in
+                !(window is NSPanel)
+                    && window.windowController?.document is Document
+                    && window != notification.object as? NSWindow
+            }
+
+            if hasDocumentWindow {
+                DocumentInfoPanelController.shared.updateForCurrentDocument()
+            } else {
+                // 全てのドキュメントウィンドウが閉じられた
+                DocumentInfoPanelController.shared.closePanel()
+            }
         }
     }
 

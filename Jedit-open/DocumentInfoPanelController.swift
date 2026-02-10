@@ -9,7 +9,7 @@ import Cocoa
 
 /// Document Info パネルのコントローラー
 /// AppDelegate からシングルトンとして管理され、最前面ドキュメントの情報を表示する
-class DocumentInfoPanelController: NSObject {
+class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewDelegate {
 
     // MARK: - Singleton
 
@@ -70,6 +70,18 @@ class DocumentInfoPanelController: NSObject {
         encodingPopUpButton?.textForValidation = { [weak self] in
             return self?.currentDocument()?.textStorage.string
         }
+
+        // Location[Size] テーブルの dataSource / delegate を設定
+        infoTableView?.dataSource = self
+        infoTableView?.delegate = self
+
+        // 統計情報変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(statisticsDidChange(_:)),
+            name: Document.statisticsDidChangeNotification,
+            object: nil
+        )
     }
 
     // MARK: - Public Methods
@@ -87,12 +99,20 @@ class DocumentInfoPanelController: NSObject {
             updatePanelContents()
             // orderFront を使用してドキュメントウィンドウのメイン/キー状態を維持
             panel.orderFront(nil)
+            // 統計計算をトリガー
+            triggerStatisticsUpdate()
         }
     }
 
     /// パネルが表示されているかどうか
     var isPanelVisible: Bool {
         return isLoaded && (documentInfoPanel?.isVisible ?? false)
+    }
+
+    /// パネルを閉じる
+    func closePanel() {
+        guard isLoaded, let panel = documentInfoPanel, panel.isVisible else { return }
+        panel.orderOut(nil)
     }
 
     // MARK: - Document Info Update
@@ -111,6 +131,8 @@ class DocumentInfoPanelController: NSObject {
         let displayName = document.displayName ?? "Untitled"
         panel.title = "Document Info — \(displayName)"
         updateDocumentInfoTab(for: document)
+        // 統計計算をトリガー（ウィンドウ切り替え時に最新情報を表示）
+        triggerStatisticsUpdate(for: document)
     }
 
     /// パネルの内容を実際に更新する（isVisible チェックなし）
@@ -364,4 +386,198 @@ class DocumentInfoPanelController: NSObject {
         }
     }
 
+    // MARK: - Statistics Update
+
+    /// 統計計算をトリガー（現在のドキュメント）
+    private func triggerStatisticsUpdate() {
+        guard let document = currentDocument() else { return }
+        triggerStatisticsUpdate(for: document)
+    }
+
+    /// 統計計算をトリガー（指定ドキュメント）
+    private func triggerStatisticsUpdate(for document: Document) {
+        if let windowController = document.windowControllers.first as? EditorWindowController {
+            windowController.scheduleStatisticsUpdate()
+        }
+    }
+
+    /// 統計情報変更通知ハンドラ
+    @objc private func statisticsDidChange(_ notification: Notification) {
+        guard isPanelVisible else { return }
+        // 現在のドキュメントの通知のみ処理
+        if let notifiedDocument = notification.object as? Document,
+           let currentDoc = currentDocument(),
+           notifiedDocument === currentDoc {
+            infoTableView?.reloadData()
+        }
+    }
+
+    // MARK: - NSTableViewDataSource
+
+    /// Location[Size] テーブルの行名
+    private static let rowNames = [
+        "Location",
+        "Characters",
+        "Visible Chars",
+        "Words",
+        "Rows",
+        "Paragraphs",
+        "Pages",
+        "Char. Code"
+    ]
+
+    func numberOfRows(in tableView: NSTableView) -> Int {
+        return Self.rowNames.count
+    }
+
+    // MARK: - NSTableViewDelegate
+
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        guard let columnIdentifier = tableColumn?.identifier.rawValue else { return nil }
+
+        let cellIdentifier = NSUserInterfaceItemIdentifier("InfoCell_\(columnIdentifier)")
+        var cellView = tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
+
+        if cellView == nil {
+            cellView = NSTableCellView()
+            cellView?.identifier = cellIdentifier
+            let textField = NSTextField(labelWithString: "")
+            textField.font = NSFont.systemFont(ofSize: 11)
+            textField.isSelectable = true
+            textField.isEditable = false
+            textField.isBordered = false
+            textField.drawsBackground = false
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            cellView?.addSubview(textField)
+            cellView?.textField = textField
+            NSLayoutConstraint.activate([
+                textField.leadingAnchor.constraint(equalTo: cellView!.leadingAnchor, constant: 2),
+                textField.trailingAnchor.constraint(equalTo: cellView!.trailingAnchor, constant: -2),
+                textField.centerYAnchor.constraint(equalTo: cellView!.centerYAnchor)
+            ])
+        }
+
+        let stats = currentDocument()?.statistics ?? DocumentStatistics()
+        let text: String
+
+        let isCharCodeRow = (row == 7)
+
+        switch columnIdentifier {
+        case "NAME":
+            text = Self.rowNames[row]
+            cellView?.textField?.alignment = .right
+            cellView?.textField?.font = NSFont.systemFont(ofSize: 11)
+        case "SELECTION":
+            text = selectionValue(for: row, stats: stats)
+            cellView?.textField?.alignment = isCharCodeRow ? .left : .right
+            cellView?.textField?.font = NSFont.monospacedSystemFont(
+                ofSize: isCharCodeRow ? 11 : 13, weight: .regular)
+        case "WHOLE":
+            text = wholeDocValue(for: row, stats: stats)
+            cellView?.textField?.alignment = .right
+            cellView?.textField?.font = NSFont.systemFont(ofSize: 13)
+        default:
+            text = ""
+        }
+
+        cellView?.textField?.stringValue = text
+        return cellView
+    }
+
+    // MARK: - Table Value Formatting
+
+    /// Selection 列の値を返す
+    private func selectionValue(for row: Int, stats: DocumentStatistics) -> String {
+        let f = DocumentStatistics.formatted
+        let hasSelection = (stats.selectionLength > 0)
+
+        switch row {
+        case 0: // Location
+            if stats.totalCharacters > 0 {
+                let percent = Int(round(Double(stats.selectionLocation) / Double(stats.totalCharacters) * 100))
+                return "\(percent) %"
+            }
+            return "0 %"
+
+        case 1: // Characters
+            if hasSelection {
+                return "\(f(stats.selectionLocation)) [\(f(stats.selectionCharacters))]"
+            }
+            return f(stats.selectionLocation)
+
+        case 2: // Visible Chars
+            if hasSelection {
+                return "[\(f(stats.selectionVisibleChars))]"
+            }
+            return ""
+
+        case 3: // Words
+            if hasSelection {
+                return "\(f(stats.locationWords)) [\(f(stats.selectionWords))]"
+            }
+            return f(stats.locationWords)
+
+        case 4: // Rows
+            if !stats.showRows { return "–" }
+            if hasSelection {
+                return "\(f(stats.locationRows)) [\(f(stats.selectionRows))]"
+            }
+            return f(stats.locationRows)
+
+        case 5: // Paragraphs
+            if hasSelection {
+                return "\(f(stats.locationParagraphs)) [\(f(stats.selectionParagraphs))]"
+            }
+            return f(stats.locationParagraphs)
+
+        case 6: // Pages
+            if !stats.showPages { return "–" }
+            if hasSelection {
+                return "\(f(stats.locationPages)) [\(f(stats.selectionPages))]"
+            }
+            return f(stats.locationPages)
+
+        case 7: // Char. Code
+            return stats.charCode
+
+        default:
+            return ""
+        }
+    }
+
+    /// Whole Doc. 列の値を返す
+    private func wholeDocValue(for row: Int, stats: DocumentStatistics) -> String {
+        let f = DocumentStatistics.formatted
+
+        switch row {
+        case 0: // Location
+            return "100 %"
+
+        case 1: // Characters
+            return f(stats.totalCharacters)
+
+        case 2: // Visible Chars
+            return f(stats.totalVisibleChars)
+
+        case 3: // Words
+            return f(stats.totalWords)
+
+        case 4: // Rows
+            if !stats.showRows { return "–" }
+            return f(stats.totalRows)
+
+        case 5: // Paragraphs
+            return f(stats.totalParagraphs)
+
+        case 6: // Pages
+            if !stats.showPages { return "–" }
+            return f(stats.totalPages)
+
+        case 7: // Char. Code
+            return ""
+
+        default:
+            return ""
+        }
+    }
 }

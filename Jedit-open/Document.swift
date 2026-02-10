@@ -91,6 +91,7 @@ class Document: NSDocument {
 
     static let documentTypeDidChangeNotification = Notification.Name("DocumentTypeDidChange")
     static let printInfoDidChangeNotification = Notification.Name("PrintInfoDidChange")
+    static let statisticsDidChangeNotification = Notification.Name("DocumentStatisticsDidChange")
 
     // MARK: - Extended Attribute Keys
 
@@ -120,6 +121,9 @@ class Document: NSDocument {
 
     /// presetData が変更されたかどうか（保存時に拡張属性を更新するためのフラグ）
     var presetDataEdited: Bool = false
+
+    /// ドキュメント統計情報（Location[Size] タブ表示用）
+    var statistics = DocumentStatistics()
 
     /// フォントフォールバック復帰用のDelegate
     private var fontFallbackRecoveryDelegate: FontFallbackRecoveryDelegate?
