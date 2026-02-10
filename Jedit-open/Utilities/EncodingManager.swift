@@ -326,6 +326,53 @@ class EncodingManager: NSObject {
         noteEncodingListChange(writeDefault: true, postNotification: true)
     }
 
+    // MARK: - Encoding Validation
+
+    /// メニュー項目から String.Encoding を取得する
+    /// representedObject が String.Encoding の場合と NSNumber の場合の両方に対応
+    private func encoding(from item: NSMenuItem) -> String.Encoding? {
+        if let enc = item.representedObject as? String.Encoding {
+            return enc
+        }
+        if let encNumber = item.representedObject as? NSNumber {
+            return String.Encoding(rawValue: encNumber.uintValue)
+        }
+        return nil
+    }
+
+    /// メニュー内のエンコーディング項目のうち、テキストを変換できないものを disable する
+    /// - Parameters:
+    ///   - menu: エンコーディングメニュー（NSMenu）
+    ///   - text: 変換可否を判定するテキスト
+    func disableIncompatibleEncodings(in menu: NSMenu, for text: String) {
+        for i in 0..<menu.numberOfItems {
+            guard let item = menu.item(at: i),
+                  let enc = encoding(from: item) else { continue }
+            item.isEnabled = (text.data(using: enc) != nil)
+        }
+    }
+
+    /// メニューセル内のエンコーディング項目のうち、テキストを変換できないものを disable する
+    /// - Parameters:
+    ///   - cell: エンコーディングポップアップセル（NSPopUpButtonCell）
+    ///   - text: 変換可否を判定するテキスト
+    func disableIncompatibleEncodings(in cell: NSPopUpButtonCell, for text: String) {
+        for i in 0..<cell.numberOfItems {
+            guard let item = cell.item(at: i),
+                  let enc = encoding(from: item) else { continue }
+            item.isEnabled = (text.data(using: enc) != nil)
+        }
+    }
+
+    /// エンコーディングが Unicode 系かどうかを判定
+    /// BOM チェックボックスの有効/無効判定に使用
+    static func isUnicodeEncoding(_ encoding: String.Encoding) -> Bool {
+        return encoding == .utf8 || encoding == .utf16
+            || encoding == .utf16BigEndian || encoding == .utf16LittleEndian
+            || encoding == .utf32 || encoding == .utf32BigEndian
+            || encoding == .utf32LittleEndian
+    }
+
     // MARK: - Actions
 
     /// カスタマイズパネルを表示（Preferencesウィンドウを開いてEncodingsカテゴリを選択）

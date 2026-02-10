@@ -5020,13 +5020,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// エンコーディングツールバーアイテムを作成（delegateから呼ばれる）
     private func createEncodingToolbarItem() -> NSToolbarItem {
-        // ポップアップボタン作成
-        let popupButton = NSPopUpButton(frame: NSRect(x: 0, y: 0, width: 140, height: 22), pullsDown: false)
+        // ポップアップボタン作成（EncodingPopUpButton でメニュー表示時に変換不能チェック）
+        let popupButton = EncodingPopUpButton(frame: NSRect(x: 0, y: 0, width: 140, height: 22), pullsDown: false)
         popupButton.font = NSFont.systemFont(ofSize: 11)
         popupButton.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         populateEncodingPopup(popupButton)
         popupButton.target = self
         popupButton.action = #selector(encodingPopupChanged(_:))
+
+        // ポップアップが開く瞬間に変換不能エンコーディングを disable するクロージャを設定
+        popupButton.textForValidation = { [weak self] in
+            return self?.textDocument?.textStorage.string
+        }
 
         // リッチテキストの場合は無効化
         let isPlainText = textDocument?.documentType == .plain
@@ -5067,6 +5072,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             target: self,
             action: #selector(showEncodingCustomizePanel(_:))
         )
+
     }
 
     /// エンコーディングカスタマイズパネルを表示
@@ -5091,16 +5097,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     /// エンコーディングポップアップボタンを取得
-    private func getEncodingPopupButton() -> NSPopUpButton? {
+    private func getEncodingPopupButton() -> EncodingPopUpButton? {
         // まずキャッシュされたアイテムから取得を試みる
-        if let popup = encodingToolbarItem?.view as? NSPopUpButton {
+        if let popup = encodingToolbarItem?.view as? EncodingPopUpButton {
             return popup
         }
         // ツールバーから直接検索
         guard let toolbar = self.window?.toolbar else { return nil }
         for item in toolbar.items {
             if item.itemIdentifier == Self.encodingToolbarItemIdentifier,
-               let popup = item.view as? NSPopUpButton {
+               let popup = item.view as? EncodingPopUpButton {
                 // キャッシュを更新
                 self.encodingToolbarItem = item
                 return popup
@@ -5129,6 +5135,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             target: self,
             action: #selector(showEncodingCustomizePanel(_:))
         )
+        // 変換不能エンコーディングの disable は EncodingPopUpButton.willOpenMenu で行う
     }
 
     /// エンコーディングポップアップの変更ハンドラ

@@ -1,0 +1,367 @@
+//
+//  DocumentInfoPanelController.swift
+//  Jedit-open
+//
+//  Created by Claude on 2026/02/10.
+//
+
+import Cocoa
+
+/// Document Info パネルのコントローラー
+/// AppDelegate からシングルトンとして管理され、最前面ドキュメントの情報を表示する
+class DocumentInfoPanelController: NSObject {
+
+    // MARK: - Singleton
+
+    static let shared = DocumentInfoPanelController()
+
+    // MARK: - Properties
+
+    /// XIBからロードされるパネル（NSPanel: utility スタイル）
+    @IBOutlet var documentInfoPanel: NSPanel!
+
+    /// タブビュー
+    @IBOutlet var tabView: NSTabView!
+
+    /// Location タブのテーブルビュー
+    @IBOutlet var infoTableView: NSTableView!
+
+    /// Document Info タブのコントロール
+    @IBOutlet var bomCheckBox: NSButton!
+    @IBOutlet var encodingPopUpButton: EncodingPopUpButton!
+    @IBOutlet var encodingPopUpCell: EncodingPopUpButtonCell!
+    @IBOutlet var lineEndingPopUpButton: NSPopUpButton!
+    @IBOutlet var docTypeName: NSTextField!
+    @IBOutlet var dotLine1: NSTextField!
+    @IBOutlet var dotLine2: NSTextField!
+    @IBOutlet var pathTextView: NSTextView!
+    @IBOutlet var chkboxCountHalfAs05: NSButton!
+
+    /// パネルがロード済みかどうか
+    private var isLoaded = false
+
+    // MARK: - Initialization
+
+    private override init() {
+        super.init()
+    }
+
+    // MARK: - Panel Loading
+
+    /// XIBからパネルをロード
+    private func loadPanelIfNeeded() {
+        guard !isLoaded else { return }
+
+        let nibName = "DocumentInfoPanel"
+        guard Bundle.main.loadNibNamed(nibName, owner: self, topLevelObjects: nil) else {
+            print("Failed to load \(nibName).xib")
+            return
+        }
+
+        isLoaded = true
+
+        // パネルのタイトルを設定
+        documentInfoPanel?.title = "Document Info"
+        // NSPanel (utility) はデフォルトで floating level + hidesOnDeactivate
+        // becomesKeyOnlyIfNeeded により、ドキュメントウィンドウのフォーカスを奪わない
+        documentInfoPanel?.becomesKeyOnlyIfNeeded = true
+
+        // ポップアップが開く瞬間に変換不能エンコーディングを disable するクロージャを設定
+        encodingPopUpButton?.textForValidation = { [weak self] in
+            return self?.currentDocument()?.textStorage.string
+        }
+    }
+
+    // MARK: - Public Methods
+
+    /// パネルを表示（トグル動作）
+    func showPanel() {
+        loadPanelIfNeeded()
+
+        guard let panel = documentInfoPanel else { return }
+
+        if panel.isVisible {
+            panel.orderOut(nil)
+        } else {
+            // 最前面ドキュメントの情報を更新（パネル表示前なので直接更新）
+            updatePanelContents()
+            // orderFront を使用してドキュメントウィンドウのメイン/キー状態を維持
+            panel.orderFront(nil)
+        }
+    }
+
+    /// パネルが表示されているかどうか
+    var isPanelVisible: Bool {
+        return isLoaded && (documentInfoPanel?.isVisible ?? false)
+    }
+
+    // MARK: - Document Info Update
+
+    /// 現在の最前面ドキュメントの情報でパネルを更新（パネルが表示中の場合のみ）
+    func updateForCurrentDocument() {
+        guard isLoaded, let panel = documentInfoPanel, panel.isVisible else { return }
+        updatePanelContents()
+    }
+
+    /// 指定されたドキュメントの情報でパネルを更新（パネルが表示中の場合のみ）
+    /// 通知元ウィンドウから直接ドキュメントを特定できる場合に使用
+    func updateForDocument(_ document: Document) {
+        guard isLoaded, let panel = documentInfoPanel, panel.isVisible else { return }
+
+        let displayName = document.displayName ?? "Untitled"
+        panel.title = "Document Info — \(displayName)"
+        updateDocumentInfoTab(for: document)
+    }
+
+    /// パネルの内容を実際に更新する（isVisible チェックなし）
+    private func updatePanelContents() {
+        guard isLoaded, let panel = documentInfoPanel else { return }
+
+        // 最前面のドキュメントを取得
+        guard let document = currentDocument() else {
+            // ドキュメントがない場合はパネルタイトルをリセット
+            panel.title = "Document Info"
+            clearDocumentInfoTab()
+            return
+        }
+
+        // パネルタイトルにドキュメント名を表示
+        let displayName = document.displayName ?? "Untitled"
+        panel.title = "Document Info — \(displayName)"
+
+        // Document Info タブを更新
+        updateDocumentInfoTab(for: document)
+    }
+
+    /// Document Info タブの内容を更新
+    private func updateDocumentInfoTab(for document: Document) {
+        let isPlainText = (document.documentType == .plain)
+
+        // Document Type
+        docTypeName?.stringValue = documentTypeName(for: document)
+
+        // Encoding（Plain Text のみ表示）
+        if isPlainText {
+            encodingPopUpButton?.isHidden = false
+            dotLine1?.isHidden = true
+            // 現在のエンコーディングを選択
+            let encodingRawValue = document.documentEncoding.rawValue
+            EncodingManager.shared.setupPopUpCell(
+                encodingPopUpCell,
+                selectedEncoding: UInt(encodingRawValue),
+                withDefaultEntry: false
+            )
+            // 変換不能エンコーディングの disable は EncodingPopUpButton.willOpenMenu で行う
+        } else {
+            encodingPopUpButton?.isHidden = true
+            dotLine1?.isHidden = false
+            dotLine1?.stringValue = "-----"
+        }
+
+        // Line Endings（Plain Text のみ表示）
+        if isPlainText {
+            lineEndingPopUpButton?.isHidden = false
+            dotLine2?.isHidden = true
+            // 現在の改行コードを選択
+            lineEndingPopUpButton?.selectItem(withTag: document.lineEnding.rawValue)
+        } else {
+            lineEndingPopUpButton?.isHidden = true
+            dotLine2?.isHidden = false
+            dotLine2?.stringValue = "-----"
+        }
+
+        // BOM（Plain Text のみ表示）
+        if isPlainText {
+            bomCheckBox?.isHidden = false
+            bomCheckBox?.state = document.hasBOM ? .on : .off
+            // BOM は Unicode 系エンコーディングの場合のみ有効
+            let isUnicode = EncodingManager.isUnicodeEncoding(document.documentEncoding)
+            bomCheckBox?.isEnabled = isUnicode
+            if !isUnicode {
+                bomCheckBox?.state = .off
+            }
+        } else {
+            bomCheckBox?.isHidden = true
+        }
+
+        // パス名を表示
+        if let fileURL = document.fileURL {
+            pathTextView?.string = fileURL.path
+        } else {
+            pathTextView?.string = "Untitled"
+        }
+    }
+
+    /// ドキュメントタイプの表示名を返す
+    private func documentTypeName(for document: Document) -> String {
+        switch document.documentType {
+        case .plain:
+            return "Plain Text"
+        case .rtf:
+            // インポートされた Word/ODT ドキュメントの場合、ファイル拡張子で判別
+            if document.isImportedDocument, let fileURL = document.fileURL {
+                switch fileURL.pathExtension.lowercased() {
+                case "doc":
+                    return "Word (.doc)"
+                case "docx":
+                    return "Word (.docx)"
+                case "xml":
+                    return "Word 2003 XML (.xml)"
+                case "odt":
+                    return "OpenDocument (.odt)"
+                default:
+                    break
+                }
+            }
+            return "Rich Text (RTF)"
+        case .rtfd:
+            return "Rich Text with Attachments (RTFD)"
+        case .docFormat:
+            return "Word (.doc)"
+        case .officeOpenXML:
+            return "Word (.docx)"
+        case .wordML:
+            return "Word 2003 XML (.xml)"
+        default:
+            return "Rich Text"
+        }
+    }
+
+    /// Document Info タブの内容をクリア
+    private func clearDocumentInfoTab() {
+        docTypeName?.stringValue = ""
+        dotLine1?.stringValue = "-----"
+        dotLine2?.stringValue = "-----"
+        bomCheckBox?.state = .off
+        pathTextView?.string = ""
+    }
+
+    /// 最前面のドキュメントウィンドウに対応するDocumentを返す
+    private func currentDocument() -> Document? {
+        // メインウィンドウから Document を取得
+        // Document Info Panel 自身がメインウィンドウの場合はスキップ
+        for window in NSApp.orderedWindows {
+            // Document Info Panel 自身はスキップ
+            if window === documentInfoPanel { continue }
+
+            // NSPanel（他のユーティリティパネル）はスキップ
+            if window is NSPanel { continue }
+
+            // ウィンドウコントローラーからドキュメントを取得
+            if let windowController = window.windowController,
+               let document = windowController.document as? Document {
+                return document
+            }
+        }
+        return nil
+    }
+
+    // MARK: - IBActions
+
+    @IBAction func bomFlagChanged(_ sender: Any?) {
+        guard let checkBox = sender as? NSButton,
+              let document = currentDocument(),
+              document.documentType == .plain else { return }
+
+        let newBOM = (checkBox.state == .on)
+        if document.hasBOM != newBOM {
+            document.hasBOM = newBOM
+            document.updateChangeCount(.changeDone)
+            notifyEditorWindowController(for: document)
+        }
+    }
+
+    @IBAction func encodingChanged(_ sender: Any?) {
+        guard let popup = sender as? NSPopUpButton,
+              let selectedItem = popup.selectedItem,
+              let document = currentDocument(),
+              document.documentType == .plain else { return }
+
+        // representedObject から選択されたエンコーディングを取得
+        guard let encodingNumber = selectedItem.representedObject as? NSNumber else { return }
+        let newEncoding = String.Encoding(rawValue: encodingNumber.uintValue)
+
+        // 現在のエンコーディングと同じ場合は何もしない
+        if document.documentEncoding == newEncoding { return }
+
+        // 現在のテキストを新しいエンコーディングで再エンコードできるか確認
+        let currentText = document.textStorage.string
+        guard let data = currentText.data(using: newEncoding) else {
+            // 変換できない場合はアラートを表示し、選択を元に戻す
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString("Cannot Convert", comment: "Alert title")
+            alert.informativeText = String(format: NSLocalizedString("The document contains characters that cannot be represented in %@.", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: NSLocalizedString("OK", comment: "Button"))
+            if let panel = documentInfoPanel {
+                alert.beginSheetModal(for: panel) { [weak self] _ in
+                    self?.updateDocumentInfoTab(for: document)
+                }
+            }
+            return
+        }
+
+        // ラウンドトリップテスト
+        let reconverted = String(data: data, encoding: newEncoding)
+        if reconverted != currentText {
+            // ラウンドトリップできない場合は確認アラートを表示
+            let alert = NSAlert()
+            alert.messageText = NSLocalizedString("Encoding Warning", comment: "Alert title")
+            alert.informativeText = String(format: NSLocalizedString("Converting to %@ may result in data loss. Do you want to continue?", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Button"))
+            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Button"))
+            if let panel = documentInfoPanel {
+                alert.beginSheetModal(for: panel) { [weak self] response in
+                    if response == .alertFirstButtonReturn {
+                        self?.applyEncodingChange(newEncoding, to: document)
+                    } else {
+                        // キャンセル - 選択を元に戻す
+                        self?.updateDocumentInfoTab(for: document)
+                    }
+                }
+            }
+            return
+        }
+
+        // エンコーディングを変更
+        applyEncodingChange(newEncoding, to: document)
+    }
+
+    @IBAction func lineEndingChanged(_ sender: Any?) {
+        guard let popup = sender as? NSPopUpButton,
+              let selectedItem = popup.selectedItem,
+              let newLineEnding = LineEnding(rawValue: selectedItem.tag),
+              let document = currentDocument(),
+              document.documentType == .plain else { return }
+
+        // 現在の改行コードと同じ場合は何もしない
+        if document.lineEnding == newLineEnding { return }
+
+        document.lineEnding = newLineEnding
+        document.updateChangeCount(.changeDone)
+        notifyEditorWindowController(for: document)
+    }
+
+    @IBAction func changedCountHalfAs05(_ sender: Any?) {
+        // TODO: 半角0.5カウント変更の実装
+    }
+
+    // MARK: - Private Helpers
+
+    /// エンコーディング変更を適用
+    private func applyEncodingChange(_ newEncoding: String.Encoding, to document: Document) {
+        document.documentEncoding = newEncoding
+        document.updateChangeCount(.changeDone)
+        notifyEditorWindowController(for: document)
+    }
+
+    /// ドキュメントの EditorWindowController にツールバー更新を通知
+    private func notifyEditorWindowController(for document: Document) {
+        if let windowController = document.windowControllers.first as? EditorWindowController {
+            windowController.updateEncodingToolbarItem()
+            windowController.updateLineEndingToolbarItem()
+        }
+    }
+
+}

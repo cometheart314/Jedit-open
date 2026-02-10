@@ -48,6 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // ドキュメントの開閉を監視して、開いているドキュメントのURLリストを随時保存
         // （強制終了やクラッシュ時にも復元できるようにするため）
+        // また、Document Info パネルの内容を自動更新する
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(documentListDidChange(_:)),
@@ -58,6 +59,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             self,
             selector: #selector(documentListDidChange(_:)),
             name: NSWindow.willCloseNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentWindowDidChange(_:)),
+            name: NSWindow.didBecomeMainNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentWindowDidChange(_:)),
+            name: NSWindow.didBecomeKeyNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentWindowWillClose(_:)),
+            name: NSWindow.willCloseNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(documentWindowDidChange(_:)),
+            name: Document.documentTypeDidChangeNotification,
             object: nil
         )
 
@@ -203,6 +228,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return false
         default:
             return false
+        }
+    }
+
+    // MARK: - Document Info Panel
+
+    @IBAction func showDocumentInfo(_ sender: Any?) {
+        DocumentInfoPanelController.shared.showPanel()
+    }
+
+    /// ドキュメントウィンドウがメイン/キーになった時にDocument Info パネルを更新
+    @objc private func documentWindowDidChange(_ notification: Notification) {
+        // 通知元ウィンドウからドキュメントを直接取得して更新
+        if let window = notification.object as? NSWindow,
+           !(window is NSPanel),
+           let windowController = window.windowController,
+           let document = windowController.document as? Document {
+            DocumentInfoPanelController.shared.updateForDocument(document)
+        } else {
+            // documentTypeDidChangeNotification など、ウィンドウ以外からの通知
+            DocumentInfoPanelController.shared.updateForCurrentDocument()
+        }
+    }
+
+    /// ドキュメントウィンドウが閉じられる時にDocument Info パネルを更新
+    /// ウィンドウが閉じた後に次のドキュメントを反映するため少し遅延させる
+    @objc private func documentWindowWillClose(_ notification: Notification) {
+        DispatchQueue.main.async {
+            DocumentInfoPanelController.shared.updateForCurrentDocument()
         }
     }
 
@@ -640,6 +693,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
         if menuItem.action == #selector(newDocumentFromClipboard(_:)) {
             return clipboardHasPasteableContent()
+        }
+        if menuItem.action == #selector(showDocumentInfo(_:)) {
+            // パネルが表示中ならチェックマークを付ける
+            menuItem.state = DocumentInfoPanelController.shared.isPanelVisible ? .on : .off
+            return true
         }
         return true
     }

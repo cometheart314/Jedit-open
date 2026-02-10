@@ -2058,15 +2058,7 @@ class Document: NSDocument {
                                                    withDefaultEntry: false)
 
             // テキスト内容で変換できないエンコーディングをグレイアウト
-            let text = textStorage.string
-            for i in 0..<encodingCell.numberOfItems {
-                guard let item = encodingCell.item(at: i),
-                      let encNumber = item.representedObject as? NSNumber else { continue }
-                let encoding = String.Encoding(rawValue: encNumber.uintValue)
-                if text.data(using: encoding) == nil {
-                    item.isEnabled = false
-                }
-            }
+            EncodingManager.shared.disableIncompatibleEncodings(in: encodingCell, for: textStorage.string)
         }
 
         // 現在のドキュメントタイプに基づいて初期フォーマットを選択
@@ -2090,10 +2082,7 @@ class Document: NSDocument {
             guard let cell = encodingPopUp?.cell as? NSPopUpButtonCell,
                   let selectedItem = cell.selectedItem,
                   let encNumber = selectedItem.representedObject as? NSNumber else { return false }
-            let enc = String.Encoding(rawValue: encNumber.uintValue)
-            return enc == .utf8 || enc == .utf16 || enc == .utf16BigEndian
-                || enc == .utf16LittleEndian || enc == .utf32 || enc == .utf32BigEndian
-                || enc == .utf32LittleEndian
+            return EncodingManager.isUnicodeEncoding(String.Encoding(rawValue: encNumber.uintValue))
         }
 
         // BOMチェックボックスの初期状態
