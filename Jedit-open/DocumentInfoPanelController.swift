@@ -40,6 +40,14 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
     /// パネルがロード済みかどうか
     private var isLoaded = false
 
+    /// UserDefaults キー: 半角文字を0.5として数えるか
+    private static let countHalfAs05Key = "DocumentInfoCountHalfAs05"
+
+    /// 半角文字を0.5として数えるかどうか
+    var countHalfWidthAs05: Bool {
+        return UserDefaults.standard.bool(forKey: Self.countHalfAs05Key)
+    }
+
     // MARK: - Initialization
 
     private override init() {
@@ -82,6 +90,9 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
             name: Document.statisticsDidChangeNotification,
             object: nil
         )
+
+        // チェックボックスの状態を UserDefaults から復元
+        chkboxCountHalfAs05?.state = countHalfWidthAs05 ? .on : .off
     }
 
     // MARK: - Public Methods
@@ -366,7 +377,11 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
     }
 
     @IBAction func changedCountHalfAs05(_ sender: Any?) {
-        // TODO: 半角0.5カウント変更の実装
+        guard let checkBox = sender as? NSButton else { return }
+        let newValue = (checkBox.state == .on)
+        UserDefaults.standard.set(newValue, forKey: Self.countHalfAs05Key)
+        // 統計を再計算
+        triggerStatisticsUpdate()
     }
 
     // MARK: - Private Helpers
@@ -488,7 +503,8 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
 
     /// Selection 列の値を返す
     private func selectionValue(for row: Int, stats: DocumentStatistics) -> String {
-        let f = DocumentStatistics.formatted
+        let f: (Int) -> String = DocumentStatistics.formatted
+        let fd: (Double) -> String = DocumentStatistics.formatted
         let hasSelection = (stats.selectionLength > 0)
 
         switch row {
@@ -507,7 +523,7 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
 
         case 2: // Visible Chars
             if hasSelection {
-                return "[\(f(stats.selectionVisibleChars))]"
+                return "[\(fd(stats.selectionVisibleChars))]"
             }
             return ""
 
@@ -547,7 +563,8 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
 
     /// Whole Doc. 列の値を返す
     private func wholeDocValue(for row: Int, stats: DocumentStatistics) -> String {
-        let f = DocumentStatistics.formatted
+        let f: (Int) -> String = DocumentStatistics.formatted
+        let fd: (Double) -> String = DocumentStatistics.formatted
 
         switch row {
         case 0: // Location
@@ -557,7 +574,7 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
             return f(stats.totalCharacters)
 
         case 2: // Visible Chars
-            return f(stats.totalVisibleChars)
+            return fd(stats.totalVisibleChars)
 
         case 3: // Words
             return f(stats.totalWords)

@@ -14,7 +14,7 @@ struct DocumentStatistics {
     // MARK: - Whole Document
 
     var totalCharacters: Int = 0
-    var totalVisibleChars: Int = 0
+    var totalVisibleChars: Double = 0
     var totalWords: Int = 0
     var totalParagraphs: Int = 0
     var totalRows: Int = 0          // 表示行数（lineNumberMode 依存）
@@ -34,7 +34,7 @@ struct DocumentStatistics {
 
     // 選択範囲のサイズ
     var selectionCharacters: Int = 0     // 選択範囲の文字数
-    var selectionVisibleChars: Int = 0
+    var selectionVisibleChars: Double = 0
     var selectionWords: Int = 0
     var selectionParagraphs: Int = 0
     var selectionRows: Int = 0           // 選択範囲の行数
@@ -60,5 +60,21 @@ struct DocumentStatistics {
     /// 整数をカンマ区切り文字列に変換
     static func formatted(_ value: Int) -> String {
         return numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
+    }
+
+    /// 小数値をカンマ区切り文字列に変換（0.5刻みに対応）
+    static func formatted(_ value: Double) -> String {
+        if value == value.rounded(.down) {
+            // 整数の場合は小数点なし
+            return numberFormatter.string(from: NSNumber(value: Int(value))) ?? "\(Int(value))"
+        } else {
+            // 小数の場合（0.5）は小数点1桁
+            let fmt = NumberFormatter()
+            fmt.numberStyle = .decimal
+            fmt.groupingSeparator = ","
+            fmt.minimumFractionDigits = 1
+            fmt.maximumFractionDigits = 1
+            return fmt.string(from: NSNumber(value: value)) ?? "\(value)"
+        }
     }
 }

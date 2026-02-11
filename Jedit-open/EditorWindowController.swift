@@ -5541,13 +5541,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let textCopy = fullText
         let selLoc = selectedRange.location
         let selLen = selectedRange.length
+        let countHalfAs05 = DocumentInfoPanelController.shared.countHalfWidthAs05
 
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let nsText = textCopy as NSString
 
             // Whole document の統計（バックグラウンド）
             let totalCharacters = nsText.length
-            let totalVisibleChars = Self.countVisibleChars(in: textCopy)
+            let totalVisibleChars = Self.countVisibleChars(in: textCopy, countHalfAs05: countHalfAs05)
             let totalWords = Self.countWords(in: textCopy)
             let totalParagraphs = Self.countParagraphs(in: textCopy)
 
@@ -5562,14 +5563,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // Selection の統計（バックグラウンド）
             var selCharacters = 0
-            var selVisibleChars = 0
+            var selVisibleChars: Double = 0
             var selWords = 0
             var selParagraphs = 0
             if selLen > 0 {
                 let safeRange = NSRange(location: selLoc, length: min(selLen, nsText.length - selLoc))
                 let selectedText = nsText.substring(with: safeRange)
                 selCharacters = (selectedText as NSString).length
-                selVisibleChars = Self.countVisibleChars(in: selectedText)
+                selVisibleChars = Self.countVisibleChars(in: selectedText, countHalfAs05: countHalfAs05)
                 selWords = Self.countWords(in: selectedText)
                 selParagraphs = Self.countParagraphs(in: selectedText)
             }
@@ -5612,17 +5613,32 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // MARK: - Statistics Counting Helpers
 
     /// 可視文字数をカウント（制御文字＝タブ・改行を除く）
-    private static func countVisibleChars(in text: String) -> Int {
-        var count = 0
+    private static func countVisibleChars(in text: String, countHalfAs05: Bool) -> Double {
+        var count: Double = 0
         for scalar in text.unicodeScalars {
             switch scalar.value {
             case 0x09, 0x0A, 0x0D:  // tab, LF, CR
                 break
             default:
-                count += 1
+                if countHalfAs05 && isHalfWidth(scalar) {
+                    count += 0.5
+                } else {
+                    count += 1
+                }
             }
         }
         return count
+    }
+
+    /// 半角文字かどうかを判定
+    /// ASCII 印字可能文字（0x21-0x7E）および半角カナ（0xFF61-0xFF9F）を半角とみなす
+    private static func isHalfWidth(_ scalar: Unicode.Scalar) -> Bool {
+        let v = scalar.value
+        // ASCII 印字可能文字（スペースは除外、制御文字は既に除外済み）
+        if v >= 0x21 && v <= 0x7E { return true }
+        // 半角カナ
+        if v >= 0xFF61 && v <= 0xFF9F { return true }
+        return false
     }
 
     /// 単語数をカウント

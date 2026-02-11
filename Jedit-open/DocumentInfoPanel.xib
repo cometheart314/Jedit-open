@@ -17,6 +17,7 @@
                 <outlet property="infoTableView" destination="aNx-oV-1x1" id="fo-itv-001"/>
                 <outlet property="lineEndingPopUpButton" destination="ZEg-cT-dbM" id="fo-lep-001"/>
                 <outlet property="pathTextView" destination="8tO-Mn-uVU" id="fo-ptv-001"/>
+                <outlet property="chkboxCountHalfAs05" destination="8s6-Uy-ftl" id="fo-chk-001"/>
                 <outlet property="tabView" destination="wSH-S8-oSQ" id="fo-tab-001"/>
             </connections>
         </customObject>
@@ -43,14 +44,14 @@
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <subviews>
                                         <scrollView fixedFrame="YES" autohidesScrollers="YES" horizontalLineScroll="19" horizontalPageScroll="10" verticalLineScroll="19" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Hkz-Uz-EsN">
-                                            <rect key="frame" x="8" y="17" width="348" height="271"/>
+                                            <rect key="frame" x="8" y="36" width="348" height="252"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <clipView key="contentView" id="QP0-2a-AIy">
-                                                <rect key="frame" x="1" y="1" width="346" height="269"/>
+                                                <rect key="frame" x="1" y="1" width="346" height="250"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <tableView focusRingType="none" verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" selectionHighlightStyle="none" alternatingRowBackgroundColors="YES" columnReordering="NO" columnSelection="YES" autosaveColumns="NO" headerView="Ock-8H-W4k" id="aNx-oV-1x1">
-                                                        <rect key="frame" x="0.0" y="0.0" width="346" height="246"/>
+                                                        <rect key="frame" x="0.0" y="0.0" width="346" height="227"/>
                                                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                         <size key="intercellSpacing" width="3" height="2"/>
                                                         <color key="backgroundColor" name="_sourceListBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -110,6 +111,17 @@
                                                 <autoresizingMask key="autoresizingMask"/>
                                             </tableHeaderView>
                                         </scrollView>
+                                        <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="8s6-Uy-ftl">
+                                            <rect key="frame" x="8" y="8" width="345" height="20"/>
+                                            <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                            <buttonCell key="cell" type="check" title="Visibles: Count as 0.5 char. for half-width characters." bezelStyle="regularSquare" imagePosition="left" controlSize="small" inset="2" id="nOi-RP-5go">
+                                                <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                                <font key="font" metaFont="smallSystem"/>
+                                            </buttonCell>
+                                            <connections>
+                                                <action selector="changedCountHalfAs05:" target="-2" id="chk-act-001"/>
+                                            </connections>
+                                        </button>
                                     </subviews>
                                 </view>
                             </tabViewItem>
