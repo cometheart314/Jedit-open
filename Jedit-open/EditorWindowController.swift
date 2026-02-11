@@ -5551,13 +5551,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let totalWords = Self.countWords(in: textCopy)
             let totalParagraphs = Self.countParagraphs(in: textCopy)
 
-            // Selection 開始位置までの統計（location 計算）
-            var locationWords = 0
-            var locationParagraphs = 0
+            // Selection 開始位置までの統計（location 計算、1始まり）
+            var locationWords = 1
+            var locationParagraphs = 1
             if selLoc > 0 {
                 let prefixText = nsText.substring(to: selLoc)
-                locationWords = Self.countWords(in: prefixText)
-                locationParagraphs = Self.countParagraphs(in: prefixText)
+                locationWords = Self.countWords(in: prefixText) + 1
+                locationParagraphs = Self.countParagraphs(in: prefixText) + 1
             }
 
             // Selection の統計（バックグラウンド）
