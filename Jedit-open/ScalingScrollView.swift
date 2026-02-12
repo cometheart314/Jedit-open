@@ -193,7 +193,7 @@ class ScalingScrollView: NSScrollView {
         button.imageScaling = .scaleProportionallyDown
         // 初期状態: 編集可能 (pencil)
         if let image = NSImage(systemSymbolName: "pencil", accessibilityDescription: "Editable") {
-            let config = NSImage.SymbolConfiguration(pointSize: 9, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
             button.image = image.withSymbolConfiguration(config)
         }
         button.target = nil
@@ -446,7 +446,7 @@ class ScalingScrollView: NSScrollView {
         let symbolName = isEditable ? "pencil" : "pencil.slash"
         let description = isEditable ? "Editable" : "Read Only"
         if let image = NSImage(systemSymbolName: symbolName, accessibilityDescription: description) {
-            let config = NSImage.SymbolConfiguration(pointSize: 9, weight: .regular)
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
             button.image = image.withSymbolConfiguration(config)
         }
         button.toolTip = isEditable
