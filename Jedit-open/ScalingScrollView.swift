@@ -43,6 +43,41 @@ class ScalingScrollView: NSScrollView {
     /// テキストタイプボタン（水平スクロールバーの左端に配置）
     private var textTypeButton: NSButton?
 
+    // MARK: - Scale Button
+
+    /// スケール表示＆メニューボタン（水平スクロールバーのテキストタイプボタンの右に配置）
+    private var scaleButton: NSButton?
+    private var scaleMenu: ScaleMenu?
+
+    // MARK: - Info Field
+
+    /// 情報フィールド（スケールボタンの右に配置、クリックで行を切り替え）
+    private var infoField: NSButton?
+
+    /// 書類情報パネル表示ボタン（情報フィールドの右に配置）
+    private var infoPanelButton: NSButton?
+
+    /// 情報フィールドの行名（Location[Size] タブと同じ）
+    private static let infoRowNames = [
+        "Location",
+        "Characters",
+        "Visible Chars",
+        "Words",
+        "Rows",
+        "Paragraphs",
+        "Pages",
+        "Char. Code"
+    ]
+
+    /// 現在表示中の行インデックス
+    private var infoFieldRow: Int {
+        get { UserDefaults.standard.integer(forKey: UserDefaults.Keys.infoFieldRow) }
+        set { UserDefaults.standard.set(newValue, forKey: UserDefaults.Keys.infoFieldRow) }
+    }
+
+    /// 現在の統計情報（EditorWindowController から更新される）
+    private var currentStatistics: DocumentStatistics?
+
     // MARK: - Initialization
 
     override func awakeFromNib() {
@@ -52,9 +87,13 @@ class ScalingScrollView: NSScrollView {
         setupSplitButtons()
         setupEditLockButton()
         setupTextTypeButton()
+        setupScaleButton()
+        setupInfoField()
+        setupInfoPanelButton()
     }
 
     deinit {
+        NotificationCenter.default.removeObserver(self)
         if let observer = frameObserver {
             NotificationCenter.default.removeObserver(observer)
         }
@@ -181,10 +220,223 @@ class ScalingScrollView: NSScrollView {
         textTypeButton = button
     }
 
+    private func setupScaleButton() {
+        // ScaleMenu を作成
+        let menu = ScaleMenu(title: "Scale")
+        menu.delegate = menu  // awakeFromNib が呼ばれないため明示的に設定
+        menu.scaleMenuDelegate = self
+        menu.setParentView(self)
+        scaleMenu = menu
+
+        // NSButton を作成（クリック時に ScaleMenu をポップアップ表示）
+        let button = NSButton(frame: NSRect(x: 0, y: 0, width: 38, height: 15))
+        button.title = "100%"
+        button.setButtonType(.momentaryLight)
+        button.bezelStyle = .smallSquare
+        button.isBordered = true
+        button.font = NSFont.systemFont(ofSize: 9)
+        button.target = self
+        button.action = #selector(scaleButtonClicked(_:))
+        button.refusesFirstResponder = true
+        button.toolTip = NSLocalizedString("Document scale", comment: "Scale button tooltip")
+
+        addSubview(button)
+        scaleButton = button
+
+        // 初期表示
+        updateScaleDisplay()
+    }
+
+    @objc private func scaleButtonClicked(_ sender: NSButton) {
+        guard let menu = scaleMenu else { return }
+        // ボタンの左下からメニューをポップアップ表示
+        let location = NSPoint(x: 0, y: sender.bounds.height)
+        menu.popUp(positioning: nil, at: location, in: sender)
+    }
+
+    private func setupInfoField() {
+        let button = NSButton(frame: NSRect(x: 0, y: 0, width: 150, height: 15))
+        button.title = ""
+        button.setButtonType(.momentaryLight)
+        button.bezelStyle = .smallSquare
+        button.isBordered = true
+        button.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
+        button.alignment = .center
+        button.target = self
+        button.action = #selector(infoFieldClicked(_:))
+        button.refusesFirstResponder = true
+        button.toolTip = NSLocalizedString("Click to cycle through statistics", comment: "Info field tooltip")
+
+        addSubview(button)
+        infoField = button
+
+        // 統計情報変更通知を監視
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(statisticsDidChange(_:)),
+            name: Document.statisticsDidChangeNotification,
+            object: nil
+        )
+
+        updateInfoField()
+    }
+
+    private func setupInfoPanelButton() {
+        let size: CGFloat = 15
+        let button = NSButton(frame: NSRect(x: 0, y: 0, width: size, height: size))
+        button.title = ""
+        button.setButtonType(.momentaryLight)
+        button.bezelStyle = .smallSquare
+        button.isBordered = true
+        button.imagePosition = .imageOnly
+        button.imageScaling = .scaleNone
+        if let image = NSImage(systemSymbolName: "info", accessibilityDescription: "Document Info") {
+            let config = NSImage.SymbolConfiguration(pointSize: 11, weight: .medium)
+            button.image = image.withSymbolConfiguration(config)
+        }
+        button.target = nil
+        button.action = #selector(AppDelegate.showDocumentInfo(_:))
+        button.refusesFirstResponder = true
+        button.toolTip = NSLocalizedString("Show Document Info", comment: "Info panel button tooltip")
+
+        addSubview(button)
+        infoPanelButton = button
+    }
+
+    @objc private func infoFieldClicked(_ sender: NSButton) {
+        let totalRows = Self.infoRowNames.count
+        infoFieldRow = (infoFieldRow + 1) % totalRows
+        updateInfoField()
+    }
+
+    @objc private func statisticsDidChange(_ notification: Notification) {
+        // 自分の所属する EditorWindowController の Document からの通知かチェック
+        guard let document = notification.object as? Document,
+              let windowController = window?.windowController as? EditorWindowController,
+              let myDocument = windowController.document as? Document,
+              document === myDocument else { return }
+        currentStatistics = document.statistics
+        updateInfoField()
+    }
+
+    /// 情報フィールドの表示を更新
+    func updateInfoField() {
+        guard let button = infoField else { return }
+        let row = infoFieldRow
+        let rowName = Self.infoRowNames[row]
+        let stats = currentStatistics ?? DocumentStatistics()
+
+        let selText = infoSelectionText(for: row, stats: stats)
+        let wholeText = infoWholeText(for: row, stats: stats)
+
+        if wholeText.isEmpty {
+            button.title = "\(rowName): \(selText)"
+        } else if selText.isEmpty {
+            button.title = "\(rowName): \(wholeText)"
+        } else {
+            button.title = "\(rowName): \(selText) / \(wholeText)"
+        }
+    }
+
+    /// Selection 列の情報テキスト
+    private func infoSelectionText(for row: Int, stats: DocumentStatistics) -> String {
+        let f: (Int) -> String = DocumentStatistics.formatted
+        let fd: (Double) -> String = DocumentStatistics.formatted
+        let hasSelection = (stats.selectionLength > 0)
+
+        switch row {
+        case 0: // Location
+            if stats.totalCharacters > 0 {
+                let percent = Int(round(Double(stats.selectionLocation) / Double(stats.totalCharacters) * 100))
+                return "\(percent) %"
+            }
+            return "0 %"
+
+        case 1: // Characters
+            if hasSelection {
+                return "\(f(stats.selectionLocation)) [\(f(stats.selectionCharacters))]"
+            }
+            return f(stats.selectionLocation)
+
+        case 2: // Visible Chars
+            if hasSelection {
+                return "[\(fd(stats.selectionVisibleChars))]"
+            }
+            return ""
+
+        case 3: // Words
+            if hasSelection {
+                return "\(f(stats.locationWords)) [\(f(stats.selectionWords))]"
+            }
+            return f(stats.locationWords)
+
+        case 4: // Rows
+            if !stats.showRows { return "–" }
+            if hasSelection {
+                return "\(f(stats.locationRows)) [\(f(stats.selectionRows))]"
+            }
+            return f(stats.locationRows)
+
+        case 5: // Paragraphs
+            if hasSelection {
+                return "\(f(stats.locationParagraphs)) [\(f(stats.selectionParagraphs))]"
+            }
+            return f(stats.locationParagraphs)
+
+        case 6: // Pages
+            if !stats.showPages { return "–" }
+            if hasSelection {
+                return "\(f(stats.locationPages)) [\(f(stats.selectionPages))]"
+            }
+            return f(stats.locationPages)
+
+        case 7: // Char. Code
+            return stats.charCode
+
+        default:
+            return ""
+        }
+    }
+
+    /// Whole Doc. 列の情報テキスト
+    private func infoWholeText(for row: Int, stats: DocumentStatistics) -> String {
+        let f: (Int) -> String = DocumentStatistics.formatted
+        let fd: (Double) -> String = DocumentStatistics.formatted
+
+        switch row {
+        case 0: // Location
+            return "100 %"
+        case 1: // Characters
+            return f(stats.totalCharacters)
+        case 2: // Visible Chars
+            return fd(stats.totalVisibleChars)
+        case 3: // Words
+            return f(stats.totalWords)
+        case 4: // Rows
+            if !stats.showRows { return "–" }
+            return f(stats.totalRows)
+        case 5: // Paragraphs
+            return f(stats.totalParagraphs)
+        case 6: // Pages
+            if !stats.showPages { return "–" }
+            return f(stats.totalPages)
+        case 7: // Char. Code
+            return ""
+        default:
+            return ""
+        }
+    }
+
     /// テキストタイプボタンのタイトルを更新
     /// - Parameter isRichText: trueの場合は"Rich"、falseの場合は"Plain"を表示
     func updateTextTypeButton(isRichText: Bool) {
         textTypeButton?.title = isRichText ? "Rich" : "Plain"
+    }
+
+    /// スケール表示を現在の倍率で更新
+    func updateScaleDisplay() {
+        let percent = Int(round(currentMagnification * 100))
+        scaleButton?.title = "\(percent)%"
     }
 
     /// 編集ロックボタンの表示を更新
@@ -285,6 +537,45 @@ class ScalingScrollView: NSScrollView {
                 horizontalScrollerFrame.size.width -= textTypeButtonWidth
             }
 
+            // スケールボタン - テキストタイプボタンの右
+            if let scaleButton = scaleButton {
+                let scaleButtonWidth = scaleButton.frame.width
+
+                var scaleButtonFrame = horizontalScrollerFrame
+                scaleButtonFrame.size.width = scaleButtonWidth
+                scaleButtonFrame.size.height = horizontalScrollerFrame.height
+                scaleButton.frame = scaleButtonFrame
+
+                horizontalScrollerFrame.origin.x += scaleButtonWidth
+                horizontalScrollerFrame.size.width -= scaleButtonWidth
+            }
+
+            // 情報フィールド - スケールボタンの右
+            if let infoField = infoField {
+                let infoFieldWidth = infoField.frame.width
+
+                var infoFieldFrame = horizontalScrollerFrame
+                infoFieldFrame.size.width = infoFieldWidth
+                infoFieldFrame.size.height = horizontalScrollerFrame.height
+                infoField.frame = infoFieldFrame
+
+                horizontalScrollerFrame.origin.x += infoFieldWidth
+                horizontalScrollerFrame.size.width -= infoFieldWidth
+            }
+
+            // 書類情報パネルボタン - 情報フィールドの右
+            if let infoPanelButton = infoPanelButton {
+                let buttonWidth = infoPanelButton.frame.width
+
+                var buttonFrame = horizontalScrollerFrame
+                buttonFrame.size.width = buttonWidth
+                buttonFrame.size.height = horizontalScrollerFrame.height
+                infoPanelButton.frame = buttonFrame
+
+                horizontalScrollerFrame.origin.x += buttonWidth
+                horizontalScrollerFrame.size.width -= buttonWidth
+            }
+
             // 水平スクロールバーのフレームを更新
             horizontalScroller.frame = horizontalScrollerFrame
         }
@@ -313,6 +604,7 @@ class ScalingScrollView: NSScrollView {
         setMagnification(newMagnification, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = newMagnification
         updateTextContainerSize()
+        updateScaleDisplay()
         postMagnificationNotification()
     }
 
@@ -321,6 +613,7 @@ class ScalingScrollView: NSScrollView {
         setMagnification(newMagnification, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = newMagnification
         updateTextContainerSize()
+        updateScaleDisplay()
         postMagnificationNotification()
     }
 
@@ -328,6 +621,7 @@ class ScalingScrollView: NSScrollView {
         setMagnification(1.0, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = 1.0
         updateTextContainerSize()
+        updateScaleDisplay()
         postMagnificationNotification()
     }
 
@@ -336,6 +630,7 @@ class ScalingScrollView: NSScrollView {
         setMagnification(clampedLevel, centeredAt: NSPoint(x: bounds.midX, y: bounds.midY))
         currentMagnification = clampedLevel
         updateTextContainerSize()
+        updateScaleDisplay()
         postMagnificationNotification()
     }
 
@@ -355,10 +650,12 @@ class ScalingScrollView: NSScrollView {
         if event.phase == .ended || event.phase == .cancelled {
             currentMagnification = magnification
             updateTextContainerSize()
+            updateScaleDisplay()
             postMagnificationNotification()
         } else if event.phase == .changed {
             // ジェスチャー中も通知を送る（行番号表示更新のため）
             currentMagnification = magnification
+            updateScaleDisplay()
             postMagnificationNotification()
         }
     }
@@ -414,6 +711,14 @@ class ScalingScrollView: NSScrollView {
                 textView.setFrameSize(NSSize(width: availableWidth, height: textView.frame.height))
             }
         }
+    }
+}
+
+// MARK: - ScaleMenuDelegate
+
+extension ScalingScrollView: ScaleMenuDelegate {
+    func scaleMenuDidSelectScale(_ scale: Int) {
+        setZoomLevel(CGFloat(scale) / 100.0)
     }
 }
 

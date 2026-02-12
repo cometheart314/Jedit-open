@@ -16,6 +16,7 @@ extension UserDefaults {
         static let appearanceOption = "appearanceOption"
         static let richTextAlwaysUsesLightMode = "richTextAlwaysUsesLightMode"
         static let scaleMenuArray = "scaleMenuArray"
+        static let infoFieldRow = "infoFieldRow"
         static let dateFormatType = "dateFormatType"
         static let timeFormatType = "timeFormatType"
         static let customDateFormat = "customDateFormat"

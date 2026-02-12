@@ -140,6 +140,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var contentViewObservers: [Any] = []
 
     deinit {
+        // 保留中の統計計算をキャンセル
+        statisticsWorkItem?.cancel()
+        statisticsWorkItem = nil
         // KVO observerを解除
         if let contentView = self.window?.contentView {
             contentView.removeObserver(self, forKeyPath: "effectiveAppearance")
@@ -483,6 +486,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // スケールを適用
         if let scrollView = scrollView1 {
             scrollView.magnification = viewData.scale
+            scrollView.updateScaleDisplay()
         }
 
         // Editing Direction（縦書き/横書き）を適用
@@ -531,6 +535,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // setupTextViews後にスケールを再適用（setupTextViewsで上書きされる可能性があるため）
         if let scrollView = scrollView1 {
             scrollView.magnification = viewData.scale
+            scrollView.updateScaleDisplay()
         }
 
         // ウィンドウサイズと位置を適用
@@ -2586,6 +2591,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let verticalRuler = scrollView.verticalRulerView as? LabeledRulerView {
             verticalRuler.needsDisplay = true
         }
+
+        // スケール表示を更新
+        scrollView.updateScaleDisplay()
     }
 
     // MARK: - Invisible Character Actions
@@ -5380,9 +5388,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// 統計計算をスケジュール（短時間の連続イベントを合体）
     func scheduleStatisticsUpdate() {
-        // パネルが表示されていない場合はスキップ
-        guard DocumentInfoPanelController.shared.isPanelVisible else { return }
-
         statisticsWorkItem?.cancel()
         let workItem = DispatchWorkItem { [weak self] in
             self?.calculateStatistics()
@@ -5609,7 +5614,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
     }
-
+    
     // MARK: - Statistics Counting Helpers
 
     /// 可視文字数をカウント（制御文字＝タブ・改行を除く）
