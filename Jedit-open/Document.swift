@@ -2185,13 +2185,17 @@ class Document: NSDocument {
         }
 
         // 現在のドキュメントタイプに基づいて初期フォーマットを選択
-        switch documentType {
-        case .plain:
-            formatPopUp?.selectItem(withTag: 0)
-        case .rtfd:
-            formatPopUp?.selectItem(withTag: 2)
-        default:
-            formatPopUp?.selectItem(withTag: 1)
+        if isMarkdownDocument {
+            formatPopUp?.selectItem(withTag: 7)
+        } else {
+            switch documentType {
+            case .plain:
+                formatPopUp?.selectItem(withTag: 0)
+            case .rtfd:
+                formatPopUp?.selectItem(withTag: 2)
+            default:
+                formatPopUp?.selectItem(withTag: 1)
+            }
         }
 
         // 改行コードの初期値を設定
@@ -2332,6 +2336,12 @@ class Document: NSDocument {
             if let type = UTType("org.oasis-open.opendocument.text") {
                 savePanel.allowedContentTypes = [type]
             }
+        case 7: // Markdown (.md)
+            if let type = UTType("net.daringfireball.markdown") {
+                savePanel.allowedContentTypes = [type]
+            } else {
+                savePanel.allowedContentTypes = [.plainText]
+            }
         default:
             savePanel.allowedContentTypes = [.rtf]
         }
@@ -2359,6 +2369,7 @@ class Document: NSDocument {
         let docType: NSAttributedString.DocumentType
         switch formatTag {
         case 0: return try generateExportPlainTextData(range: range, encodingPopUp: encodingPopUp, lineEndingPopUp: lineEndingPopUp, bomCheckbox: bomCheckbox)
+        case 7: return try generateExportMarkdownData(range: range)
         case 1: docType = .rtf
         case 2: docType = .rtfd
         case 3: docType = .docFormat
@@ -2481,6 +2492,27 @@ class Document: NSDocument {
         }
 
         return exportData
+    }
+
+    /// エクスポート用の Markdown データを生成
+    private func generateExportMarkdownData(range: NSRange) throws -> Data {
+        // 対象範囲の NSAttributedString を取得
+        let attrString: NSAttributedString
+        if range.location == 0 && range.length == textStorage.length {
+            attrString = textStorage
+        } else {
+            attrString = textStorage.attributedSubstring(from: range)
+        }
+
+        // Markdown 逆変換
+        let markdown = MarkdownParser.markdownString(from: attrString)
+
+        guard let data = markdown.data(using: .utf8) else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteInapplicableStringEncodingError, userInfo: [
+                NSLocalizedDescriptionKey: "Could not encode Markdown text as UTF-8"
+            ])
+        }
+        return data
     }
 
     /// ドキュメント内容から推奨ファイル名を生成（24文字以内）

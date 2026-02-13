@@ -55,6 +55,9 @@
                                 <menuItem title="OpenDocument Text (.odt)" tag="6" id="vd1-lh-pqo">
                                     <modifierMask key="keyEquivalentModifierMask"/>
                                 </menuItem>
+                                <menuItem title="Markdown (.md)" tag="7" id="mKd-Rw-3Xp">
+                                    <modifierMask key="keyEquivalentModifierMask"/>
+                                </menuItem>
                                 <menuItem isSeparatorItem="YES" tag="-1" id="llc-iw-7QE"/>
                                 <menuItem title="Plain Text Document" id="9kR-Wh-1Zv">
                                     <modifierMask key="keyEquivalentModifierMask"/>
