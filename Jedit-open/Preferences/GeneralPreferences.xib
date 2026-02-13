@@ -10,6 +10,7 @@
                 <outlet property="appearancePopupButton" destination="qYb-hE-aST" id="6Qh-Ei-TPI"/>
                 <outlet property="autoStartCheckBox" destination="eVD-Kc-0NT" id="UQW-Fe-lWA"/>
                 <outlet property="checkGrammarWithSpellingCheckBox" destination="chk-gram-001" id="out-gram-001"/>
+                <outlet property="openMarkdownAsPlainTextCheckBox" destination="chk-md-plain-001" id="out-md-plain-001"/>
                 <outlet property="checkSpellingAsYouTypeCheckBox" destination="chk-spell-001" id="out-spell-001"/>
                 <outlet property="correctSpellingAutomaticallyCheckBox" destination="chk-corr-001" id="out-corr-001"/>
                 <outlet property="dataDetectorsCheckBox" destination="chk-data-001" id="out-data-001"/>
@@ -392,6 +393,17 @@
                                             <action selector="startupOptionSelected:" target="-2" id="bLB-fP-Icd"/>
                                         </connections>
                                     </popUpButton>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-md-plain-001">
+                                        <rect key="frame" x="18" y="340" width="400" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Open Markdown files as plain text" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-md-plain-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="openMarkdownAsPlainTextClicked:" target="-2" id="act-md-plain-001"/>
+                                        </connections>
+                                    </button>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="S47-8L-S8s">
                                         <rect key="frame" x="20" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="le4-JR-wPb">

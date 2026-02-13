@@ -21,6 +21,9 @@ class GeneralPreferencesViewController: NSViewController {
     @IBOutlet weak var dateFormatField: NSTextField!  // プレビュー表示、カスタム時のみ編集可能
     @IBOutlet weak var timeFormatField: NSTextField!  // プレビュー表示、カスタム時のみ編集可能
 
+    // Advanced Options
+    @IBOutlet weak var openMarkdownAsPlainTextCheckBox: NSButton!
+
     // Text Editing Options
     @IBOutlet weak var checkSpellingAsYouTypeCheckBox: NSButton!
     @IBOutlet weak var checkGrammarWithSpellingCheckBox: NSButton!
@@ -111,6 +114,10 @@ class GeneralPreferencesViewController: NSViewController {
 
     /// UserDefaultsから設定を読み込んでUIに反映
     private func loadPreferences() {
+        // Markdown
+        let openMarkdownAsPlainText = defaults.bool(forKey: UserDefaults.Keys.openMarkdownAsPlainText)
+        openMarkdownAsPlainTextCheckBox?.state = openMarkdownAsPlainText ? .on : .off
+
         // Auto Start at Login
         let autoStart = defaults.bool(forKey: UserDefaults.Keys.autoStartOption)
         autoStartCheckBox?.state = autoStart ? .on : .off
@@ -325,6 +332,14 @@ class GeneralPreferencesViewController: NSViewController {
         applyTextEditingSettingsToAllWindows()
     }
 
+    // MARK: - Advanced Options Actions
+
+    @IBAction func openMarkdownAsPlainTextClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.openMarkdownAsPlainText)
+    }
+
     // MARK: - Revert to Defaults Actions
 
     @IBAction func revertEditToDefaults(_ sender: Any) {
@@ -390,10 +405,12 @@ class GeneralPreferencesViewController: NSViewController {
         // Reset all Advanced tab settings to defaults
         defaults.set(false, forKey: UserDefaults.Keys.autoStartOption)
         defaults.set(0, forKey: UserDefaults.Keys.startupOption)
+        defaults.set(false, forKey: UserDefaults.Keys.openMarkdownAsPlainText)
 
         // Update UI
         autoStartCheckBox?.state = .off
         startupOptionPopupButton?.selectItem(withTag: 0)
+        openMarkdownAsPlainTextCheckBox?.state = .off
 
         // Unregister from login items
         do {

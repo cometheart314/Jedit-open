@@ -52,6 +52,9 @@ extension UserDefaults {
         // Window Restoration
         static let openDocumentURLs = "OpenDocumentURLs"
 
+        // Markdown
+        static let openMarkdownAsPlainText = "openMarkdownAsPlainText"
+
         // Line Breaking
         static let cantBeTopChars = "CantBeTopChars"
         static let cantBeEndChars = "CantBeEndChars"
@@ -106,6 +109,8 @@ extension UserDefaults {
             Keys.convertYenToBackSlash: false,
             Keys.convertOverlineToTilde: false,
             Keys.convertFullWidthTilde: false,
+            // Markdown
+            Keys.openMarkdownAsPlainText: false,
             // Line Breaking
             Keys.cantBeTopChars: "、。，．・：；？！゛゜´｀¨ヽヾゝゞ々ー）］｝〕〉》」』】°′″℃¢％‰",
             Keys.cantBeEndChars: "（［｛〔〈《「『【",

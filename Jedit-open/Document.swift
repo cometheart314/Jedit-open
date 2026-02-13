@@ -1266,6 +1266,15 @@ class Document: NSDocument {
             }
         }
 
+        // Markdown ファイルの場合
+        if Self.isMarkdownType(typeName) || Self.isMarkdownFile(url: url) {
+            if !UserDefaults.standard.bool(forKey: "openMarkdownAsPlainText") {
+                try readMarkdownDocument(from: url)
+                return
+            }
+            // プレーンテキストとして読み込む場合は通常のフローへ
+        }
+
         // まず通常のファイル読み込みを行う
         try super.read(from: url, ofType: typeName)
 
@@ -1395,6 +1404,56 @@ class Document: NSDocument {
             if let attrs = documentAttributes as? [NSAttributedString.DocumentAttributeKey: Any] {
                 self.applyDocumentAttributesToProperties(attrs)
             }
+
+            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+        }
+    }
+
+    // MARK: - Markdown Support
+
+    /// UTI が Markdown タイプかどうかを判定
+    private nonisolated static func isMarkdownType(_ typeName: String) -> Bool {
+        return typeName == "net.daringfireball.markdown"
+    }
+
+    /// ファイル拡張子が Markdown かどうかを判定
+    private nonisolated static func isMarkdownFile(url: URL) -> Bool {
+        let ext = url.pathExtension.lowercased()
+        return ["md", "markdown", "mdown", "mkd", "mkdn", "mdwn"].contains(ext)
+    }
+
+    /// Markdown (.md) ファイルを読み込む
+    /// リッチテキストに変換し、readOnly（編集ロック）で開く
+    private nonisolated func readMarkdownDocument(from url: URL) throws {
+        let data = try Data(contentsOf: url)
+
+        // UTF-8 でデコード（Markdown ファイルは通常 UTF-8）
+        guard let markdownText = String(data: data, encoding: .utf8)
+                ?? String(data: data, encoding: .ascii) else {
+            throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
+                NSLocalizedDescriptionKey: NSLocalizedString(
+                    "Could not read Markdown document.",
+                    comment: "Error when Markdown file cannot be decoded"
+                )
+            ])
+        }
+
+        let baseURL = url.deletingLastPathComponent()
+
+        // リッチテキストとして読み込み、readOnly（編集ロック）で開く
+        MainActor.assumeIsolated {
+            // Markdown をパースしてリッチテキストに変換
+            let attributedString = MarkdownParser.attributedString(from: markdownText, baseURL: baseURL)
+            self.documentType = .rtf
+            self.textStorage.setAttributedString(attributedString)
+            self.presetData = NewDocData.richText
+            self.isImportedDocument = true
+
+            // Markdown 用の行間設定（lineHeightMultiple = 1.8）
+            self.presetData?.format.lineHeightMultiple = 1.8
+
+            // 編集ロック状態にする
+            self.presetData?.view.preventEditing = true
 
             NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
         }
