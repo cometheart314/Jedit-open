@@ -116,6 +116,12 @@ class Document: NSDocument {
     /// Word/ODTからインポートした書類かどうか（編集ロック解除時の警告表示に使用）
     var isImportedDocument: Bool = false
 
+    /// Markdownファイルから読み込んだ書類かどうか（保存時にMarkdown形式で保存するために使用）
+    var isMarkdownDocument: Bool = false
+
+    /// 元の Markdown テキスト（将来の拡張用に保持）
+    var originalMarkdownText: String?
+
     /// プリセットから適用されたドキュメント設定データ
     var presetData: NewDocData?
 
@@ -698,9 +704,19 @@ class Document: NSDocument {
     }
 
     override nonisolated func read(from data: Data, ofType typeName: String) throws {
+        // Markdown タイプの場合は RTF として扱う
+        // （Duplicate 時に data(ofType:) が RTF を返すため、
+        //  read(from data:) でも RTF として読み込む必要がある）
+        let effectiveTypeName: String
+        if Self.isMarkdownType(typeName) {
+            effectiveTypeName = "public.rtf"
+        } else {
+            effectiveTypeName = typeName
+        }
+
         // ドキュメントタイプを判定
         let docType: NSAttributedString.DocumentType
-        switch typeName {
+        switch effectiveTypeName {
         case "public.rtf":
             docType = .rtf
         case "com.apple.rtfd":
@@ -1081,6 +1097,18 @@ class Document: NSDocument {
         textStorage.setLineBreakingType(data.format.wordWrappingType.rawValue)
     }
 
+    // MARK: - Duplicate
+
+    /// 複製されたドキュメントの isMarkdownDocument をリセットする
+    /// （Duplicate で作られた書類は通常の RTF として扱う）
+    override func duplicate() throws -> NSDocument {
+        let newDoc = try super.duplicate()
+        if let newDocument = newDoc as? Document {
+            newDocument.isMarkdownDocument = false
+        }
+        return newDoc
+    }
+
     // MARK: - Extended Attributes for Preset Data
 
     /// 保存完了後にプリセットデータを拡張属性に書き込む
@@ -1097,6 +1125,34 @@ class Document: NSDocument {
             }
             completionHandler(error)
         }
+    }
+
+    /// Markdown ドキュメントの場合は Markdown 形式でファイルに書き込む
+    /// NSDocument の保存チェーンの中で最終的にファイルに書き込むメソッド。
+    /// ここで RTF の代わりに Markdown を書き込むことで、
+    /// NSDocument の内部状態（textStorage等）を壊さずにファイルだけ Markdown にできる。
+    override nonisolated func write(to url: URL, ofType typeName: String, for saveOperation: NSDocument.SaveOperationType, originalContentsURL absoluteOriginalContentsURL: URL?) throws {
+        let isMarkdown = MainActor.assumeIsolated { self.isMarkdownDocument }
+        if isMarkdown,
+           saveOperation == .saveOperation
+            || saveOperation == .saveAsOperation
+            || saveOperation == .autosaveInPlaceOperation
+            || saveOperation == .autosaveElsewhereOperation {
+            // 元の Markdown テキストがあればそのまま使う（編集許可時にクリアされる）
+            // なければ NSAttributedString → Markdown 逆変換
+            let markdown = MainActor.assumeIsolated {
+                self.originalMarkdownText ?? MarkdownParser.markdownString(from: self.textStorage)
+            }
+            guard let markdownData = markdown.data(using: .utf8) else {
+                throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteInapplicableStringEncodingError, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not encode Markdown text as UTF-8."
+                ])
+            }
+            try markdownData.write(to: url, options: .atomic)
+            return
+        }
+
+        try super.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: absoluteOriginalContentsURL)
     }
 
     /// 現在のウィンドウ状態でプリセットデータを更新
@@ -1448,6 +1504,8 @@ class Document: NSDocument {
             self.textStorage.setAttributedString(attributedString)
             self.presetData = NewDocData.richText
             self.isImportedDocument = true
+            self.isMarkdownDocument = true
+            self.originalMarkdownText = markdownText
 
             // Markdown 用の行間設定（lineHeightMultiple = 1.8）
             self.presetData?.format.lineHeightMultiple = 1.8
@@ -2030,6 +2088,8 @@ class Document: NSDocument {
     /// documentTypeに応じて適切なファイルタイプを優先的に返す
     override nonisolated func writableTypes(for saveOperation: NSDocument.SaveOperationType) -> [String] {
         // ドキュメントタイプに応じた順序で返す（現在のタイプを先頭にする）
+        // Note: Markdown ドキュメントは documentType = .rtf として扱う。
+        // data(ofType:) は常に RTF を返し、save 完了後にファイルを Markdown で上書きする
         let docType = MainActor.assumeIsolated { self.documentType }
         switch docType {
         case .plain:

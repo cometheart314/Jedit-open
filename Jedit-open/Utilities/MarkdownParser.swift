@@ -10,6 +10,31 @@ import Cocoa
 /// Markdown テキストを NSAttributedString に変換するパーサー
 enum MarkdownParser {
 
+    // MARK: - Custom Attribute Keys
+
+    /// Markdown のブロックタイプを NSAttributedString に埋め込むためのカスタム属性キー
+    /// 逆変換（markdownString(from:)）で正確にブロックタイプを判定するために使用
+    static let markdownBlockTypeKey = NSAttributedString.Key("jp.co.artman21.Jedit.markdownBlockType")
+
+    /// ブロックタイプの値（カスタム属性に設定する文字列）
+    private enum MarkdownBlockValue {
+        static let heading1 = "h1"
+        static let heading2 = "h2"
+        static let heading3 = "h3"
+        static let heading4 = "h4"
+        static let heading5 = "h5"
+        static let heading6 = "h6"
+        static let paragraph = "p"
+        static let codeBlock = "code"
+        static let blockquote = "blockquote"
+        static let unorderedList = "ul"
+        static let orderedList = "ol"
+        static let horizontalRule = "hr"
+        static let tableHeader = "th"
+        static let tableSeparator = "table-sep"
+        static let tableRow = "td"
+    }
+
     // MARK: - Styling Constants
 
     private static let baseFontSize: CGFloat = 14.0
@@ -578,10 +603,12 @@ enum MarkdownParser {
         paragraphStyle.paragraphSpacing = fontSize * 0.3
         paragraphStyle.lineHeightMultiple = lineHeightMultiple
 
+        let blockValue = "h\(level)"
         let attributes: [NSAttributedString.Key: Any] = [
             .font: font,
             .foregroundColor: NSColor.textColor,
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            markdownBlockTypeKey: blockValue
         ]
 
         let result = NSMutableAttributedString(string: text, attributes: attributes)
@@ -624,7 +651,8 @@ enum MarkdownParser {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: baseFont,
             .foregroundColor: NSColor.textColor,
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            markdownBlockTypeKey: MarkdownBlockValue.paragraph
         ]
 
         let result = NSMutableAttributedString(string: text, attributes: attributes)
@@ -646,7 +674,8 @@ enum MarkdownParser {
             .font: codeFont,
             .foregroundColor: NSColor.textColor,
             .backgroundColor: codeBackgroundColor,
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            markdownBlockTypeKey: MarkdownBlockValue.codeBlock
         ]
 
         return NSAttributedString(string: text, attributes: attributes)
@@ -665,7 +694,8 @@ enum MarkdownParser {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: baseFont,
             .foregroundColor: blockquoteColor,
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            markdownBlockTypeKey: MarkdownBlockValue.blockquote
         ]
 
         let result = NSMutableAttributedString(string: text, attributes: attributes)
@@ -697,10 +727,12 @@ enum MarkdownParser {
                 marker = "\u{2022} "  // bullet
             }
 
+            let blockValue = item.isOrdered ? MarkdownBlockValue.orderedList : MarkdownBlockValue.unorderedList
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: baseFont,
                 .foregroundColor: NSColor.textColor,
-                .paragraphStyle: paragraphStyle
+                .paragraphStyle: paragraphStyle,
+                markdownBlockTypeKey: blockValue
             ]
 
             let line = NSMutableAttributedString(string: marker + item.text, attributes: attributes)
@@ -722,7 +754,8 @@ enum MarkdownParser {
         let attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: 10),
             .foregroundColor: horizontalRuleColor,
-            .paragraphStyle: paragraphStyle
+            .paragraphStyle: paragraphStyle,
+            markdownBlockTypeKey: MarkdownBlockValue.horizontalRule
         ]
 
         return NSAttributedString(string: ruleText, attributes: attributes)
@@ -760,9 +793,11 @@ enum MarkdownParser {
             let font = (hasHeader && rowIndex == 0) ?
                 NSFont.monospacedSystemFont(ofSize: codeFontSize, weight: .bold) : tableFont
 
+            let blockValue = (hasHeader && rowIndex == 0) ? MarkdownBlockValue.tableHeader : MarkdownBlockValue.tableRow
             let attributes: [NSAttributedString.Key: Any] = [
                 .font: font,
-                .foregroundColor: NSColor.textColor
+                .foregroundColor: NSColor.textColor,
+                markdownBlockTypeKey: blockValue
             ]
 
             let line = NSMutableAttributedString(string: lineText, attributes: attributes)
@@ -778,7 +813,8 @@ enum MarkdownParser {
                 }
                 let sepAttrs: [NSAttributedString.Key: Any] = [
                     .font: tableFont,
-                    .foregroundColor: horizontalRuleColor
+                    .foregroundColor: horizontalRuleColor,
+                    markdownBlockTypeKey: MarkdownBlockValue.tableSeparator
                 ]
                 result.append(NSAttributedString(string: "\n"))
                 result.append(NSAttributedString(string: separator, attributes: sepAttrs))
@@ -1144,12 +1180,12 @@ enum MarkdownParser {
             let group1 = match.range(at: 1)
             let group2 = match.range(at: 2)
             let contentRange = group1.location != NSNotFound ? group1 : group2
-            let content = text.substring(with: contentRange)
 
+            // 既存の属性を保持しつつ、マークアップ記号を除去してフォントを太字斜体に変更
+            let existingAttr = attrString.attributedSubstring(from: contentRange).mutableCopy() as! NSMutableAttributedString
             let font = fontWithTraits(baseFont: baseFont, traits: [.boldFontMask, .italicFontMask])
-            let attrs: [NSAttributedString.Key: Any] = [.font: font]
-            let styled = NSAttributedString(string: content, attributes: attrs)
-            attrString.replaceCharacters(in: match.range, with: styled)
+            existingAttr.addAttribute(.font, value: font, range: NSRange(location: 0, length: existingAttr.length))
+            attrString.replaceCharacters(in: match.range, with: existingAttr)
 
             text = attrString.string as NSString
             matches = regex.matches(in: attrString.string, range: NSRange(location: 0, length: text.length))
@@ -1169,12 +1205,12 @@ enum MarkdownParser {
             let group1 = match.range(at: 1)
             let group2 = match.range(at: 2)
             let contentRange = group1.location != NSNotFound ? group1 : group2
-            let content = text.substring(with: contentRange)
 
+            // 既存の属性を保持しつつ、マークアップ記号を除去してフォントを太字に変更
+            let existingAttr = attrString.attributedSubstring(from: contentRange).mutableCopy() as! NSMutableAttributedString
             let font = fontWithTraits(baseFont: baseFont, traits: [.boldFontMask])
-            let attrs: [NSAttributedString.Key: Any] = [.font: font]
-            let styled = NSAttributedString(string: content, attributes: attrs)
-            attrString.replaceCharacters(in: match.range, with: styled)
+            existingAttr.addAttribute(.font, value: font, range: NSRange(location: 0, length: existingAttr.length))
+            attrString.replaceCharacters(in: match.range, with: existingAttr)
 
             text = attrString.string as NSString
             matches = regex.matches(in: attrString.string, range: NSRange(location: 0, length: text.length))
@@ -1195,12 +1231,12 @@ enum MarkdownParser {
             let group2 = match.range(at: 2)
             let contentRange = group1.location != NSNotFound ? group1 : group2
             guard contentRange.location != NSNotFound else { continue }
-            let content = text.substring(with: contentRange)
 
+            // 既存の属性を保持しつつ、マークアップ記号を除去してフォントを斜体に変更
+            let existingAttr = attrString.attributedSubstring(from: contentRange).mutableCopy() as! NSMutableAttributedString
             let font = fontWithTraits(baseFont: baseFont, traits: [.italicFontMask])
-            let attrs: [NSAttributedString.Key: Any] = [.font: font]
-            let styled = NSAttributedString(string: content, attributes: attrs)
-            attrString.replaceCharacters(in: match.range, with: styled)
+            existingAttr.addAttribute(.font, value: font, range: NSRange(location: 0, length: existingAttr.length))
+            attrString.replaceCharacters(in: match.range, with: existingAttr)
 
             text = attrString.string as NSString
             matches = regex.matches(in: attrString.string, range: NSRange(location: 0, length: text.length))
@@ -1216,14 +1252,11 @@ enum MarkdownParser {
 
         let matches = regex.matches(in: attrString.string, range: NSRange(location: 0, length: text.length))
         for match in matches.reversed() {
-            let content = text.substring(with: match.range(at: 1))
-            let attrs: [NSAttributedString.Key: Any] = [
-                .strikethroughStyle: NSUnderlineStyle.single.rawValue
-            ]
-            let styled = NSMutableAttributedString(string: content)
-            // 既存の属性を保持しつつ取り消し線を追加
-            styled.addAttributes(attrs, range: NSRange(location: 0, length: styled.length))
-            attrString.replaceCharacters(in: match.range, with: styled)
+            let contentRange = match.range(at: 1)
+            // 既存の属性を保持しつつ、マークアップ記号を除去して取り消し線を追加
+            let existingAttr = attrString.attributedSubstring(from: contentRange).mutableCopy() as! NSMutableAttributedString
+            existingAttr.addAttribute(.strikethroughStyle, value: NSUnderlineStyle.single.rawValue, range: NSRange(location: 0, length: existingAttr.length))
+            attrString.replaceCharacters(in: match.range, with: existingAttr)
         }
     }
 
@@ -1235,5 +1268,424 @@ enum MarkdownParser {
             return modified
         }
         return baseFont
+    }
+
+    // MARK: - Reverse Conversion: NSAttributedString → Markdown
+
+    /// NSAttributedString を Markdown テキストに変換（逆変換）
+    /// - Parameter attributedString: 変換元の NSAttributedString
+    /// - Returns: Markdown テキスト
+    static func markdownString(from attributedString: NSAttributedString) -> String {
+        let fullText = attributedString.string
+        let nsText = fullText as NSString
+
+        // 段落（\n 区切り）ごとに処理
+        var paragraphs: [String] = []
+        var currentIndex = 0
+        var inCodeBlock = false
+        var inTable = false
+        var inTableHeader = false
+
+        while currentIndex < nsText.length {
+            // 次の改行を探す
+            let remainingRange = NSRange(location: currentIndex, length: nsText.length - currentIndex)
+            let newlineRange = nsText.range(of: "\n", options: [], range: remainingRange)
+            let lineEnd: Int
+            if newlineRange.location != NSNotFound {
+                lineEnd = newlineRange.location
+            } else {
+                lineEnd = nsText.length
+            }
+
+            let lineRange = NSRange(location: currentIndex, length: lineEnd - currentIndex)
+
+            if lineRange.length == 0 {
+                // 空行
+                if inCodeBlock {
+                    paragraphs.append("```")
+                    inCodeBlock = false
+                }
+                if inTable {
+                    inTable = false
+                    inTableHeader = false
+                }
+                paragraphs.append("")
+                currentIndex = lineEnd + 1
+                continue
+            }
+
+            let lineAttr = attributedString.attributedSubstring(from: lineRange)
+            let firstAttrs = lineAttr.attributes(at: 0, effectiveRange: nil)
+            let blockType = firstAttrs[markdownBlockTypeKey] as? String
+
+            // カスタム属性によるコードブロック判定（優先）
+            let isCode = blockType == MarkdownBlockValue.codeBlock || (blockType == nil && isCodeBlockLine(lineAttr))
+
+            if isCode {
+                if inTable { inTable = false; inTableHeader = false }
+                if !inCodeBlock {
+                    paragraphs.append("```")
+                    inCodeBlock = true
+                }
+                paragraphs.append(lineAttr.string)
+            } else {
+                if inCodeBlock {
+                    paragraphs.append("```")
+                    inCodeBlock = false
+                }
+
+                // テーブルセパレーター行はスキップ（tableHeader 処理でセパレーターを出力済み）
+                if blockType == MarkdownBlockValue.tableSeparator {
+                    currentIndex = lineEnd + 1
+                    continue
+                }
+
+                let markdownLine = convertLineToMarkdown(lineAttr)
+
+                // テーブルヘッダーの後にセパレーターを挿入
+                if blockType == MarkdownBlockValue.tableHeader {
+                    inTable = true
+                    inTableHeader = true
+                    paragraphs.append(markdownLine)
+                    // セパレーター行を生成
+                    let cells = parseTableCellsFromRendered(lineAttr.string)
+                    let separator = "| " + cells.map { String(repeating: "-", count: max($0.trimmingCharacters(in: .whitespaces).count, 3)) }.joined(separator: " | ") + " |"
+                    paragraphs.append(separator)
+                } else if blockType == MarkdownBlockValue.tableRow {
+                    paragraphs.append(markdownLine)
+                } else {
+                    if inTable { inTable = false; inTableHeader = false }
+                    if !markdownLine.isEmpty {
+                        paragraphs.append(markdownLine)
+                    }
+                }
+            }
+
+            currentIndex = lineEnd + 1
+        }
+
+        // 末尾でコードブロックが開いたままなら閉じる
+        if inCodeBlock {
+            paragraphs.append("```")
+        }
+
+        return paragraphs.joined(separator: "\n")
+    }
+
+    /// 1行分の NSAttributedString を Markdown 行に変換
+    private static func convertLineToMarkdown(_ lineAttr: NSAttributedString) -> String {
+        let text = lineAttr.string
+        let nsText = text as NSString
+        let fullRange = NSRange(location: 0, length: nsText.length)
+
+        guard fullRange.length > 0 else { return "" }
+
+        // カスタム属性でブロックタイプを判定（最優先）
+        let firstAttrs = lineAttr.attributes(at: 0, effectiveRange: nil)
+        if let blockType = firstAttrs[markdownBlockTypeKey] as? String {
+            switch blockType {
+            case MarkdownBlockValue.horizontalRule:
+                return "---"
+            case MarkdownBlockValue.codeBlock:
+                return text  // コードブロック行（呼び出し側で ``` を付ける）
+            case MarkdownBlockValue.heading1, MarkdownBlockValue.heading2,
+                 MarkdownBlockValue.heading3, MarkdownBlockValue.heading4,
+                 MarkdownBlockValue.heading5, MarkdownBlockValue.heading6:
+                let level = Int(String(blockType.last!))!
+                let prefix = String(repeating: "#", count: level) + " "
+                let inlineMarkdown = convertInlineToMarkdown(lineAttr, baseIsBold: true)
+                return prefix + inlineMarkdown
+            case MarkdownBlockValue.blockquote:
+                let inlineMarkdown = convertInlineToMarkdown(lineAttr)
+                return "> " + inlineMarkdown
+            case MarkdownBlockValue.unorderedList, MarkdownBlockValue.orderedList:
+                if let listPrefix = detectListPrefix(text) {
+                    let restStart = listPrefix.contentStartIndex
+                    let restRange = NSRange(location: restStart, length: nsText.length - restStart)
+                    if restRange.length > 0 {
+                        let restAttr = lineAttr.attributedSubstring(from: restRange)
+                        let inlineMarkdown = convertInlineToMarkdown(restAttr)
+                        return listPrefix.markdownPrefix + inlineMarkdown
+                    }
+                    return listPrefix.markdownPrefix
+                }
+                return convertInlineToMarkdown(lineAttr)
+            case MarkdownBlockValue.tableHeader, MarkdownBlockValue.tableRow:
+                return convertTableLineToMarkdown(lineAttr, isHeader: blockType == MarkdownBlockValue.tableHeader)
+            case MarkdownBlockValue.tableSeparator:
+                return ""  // テーブルセパレーターは tableHeader の後に自動挿入
+            case MarkdownBlockValue.paragraph:
+                return convertInlineToMarkdown(lineAttr)
+            default:
+                return convertInlineToMarkdown(lineAttr)
+            }
+        }
+
+        // カスタム属性がない場合のフォールバック（ユーザーが編集した行等）
+
+        // 水平線の検出（─の繰り返し）
+        if isHorizontalRuleLine(text) {
+            return "---"
+        }
+
+        // コードブロックの検出（全体が monospaced + backgroundColor）
+        if isCodeBlockLine(lineAttr) {
+            return text
+        }
+
+        // 見出しの検出
+        if let headingLevel = detectHeadingLevel(firstAttrs) {
+            let prefix = String(repeating: "#", count: headingLevel) + " "
+            let inlineMarkdown = convertInlineToMarkdown(lineAttr, baseIsBold: true)
+            return prefix + inlineMarkdown
+        }
+
+        // 引用の検出（foregroundColor が secondaryLabelColor）
+        if let color = firstAttrs[.foregroundColor] as? NSColor,
+           isBlockquoteColor(color) {
+            let inlineMarkdown = convertInlineToMarkdown(lineAttr)
+            return "> " + inlineMarkdown
+        }
+
+        // リストの検出（bullet • / チェックボックス / 番号付き）
+        if let listPrefix = detectListPrefix(text) {
+            let restStart = listPrefix.contentStartIndex
+            let restRange = NSRange(location: restStart, length: nsText.length - restStart)
+            if restRange.length > 0 {
+                let restAttr = lineAttr.attributedSubstring(from: restRange)
+                let inlineMarkdown = convertInlineToMarkdown(restAttr)
+                return listPrefix.markdownPrefix + inlineMarkdown
+            }
+            return listPrefix.markdownPrefix
+        }
+
+        // 通常の段落（インライン書式のみ）
+        return convertInlineToMarkdown(lineAttr)
+    }
+
+    /// インライン書式を Markdown テキストに変換
+    /// - Parameter baseIsBold: true の場合、基準フォントが太字（見出し等）なので太字マーキングをスキップ
+    private static func convertInlineToMarkdown(_ attrString: NSAttributedString, baseIsBold: Bool = false) -> String {
+        let nsText = attrString.string as NSString
+        var result = ""
+        var i = 0
+
+        while i < nsText.length {
+            var effectiveRange = NSRange()
+            let attrs = attrString.attributes(at: i, effectiveRange: &effectiveRange)
+            let segmentText = nsText.substring(with: effectiveRange)
+
+            // NSTextAttachment（画像）の検出
+            if let attachment = attrs[.attachment] as? NSTextAttachment {
+                let imageName = attachment.fileWrapper?.preferredFilename ?? "image"
+                result += "![\(imageName)]()"
+                i = NSMaxRange(effectiveRange)
+                continue
+            }
+
+            // リンクの検出
+            if let link = attrs[.link] {
+                let urlString: String
+                if let url = link as? URL {
+                    urlString = url.absoluteString
+                } else {
+                    urlString = "\(link)"
+                }
+                // ツールチップ（タイトル）
+                let title = attrs[.toolTip] as? String
+                if let title = title, !title.isEmpty {
+                    result += "[\(segmentText)](\(urlString) \"\(title)\")"
+                } else {
+                    result += "[\(segmentText)](\(urlString))"
+                }
+                i = NSMaxRange(effectiveRange)
+                continue
+            }
+
+            // フォント属性の解析
+            let font = attrs[.font] as? NSFont
+            let isBold = font.map { isFontBold($0) } ?? false
+            let isItalic = font.map { isFontItalic($0) } ?? false
+            let isMonospaced = font.map { isFontMonospaced($0) } ?? false
+            let hasCodeBackground = attrs[.backgroundColor] as? NSColor != nil && isMonospaced
+            let hasStrikethrough = (attrs[.strikethroughStyle] as? Int ?? 0) != 0
+
+            // baseIsBold の場合、太字は基準状態なのでマーキング不要
+            let effectiveBold = isBold && !baseIsBold
+
+            var segment = segmentText
+
+            // インラインコード
+            if hasCodeBackground {
+                segment = "`\(segment)`"
+            } else {
+                // 太字 + 斜体
+                if effectiveBold && isItalic {
+                    segment = "***\(segment)***"
+                } else if effectiveBold {
+                    segment = "**\(segment)**"
+                } else if isItalic {
+                    segment = "*\(segment)*"
+                }
+            }
+
+            // 取り消し線
+            if hasStrikethrough {
+                segment = "~~\(segment)~~"
+            }
+
+            result += segment
+            i = NSMaxRange(effectiveRange)
+        }
+
+        return result
+    }
+
+    // MARK: - Reverse Conversion Helpers
+
+    /// 水平線の検出
+    private static func isHorizontalRuleLine(_ text: String) -> Bool {
+        let trimmed = text.trimmingCharacters(in: .whitespaces)
+        guard trimmed.count >= 3 else { return false }
+        return trimmed.allSatisfy({ $0 == "\u{2500}" })
+    }
+
+    /// コードブロック行の検出（全体が monospaced + backgroundColor）
+    private static func isCodeBlockLine(_ attrString: NSAttributedString) -> Bool {
+        let fullRange = NSRange(location: 0, length: attrString.length)
+        guard fullRange.length > 0 else { return false }
+
+        var isCode = true
+        attrString.enumerateAttributes(in: fullRange, options: []) { attrs, _, stop in
+            guard let font = attrs[.font] as? NSFont else {
+                isCode = false
+                stop.pointee = true
+                return
+            }
+            if !isFontMonospaced(font) || attrs[.backgroundColor] == nil {
+                // 見出しレベルのフォントではないことも確認
+                isCode = false
+                stop.pointee = true
+            }
+        }
+        return isCode
+    }
+
+    /// 見出しレベルの検出（フォントサイズから判定）
+    private static func detectHeadingLevel(_ attrs: [NSAttributedString.Key: Any]) -> Int? {
+        guard let font = attrs[.font] as? NSFont else { return nil }
+        let size = font.pointSize
+        let fontManager = NSFontManager.shared
+        let traits = fontManager.traits(of: font)
+        guard traits.contains(.boldFontMask) else { return nil }
+
+        // headingFontSizes = [28, 24, 20, 17, 15, 13] に対応
+        for (index, headingSize) in headingFontSizes.enumerated() {
+            if abs(size - headingSize) < 0.5 {
+                return index + 1  // H1=1, H2=2, ...
+            }
+        }
+        return nil
+    }
+
+    /// 引用の色かどうか
+    private static func isBlockquoteColor(_ color: NSColor) -> Bool {
+        // secondaryLabelColor と比較
+        guard let converted = color.usingColorSpace(.deviceRGB),
+              let secondary = NSColor.secondaryLabelColor.usingColorSpace(.deviceRGB) else {
+            return false
+        }
+        return abs(converted.redComponent - secondary.redComponent) < 0.05 &&
+               abs(converted.greenComponent - secondary.greenComponent) < 0.05 &&
+               abs(converted.blueComponent - secondary.blueComponent) < 0.05
+    }
+
+    /// リストプレフィックスの検出結果
+    private struct ListPrefixResult {
+        let markdownPrefix: String
+        let contentStartIndex: Int
+    }
+
+    /// リストプレフィックスの検出
+    private static func detectListPrefix(_ text: String) -> ListPrefixResult? {
+        let trimmed = text
+
+        // タスクリスト（チェック済み ☑）
+        if trimmed.hasPrefix("\u{2611} ") {
+            return ListPrefixResult(markdownPrefix: "- [x] ", contentStartIndex: 2)
+        }
+        // タスクリスト（未チェック ☐）
+        if trimmed.hasPrefix("\u{2610} ") {
+            return ListPrefixResult(markdownPrefix: "- [ ] ", contentStartIndex: 2)
+        }
+        // 箇条書き（bullet •）
+        if trimmed.hasPrefix("\u{2022} ") {
+            return ListPrefixResult(markdownPrefix: "- ", contentStartIndex: 2)
+        }
+        // 番号付きリスト（例: "1. "）
+        if let dotIndex = trimmed.firstIndex(of: ".") {
+            let prefix = trimmed[trimmed.startIndex..<dotIndex]
+            if !prefix.isEmpty, prefix.allSatisfy({ $0.isNumber }) {
+                let afterDot = trimmed.index(after: dotIndex)
+                if afterDot < trimmed.endIndex && trimmed[afterDot] == " " {
+                    let mdPrefix = "\(prefix). "
+                    let startIndex = trimmed.distance(from: trimmed.startIndex, to: trimmed.index(after: afterDot))
+                    return ListPrefixResult(markdownPrefix: mdPrefix, contentStartIndex: startIndex)
+                }
+            }
+        }
+        return nil
+    }
+
+    /// フォントが太字かどうか
+    private static func isFontBold(_ font: NSFont) -> Bool {
+        let traits = NSFontManager.shared.traits(of: font)
+        return traits.contains(.boldFontMask)
+    }
+
+    /// フォントが斜体かどうか
+    private static func isFontItalic(_ font: NSFont) -> Bool {
+        let traits = NSFontManager.shared.traits(of: font)
+        return traits.contains(.italicFontMask)
+    }
+
+    /// フォントが等幅（monospaced）かどうか
+    private static func isFontMonospaced(_ font: NSFont) -> Bool {
+        let traits = NSFontManager.shared.traits(of: font)
+        return traits.contains(.fixedPitchFontMask)
+    }
+
+    // MARK: - Table Reverse Conversion
+
+    /// テーブル行（ヘッダーまたはデータ行）を Markdown テーブル行に変換
+    /// レンダリング時にスペースパディングされたテキストを | 区切りに変換
+    private static func convertTableLineToMarkdown(_ lineAttr: NSAttributedString, isHeader: Bool) -> String {
+        let cells = parseTableCellsFromRendered(lineAttr.string)
+        if cells.isEmpty { return lineAttr.string }
+        return "| " + cells.map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: " | ") + " |"
+    }
+
+    /// レンダリングされたテーブル行テキストからセルを分割
+    /// renderTable で各セルは columnWidth にパディングされ、2スペースで区切られている
+    private static func parseTableCellsFromRendered(_ text: String) -> [String] {
+        // 2つ以上のスペースをセパレーターとして分割
+        let pattern = "  +"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return [text]
+        }
+        let nsText = text as NSString
+        var cells: [String] = []
+        var lastEnd = 0
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+        for match in matches {
+            let cellRange = NSRange(location: lastEnd, length: match.range.location - lastEnd)
+            cells.append(nsText.substring(with: cellRange))
+            lastEnd = NSMaxRange(match.range)
+        }
+        // 最後のセル
+        if lastEnd < nsText.length {
+            cells.append(nsText.substring(from: lastEnd))
+        }
+        return cells
     }
 }

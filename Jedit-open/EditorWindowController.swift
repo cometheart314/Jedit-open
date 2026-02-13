@@ -4793,6 +4793,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.isEditable = editable
         }
 
+        // 編集許可時に originalMarkdownText をクリア（編集後は逆変換を使う）
+        if editable {
+            textDocument?.originalMarkdownText = nil
+        }
+
         // presetDataに状態を保存
         textDocument?.presetData?.view.preventEditing = !editable
         markDocumentAsEdited()
