@@ -55,6 +55,9 @@ class InvisibleCharacterLayoutManager: NSLayoutManager {
     // MARK: - Drawing
 
     override func drawGlyphs(forGlyphRange glyphsToShow: NSRange, at origin: NSPoint) {
+        // グラフィックスコンテキストがない場合は描画をスキップ
+        guard NSGraphicsContext.current != nil else { return }
+
         // まず通常の描画を行う
         super.drawGlyphs(forGlyphRange: glyphsToShow, at: origin)
 

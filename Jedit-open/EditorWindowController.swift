@@ -4946,6 +4946,60 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         panel.showPanel(for: document)
     }
 
+    // MARK: - Print Configuration
+
+    /// 印刷用のPrintPageView設定を作成
+    func printPageViewConfiguration() -> PrintPageView.Configuration? {
+        guard let document = textDocument else { return nil }
+
+        // ヘッダー・フッターのAttributedStringを取得
+        var headerAttrString: NSAttributedString?
+        var footerAttrString: NSAttributedString?
+        if let headerFooterData = document.presetData?.headerFooter {
+            if let headerData = headerFooterData.headerRTFData {
+                headerAttrString = NewDocData.HeaderFooterData.attributedString(from: headerData)
+            }
+            if let footerData = headerFooterData.footerRTFData {
+                footerAttrString = NewDocData.HeaderFooterData.attributedString(from: footerData)
+            }
+        }
+
+        // 色を取得
+        let colors = document.presetData?.fontAndColors.colors
+        let bgColor: NSColor = colors?.background.nsColor ?? .textBackgroundColor
+
+        // プレーンテキストの場合のデフォルトフォントと色
+        let defaultFont: NSFont? = document.documentType == .plain ? currentBasicFont() : nil
+        let defaultTextColor: NSColor? = document.documentType == .plain ? (colors?.character.nsColor ?? .textColor) : nil
+
+        // 不可視文字の設定を取得
+        let invisibleOptions = invisibleCharacterOptions
+        let invisibleColor = colors?.invisible.nsColor ?? .tertiaryLabelColor
+
+        return PrintPageView.Configuration(
+            textStorage: document.textStorage,
+            printInfo: document.printInfo,
+            isVerticalLayout: isVerticalLayout,
+            headerAttributedString: headerAttrString,
+            footerAttributedString: footerAttrString,
+            headerColor: colors?.header.nsColor,
+            footerColor: colors?.footer.nsColor,
+            documentName: document.displayName ?? "",
+            filePath: document.fileURL?.path,
+            dateModified: document.fileModificationDate,
+            documentProperties: document.presetData?.properties,
+            textBackgroundColor: bgColor,
+            isPlainText: document.documentType == .plain,
+            defaultFont: defaultFont,
+            defaultTextColor: defaultTextColor,
+            invisibleCharacterOptions: invisibleOptions,
+            invisibleCharacterColor: invisibleColor,
+            lineBreakingType: Int(document.presetData?.format.wordWrappingType.rawValue ?? 0),
+            lineNumberMode: lineNumberMode,
+            lineNumberColor: colors?.lineNumber.nsColor ?? .secondaryLabelColor
+        )
+    }
+
     // MARK: - Toolbar Encoding Item
 
     /// ツールバーにエンコーディング表示アイテムをセットアップ

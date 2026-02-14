@@ -1951,9 +1951,9 @@ class Document: NSDocument {
     // MARK: - Printing
 
     override func printOperation(withSettings printSettings: [NSPrintInfo.AttributeKey: Any]) throws -> NSPrintOperation {
-        // EditorWindowControllerからテキストビューを取得
+        // EditorWindowControllerから印刷設定を取得
         guard let windowController = windowControllers.first as? EditorWindowController,
-              let textView = windowController.currentTextView() else {
+              let config = windowController.printPageViewConfiguration() else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: [
                 NSLocalizedDescriptionKey: NSLocalizedString("Cannot print: No text view available", comment: "Print error")
             ])
@@ -1967,8 +1967,34 @@ class Document: NSDocument {
             printInfo.dictionary()[key] = value
         }
 
-        // テキストビューの印刷操作を作成
-        let printOperation = NSPrintOperation(view: textView, printInfo: printInfo)
+        // PrintPageViewを作成（ヘッダー・フッター付きのカスタム印刷ビュー）
+        // printInfoの更新を反映するため、configのprintInfoを上書き
+        let updatedConfig = PrintPageView.Configuration(
+            textStorage: config.textStorage,
+            printInfo: printInfo,
+            isVerticalLayout: config.isVerticalLayout,
+            headerAttributedString: config.headerAttributedString,
+            footerAttributedString: config.footerAttributedString,
+            headerColor: config.headerColor,
+            footerColor: config.footerColor,
+            documentName: config.documentName,
+            filePath: config.filePath,
+            dateModified: config.dateModified,
+            documentProperties: config.documentProperties,
+            textBackgroundColor: config.textBackgroundColor,
+            isPlainText: config.isPlainText,
+            defaultFont: config.defaultFont,
+            defaultTextColor: config.defaultTextColor,
+            invisibleCharacterOptions: config.invisibleCharacterOptions,
+            invisibleCharacterColor: config.invisibleCharacterColor,
+            lineBreakingType: config.lineBreakingType,
+            lineNumberMode: config.lineNumberMode,
+            lineNumberColor: config.lineNumberColor
+        )
+        let printView = PrintPageView(configuration: updatedConfig)
+
+        // カスタムビューの印刷操作を作成
+        let printOperation = NSPrintOperation(view: printView, printInfo: printInfo)
         printOperation.showsPrintPanel = true
         printOperation.showsProgressPanel = true
 

@@ -312,132 +312,33 @@ class MultiplePageView: NSView {
 
     // MARK: - Header/Footer Drawing
 
-    /// HeaderFooterParser用のコンテキストを作成
-    private func createParserContext(forPageNumber pageNumber: Int) -> HeaderFooterParser.Context {
-        return HeaderFooterParser.Context(
-            pageNumber: pageNumber,
-            totalPages: numPages,
+    /// ヘッダー・フッター描画情報を作成
+    private func headerFooterDrawingInfo() -> HeaderFooterParser.DrawingInfo {
+        return HeaderFooterParser.DrawingInfo(
+            headerAttributedString: headerAttributedString,
+            footerAttributedString: footerAttributedString,
+            headerColor: headerColor,
+            footerColor: footerColor,
+            defaultColor: defaultHeaderFooterColor,
+            defaultFont: headerFooterFont,
             documentName: documentName,
             filePath: filePath,
             dateModified: dateModified,
-            properties: documentProperties
+            documentProperties: documentProperties,
+            totalPages: numPages
         )
     }
 
     private func drawHeader(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
-        // ヘッダーAttributedStringがある場合はパースして使用
-        if let headerAttrString = headerAttributedString, headerAttrString.length > 0 {
-            let context = createParserContext(forPageNumber: pageNumber)
-            let parsedHeader = HeaderFooterParser.parse(headerAttrString, with: context)
-
-            // ヘッダー色を適用（設定されている場合）
-            if let color = headerColor {
-                parsedHeader.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: parsedHeader.length))
-            }
-
-            // ヘッダーはページ上部マージン内に描画
-            let headerY = pageRect.minY + 20  // ページ上端から20ポイント下
-
-            // パラグラフスタイルからアラインメントを取得
-            let alignment: NSTextAlignment
-            if parsedHeader.length > 0,
-               let paragraphStyle = parsedHeader.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
-                alignment = paragraphStyle.alignment
-            } else {
-                alignment = .left
-            }
-
-            // アラインメントに応じてX位置を計算
-            let headerSize = parsedHeader.size()
-            let headerX: CGFloat
-            switch alignment {
-            case .center:
-                headerX = pageRect.midX - headerSize.width / 2
-            case .right:
-                headerX = docRect.maxX - headerSize.width
-            default:
-                headerX = docRect.minX
-            }
-
-            parsedHeader.draw(at: NSPoint(x: headerX, y: headerY))
-        } else {
-            // 従来の単純な描画（後方互換性）
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: headerFooterFont,
-                .foregroundColor: headerColor ?? defaultHeaderFooterColor
-            ]
-
-            let headerString = documentName as NSString
-
-            // ヘッダーはページ上部マージン内に左寄せ
-            let headerY = pageRect.minY + 20  // ページ上端から20ポイント下
-            let headerX = docRect.minX  // ドキュメント領域の左端に合わせる
-
-            headerString.draw(at: NSPoint(x: headerX, y: headerY), withAttributes: attributes)
-        }
+        HeaderFooterParser.drawHeader(info: headerFooterDrawingInfo(), forPageNumber: pageNumber, in: pageRect, docRect: docRect)
     }
 
     private func drawFooter(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
-        // フッターAttributedStringがある場合はパースして使用
-        if let footerAttrString = footerAttributedString, footerAttrString.length > 0 {
-            let context = createParserContext(forPageNumber: pageNumber)
-            let parsedFooter = HeaderFooterParser.parse(footerAttrString, with: context)
-
-            // フッター色を適用（設定されている場合）
-            if let color = footerColor {
-                parsedFooter.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: parsedFooter.length))
-            }
-
-            // パラグラフスタイルからアラインメントを取得
-            let alignment: NSTextAlignment
-            if parsedFooter.length > 0,
-               let paragraphStyle = parsedFooter.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
-                alignment = paragraphStyle.alignment
-            } else {
-                alignment = .center
-            }
-
-            // フッターサイズを計算
-            let footerSize = parsedFooter.size()
-
-            // フッターはページ下部マージン内に描画
-            let footerY = pageRect.maxY - footerSize.height - 20  // ページ下端から20ポイント上
-
-            // アラインメントに応じてX位置を計算
-            let footerX: CGFloat
-            switch alignment {
-            case .left:
-                footerX = docRect.minX
-            case .right:
-                footerX = docRect.maxX - footerSize.width
-            default:
-                footerX = pageRect.midX - footerSize.width / 2
-            }
-
-            parsedFooter.draw(at: NSPoint(x: footerX, y: footerY))
-        } else {
-            // 従来の単純な描画（後方互換性）
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: headerFooterFont,
-                .foregroundColor: footerColor ?? defaultHeaderFooterColor
-            ]
-
-            // "ページ番号 / 総ページ数" 形式
-            let footerText = "\(pageNumber + 1) / \(numPages)"
-            let footerString = footerText as NSString
-            let footerSize = footerString.size(withAttributes: attributes)
-
-            // フッターはページ下部マージン内に中央配置
-            let footerY = pageRect.maxY - footerSize.height - 20  // ページ下端から20ポイント上
-            let footerX = pageRect.midX - footerSize.width / 2
-
-            footerString.draw(at: NSPoint(x: footerX, y: footerY), withAttributes: attributes)
-        }
+        HeaderFooterParser.drawFooter(info: headerFooterDrawingInfo(), forPageNumber: pageNumber, in: pageRect, docRect: docRect)
     }
 
     // MARK: - Line Number Drawing
 
-    private let lineNumberFont = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
     /// 行番号文字色（Document Colorsから設定可能）
     var lineNumberTextColor: NSColor? {
         didSet {
@@ -448,203 +349,18 @@ class MultiplePageView: NSView {
     private var lineNumberColor: NSColor {
         lineNumberTextColor ?? .secondaryLabelColor
     }
-    private let lineNumberRightMargin: CGFloat = 8.0
 
     private func drawLineNumbers(forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
-        guard let layoutManager = layoutManager,
-              pageNumber < layoutManager.textContainers.count else { return }
+        guard let layoutManager = layoutManager else { return }
 
-        let textContainer = layoutManager.textContainers[pageNumber]
-        let glyphRange = layoutManager.glyphRange(for: textContainer)
-
-        guard glyphRange.length > 0 else { return }
-
-        let attributes: [NSAttributedString.Key: Any] = [
-            .font: lineNumberFont,
-            .foregroundColor: lineNumberColor
-        ]
-
-        // 前のページまでの行数/パラグラフ数をカウント
-        var startingNumber = 1
-
-        switch lineNumberMode {
-        case .none:
-            return
-
-        case .paragraph:
-            // 前のページまでのパラグラフ数をカウント
-            // ページ0の先頭から現在のページの直前までの文字範囲内のパラグラフ数を数える
-            if pageNumber > 0, let textStorage = layoutManager.textStorage {
-                let firstContainer = layoutManager.textContainers[0]
-                let firstGlyphRange = layoutManager.glyphRange(for: firstContainer)
-                let firstCharRange = layoutManager.characterRange(forGlyphRange: firstGlyphRange, actualGlyphRange: nil)
-
-                let prevContainer = layoutManager.textContainers[pageNumber - 1]
-                let prevGlyphRange = layoutManager.glyphRange(for: prevContainer)
-                let prevCharRange = layoutManager.characterRange(forGlyphRange: prevGlyphRange, actualGlyphRange: nil)
-
-                let rangeStart = firstCharRange.location
-                let rangeEnd = min(prevCharRange.location + prevCharRange.length, textStorage.length)
-
-                if rangeEnd > rangeStart {
-                    let searchRange = NSRange(location: rangeStart, length: rangeEnd - rangeStart)
-                    if let stringRange = Range(searchRange, in: textStorage.string) {
-                        var paragraphCount = 0
-                        textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { _, _, _, _ in
-                            paragraphCount += 1
-                        }
-                        startingNumber = paragraphCount + 1
-                    }
-                }
-            }
-
-            // このページのパラグラフ番号を描画
-            drawParagraphNumbers(for: textContainer, layoutManager: layoutManager,
-                                 startingNumber: startingNumber, pageRect: pageRect,
-                                 docRect: docRect, attributes: attributes)
-
-        case .row:
-            // 前のページまでの行数をカウント
-            if pageNumber > 0 {
-                for i in 0..<pageNumber {
-                    let container = layoutManager.textContainers[i]
-                    let containerGlyphRange = layoutManager.glyphRange(for: container)
-                    layoutManager.enumerateLineFragments(forGlyphRange: containerGlyphRange) { _, _, _, _, _ in
-                        startingNumber += 1
-                    }
-                }
-            }
-
-            // このページの行番号を描画
-            drawRowNumbers(for: textContainer, layoutManager: layoutManager,
-                          startingNumber: startingNumber, pageRect: pageRect,
-                          docRect: docRect, attributes: attributes)
-        }
-    }
-
-    private func drawParagraphNumbers(for textContainer: NSTextContainer, layoutManager: NSLayoutManager,
-                                       startingNumber: Int, pageRect: NSRect, docRect: NSRect,
-                                       attributes: [NSAttributedString.Key: Any]) {
-        guard let textStorage = layoutManager.textStorage else { return }
-
-        let glyphRange = layoutManager.glyphRange(for: textContainer)
-        let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-
-        guard charRange.length > 0 else { return }
-
-        // このページの最初の文字位置からパラグラフ番号を計算
-        var currentParagraphNumber = startingNumber
-
-        // 前のパラグラフと同じパラグラフから始まっているかチェック
-        if charRange.location > 0 {
-            let prevCharIndex = charRange.location - 1
-            let prevChar = (textStorage.string as NSString).character(at: prevCharIndex)
-            if prevChar != 0x0A && prevChar != 0x0D {  // 改行でない場合、前のパラグラフの続き
-                currentParagraphNumber -= 1
-            }
-        }
-
-        var drawnParagraphs = Set<Int>()
-        let searchRange = NSRange(location: charRange.location, length: charRange.length)
-
-        if let stringRange = Range(searchRange, in: textStorage.string) {
-            textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (_, substringRange, _, _) in
-                let nsRange = NSRange(substringRange, in: textStorage.string)
-                let paragraphGlyphRange = layoutManager.glyphRange(forCharacterRange: nsRange, actualCharacterRange: nil)
-
-                // 最初の行フラグメントの位置を取得
-                var firstLineRect = NSRect.zero
-                layoutManager.enumerateLineFragments(forGlyphRange: paragraphGlyphRange) { rect, _, _, _, stop in
-                    firstLineRect = rect
-                    stop.pointee = true
-                }
-
-                if !firstLineRect.isEmpty && !drawnParagraphs.contains(currentParagraphNumber) {
-                    if self.isVerticalLayout {
-                        // 縦書き：上マージン内に描画
-                        self.drawVerticalNumber(currentParagraphNumber, rect: firstLineRect, pageRect: pageRect, docRect: docRect, attributes: attributes)
-                    } else {
-                        // 横書き：左マージン内に右寄せで描画
-                        let numberString = "\(currentParagraphNumber)" as NSString
-                        let size = numberString.size(withAttributes: attributes)
-                        let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
-                        let yPosition = docRect.minY + firstLineRect.minY
-                        numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
-                    }
-                    drawnParagraphs.insert(currentParagraphNumber)
-                }
-
-                currentParagraphNumber += 1
-            }
-        }
-    }
-
-    private func drawRowNumbers(for textContainer: NSTextContainer, layoutManager: NSLayoutManager,
-                                startingNumber: Int, pageRect: NSRect, docRect: NSRect,
-                                attributes: [NSAttributedString.Key: Any]) {
-        let glyphRange = layoutManager.glyphRange(for: textContainer)
-        guard glyphRange.length > 0 else { return }
-
-        var rowNumber = startingNumber
-
-        layoutManager.enumerateLineFragments(forGlyphRange: glyphRange) { (rect, usedRect, container, glyphRange, stop) in
-            if self.isVerticalLayout {
-                // 縦書き：上マージン内に描画
-                self.drawVerticalNumber(rowNumber, rect: rect, pageRect: pageRect, docRect: docRect, attributes: attributes)
-            } else {
-                // 横書き：左マージン内に右寄せで描画
-                let numberString = "\(rowNumber)" as NSString
-                let size = numberString.size(withAttributes: attributes)
-                let xPosition = docRect.minX - self.lineNumberRightMargin - size.width
-                let yPosition = docRect.minY + rect.minY
-                numberString.draw(at: NSPoint(x: xPosition, y: yPosition), withAttributes: attributes)
-            }
-            rowNumber += 1
-        }
-    }
-
-    /// 縦書きの行番号を描画（上マージン内に90度回転）
-    private func drawVerticalNumber(_ number: Int, rect: NSRect, pageRect: NSRect, docRect: NSRect, attributes: [NSAttributedString.Key: Any]) {
-        let numberString = "\(number)" as NSString
-        let font = attributes[.font] as? NSFont ?? lineNumberFont
-        let charAttributes: [NSAttributedString.Key: Any] = [
-            .font: font,
-            .foregroundColor: attributes[.foregroundColor] ?? lineNumberColor
-        ]
-
-        let stringSize = numberString.size(withAttributes: charAttributes)
-
-        // 回転後：幅と高さが入れ替わる
-        let rotatedWidth = stringSize.height
-        let rotatedHeight = stringSize.width
-
-        // 縦書き：列のX位置を計算
-        // rect.origin.yが列の論理位置（0が最初の列=右端）
-        // rect.heightが列幅
-        // docRect.width（コンテナの幅）から相対位置を計算
-        let containerWidth = docRect.width
-        let columnX = docRect.minX + (containerWidth - rect.origin.y - rect.height)
-
-        // 上マージン内に配置（ページ上端とdocRect上端の間）
-        let yPosition = docRect.minY - lineNumberRightMargin - rotatedHeight
-
-        // 列の中央にX位置を配置
-        let xCenter = columnX + (rect.height - rotatedWidth) / 2
-
-        // グラフィックスコンテキストを保存
-        NSGraphicsContext.current?.saveGraphicsState()
-
-        // 回転の中心点に移動して90度回転
-        let transform = NSAffineTransform()
-        transform.translateX(by: xCenter + rotatedWidth / 2, yBy: yPosition + rotatedHeight / 2)
-        transform.rotate(byDegrees: 90)
-        transform.translateX(by: -stringSize.width / 2, yBy: -stringSize.height / 2)
-        transform.concat()
-
-        // 文字列を描画
-        numberString.draw(at: NSPoint.zero, withAttributes: charAttributes)
-
-        // グラフィックスコンテキストを復元
-        NSGraphicsContext.current?.restoreGraphicsState()
+        let info = LineNumberDrawer.DrawingInfo(
+            layoutManager: layoutManager,
+            lineNumberMode: lineNumberMode,
+            isVerticalLayout: isVerticalLayout,
+            lineNumberFont: LineNumberDrawer.defaultFont,
+            lineNumberColor: lineNumberColor,
+            lineNumberRightMargin: LineNumberDrawer.defaultRightMargin
+        )
+        LineNumberDrawer.drawLineNumbers(info: info, forPageNumber: pageNumber, in: pageRect, docRect: docRect)
     }
 }

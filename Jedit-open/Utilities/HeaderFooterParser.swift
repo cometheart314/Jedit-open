@@ -190,6 +190,146 @@ class HeaderFooterParser {
         return parse(attributedString, with: context).string
     }
 
+    // MARK: - Drawing
+
+    /// ヘッダー・フッター描画に必要な情報
+    struct DrawingInfo {
+        let headerAttributedString: NSAttributedString?
+        let footerAttributedString: NSAttributedString?
+        let headerColor: NSColor?
+        let footerColor: NSColor?
+        let defaultColor: NSColor
+        let defaultFont: NSFont
+        let documentName: String
+        let filePath: String?
+        let dateModified: Date?
+        let documentProperties: NewDocData.PropertiesData?
+        let totalPages: Int
+    }
+
+    /// ヘッダーを描画
+    /// - Parameters:
+    ///   - info: 描画情報
+    ///   - pageNumber: ページ番号（0始まり）
+    ///   - pageRect: ページ全体の矩形
+    ///   - docRect: ドキュメント領域の矩形（マージン内）
+    static func drawHeader(info: DrawingInfo, forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
+        if let headerAttrString = info.headerAttributedString, headerAttrString.length > 0 {
+            let context = Context(
+                pageNumber: pageNumber,
+                totalPages: info.totalPages,
+                documentName: info.documentName,
+                filePath: info.filePath,
+                dateModified: info.dateModified,
+                properties: info.documentProperties
+            )
+            let parsedHeader = parse(headerAttrString, with: context)
+
+            // 色を適用
+            let color = info.headerColor ?? info.defaultColor
+            parsedHeader.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: parsedHeader.length))
+
+            // ヘッダーはページ上部マージン内に描画
+            let headerY = pageRect.minY + 20
+
+            // パラグラフスタイルからアラインメントを取得
+            let alignment: NSTextAlignment
+            if let paragraphStyle = parsedHeader.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
+                alignment = paragraphStyle.alignment
+            } else {
+                alignment = .left
+            }
+
+            // アラインメントに応じてX位置を計算
+            let headerSize = parsedHeader.size()
+            let headerX: CGFloat
+            switch alignment {
+            case .center:
+                headerX = pageRect.midX - headerSize.width / 2
+            case .right:
+                headerX = docRect.maxX - headerSize.width
+            default:
+                headerX = docRect.minX
+            }
+
+            parsedHeader.draw(at: NSPoint(x: headerX, y: headerY))
+        } else {
+            // 従来の単純な描画（後方互換性）
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: info.defaultFont,
+                .foregroundColor: info.headerColor ?? info.defaultColor
+            ]
+
+            let headerString = info.documentName as NSString
+            let headerY = pageRect.minY + 20
+            let headerX = docRect.minX
+
+            headerString.draw(at: NSPoint(x: headerX, y: headerY), withAttributes: attributes)
+        }
+    }
+
+    /// フッターを描画
+    /// - Parameters:
+    ///   - info: 描画情報
+    ///   - pageNumber: ページ番号（0始まり）
+    ///   - pageRect: ページ全体の矩形
+    ///   - docRect: ドキュメント領域の矩形（マージン内）
+    static func drawFooter(info: DrawingInfo, forPageNumber pageNumber: Int, in pageRect: NSRect, docRect: NSRect) {
+        if let footerAttrString = info.footerAttributedString, footerAttrString.length > 0 {
+            let context = Context(
+                pageNumber: pageNumber,
+                totalPages: info.totalPages,
+                documentName: info.documentName,
+                filePath: info.filePath,
+                dateModified: info.dateModified,
+                properties: info.documentProperties
+            )
+            let parsedFooter = parse(footerAttrString, with: context)
+
+            // 色を適用
+            let color = info.footerColor ?? info.defaultColor
+            parsedFooter.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: parsedFooter.length))
+
+            // パラグラフスタイルからアラインメントを取得
+            let alignment: NSTextAlignment
+            if let paragraphStyle = parsedFooter.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle {
+                alignment = paragraphStyle.alignment
+            } else {
+                alignment = .center
+            }
+
+            let footerSize = parsedFooter.size()
+            let footerY = pageRect.maxY - footerSize.height - 20
+
+            let footerX: CGFloat
+            switch alignment {
+            case .left:
+                footerX = docRect.minX
+            case .right:
+                footerX = docRect.maxX - footerSize.width
+            default:
+                footerX = pageRect.midX - footerSize.width / 2
+            }
+
+            parsedFooter.draw(at: NSPoint(x: footerX, y: footerY))
+        } else {
+            // 従来の単純な描画（後方互換性：ページ番号を表示）
+            let attributes: [NSAttributedString.Key: Any] = [
+                .font: info.defaultFont,
+                .foregroundColor: info.footerColor ?? info.defaultColor
+            ]
+
+            let footerText = "\(pageNumber + 1) / \(info.totalPages)"
+            let footerString = footerText as NSString
+            let footerSize = footerString.size(withAttributes: attributes)
+
+            let footerY = pageRect.maxY - footerSize.height - 20
+            let footerX = pageRect.midX - footerSize.width / 2
+
+            footerString.draw(at: NSPoint(x: footerX, y: footerY), withAttributes: attributes)
+        }
+    }
+
     // MARK: - Private Helpers
 
     /// %page, %total のオフセット付き変数をパース
