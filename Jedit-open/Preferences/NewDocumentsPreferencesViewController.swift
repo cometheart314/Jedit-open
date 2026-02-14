@@ -63,9 +63,8 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
     @IBOutlet weak var indentWrappedLinesCheckbox: NSButton!  // Indent wrapped lines チェックボックス
     @IBOutlet weak var wrappedLineIndentField: NSTextField!  // Indent wrapped lines 数値フィールド
     @IBOutlet weak var wordWrapPopup: NSPopUpButton!
-    @IBOutlet weak var targetSizeTypePopup: NSPopUpButton!  // Target Size Type ポップアップ
-    @IBOutlet weak var targetSizeLowerLimitField: NSTextField!  // Target Size Lower limit
-    @IBOutlet weak var targetSizeUpperLimitField: NSTextField!  // Target Size Upper limit
+    @IBOutlet weak var writingGoalTargetField: NSTextField!  // Writing Goal target count
+    @IBOutlet weak var writingGoalMethodPopup: NSPopUpButton!  // Writing Goal count method
 
     // Font & Colors Tab
     @IBOutlet weak var baseFontLabel: NSTextField!  // フォント名とサイズを表示
@@ -367,9 +366,9 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         indentWrappedLinesCheckbox?.state = data.format.indentWrappedLines ? .on : .off
         wrappedLineIndentField?.doubleValue = Double(data.format.wrappedLineIndent)
         wordWrapPopup?.selectItem(withTag: data.format.wordWrappingType.rawValue)
-        targetSizeTypePopup?.selectItem(withTag: data.format.targetSizeType.rawValue)
-        targetSizeLowerLimitField?.integerValue = data.format.minTargetSize
-        targetSizeUpperLimitField?.integerValue = data.format.maxTargetSize
+        let writingGoal = data.writingGoal ?? .default
+        writingGoalTargetField?.integerValue = writingGoal.targetCount
+        writingGoalMethodPopup?.selectItem(withTag: writingGoal.countMethod)
 
         // Font & Colors Tab
         currentBaseFontName = data.fontAndColors.baseFontName
@@ -482,9 +481,10 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         preset.data.format.indentWrappedLines = indentWrappedLinesCheckbox?.state == .on
         preset.data.format.wrappedLineIndent = CGFloat(wrappedLineIndentField?.doubleValue ?? 0)
         preset.data.format.wordWrappingType = NewDocData.FormatData.WordWrappingType(rawValue: wordWrapPopup?.selectedTag() ?? 0) ?? .systemDefault
-        preset.data.format.targetSizeType = NewDocData.FormatData.TargetSizeType(rawValue: targetSizeTypePopup?.selectedTag() ?? 0) ?? .none
-        preset.data.format.minTargetSize = targetSizeLowerLimitField?.integerValue ?? 0
-        preset.data.format.maxTargetSize = targetSizeUpperLimitField?.integerValue ?? 1000
+        preset.data.writingGoal = NewDocData.WritingGoalData(
+            targetCount: max(0, writingGoalTargetField?.integerValue ?? 0),
+            countMethod: writingGoalMethodPopup?.selectedTag() ?? 0
+        )
 
         // Font & Colors Tab
         preset.data.fontAndColors.baseFontName = currentBaseFontName
@@ -715,6 +715,7 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         }
 
         preset.data.format = defaultFormatData
+        preset.data.writingGoal = .default
         presetManager.updatePreset(preset)
         loadSelectedPreset()
     }

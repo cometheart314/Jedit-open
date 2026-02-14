@@ -37,6 +37,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     private static let encodingToolbarItemIdentifier = NSToolbarItem.Identifier("EncodingItem")
     private static let lineEndingToolbarItemIdentifier = NSToolbarItem.Identifier("LineEndingItem")
+    private static let writingProgressToolbarItemIdentifier = NSToolbarItem.Identifier("WritingProgressItem")
 
     // MARK: - IBOutlets
 
@@ -48,6 +49,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     private var encodingToolbarItem: NSToolbarItem?
     private var lineEndingToolbarItem: NSToolbarItem?
+    private var writingProgressToolbarItem: NSToolbarItem?
+    private lazy var writingGoalPanel = WritingGoalPanel()
 
     // MARK: - Image Resize
 
@@ -5409,6 +5412,107 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         #endif
     }
 
+    // MARK: - Writing Progress Toolbar Item
+
+    /// 執筆進捗ツールバーアイテムを作成
+    private func createWritingProgressToolbarItem() -> NSToolbarItem {
+        let progressView = WritingProgressView(frame: NSRect(x: 0, y: 0, width: 28, height: 28))
+        progressView.target = self
+        progressView.action = #selector(showWritingGoalPanel(_:))
+
+        // 制約ベースのサイズ設定
+        progressView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            progressView.widthAnchor.constraint(equalToConstant: 28),
+            progressView.heightAnchor.constraint(equalToConstant: 28)
+        ])
+
+        let item = NSToolbarItem(itemIdentifier: Self.writingProgressToolbarItemIdentifier)
+        item.label = NSLocalizedString("Writing Progress", comment: "Toolbar item label")
+        item.paletteLabel = NSLocalizedString("Writing Progress", comment: "Toolbar item palette label")
+        item.toolTip = NSLocalizedString("Writing Progress - Click to set goal", comment: "Toolbar item tooltip")
+        item.view = progressView
+
+        self.writingProgressToolbarItem = item
+
+        // 現在の目標設定で初期化
+        updateWritingProgressDisplay()
+
+        return item
+    }
+
+    /// 執筆進捗表示を更新
+    func updateWritingProgressDisplay() {
+        guard let progressView = getWritingProgressView() else { return }
+        guard let document = textDocument else { return }
+
+        let goal = document.presetData?.writingGoal
+        let targetCount = goal?.targetCount ?? 0
+        let countMethod = goal?.countMethod ?? 0
+
+        if targetCount > 0 {
+            progressView.isGoalSet = true
+            let totalVisibleChars = document.statistics.totalVisibleChars
+
+            let currentCount: Int
+            if countMethod == 1 {
+                // 原稿用紙換算（400字詰め）
+                currentCount = Int(ceil(totalVisibleChars / 400.0))
+            } else {
+                // 可視文字数
+                currentCount = Int(totalVisibleChars)
+            }
+
+            progressView.currentCount = currentCount
+            progressView.targetCount = targetCount
+            progressView.countMethod = countMethod
+            progressView.progress = Double(currentCount) / Double(targetCount)
+        } else {
+            progressView.isGoalSet = false
+            progressView.progress = 0
+            progressView.currentCount = 0
+            progressView.targetCount = 0
+            progressView.countMethod = 0
+        }
+    }
+
+    /// WritingProgressView を取得
+    private func getWritingProgressView() -> WritingProgressView? {
+        // キャッシュされたアイテムから取得
+        if let view = writingProgressToolbarItem?.view as? WritingProgressView {
+            return view
+        }
+        // ツールバーから直接検索
+        guard let toolbar = self.window?.toolbar else { return nil }
+        for item in toolbar.items {
+            if item.itemIdentifier == Self.writingProgressToolbarItemIdentifier,
+               let view = item.view as? WritingProgressView {
+                self.writingProgressToolbarItem = item
+                return view
+            }
+        }
+        return nil
+    }
+
+    /// 執筆目標設定パネルを表示
+    @IBAction func showWritingGoalPanel(_ sender: Any?) {
+        guard let window = self.window,
+              let document = textDocument else { return }
+
+        let currentGoal = document.presetData?.writingGoal
+
+        writingGoalPanel.beginSheet(for: window, currentGoal: currentGoal) { [weak self] goalData in
+            guard let self = self, let goalData = goalData else { return }
+
+            // presetData に保存
+            self.textDocument?.presetData?.writingGoal = goalData
+            self.textDocument?.presetDataEdited = true
+
+            // 表示を更新
+            self.updateWritingProgressDisplay()
+        }
+    }
+
     // MARK: - NSToolbarDelegate
 
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
@@ -5417,6 +5521,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
         if itemIdentifier == Self.lineEndingToolbarItemIdentifier {
             return createLineEndingToolbarItem()
+        }
+        if itemIdentifier == Self.writingProgressToolbarItemIdentifier {
+            return createWritingProgressToolbarItem()
         }
         return nil
     }
@@ -5429,7 +5536,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             .showFonts,
             .print,
             Self.encodingToolbarItemIdentifier,
-            Self.lineEndingToolbarItemIdentifier
+            Self.lineEndingToolbarItemIdentifier,
+            Self.writingProgressToolbarItemIdentifier
         ]
     }
 
@@ -5670,10 +5778,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     name: Document.statisticsDidChangeNotification,
                     object: document
                 )
+
+                // 執筆進捗ツールバーアイテムを更新
+                self.updateWritingProgressDisplay()
             }
         }
     }
-    
+
     // MARK: - Statistics Counting Helpers
 
     /// 可視文字数をカウント（制御文字＝タブ・改行を除く）

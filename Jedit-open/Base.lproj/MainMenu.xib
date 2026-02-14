@@ -148,6 +148,12 @@
                                     <action selector="showProperties:" target="-1" id="prop-action"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Writing Goal…" id="writing-goal-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showWritingGoalPanel:" target="-1" id="writing-goal-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="prop-separator"/>
                             <menuItem title="Page Setup…" keyEquivalent="P" id="qIS-W8-SiK">
                                 <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>

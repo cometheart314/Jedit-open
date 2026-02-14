@@ -18,6 +18,7 @@ struct NewDocData: Codable, Equatable {
     var properties: PropertiesData
     var printInfo: PrintInfoData?
     var printOptions: PrintOptionsData?
+    var writingGoal: WritingGoalData?
 
     // MARK: - ViewData
 
@@ -683,6 +684,20 @@ struct NewDocData: Codable, Equatable {
         }
     }
 
+    // MARK: - WritingGoalData
+
+    /// 執筆目標を保存するためのデータ構造
+    struct WritingGoalData: Codable, Equatable {
+        /// 目標数（0 = 無効）
+        var targetCount: Int
+        /// カウント方法（0: Unicode文字数, 1: 原稿用紙換算（400字詰め））
+        var countMethod: Int
+
+        static var `default`: WritingGoalData {
+            WritingGoalData(targetCount: 0, countMethod: 0)
+        }
+    }
+
     // MARK: - Default Instances
 
     static var `default`: NewDocData {
@@ -694,7 +709,8 @@ struct NewDocData: Codable, Equatable {
             headerFooter: .default,
             properties: .default,
             printInfo: nil,  // 新規ドキュメントはシステムのデフォルトを使用
-            printOptions: nil  // デフォルトの印刷オプションを使用
+            printOptions: nil,  // デフォルトの印刷オプションを使用
+            writingGoal: nil  // 執筆目標なし
         )
     }
 

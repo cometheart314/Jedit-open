@@ -73,9 +73,8 @@
                 <outlet property="tabWidthField" destination="ZRo-t7-Nwa" id="VJi-Xv-f3C"/>
                 <outlet property="tabWidthStepper" destination="wFd-jE-1xU" id="tws-stp-out"/>
                 <outlet property="tabWidthUnitPopup" destination="WhX-pX-Itz" id="twu-pop-out"/>
-                <outlet property="targetSizeLowerLimitField" destination="hCA-SS-oBQ" id="tsl-fld-out"/>
-                <outlet property="targetSizeTypePopup" destination="9tt-l6-J18" id="tst-pop-out"/>
-                <outlet property="targetSizeUpperLimitField" destination="l9J-Sh-wNV" id="tsu-fld-out"/>
+                <outlet property="writingGoalTargetField" destination="hCA-SS-oBQ" id="wgt-fld-out"/>
+                <outlet property="writingGoalMethodPopup" destination="9tt-l6-J18" id="wgm-pop-out"/>
                 <outlet property="textColorWell" destination="khm-tZ-ig1" id="TFs-5v-pzr"/>
                 <outlet property="textStyleMatrix" destination="oPo-f2-5W5" id="NQV-7b-Wwi"/>
                 <outlet property="themePopupButton" destination="i32-qM-aHn" id="tpb-out-001"/>
@@ -1119,88 +1118,57 @@
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
+                                    <!-- Writing Goal Label -->
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iAP-w7-FWF">
-                                        <rect key="frame" x="34" y="113" width="63" height="14"/>
+                                        <rect key="frame" x="30" y="113" width="67" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="Target Size" id="zp7-oZ-pU6">
+                                        <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="Writing Goal" id="zp7-oZ-pU6">
                                             <font key="font" metaFont="smallSystem"/>
                                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="o2I-ON-Cp7">
-                                        <rect key="frame" x="211" y="113" width="61" height="14"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="Lower limit" id="yEz-jS-MJh">
-                                            <font key="font" metaFont="smallSystem"/>
-                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                        </textFieldCell>
-                                    </textField>
-                                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9tt-l6-J18">
-                                        <rect key="frame" x="98" y="111" width="109" height="16"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <popUpButtonCell key="cell" type="push" title="None" bezelStyle="rounded" alignment="left" controlSize="mini" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="Cil-IE-5jh" id="spY-sF-oik">
-                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
-                                            <font key="font" metaFont="miniSystem"/>
-                                            <menu key="menu" id="k4f-FG-IZj">
-                                                <items>
-                                                    <menuItem title="None" state="on" id="Cil-IE-5jh"/>
-                                                    <menuItem title="Characters" tag="1" id="c6p-AF-kcV"/>
-                                                    <menuItem title="Visible chars." tag="2" id="wmy-bF-Xmf"/>
-                                                    <menuItem title="Words" tag="3" id="9M6-jl-sF2"/>
-                                                    <menuItem title="Rows" tag="4" id="YnR-yK-Yof"/>
-                                                    <menuItem title="Paragraphs" tag="5" id="shb-ad-sDV"/>
-                                                </items>
-                                            </menu>
-                                        </popUpButtonCell>
-                                    </popUpButton>
-                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="cBU-Ld-4DR">
-                                        <rect key="frame" x="340" y="112" width="62" height="14"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="Upper limit" id="Gjy-TI-8Fs">
-                                            <font key="font" metaFont="smallSystem"/>
-                                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
-                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                        </textFieldCell>
-                                    </textField>
-                                    <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="l9J-Sh-wNV">
-                                        <rect key="frame" x="402" y="112" width="59" height="16"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <textFieldCell key="cell" controlSize="mini" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="VDL-iE-uWW">
-                                            <numberFormatter key="formatter" formatterBehavior="10_0" positiveFormat="0" negativeFormat="-0" hasThousandSeparators="NO" thousandSeparator="," id="66e-mn-lW8">
-                                                <attributedString key="attributedStringForZero">
-                                                    <fragment content="0"/>
-                                                </attributedString>
-                                                <real key="minimum" value="1"/>
-                                                <decimal key="maximum" value="NaN"/>
-                                            </numberFormatter>
-                                            <font key="font" metaFont="miniSystem"/>
-                                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
-                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                        </textFieldCell>
-                                        <connections>
-                                            <outlet property="nextKeyView" destination="hCA-SS-oBQ" id="L74-x8-rdp"/>
-                                        </connections>
-                                    </textField>
+                                    <!-- Writing Goal Target Field -->
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hCA-SS-oBQ">
-                                        <rect key="frame" x="275" y="112" width="59" height="16"/>
+                                        <rect key="frame" x="98" y="112" width="70" height="16"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="mini" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" state="on" borderStyle="bezel" alignment="right" drawsBackground="YES" id="eG4-yE-Pr6">
                                             <numberFormatter key="formatter" formatterBehavior="10_0" positiveFormat="0" negativeFormat="-0" hasThousandSeparators="NO" thousandSeparator="," id="dev-AQ-eCz">
                                                 <attributedString key="attributedStringForZero">
                                                     <fragment content="0"/>
                                                 </attributedString>
-                                                <real key="minimum" value="1"/>
-                                                <decimal key="maximum" value="NaN"/>
+                                                <real key="minimum" value="0"/>
+                                                <decimal key="maximum" value="9999999"/>
                                             </numberFormatter>
                                             <font key="font" metaFont="miniSystem"/>
                                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
-                                        <connections>
-                                            <outlet property="nextKeyView" destination="l9J-Sh-wNV" id="I2L-FI-U5h"/>
-                                        </connections>
+                                    </textField>
+                                    <!-- Writing Goal Count Method Popup -->
+                                    <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9tt-l6-J18">
+                                        <rect key="frame" x="172" y="111" width="160" height="16"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <popUpButtonCell key="cell" type="push" title="Visible Characters" bezelStyle="rounded" alignment="left" controlSize="mini" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="wg-item0" id="spY-sF-oik">
+                                            <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="miniSystem"/>
+                                            <menu key="menu" id="k4f-FG-IZj">
+                                                <items>
+                                                    <menuItem title="Visible Characters" state="on" tag="0" id="wg-item0"/>
+                                                    <menuItem title="Manuscript Pages (400 chars)" tag="1" id="wg-item1"/>
+                                                </items>
+                                            </menu>
+                                        </popUpButtonCell>
+                                    </popUpButton>
+                                    <!-- (0 = No goal) hint -->
+                                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="o2I-ON-Cp7">
+                                        <rect key="frame" x="336" y="113" width="80" height="14"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <textFieldCell key="cell" controlSize="small" lineBreakMode="clipping" title="(0 = No goal)" id="yEz-jS-MJh">
+                                            <font key="font" metaFont="smallSystem"/>
+                                            <color key="textColor" name="secondaryLabelColor" catalog="System" colorSpace="catalog"/>
+                                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                                        </textFieldCell>
                                     </textField>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Uoc-y6-orF">
                                         <rect key="frame" x="17" y="17" width="167" height="24"/>
