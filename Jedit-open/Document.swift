@@ -128,6 +128,9 @@ class Document: NSDocument {
     /// presetData が変更されたかどうか（保存時に拡張属性を更新するためのフラグ）
     var presetDataEdited: Bool = false
 
+    /// 印刷パネルアクセサリコントローラ（印刷操作中の保持用）
+    private var printAccessoryController: PrintPanelAccessoryController?
+
     /// ドキュメント統計情報（Location[Size] タブ表示用）
     var statistics = DocumentStatistics()
 
@@ -1967,6 +1970,21 @@ class Document: NSDocument {
             printInfo.dictionary()[key] = value
         }
 
+        // 印刷パネルアクセサリコントローラを作成
+        let accessoryController = PrintPanelAccessoryController(
+            nibName: "PrintPanelAccessoryView",
+            bundle: nil
+        )
+        // 保存された印刷オプションから初期値を設定
+        accessoryController.configureDefaults(
+            from: presetData?.printOptions,
+            hasHeader: config.headerAttributedString != nil,
+            hasFooter: config.footerAttributedString != nil,
+            hasInvisibles: config.invisibleCharacterOptions != .none
+        )
+        // ビューのロードを強制（プロパティアクセスのため）
+        _ = accessoryController.view
+
         // PrintPageViewを作成（ヘッダー・フッター付きのカスタム印刷ビュー）
         // printInfoの更新を反映するため、configのprintInfoを上書き
         let updatedConfig = PrintPageView.Configuration(
@@ -1993,12 +2011,42 @@ class Document: NSDocument {
         )
         let printView = PrintPageView(configuration: updatedConfig)
 
+        // アクセサリコントローラとPrintPageViewを相互接続
+        printView.accessoryController = accessoryController
+        accessoryController.printPageView = printView
+
+        // 初期状態で不可視文字の表示を同期
+        printView.updateInvisibleCharacterDisplay()
+
         // カスタムビューの印刷操作を作成
         let printOperation = NSPrintOperation(view: printView, printInfo: printInfo)
         printOperation.showsPrintPanel = true
         printOperation.showsProgressPanel = true
 
+        // アクセサリコントローラを印刷パネルに追加
+        printOperation.printPanel.addAccessoryController(accessoryController)
+
+        // 印刷操作中にアクセサリコントローラを保持
+        self.printAccessoryController = accessoryController
+
         return printOperation
+    }
+
+    /// 印刷ダイアログ表示と完了処理をオーバーライド
+    /// 印刷操作完了後にアクセサリコントローラの設定をpresetDataに保存する
+    @IBAction override func printDocument(_ sender: Any?) {
+        self.print(withSettings: [:], showPrintPanel: true, delegate: self,
+                   didPrint: #selector(documentDidPrint(_:success:contextInfo:)),
+                   contextInfo: nil)
+    }
+
+    @objc private func documentDidPrint(_ document: NSDocument, success: Bool, contextInfo: UnsafeMutableRawPointer?) {
+        // アクセサリコントローラの設定をpresetDataに保存（印刷/キャンセルに関わらず）
+        if let ctrl = printAccessoryController {
+            presetData?.printOptions = ctrl.toPrintOptionsData()
+        }
+        // アクセサリコントローラの参照を解放
+        printAccessoryController = nil
     }
 
     // MARK: - Display Name

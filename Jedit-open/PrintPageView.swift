@@ -43,6 +43,10 @@ class PrintPageView: NSView {
     private let lineNumberMode: LineNumberMode
     private let lineNumberColor: NSColor
 
+    // 印刷パネルアクセサリ
+    weak var accessoryController: PrintPanelAccessoryController?
+    private let originalInvisibleOptions: InvisibleCharacterOptions
+
     // レイアウト
     private let layoutManager: NSLayoutManager
     private var printTextStorage: NSTextStorage?  // layoutManagerが参照するため保持が必要
@@ -90,6 +94,7 @@ class PrintPageView: NSView {
         self.isPlainText = configuration.isPlainText
         self.lineNumberMode = configuration.lineNumberMode
         self.lineNumberColor = configuration.lineNumberColor
+        self.originalInvisibleOptions = configuration.invisibleCharacterOptions
 
         // ページサイズ（printInfoから取得）
         self.pageWidth = configuration.printInfo.paperSize.width
@@ -252,6 +257,14 @@ class PrintPageView: NSView {
 
     // MARK: - Printing Support
 
+    override func beginDocument() {
+        // "Black Chars and White Back" の場合、実際の印刷時にテキスト色を黒に強制
+        if let ctrl = accessoryController, ctrl.colorOption == 2 {
+            forceBlackText()
+        }
+        super.beginDocument()
+    }
+
     override func knowsPageRange(_ range: NSRangePointer) -> Bool {
         range.pointee = NSRange(location: 1, length: numberOfPages)
         return true
@@ -289,8 +302,21 @@ class PrintPageView: NSView {
     private func drawPage(at pageIndex: Int, in pageRect: NSRect) {
         guard pageIndex < textContainers.count else { return }
 
-        // ページ背景を白で塗りつぶし（印刷用）
-        NSColor.white.setFill()
+        // ページ背景色を決定（アクセサリコントローラの設定に基づく）
+        let bgColor: NSColor
+        if let ctrl = accessoryController {
+            switch ctrl.colorOption {
+            case 1, 2:
+                // "Don't Print Background Color" or "Black Chars and White Back" → 白背景
+                bgColor = .white
+            default:
+                // "Same as Editing Window" → エディタの背景色を使用
+                bgColor = textBackgroundColor
+            }
+        } else {
+            bgColor = .white
+        }
+        bgColor.setFill()
         pageRect.fill()
 
         // ドキュメント領域（マージン内）
@@ -347,11 +373,28 @@ class PrintPageView: NSView {
             }
         }
 
-        // 行番号を描画
-        if lineNumberMode != .none {
+        // 行番号の描画を決定（アクセサリコントローラの設定に基づく）
+        let effectiveLineNumberMode: LineNumberMode
+        if let ctrl = accessoryController {
+            switch ctrl.lineNumberOption {
+            case 1:
+                // "Print Line Numbers" → ウィンドウに行番号がない場合は .paragraph をデフォルトに
+                effectiveLineNumberMode = (lineNumberMode != .none) ? lineNumberMode : .paragraph
+            case 2:
+                // "Don't Print Line Numbers"
+                effectiveLineNumberMode = .none
+            default:
+                // "Same as Editing Window"
+                effectiveLineNumberMode = lineNumberMode
+            }
+        } else {
+            effectiveLineNumberMode = lineNumberMode
+        }
+
+        if effectiveLineNumberMode != .none {
             let lineNumberInfo = LineNumberDrawer.DrawingInfo(
                 layoutManager: layoutManager,
-                lineNumberMode: lineNumberMode,
+                lineNumberMode: effectiveLineNumberMode,
                 isVerticalLayout: isVerticalLayout,
                 lineNumberFont: LineNumberDrawer.defaultFont,
                 lineNumberColor: lineNumberColor,
@@ -361,11 +404,36 @@ class PrintPageView: NSView {
             LineNumberDrawer.drawLineNumbers(info: lineNumberInfo, forPageNumber: pageIndex, in: pageRect, docRect: docRect)
         }
 
-        // ヘッダーを描画
-        drawHeader(forPageNumber: pageIndex, in: pageRect, docRect: docRect)
+        // ヘッダーの描画（アクセサリコントローラの設定に基づく）
+        let shouldDrawHeader = accessoryController?.printHeader ?? true
+        if shouldDrawHeader {
+            drawHeader(forPageNumber: pageIndex, in: pageRect, docRect: docRect)
+        }
 
-        // フッターを描画
-        drawFooter(forPageNumber: pageIndex, in: pageRect, docRect: docRect)
+        // フッターの描画（アクセサリコントローラの設定に基づく）
+        let shouldDrawFooter = accessoryController?.printFooter ?? true
+        if shouldDrawFooter {
+            drawFooter(forPageNumber: pageIndex, in: pageRect, docRect: docRect)
+        }
+    }
+
+    // MARK: - Print Options Support
+
+    /// テキスト全体を黒色に強制（"Black Chars and White Back" 用）
+    private func forceBlackText() {
+        guard let storage = printTextStorage else { return }
+        let fullRange = NSRange(location: 0, length: storage.length)
+        storage.addAttribute(.foregroundColor, value: NSColor.black, range: fullRange)
+    }
+
+    /// 不可視文字の表示を更新（アクセサリコントローラから呼ばれる）
+    func updateInvisibleCharacterDisplay() {
+        guard let lm = layoutManager as? InvisibleCharacterLayoutManager else { return }
+        if let ctrl = accessoryController, !ctrl.printInvisibles {
+            lm.invisibleCharacterOptions = .none
+        } else {
+            lm.invisibleCharacterOptions = originalInvisibleOptions
+        }
     }
 
     // MARK: - Header/Footer Drawing

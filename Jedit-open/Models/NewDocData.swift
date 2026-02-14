@@ -17,6 +17,7 @@ struct NewDocData: Codable, Equatable {
     var headerFooter: HeaderFooterData
     var properties: PropertiesData
     var printInfo: PrintInfoData?
+    var printOptions: PrintOptionsData?
 
     // MARK: - ViewData
 
@@ -656,6 +657,32 @@ struct NewDocData: Codable, Equatable {
         }
     }
 
+    // MARK: - PrintOptionsData
+
+    /// 印刷パネルのアクセサリオプションを保存するためのデータ構造
+    struct PrintOptionsData: Codable, Equatable {
+        /// 行番号オプション（0: Same as Editing Window, 1: Print Line Numbers, 2: Don't Print Line Numbers）
+        var lineNumberOption: Int
+        /// カラーオプション（0: Same as Editing Window, 1: Don't Print Background Color, 2: Black Chars and White Back）
+        var colorOption: Int
+        /// ヘッダーを印刷する
+        var printHeader: Bool
+        /// フッターを印刷する
+        var printFooter: Bool
+        /// 不可視文字を印刷する
+        var printInvisibles: Bool
+
+        static var `default`: PrintOptionsData {
+            PrintOptionsData(
+                lineNumberOption: 0,
+                colorOption: 0,
+                printHeader: true,
+                printFooter: true,
+                printInvisibles: false
+            )
+        }
+    }
+
     // MARK: - Default Instances
 
     static var `default`: NewDocData {
@@ -666,7 +693,8 @@ struct NewDocData: Codable, Equatable {
             pageLayout: .default,
             headerFooter: .default,
             properties: .default,
-            printInfo: nil  // 新規ドキュメントはシステムのデフォルトを使用
+            printInfo: nil,  // 新規ドキュメントはシステムのデフォルトを使用
+            printOptions: nil  // デフォルトの印刷オプションを使用
         )
     }
 
