@@ -1784,8 +1784,7 @@ class JeditTextView: NSTextView {
     override func paste(_ sender: Any?) {
         let pasteboard = NSPasteboard.general
 
-        // リッチテキスト書類の場合、クリップボードに画像があれば画像としてペースト
-        // （RTFDに画像が埋め込まれている場合はそちらを優先）
+        // リッチテキスト書類の場合
         if !isPlainText {
             // RTFDデータまたは画像データがある場合はRTFDに昇格してsuperに委譲
             let hasRTFD = pasteboard.availableType(from: [.rtfd]) != nil
@@ -1795,6 +1794,16 @@ class JeditTextView: NSTextView {
                     guard let self = self, proceed else { return }
                     self.performSuperPaste(sender)
                 }
+                return
+            }
+
+            // RTFデータがある場合はリッチテキストとしてペースト（書式を保持）
+            // insertText ではなく replaceString を使用する
+            // （insertText は typingAttributes を適用してしまい書式が失われるため）
+            if let rtfData = pasteboard.data(forType: .rtf),
+               let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+                let convertedString = applyTextConversionsToAttributedString(attributedString)
+                replaceString(in: selectedRange(), with: convertedString)
                 return
             }
         }
@@ -1816,7 +1825,8 @@ class JeditTextView: NSTextView {
         if let rtfData = pasteboard.data(forType: .rtf),
            let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
             let convertedString = applyTextConversionsToAttributedString(attributedString)
-            insertText(convertedString, replacementRange: selectedRange())
+            // insertText ではなく replaceString を使用（書式を保持するため）
+            replaceString(in: selectedRange(), with: convertedString)
         } else {
             super.pasteAsRichText(sender)
         }
@@ -1893,7 +1903,8 @@ class JeditTextView: NSTextView {
         } else if type == .rtf, let rtfData = pboard.data(forType: .rtf),
                   let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
             let convertedString = applyTextConversionsToAttributedString(attributedString)
-            insertText(convertedString, replacementRange: selectedRange())
+            // insertText ではなく replaceString を使用（書式を保持するため）
+            replaceString(in: selectedRange(), with: convertedString)
             return true
         }
         return super.readSelection(from: pboard, type: type)
@@ -1929,20 +1940,51 @@ class JeditTextView: NSTextView {
     }
 
     /// 属性付き文字列に対して文字変換を適用
+    /// NSMutableAttributedString の replaceCharacters(in:with:) を使い、
+    /// 置換箇所以外の属性を全て保持する
     /// - Parameter attributedString: 変換対象の属性付き文字列
-    /// - Returns: 変換後の属性付き文字列
+    /// - Returns: 変換後の属性付き文字列（全属性が保持される）
     private func applyTextConversionsToAttributedString(_ attributedString: NSAttributedString) -> NSAttributedString {
-        let mutableString = NSMutableAttributedString(attributedString: attributedString)
-        let convertedText = applyTextConversions(mutableString.string)
+        let mutable = NSMutableAttributedString(attributedString: attributedString)
+        let defaults = UserDefaults.standard
 
-        // 文字列の長さが変わる可能性があるため、属性を保持しながら文字列を置換
-        // 簡易的な実装: 元の属性を最初の文字から取得して適用
-        if mutableString.length > 0 {
-            let attributes = mutableString.attributes(at: 0, effectiveRange: nil)
-            return NSAttributedString(string: convertedText, attributes: attributes)
-        } else {
-            return NSAttributedString(string: convertedText)
+        // 変換ペアを構築（applyTextConversions と同じ変換内容）
+        var replacements: [(target: String, replacement: String)] = []
+
+        // 1. 改行コードをLFに統一（CRLF → LF を先に処理）
+        replacements.append(("\r\n", "\n"))
+        replacements.append(("\r", "\n"))
+
+        // 2. 円記号をバックスラッシュに変換
+        if defaults.bool(forKey: UserDefaults.Keys.convertYenToBackSlash) {
+            replacements.append(("\u{00A5}", "\\"))
         }
+
+        // 3. オーバーラインをチルダに変換
+        if defaults.bool(forKey: UserDefaults.Keys.convertOverlineToTilde) {
+            replacements.append(("\u{203E}", "~"))
+        }
+
+        // 4. 全角チルダを波ダッシュに変換
+        if defaults.bool(forKey: UserDefaults.Keys.convertFullWidthTilde) {
+            replacements.append(("\u{FF5E}", "\u{301C}"))
+        }
+
+        // 各変換を属性保持のまま適用
+        for (target, replacement) in replacements {
+            var searchRange = NSRange(location: 0, length: mutable.length)
+            while searchRange.location < mutable.length {
+                let nsString = mutable.string as NSString
+                let foundRange = nsString.range(of: target, options: [], range: searchRange)
+                if foundRange.location == NSNotFound { break }
+                mutable.replaceCharacters(in: foundRange, with: replacement)
+                // 置換後のインデックスから検索を続行
+                searchRange.location = foundRange.location + (replacement as NSString).length
+                searchRange.length = mutable.length - searchRange.location
+            }
+        }
+
+        return mutable
     }
 
     // MARK: - Menu Validation
