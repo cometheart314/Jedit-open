@@ -156,6 +156,32 @@ class Document: NSDocument {
         }
     }
 
+    /// AppleScript 用の書類タイプアクセサ
+    /// "plain text" / "RTF" / "RTFD" を返す・設定する
+    @objc var scriptingDocumentType: String {
+        get {
+            switch documentType {
+            case .rtf: return "RTF"
+            case .rtfd: return "RTFD"
+            default: return "plain text"
+            }
+        }
+        set {
+            switch newValue.lowercased() {
+            case "rtf":
+                documentType = .rtf
+            case "rtfd":
+                documentType = .rtfd
+            case "plain text", "plain", "text":
+                documentType = .plain
+            default:
+                return
+            }
+            updateFileTypeFromDocumentType()
+            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+        }
+    }
+
     /// KVC 経由で AppleScript からテキストがセットされた際に、
     /// NSString / NSAttributedString を適切に textStorage の内容として反映する
     override func setValue(_ value: Any?, forKey key: String) {

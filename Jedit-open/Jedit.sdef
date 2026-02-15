@@ -132,9 +132,76 @@
 			<property name="length" code="JLen" type="integer" description="The length of the selection."/>
 		</record-type>
 
+		<enumeration name="insertion position" code="JPos">
+			<enumerator name="top" code="JBeg" description="The beginning of the document."/>
+			<enumerator name="bottom" code="JEnd" description="The end of the document."/>
+		</enumeration>
+
+		<!-- search command: search string "text" in document -->
+		<command name="search" code="JEdTJFnd" description="Search for text in a document.">
+			<cocoa class="Jedit.FindCommand"/>
+			<parameter name="string" code="JFfr" type="text" description="The text to search for.">
+				<cocoa key="forText"/>
+			</parameter>
+			<parameter name="in" code="JFin" type="document" description="The document to search in.">
+				<cocoa key="inDocument"/>
+			</parameter>
+			<parameter name="case sensitive" code="JFcs" type="boolean" optional="yes" description="Whether the search is case sensitive (default: false).">
+				<cocoa key="caseSensitive"/>
+			</parameter>
+			<parameter name="using regular expression" code="JFre" type="boolean" optional="yes" description="Whether to use regular expression (default: false).">
+				<cocoa key="usingRegularExpression"/>
+			</parameter>
+			<parameter name="searching all" code="JFal" type="boolean" optional="yes" description="Whether to find all occurrences (default: false).">
+				<cocoa key="searchingAll"/>
+			</parameter>
+			<result type="any" description="A selection range record, a list of selection range records, or missing value."/>
+		</command>
+
+		<!-- replace command: replace string "text" by "replacement" in document -->
+		<command name="replace" code="JEdTJRpl" description="Replace text in a document.">
+			<cocoa class="Jedit.ReplaceCommand"/>
+			<parameter name="string" code="JRfr" type="text" description="The text to search for.">
+				<cocoa key="forText"/>
+			</parameter>
+			<parameter name="by" code="JRby" type="text" description="The replacement text.">
+				<cocoa key="byText"/>
+			</parameter>
+			<parameter name="in" code="JRin" type="document" description="The document to replace in.">
+				<cocoa key="inDocument"/>
+			</parameter>
+			<parameter name="case sensitive" code="JRcs" type="boolean" optional="yes" description="Whether the search is case sensitive (default: false).">
+				<cocoa key="caseSensitive"/>
+			</parameter>
+			<parameter name="using regular expression" code="JRre" type="boolean" optional="yes" description="Whether to use regular expression (default: false).">
+				<cocoa key="usingRegularExpression"/>
+			</parameter>
+			<parameter name="replacing all" code="JRal" type="boolean" optional="yes" description="Whether to replace all occurrences (default: false).">
+				<cocoa key="replacingAll"/>
+			</parameter>
+			<result type="integer" description="The number of replacements made."/>
+		</command>
+
+		<!-- insert into command: insert into document text "..." at bottom -->
+		<command name="insert into" code="JEdTJIns" description="Insert text into a document.">
+			<cocoa class="Jedit.InsertCommand"/>
+			<parameter name="in" code="JIin" type="document" description="The document to insert into.">
+				<cocoa key="inDocument"/>
+			</parameter>
+			<parameter name="string" code="JItx" type="text" description="The text to insert.">
+				<cocoa key="insertText"/>
+			</parameter>
+			<parameter name="at" code="JIat" type="insertion position" optional="yes" description="Where to insert: top or bottom (default: bottom).">
+				<cocoa key="atPosition"/>
+			</parameter>
+			<parameter name="at offset" code="JIof" type="integer" optional="yes" description="The character offset at which to insert.">
+				<cocoa key="atOffset"/>
+			</parameter>
+		</command>
+
 		<class name="document" code="docu" description="A Jedit document." inherits="document">
 			<cocoa class="Jedit.Document"/>
-			<contents name="text" code="ctxt" type="rich text" access="rw" description="The text of the document.">
+			<contents name="text" code="ctxt" type="attribute run" access="rw" description="The text of the document.">
 				<cocoa key="scriptingTextStorage"/>
 			</contents>
 			<property name="selection" code="sele" type="rich text" access="rw" description="The selected text of the document.">
@@ -142,6 +209,9 @@
 			</property>
 			<property name="selection range" code="JSlR" type="selection range" access="rw" description="The range of the selection.">
 				<cocoa key="scriptingSelectionRange"/>
+			</property>
+			<property name="document type" code="JDtp" type="text" access="rw" description="The type of the document: &quot;plain text&quot;, &quot;RTF&quot;, or &quot;RTFD&quot;.">
+				<cocoa key="scriptingDocumentType"/>
 			</property>
 		</class>
 
