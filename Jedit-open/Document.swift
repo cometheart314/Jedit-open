@@ -101,6 +101,34 @@ class Document: NSDocument {
     // MARK: - Properties
 
     var textStorage: JOTextStorage = JOTextStorage()
+
+    // MARK: - AppleScript Support
+
+    /// AppleScript 用の textStorage アクセサ（SDEF の cocoa key="scriptingTextStorage" に対応）
+    /// getter: textStorage を返す
+    @objc var scriptingTextStorage: NSTextStorage {
+        return textStorage
+    }
+
+    /// KVC 経由で AppleScript からテキストがセットされた際に、
+    /// NSString / NSAttributedString を適切に textStorage の内容として反映する
+    override func setValue(_ value: Any?, forKey key: String) {
+        if key == "scriptingTextStorage" {
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            textStorage.beginEditing()
+            if let attrStr = value as? NSAttributedString {
+                textStorage.replaceCharacters(in: fullRange, with: attrStr)
+            } else if let str = value as? String {
+                textStorage.replaceCharacters(in: fullRange, with: str)
+            } else if let nsStr = value as? NSString {
+                textStorage.replaceCharacters(in: fullRange, with: nsStr as String)
+            }
+            textStorage.endEditing()
+            return
+        }
+        super.setValue(value, forKey: key)
+    }
+
     var documentType: NSAttributedString.DocumentType = .plain
     var containerInset = NSSize(width: 10, height: 10)
 

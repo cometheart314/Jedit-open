@@ -71,6 +71,10 @@
 	<string></string>
 	<key>CFBundleIconFile</key>
 	<string>AppIcon</string>
+	<key>NSAppleScriptEnabled</key>
+	<true/>
+	<key>OSAScriptingDefinition</key>
+	<string>Jedit.sdef</string>
 	<key>NSQuitAlwaysKeepsWindows</key>
 	<true/>
 	<key>NSUbiquitousContainers</key>

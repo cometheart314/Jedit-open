@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE dictionary SYSTEM "file://localhost/System/Library/DTDs/sdef.dtd">
+<dictionary xmlns:xi="http://www.w3.org/2003/XInclude">
+
+	<!-- Standard Suite: open, close, save, print, quit, count, delete,
+	     duplicate, exists, make, move commands + application, document, window classes -->
+	<xi:include href="file:///System/Library/ScriptingDefinitions/CocoaStandard.sdef"
+	            xpointer="xpointer(/dictionary/suite)"/>
+
+	<!-- Text Suite -->
+	<suite name="Text Suite" code="????" description="A set of basic classes for text processing.">
+
+		<value-type name="color" code="cRGB">
+			<cocoa class="NSColor"/>
+		</value-type>
+
+		<class name="rich text" code="ctxt" description="Rich (styled) text." plural="rich text">
+			<cocoa class="NSTextStorage"/>
+			<type type="text"/>
+			<property name="color" code="colr" type="color" description="The color of the first character.">
+				<cocoa key="foregroundColor"/>
+			</property>
+			<property name="font" code="font" type="text" description="The name of the font of the first character.">
+				<cocoa key="fontName"/>
+			</property>
+			<property name="size" code="ptsz" type="integer" description="The size in points of the first character.">
+				<cocoa key="fontSize"/>
+			</property>
+			<element type="character"/>
+			<element type="paragraph"/>
+			<element type="word"/>
+			<element type="attribute run"/>
+			<element type="attachment"/>
+		</class>
+
+		<class name="character" code="cha " description="One of some text's characters." plural="characters">
+			<cocoa class="NSTextStorage"/>
+			<type type="text"/>
+			<property name="color" code="colr" type="color" description="The color of the character.">
+				<cocoa key="foregroundColor"/>
+			</property>
+			<property name="font" code="font" type="text" description="The name of the font of the character.">
+				<cocoa key="fontName"/>
+			</property>
+			<property name="size" code="ptsz" type="integer" description="The size in points of the character.">
+				<cocoa key="fontSize"/>
+			</property>
+			<element type="character"/>
+			<element type="paragraph"/>
+			<element type="word"/>
+			<element type="attribute run"/>
+			<element type="attachment"/>
+		</class>
+
+		<class name="paragraph" code="cpar" description="One of some text's paragraphs." plural="paragraphs">
+			<cocoa class="NSTextStorage"/>
+			<type type="text"/>
+			<property name="color" code="colr" type="color" description="The color of the first character.">
+				<cocoa key="foregroundColor"/>
+			</property>
+			<property name="font" code="font" type="text" description="The name of the font of the first character.">
+				<cocoa key="fontName"/>
+			</property>
+			<property name="size" code="ptsz" type="integer" description="The size in points of the first character.">
+				<cocoa key="fontSize"/>
+			</property>
+			<element type="character"/>
+			<element type="paragraph"/>
+			<element type="word"/>
+			<element type="attribute run"/>
+			<element type="attachment"/>
+		</class>
+
+		<class name="word" code="cwor" description="One of some text's words." plural="words">
+			<cocoa class="NSTextStorage"/>
+			<type type="text"/>
+			<property name="color" code="colr" type="color" description="The color of the first character.">
+				<cocoa key="foregroundColor"/>
+			</property>
+			<property name="font" code="font" type="text" description="The name of the font of the first character.">
+				<cocoa key="fontName"/>
+			</property>
+			<property name="size" code="ptsz" type="integer" description="The size in points of the first character.">
+				<cocoa key="fontSize"/>
+			</property>
+			<element type="character"/>
+			<element type="paragraph"/>
+			<element type="word"/>
+			<element type="attribute run"/>
+			<element type="attachment"/>
+		</class>
+
+		<class name="attribute run" code="catr" description="A chunk of text that all has the same attributes." plural="attribute runs">
+			<cocoa class="NSTextStorage"/>
+			<type type="text"/>
+			<property name="color" code="colr" type="color" description="The color of the first character.">
+				<cocoa key="foregroundColor"/>
+			</property>
+			<property name="font" code="font" type="text" description="The name of the font of the first character.">
+				<cocoa key="fontName"/>
+			</property>
+			<property name="size" code="ptsz" type="integer" description="The size in points of the first character.">
+				<cocoa key="fontSize"/>
+			</property>
+			<element type="character"/>
+			<element type="paragraph"/>
+			<element type="word"/>
+			<element type="attribute run"/>
+			<element type="attachment"/>
+		</class>
+
+		<class name="attachment" code="atts" description="An embedded file in text." inherits="rich text" plural="attachments">
+			<cocoa class="NSAttachmentTextStorage"/>
+			<property name="file name" code="atfn" type="text" access="r" description="The path to the file for the attachment.">
+				<cocoa key="filename"/>
+			</property>
+		</class>
+
+	</suite>
+
+	<!-- Jedit Suite: document class extension -->
+	<suite name="Jedit Suite" code="JEdT" description="Jedit specific classes.">
+
+		<enumeration name="saveable file format" code="savf">
+			<enumerator name="text" code="JTxt" description="Plain text format."/>
+			<enumerator name="rich text" code="JRtf" description="Rich text format."/>
+			<enumerator name="rich text with attachments" code="JRtd" description="Rich text with attachments format."/>
+		</enumeration>
+
+		<class name="document" code="docu" description="A Jedit document." inherits="document">
+			<cocoa class="Jedit.Document"/>
+			<contents name="text" code="ctxt" type="rich text" access="rw" description="The text of the document.">
+				<cocoa key="scriptingTextStorage"/>
+			</contents>
+		</class>
+
+	</suite>
+
+</dictionary>
