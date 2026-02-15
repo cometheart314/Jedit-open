@@ -110,6 +110,52 @@ class Document: NSDocument {
         return textStorage
     }
 
+    /// 現在のテキストビューを取得するヘルパー
+    private var currentTextView: NSTextView? {
+        return windowControllers.first.flatMap { ($0 as? EditorWindowController)?.currentTextView() }
+    }
+
+    /// AppleScript 用の選択テキスト（rich text）アクセサ
+    /// getter: 選択範囲のテキストを NSTextStorage として返す
+    /// setter: 選択範囲のテキストを置き換える
+    @objc var scriptingSelection: NSTextStorage {
+        get {
+            guard let textView = currentTextView else { return NSTextStorage() }
+            let range = textView.selectedRange()
+            if range.length == 0 { return NSTextStorage() }
+            let sub = textStorage.attributedSubstring(from: range)
+            return NSTextStorage(attributedString: sub)
+        }
+        set {
+            guard let textView = currentTextView else { return }
+            let range = textView.selectedRange()
+            textStorage.beginEditing()
+            textStorage.replaceCharacters(in: range, with: newValue)
+            textStorage.endEditing()
+            // 置き換え後、カーソルを置き換えテキストの末尾に移動
+            textView.setSelectedRange(NSRange(location: range.location + newValue.length, length: 0))
+        }
+    }
+
+    /// AppleScript 用の選択範囲（{location, length}）アクセサ
+    @objc var scriptingSelectionRange: [String: Int] {
+        get {
+            guard let textView = currentTextView else { return ["location": 0, "length": 0] }
+            let range = textView.selectedRange()
+            return ["location": range.location, "length": range.length]
+        }
+        set {
+            guard let textView = currentTextView else { return }
+            let loc = newValue["location"] ?? 0
+            let len = newValue["length"] ?? 0
+            let maxLen = textStorage.length
+            let safeLoc = min(loc, maxLen)
+            let safeLen = min(len, maxLen - safeLoc)
+            textView.setSelectedRange(NSRange(location: safeLoc, length: safeLen))
+            textView.scrollRangeToVisible(NSRange(location: safeLoc, length: safeLen))
+        }
+    }
+
     /// KVC 経由で AppleScript からテキストがセットされた際に、
     /// NSString / NSAttributedString を適切に textStorage の内容として反映する
     override func setValue(_ value: Any?, forKey key: String) {
@@ -124,6 +170,23 @@ class Document: NSDocument {
                 textStorage.replaceCharacters(in: fullRange, with: nsStr as String)
             }
             textStorage.endEditing()
+            return
+        }
+        if key == "scriptingSelection" {
+            guard let textView = currentTextView else { return }
+            let range = textView.selectedRange()
+            textStorage.beginEditing()
+            if let attrStr = value as? NSAttributedString {
+                textStorage.replaceCharacters(in: range, with: attrStr)
+                textStorage.endEditing()
+                textView.setSelectedRange(NSRange(location: range.location + attrStr.length, length: 0))
+            } else if let str = value as? String {
+                textStorage.replaceCharacters(in: range, with: str)
+                textStorage.endEditing()
+                textView.setSelectedRange(NSRange(location: range.location + str.count, length: 0))
+            } else {
+                textStorage.endEditing()
+            }
             return
         }
         super.setValue(value, forKey: key)

@@ -127,11 +127,22 @@
 			<enumerator name="rich text with attachments" code="JRtd" description="Rich text with attachments format."/>
 		</enumeration>
 
+		<record-type name="selection range" code="JRng">
+			<property name="location" code="JLoc" type="integer" description="The start position of the selection."/>
+			<property name="length" code="JLen" type="integer" description="The length of the selection."/>
+		</record-type>
+
 		<class name="document" code="docu" description="A Jedit document." inherits="document">
 			<cocoa class="Jedit.Document"/>
 			<contents name="text" code="ctxt" type="rich text" access="rw" description="The text of the document.">
 				<cocoa key="scriptingTextStorage"/>
 			</contents>
+			<property name="selection" code="sele" type="rich text" access="rw" description="The selected text of the document.">
+				<cocoa key="scriptingSelection"/>
+			</property>
+			<property name="selection range" code="JSlR" type="selection range" access="rw" description="The range of the selection.">
+				<cocoa key="scriptingSelectionRange"/>
+			</property>
 		</class>
 
 	</suite>
