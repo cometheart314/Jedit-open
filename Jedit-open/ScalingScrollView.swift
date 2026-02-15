@@ -428,9 +428,9 @@ class ScalingScrollView: NSScrollView {
     }
 
     /// テキストタイプボタンのタイトルを更新
-    /// - Parameter isRichText: trueの場合は"Rich"、falseの場合は"Plain"を表示
-    func updateTextTypeButton(isRichText: Bool) {
-        textTypeButton?.title = isRichText ? "Rich" : "Plain"
+    /// - Parameter typeName: 表示するタイプ名（"Plain", "Rich", "MD", "DOC", "DOCX", "ODT" など）
+    func updateTextTypeButton(typeName: String) {
+        textTypeButton?.title = typeName
     }
 
     /// スケール表示を現在の倍率で更新

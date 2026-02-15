@@ -131,6 +131,27 @@ class Document: NSDocument {
     /// 印刷パネルアクセサリコントローラ（印刷操作中の保持用）
     private var printAccessoryController: PrintPanelAccessoryController?
 
+    // MARK: - Save Panel Format Selection
+
+    /// Save Panel のフォーマットポップアップで選択されたフォーマットタグ
+    /// nil の場合は通常の保存（現在のドキュメントタイプを使用）
+    private var savePanelFormatTag: Int?
+
+    /// Save Panel のエンコーディングポップアップ参照（プレーンテキスト保存時に使用）
+    private weak var savePanelEncodingPopUp: NSPopUpButton?
+
+    /// Save Panel の改行コードポップアップ参照（プレーンテキスト保存時に使用）
+    private weak var savePanelLineEndingPopUp: NSPopUpButton?
+
+    /// Save Panel の BOM チェックボックス参照（プレーンテキスト保存時に使用）
+    private weak var savePanelBOMCheckbox: NSButton?
+
+    /// Save Panel のフォーマットポップアップ変更時コールバック
+    private var saveFormatAction: (() -> Void)?
+
+    /// Save Panel のエンコーディングポップアップ変更時コールバック
+    private var saveEncodingAction: (() -> Void)?
+
     /// ドキュメント統計情報（Location[Size] タブ表示用）
     var statistics = DocumentStatistics()
 
@@ -167,6 +188,45 @@ class Document: NSDocument {
 
         // NSDocumentのfileTypeをdocumentTypeに応じて設定
         // これにより保存時に正しいファイルタイプが使用される
+        updateFileTypeFromDocumentType()
+    }
+
+    /// Save Panel のフォーマットタグに基づいてドキュメントタイプを更新
+    private func applyFormatTagForSave(_ formatTag: Int) {
+        switch formatTag {
+        case 0: // Plain Text
+            documentType = .plain
+            isMarkdownDocument = false
+            // Save Panel のエンコーディング設定を適用
+            if let encodingCell = savePanelEncodingPopUp?.cell as? NSPopUpButtonCell,
+               let selectedItem = encodingCell.selectedItem,
+               let enc = selectedItem.representedObject as? NSNumber {
+                let rawValue = enc.uintValue
+                if rawValue != NoStringEncoding {
+                    documentEncoding = String.Encoding(rawValue: UInt(rawValue))
+                }
+            }
+            // 改行コード
+            if let lineEndingTag = savePanelLineEndingPopUp?.selectedTag() {
+                lineEnding = LineEnding(rawValue: lineEndingTag) ?? .lf
+            }
+            // BOM
+            hasBOM = savePanelBOMCheckbox?.state == .on
+        case 1: // RTF
+            documentType = .rtf
+            isMarkdownDocument = false
+        case 2: // RTFD
+            documentType = .rtfd
+            isMarkdownDocument = false
+        case 3, 4, 5, 6: // Word/ODT — 内部的には RTF として管理
+            documentType = .rtf
+            isMarkdownDocument = false
+        case 7: // Markdown
+            documentType = .rtf
+            isMarkdownDocument = true
+        default:
+            break
+        }
         updateFileTypeFromDocumentType()
     }
 
@@ -515,37 +575,56 @@ class Document: NSDocument {
     private func dataForPlainText() throws -> Data {
         let defaults = UserDefaults.standard
 
+        // Save Panel のフォーマット選択で Plain Text が選ばれた場合は
+        // Save Panel のポップアップの値を優先する（UserDefaults の設定をバイパス）
+        let useSavePanelValues = savePanelFormatTag != nil
+
         // 1. エンコーディングを決定
-        let encodingForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextEncodingForWrite)
         let saveEncoding: String.Encoding
-        if encodingForWriteInt <= 0 {
-            // Automatic: Documentのプロパティを使用
+        if useSavePanelValues {
+            // Save Panel の値を使用（applyFormatTagForSave で documentEncoding に設定済み）
             saveEncoding = documentEncoding
         } else {
-            // 指定されたエンコーディングを使用
-            saveEncoding = String.Encoding(rawValue: UInt(encodingForWriteInt))
+            let encodingForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextEncodingForWrite)
+            if encodingForWriteInt <= 0 {
+                // Automatic: Documentのプロパティを使用
+                saveEncoding = documentEncoding
+            } else {
+                // 指定されたエンコーディングを使用
+                saveEncoding = String.Encoding(rawValue: UInt(encodingForWriteInt))
+            }
         }
 
         // 2. 改行コードを決定
-        let lineEndingForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextLineEndingForWrite)
         let saveLineEnding: LineEnding
-        if lineEndingForWriteInt < 0 {
-            // Automatic: Documentのプロパティを使用
+        if useSavePanelValues {
+            // Save Panel の値を使用（applyFormatTagForSave で lineEnding に設定済み）
             saveLineEnding = lineEnding
         } else {
-            // 指定された改行コードを使用
-            saveLineEnding = LineEnding(rawValue: lineEndingForWriteInt) ?? .lf
+            let lineEndingForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextLineEndingForWrite)
+            if lineEndingForWriteInt < 0 {
+                // Automatic: Documentのプロパティを使用
+                saveLineEnding = lineEnding
+            } else {
+                // 指定された改行コードを使用
+                saveLineEnding = LineEnding(rawValue: lineEndingForWriteInt) ?? .lf
+            }
         }
 
         // 3. BOMを付加するかどうかを決定
-        let bomForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextBomForWrite)
         let shouldAddBOM: Bool
-        if bomForWriteInt < 0 {
-            // Automatic: Documentのプロパティを使用
+        if useSavePanelValues {
+            // Save Panel の値を使用（applyFormatTagForSave で hasBOM に設定済み）
             shouldAddBOM = hasBOM
         } else {
-            // 0 = OFF, 1 = ON
-            shouldAddBOM = bomForWriteInt == 1
+            let bomForWriteInt = defaults.integer(forKey: UserDefaults.Keys.plainTextBomForWrite)
+            if bomForWriteInt < 0 {
+                // Automatic: Documentのプロパティを使用
+                shouldAddBOM = hasBOM
+            } else {
+                // 0 = OFF, 1 = ON
+                shouldAddBOM = bomForWriteInt == 1
+            }
         }
 
         // 4. テキストを取得し、改行コードを変換
@@ -1119,13 +1198,52 @@ class Document: NSDocument {
         // 保存前にプリセットデータを現在のウィンドウ状態で更新
         updatePresetDataFromCurrentState()
 
+        // Save Panel のフォーマット選択に基づいてドキュメントタイプを一時的に変更（Save As のみ）
+        // 保存完了後は元のタイプに復元する（書類タイプは変更しない）
+        let originalDocumentType = self.documentType
+        let originalIsMarkdownDocument = self.isMarkdownDocument
+        let originalEncoding = self.documentEncoding
+        let originalLineEnding = self.lineEnding
+        let originalHasBOM = self.hasBOM
+        let originalFileType = self.fileType
+        var formatChanged = false
+
+        if let formatTag = savePanelFormatTag, saveOperation == .saveAsOperation {
+            formatChanged = true
+            applyFormatTagForSave(formatTag)
+        }
+
         super.save(to: url, ofType: typeName, for: saveOperation) { [weak self] error in
+            guard let self = self else {
+                completionHandler(error)
+                return
+            }
+
             if error == nil {
                 // 保存成功後にプリセットデータを拡張属性に書き込む
-                self?.writePresetDataToExtendedAttribute(at: url)
+                self.writePresetDataToExtendedAttribute(at: url)
                 // Open Recent に登録
                 NSDocumentController.shared.noteNewRecentDocumentURL(url)
             }
+
+            // フォーマット変更は一時的なもの。成功・失敗に関わらず常に元のタイプに復元する
+            if formatChanged {
+                self.documentType = originalDocumentType
+                self.isMarkdownDocument = originalIsMarkdownDocument
+                self.documentEncoding = originalEncoding
+                self.lineEnding = originalLineEnding
+                self.hasBOM = originalHasBOM
+                self.fileType = originalFileType
+            }
+
+            // Save Panel の参照をクリーンアップ
+            self.savePanelFormatTag = nil
+            self.savePanelEncodingPopUp = nil
+            self.savePanelLineEndingPopUp = nil
+            self.savePanelBOMCheckbox = nil
+            self.saveFormatAction = nil
+            self.saveEncodingAction = nil
+
             completionHandler(error)
         }
     }
@@ -1152,6 +1270,25 @@ class Document: NSDocument {
                 ])
             }
             try markdownData.write(to: url, options: .atomic)
+            return
+        }
+
+        // Save Panel で Word/ODT フォーマット（tag 3-6）が選択された場合、
+        // generateExportData() を使用してファイルに書き込む
+        let formatTag = MainActor.assumeIsolated { self.savePanelFormatTag }
+        if let tag = formatTag,
+           (saveOperation == .saveAsOperation || saveOperation == .saveOperation),
+           [3, 4, 5, 6].contains(tag) {
+            let data = try MainActor.assumeIsolated {
+                try self.generateExportData(
+                    formatTag: tag,
+                    selectionOnly: false,
+                    encodingPopUp: nil,
+                    lineEndingPopUp: nil,
+                    bomCheckbox: nil
+                )
+            }
+            try data.write(to: url, options: .atomic)
             return
         }
 
@@ -2176,29 +2313,147 @@ class Document: NSDocument {
     }
 
     override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
-        // 新規ドキュメント（fileURLがnil）の場合
+        // 前回の Save Panel 状態をクリーンアップ
+        savePanelFormatTag = nil
+        savePanelEncodingPopUp = nil
+        savePanelLineEndingPopUp = nil
+        savePanelBOMCheckbox = nil
+        saveFormatAction = nil
+        saveEncodingAction = nil
+
+        // ExportAccessoryView.xib を読み込む
+        var topLevelObjects: NSArray?
+        guard Bundle.main.loadNibNamed("ExportAccessoryView", owner: nil, topLevelObjects: &topLevelObjects),
+              let objects = topLevelObjects,
+              let accessoryView = objects.compactMap({ $0 as? NSView }).first(where: { $0.frame.size.height > 0 })
+        else {
+            return super.prepareSavePanel(savePanel)
+        }
+
+        // アクセサリビュー内のコントロールをプロパティで特定（Export と同じロジック）
+        let allButtons = accessoryView.subviews.compactMap { $0 as? NSButton }
+        let allPopUps = accessoryView.subviews.compactMap { $0 as? NSPopUpButton }
+        let allLabels = accessoryView.subviews.compactMap { $0 as? NSTextField }
+
+        let encodingPopUp = allPopUps.first(where: { $0.toolTip?.contains("encoding") == true })
+        let formatPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0.numberOfItems > 4 })
+        let lineEndingPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0 !== formatPopUp })
+        let bomCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title == "BOM" })
+        let selectionOnlyCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title.contains("Selection") == true })
+        let encodingLabel = allLabels.first(where: { ($0.cell as? NSTextFieldCell)?.title == "Encoding:" })
+
+        // 「Export Only Selection」チェックボックスを非表示にする（Save では不要）
+        selectionOnlyCheckbox?.isHidden = true
+
+        // エンコーディングポップアップを手動で構築
+        if let encodingCell = encodingPopUp?.cell as? NSPopUpButtonCell {
+            EncodingManager.shared.setupPopUpCell(encodingCell,
+                                                   selectedEncoding: UInt(documentEncoding.rawValue),
+                                                   withDefaultEntry: false)
+            EncodingManager.shared.disableIncompatibleEncodings(in: encodingCell, for: textStorage.string)
+        }
+
+        // 現在のドキュメントタイプに基づいて初期フォーマットを選択
+        if isMarkdownDocument {
+            formatPopUp?.selectItem(withTag: 7)
+        } else {
+            switch documentType {
+            case .plain:
+                formatPopUp?.selectItem(withTag: 0)
+            case .rtfd:
+                formatPopUp?.selectItem(withTag: 2)
+            default:
+                // アタッチメントが含まれている場合は RTFD を選択
+                if textStorage.containsAttachments {
+                    formatPopUp?.selectItem(withTag: 2)
+                } else {
+                    formatPopUp?.selectItem(withTag: 1)
+                }
+            }
+        }
+
+        // 初期フォーマットタグを保存
+        savePanelFormatTag = formatPopUp?.selectedTag()
+
+        // 改行コード・BOMの初期値を設定
+        lineEndingPopUp?.selectItem(withTag: lineEnding.rawValue)
+        bomCheckbox?.state = hasBOM ? .on : .off
+
+        // Unicode エンコーディング判定クロージャ
+        let isUnicodeEncoding: () -> Bool = {
+            guard let cell = encodingPopUp?.cell as? NSPopUpButtonCell,
+                  let selectedItem = cell.selectedItem,
+                  let encNumber = selectedItem.representedObject as? NSNumber else { return false }
+            return EncodingManager.isUnicodeEncoding(String.Encoding(rawValue: encNumber.uintValue))
+        }
+        bomCheckbox?.isEnabled = isUnicodeEncoding()
+
+        // アクセサリビューを設定
+        savePanel.accessoryView = accessoryView
+        savePanel.isExtensionHidden = false
+        savePanel.canSelectHiddenExtension = true
+
+        // フォーマットに基づいてパネルの allowedContentTypes を更新
+        updateExportPanelContentTypes(savePanel: savePanel, formatTag: formatPopUp?.selectedTag() ?? 1)
+
+        // フォーマットポップアップ変更時のアクション
+        saveFormatAction = { [weak self, weak savePanel] in
+            guard let self = self, let panel = savePanel,
+                  let currentTag = formatPopUp?.selectedTag() else { return }
+            self.savePanelFormatTag = currentTag
+            self.updateExportPanelContentTypes(savePanel: panel, formatTag: currentTag)
+            // プレーンテキスト以外では Encoding/改行/BOM を非表示
+            let isPlainText = currentTag == 0
+            encodingPopUp?.isHidden = !isPlainText
+            encodingLabel?.isHidden = !isPlainText
+            lineEndingPopUp?.isHidden = !isPlainText
+            bomCheckbox?.isHidden = !isPlainText
+        }
+        formatPopUp?.target = self
+        formatPopUp?.action = #selector(saveFormatPopUpChanged(_:))
+
+        // エンコーディングポップアップ変更時のアクション
+        saveEncodingAction = {
+            bomCheckbox?.isEnabled = isUnicodeEncoding()
+            if !(bomCheckbox?.isEnabled ?? false) {
+                bomCheckbox?.state = .off
+            }
+        }
+        encodingPopUp?.target = self
+        encodingPopUp?.action = #selector(saveEncodingPopUpChanged(_:))
+
+        // 初期状態でプレーンテキスト以外は Encoding/改行/BOM を非表示
+        let isPlainText = (formatPopUp?.selectedTag() ?? 1) == 0
+        encodingPopUp?.isHidden = !isPlainText
+        encodingLabel?.isHidden = !isPlainText
+        lineEndingPopUp?.isHidden = !isPlainText
+        bomCheckbox?.isHidden = !isPlainText
+
+        // Save Panel のコントロール参照を保存（save 時に使用）
+        savePanelEncodingPopUp = encodingPopUp
+        savePanelLineEndingPopUp = lineEndingPopUp
+        savePanelBOMCheckbox = bomCheckbox
+
+        // 新規ドキュメント（fileURLがnil）の場合、ファイル名を提案
         if fileURL == nil {
             let nameType = presetData?.format.newDocNameType ?? .untitled
-
-            // newDocNameTypeがuntitledの場合のみファイル名を提案
             if nameType == .untitled {
                 let suggestedName = generateSuggestedFileName()
                 if !suggestedName.isEmpty {
                     savePanel.nameFieldStringValue = suggestedName
                 }
             }
-
-            // プレーンテキストの場合、FormatData.fileExtensionを使用
-            if documentType == .plain,
-               let fileExtension = presetData?.format.fileExtension,
-               !fileExtension.isEmpty {
-                // allowedContentTypesを設定してファイル拡張子を強制
-                if let utType = UTType(filenameExtension: fileExtension) {
-                    savePanel.allowedContentTypes = [utType]
-                }
-            }
         }
+
         return super.prepareSavePanel(savePanel)
+    }
+
+    @objc private func saveFormatPopUpChanged(_ sender: Any?) {
+        saveFormatAction?()
+    }
+
+    @objc private func saveEncodingPopUpChanged(_ sender: Any?) {
+        saveEncodingAction?()
     }
 
     // MARK: - Export
@@ -2268,7 +2523,12 @@ class Document: NSDocument {
             case .rtfd:
                 formatPopUp?.selectItem(withTag: 2)
             default:
-                formatPopUp?.selectItem(withTag: 1)
+                // アタッチメントが含まれている場合は RTFD を選択
+                if textStorage.containsAttachments {
+                    formatPopUp?.selectItem(withTag: 2)
+                } else {
+                    formatPopUp?.selectItem(withTag: 1)
+                }
             }
         }
 

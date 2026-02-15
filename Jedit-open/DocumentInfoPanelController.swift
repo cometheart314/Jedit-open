@@ -231,6 +231,10 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
         case .plain:
             return "Plain Text"
         case .rtf:
+            // Markdown ドキュメントの場合
+            if document.isMarkdownDocument {
+                return "Markdown (.md)"
+            }
             // インポートされた Word/ODT ドキュメントの場合、ファイル拡張子で判別
             if document.isImportedDocument, let fileURL = document.fileURL {
                 switch fileURL.pathExtension.lowercased() {

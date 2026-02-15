@@ -148,7 +148,7 @@
                                     <action selector="showProperties:" target="-1" id="prop-action"/>
                                 </connections>
                             </menuItem>
-                            <menuItem title="Writing Goal…" id="writing-goal-001">
+                            <menuItem title="Writing Goal…" image="highlighter.badge.ellipsis" catalog="system" id="writing-goal-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="showWritingGoalPanel:" target="-1" id="writing-goal-act"/>
@@ -1066,6 +1066,7 @@
     </objects>
     <resources>
         <image name="clock" catalog="system" width="15" height="15"/>
+        <image name="highlighter.badge.ellipsis" catalog="system" width="19" height="18"/>
         <image name="info.circle" catalog="system" width="15" height="15"/>
         <image name="list.bullet.rectangle.portrait" catalog="system" width="15" height="16"/>
         <image name="plus" catalog="system" width="15" height="13"/>

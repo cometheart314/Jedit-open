@@ -38,6 +38,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
         NSApp.registerServicesMenuSendTypes([.string, .rtf, .rtfd], returnTypes: imageReturnTypes + [.tiff, .png])
 
+        // サービスメニューの「Jedit: Open Selection」用にプロバイダを登録
+        NSApp.servicesProvider = self
+
         // プリセット変更通知を監視
         NotificationCenter.default.addObserver(
             self,
@@ -696,6 +699,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         } catch {
             print("Error creating plain text document from clipboard: \(error)")
         }
+    }
+
+    // MARK: - Services Menu
+
+    /// サービスメニュー「Jedit: Open Selection」のハンドラ
+    /// 他のアプリケーションの選択テキストを新規書類で開く
+    @objc func openSelection(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        // RTFD（画像含むリッチテキスト）を優先チェック
+        if let rtfdData = pasteboard.data(forType: .rtfd),
+           let attributedString = NSAttributedString(rtfd: rtfdData, documentAttributes: nil) {
+            createRichTextDocument(with: attributedString)
+            return
+        }
+
+        // RTF をチェック
+        if let rtfData = pasteboard.data(forType: .rtf),
+           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+            createRichTextDocument(with: attributedString)
+            return
+        }
+
+        // プレーンテキストをチェック
+        if let string = pasteboard.string(forType: .string) {
+            createPlainTextDocument(with: string)
+            return
+        }
+
+        error.pointee = "No suitable text data found on the pasteboard." as NSString
     }
 
     // MARK: - NSMenuItemValidation

@@ -90,6 +90,28 @@
 			</array>
 		</dict>
 	</dict>
+	<key>NSServices</key>
+	<array>
+		<dict>
+			<key>NSMessage</key>
+			<string>openSelection</string>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Jedit: Open Selection</string>
+			</dict>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSStringPboardType</string>
+				<string>NSRTFPboardType</string>
+				<string>NSRTFDPboardType</string>
+			</array>
+			<key>NSReturnTypes</key>
+			<array/>
+			<key>NSPortName</key>
+			<string>Jedit</string>
+		</dict>
+	</array>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>

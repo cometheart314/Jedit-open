@@ -371,9 +371,52 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// テキストタイプボタンを更新
     private func updateTextTypeButtons() {
-        let isRichText = textDocument?.documentType != .plain
-        scrollView1?.updateTextTypeButton(isRichText: isRichText)
-        scrollView2?.updateTextTypeButton(isRichText: isRichText)
+        let typeName = textTypeShortName()
+        scrollView1?.updateTextTypeButton(typeName: typeName)
+        scrollView2?.updateTextTypeButton(typeName: typeName)
+    }
+
+    /// ステータスバー用の書類タイプ略称を返す
+    private func textTypeShortName() -> String {
+        guard let document = textDocument else { return "Plain" }
+
+        // Markdown
+        if document.isMarkdownDocument {
+            return "MD"
+        }
+
+        // インポートされた Word/ODT ドキュメント
+        if document.isImportedDocument, let fileURL = document.fileURL {
+            switch fileURL.pathExtension.lowercased() {
+            case "doc":
+                return "DOC"
+            case "docx":
+                return "DOCX"
+            case "xml":
+                return "XML"
+            case "odt":
+                return "ODT"
+            default:
+                break
+            }
+        }
+
+        switch document.documentType {
+        case .plain:
+            return "Plain"
+        case .rtf:
+            return "Rich"
+        case .rtfd:
+            return "RTFD"
+        case .docFormat:
+            return "DOC"
+        case .officeOpenXML:
+            return "DOCX"
+        case .wordML:
+            return "XML"
+        default:
+            return "Rich"
+        }
     }
 
     /// 編集ロックボタンを更新
