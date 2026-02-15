@@ -524,11 +524,12 @@ class JeditTextView: NSTextView {
                         handledAny = true
                     }
                 } else {
-                    // リッチテキスト書類 → リッチテキストとしてペースト
+                    // リッチテキスト書類 → リッチテキストとしてペースト（文字変換を適用）
                     if let data = try? Data(contentsOf: url),
                        let attrStr = NSAttributedString(rtf: data, documentAttributes: nil) {
+                        let convertedAttrStr = applyTextConversionsToAttributedString(attrStr)
                         let insertRange = NSRange(location: dropIndex, length: 0)
-                        replaceString(in: insertRange, with: attrStr)
+                        replaceString(in: insertRange, with: convertedAttrStr)
                         handledAny = true
                     }
                 }
@@ -572,11 +573,12 @@ class JeditTextView: NSTextView {
                         }
                     }
 
-                    // RTFDファイルをリッチテキストとしてペースト
+                    // RTFDファイルをリッチテキストとしてペースト（文字変換を適用）
                     if let fileWrapper = try? FileWrapper(url: url, options: .immediate),
                        let attrStr = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) {
+                        let convertedAttrStr = applyTextConversionsToAttributedString(attrStr)
                         let insertRange = NSRange(location: dropIndex, length: 0)
-                        replaceString(in: insertRange, with: attrStr)
+                        replaceString(in: insertRange, with: convertedAttrStr)
                         handledAny = true
                     }
                 }
