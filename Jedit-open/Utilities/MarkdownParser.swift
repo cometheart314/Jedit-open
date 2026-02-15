@@ -1275,9 +1275,77 @@ enum MarkdownParser {
     /// NSAttributedString を Markdown テキストに変換（逆変換）
     /// - Parameter attributedString: 変換元の NSAttributedString
     /// - Returns: Markdown テキスト
+    /// リスト行のインデント情報（ドキュメント全体のリスト行から計算）
+    private struct ListIndentInfo {
+        /// リスト行の最小 headIndent（level 0 の基準値）
+        let minHeadIndent: CGFloat
+        /// リスト行の1段あたりのインデント幅（level 間の差）
+        let indentStep: CGFloat
+    }
+
+    /// ドキュメント全体のリスト行を走査し、インデント情報を収集する
+    private static func collectListIndentInfo(from attributedString: NSAttributedString) -> ListIndentInfo {
+        let nsText = attributedString.string as NSString
+        var listIndents: Set<CGFloat> = []
+        var currentIndex = 0
+
+        while currentIndex < nsText.length {
+            let remainingRange = NSRange(location: currentIndex, length: nsText.length - currentIndex)
+            let newlineRange = nsText.range(of: "\n", options: [], range: remainingRange)
+            let lineEnd = newlineRange.location != NSNotFound ? newlineRange.location : nsText.length
+            let lineRange = NSRange(location: currentIndex, length: lineEnd - currentIndex)
+
+            if lineRange.length > 0 {
+                let lineText = nsText.substring(with: lineRange)
+                let attrs = attributedString.attributes(at: currentIndex, effectiveRange: nil)
+                // リスト行かどうかを判定（テキストパターンまたは NSTextList 属性）
+                let isListByText = detectListPrefix(lineText) != nil
+                let isListByAttr: Bool
+                if let ps = attrs[.paragraphStyle] as? NSParagraphStyle {
+                    isListByAttr = !ps.textLists.isEmpty
+                } else {
+                    isListByAttr = false
+                }
+                if isListByText || isListByAttr {
+                    if let ps = attrs[.paragraphStyle] as? NSParagraphStyle, ps.headIndent > 0 {
+                        listIndents.insert(ps.headIndent)
+                    }
+                }
+            }
+            currentIndex = lineEnd + 1
+        }
+
+        guard !listIndents.isEmpty else {
+            return ListIndentInfo(minHeadIndent: listIndent, indentStep: listIndent)
+        }
+
+        let sorted = listIndents.sorted()
+        let minIndent = sorted[0]
+
+        // 異なるインデントレベルが2つ以上あれば、最小の差分をステップとする
+        var step: CGFloat = listIndent  // デフォルト
+        if sorted.count >= 2 {
+            var minStep: CGFloat = .greatestFiniteMagnitude
+            for i in 1..<sorted.count {
+                let diff = sorted[i] - sorted[i - 1]
+                if diff > 0.5 && diff < minStep {
+                    minStep = diff
+                }
+            }
+            if minStep < .greatestFiniteMagnitude {
+                step = minStep
+            }
+        }
+
+        return ListIndentInfo(minHeadIndent: minIndent, indentStep: step)
+    }
+
     static func markdownString(from attributedString: NSAttributedString) -> String {
         let fullText = attributedString.string
         let nsText = fullText as NSString
+
+        // リスト行のインデント情報を事前に収集
+        let listInfo = collectListIndentInfo(from: attributedString)
 
         // 段落（\n 区切り）ごとに処理
         var paragraphs: [String] = []
@@ -1340,7 +1408,7 @@ enum MarkdownParser {
                     continue
                 }
 
-                let markdownLine = convertLineToMarkdown(lineAttr)
+                let markdownLine = convertLineToMarkdown(lineAttr, listInfo: listInfo)
 
                 // テーブルヘッダーの後にセパレーターを挿入
                 if blockType == MarkdownBlockValue.tableHeader {
@@ -1373,7 +1441,7 @@ enum MarkdownParser {
     }
 
     /// 1行分の NSAttributedString を Markdown 行に変換
-    private static func convertLineToMarkdown(_ lineAttr: NSAttributedString) -> String {
+    private static func convertLineToMarkdown(_ lineAttr: NSAttributedString, listInfo: ListIndentInfo) -> String {
         let text = lineAttr.string
         let nsText = text as NSString
         let fullRange = NSRange(location: 0, length: nsText.length)
@@ -1399,17 +1467,7 @@ enum MarkdownParser {
                 let inlineMarkdown = convertInlineToMarkdown(lineAttr)
                 return "> " + inlineMarkdown
             case MarkdownBlockValue.unorderedList, MarkdownBlockValue.orderedList:
-                if let listPrefix = detectListPrefix(text) {
-                    let restStart = listPrefix.contentStartIndex
-                    let restRange = NSRange(location: restStart, length: nsText.length - restStart)
-                    if restRange.length > 0 {
-                        let restAttr = lineAttr.attributedSubstring(from: restRange)
-                        let inlineMarkdown = convertInlineToMarkdown(restAttr)
-                        return listPrefix.markdownPrefix + inlineMarkdown
-                    }
-                    return listPrefix.markdownPrefix
-                }
-                return convertInlineToMarkdown(lineAttr)
+                return convertListLineToMarkdown(lineAttr, text: text, nsText: nsText, attrs: firstAttrs, listInfo: listInfo)
             case MarkdownBlockValue.tableHeader, MarkdownBlockValue.tableRow:
                 return convertTableLineToMarkdown(lineAttr, isHeader: blockType == MarkdownBlockValue.tableHeader)
             case MarkdownBlockValue.tableSeparator:
@@ -1436,7 +1494,24 @@ enum MarkdownParser {
         // 見出しの検出
         if let headingLevel = detectHeadingLevel(firstAttrs) {
             let prefix = String(repeating: "#", count: headingLevel) + " "
-            let inlineMarkdown = convertInlineToMarkdown(lineAttr, baseIsBold: true)
+            // RTF でリスト内に見出しがある場合、テキスト先頭にリストマーカー（\t•\t 等）が
+            // 含まれている可能性がある。見出しとして出力する際はリストマーカーを除去する。
+            let effectiveLineAttr: NSAttributedString
+            if let listPrefixResult = detectListPrefix(text) {
+                let restRange = NSRange(location: listPrefixResult.contentStartIndex, length: nsText.length - listPrefixResult.contentStartIndex)
+                effectiveLineAttr = restRange.length > 0 ? lineAttr.attributedSubstring(from: restRange) : lineAttr
+            } else {
+                // テキストパターンにマッチしなくても、先頭のタブやリストマーカー文字をストリップ
+                let stripped = stripListMarkerText(text)
+                if stripped.count < text.count {
+                    let startIndex = text.count - stripped.count
+                    let restRange = NSRange(location: startIndex, length: nsText.length - startIndex)
+                    effectiveLineAttr = restRange.length > 0 ? lineAttr.attributedSubstring(from: restRange) : lineAttr
+                } else {
+                    effectiveLineAttr = lineAttr
+                }
+            }
+            let inlineMarkdown = convertInlineToMarkdown(effectiveLineAttr, baseIsBold: true)
             return prefix + inlineMarkdown
         }
 
@@ -1448,26 +1523,157 @@ enum MarkdownParser {
         }
 
         // リストの検出（bullet • / チェックボックス / 番号付き）
-        if let listPrefix = detectListPrefix(text) {
-            let restStart = listPrefix.contentStartIndex
-            let restRange = NSRange(location: restStart, length: nsText.length - restStart)
-            if restRange.length > 0 {
-                let restAttr = lineAttr.attributedSubstring(from: restRange)
-                let inlineMarkdown = convertInlineToMarkdown(restAttr)
-                return listPrefix.markdownPrefix + inlineMarkdown
-            }
-            return listPrefix.markdownPrefix
+        if detectListPrefix(text) != nil {
+            return convertListLineToMarkdown(lineAttr, text: text, nsText: nsText, attrs: firstAttrs, listInfo: listInfo)
+        }
+
+        // NSTextList による検出（テキスト内にリストマーカーがない場合のフォールバック）
+        // Cocoa の RTF リーダーは NSTextList を段落スタイルの textLists に格納する
+        // テキスト本文にリストマーカーが含まれない場合でもリスト行として検出できる
+        if let paragraphStyle = firstAttrs[.paragraphStyle] as? NSParagraphStyle,
+           !paragraphStyle.textLists.isEmpty {
+            return convertNSTextListLineToMarkdown(lineAttr, text: text, nsText: nsText, attrs: firstAttrs, listInfo: listInfo)
         }
 
         // 通常の段落（インライン書式のみ）
         return convertInlineToMarkdown(lineAttr)
     }
 
+    /// Markdown インラインスタイルの種類（フォントファミリに依存しない論理的なスタイル）
+    private enum InlineStyle: Equatable {
+        case plain
+        case bold
+        case italic
+        case boldItalic
+        case code
+        case strikethrough
+        case boldStrikethrough
+        case link(url: String, title: String?)
+        case image(name: String)
+    }
+
+    /// インラインスタイルのセグメント（同じスタイルの連続テキストをマージ用）
+    private struct InlineSegment {
+        var text: String
+        let style: InlineStyle
+    }
+
+    /// リスト行を Markdown に変換（テキスト内のリストマーカーを使用、インデントレベル付き）
+    private static func convertListLineToMarkdown(_ lineAttr: NSAttributedString, text: String, nsText: NSString, attrs: [NSAttributedString.Key: Any], listInfo: ListIndentInfo) -> String {
+        guard let listPrefix = detectListPrefix(text) else {
+            return convertInlineToMarkdown(lineAttr)
+        }
+        let indentLevel = detectListIndentLevel(attrs, listInfo: listInfo)
+        let indent = String(repeating: "  ", count: indentLevel)
+        let restStart = listPrefix.contentStartIndex
+        let restRange = NSRange(location: restStart, length: nsText.length - restStart)
+        if restRange.length > 0 {
+            let restAttr = lineAttr.attributedSubstring(from: restRange)
+            let inlineMarkdown = convertInlineToMarkdown(restAttr)
+            return indent + listPrefix.markdownPrefix + inlineMarkdown
+        }
+        return indent + listPrefix.markdownPrefix
+    }
+
+    /// NSTextList による検出でリスト行を Markdown に変換
+    /// テキスト内にリストマーカー文字がない場合（Cocoa がリストマーカーをテキスト本文に含めない場合）に使用
+    /// NSTextList の markerFormat と textLists の数からリストタイプとネストレベルを判定
+    private static func convertNSTextListLineToMarkdown(_ lineAttr: NSAttributedString, text: String, nsText: NSString, attrs: [NSAttributedString.Key: Any], listInfo: ListIndentInfo) -> String {
+        guard let paragraphStyle = attrs[.paragraphStyle] as? NSParagraphStyle,
+              !paragraphStyle.textLists.isEmpty else {
+            return convertInlineToMarkdown(lineAttr)
+        }
+
+        // ネストレベル: textLists の数 - 1（最も深いリストが現在のレベル）
+        let indentLevel = detectListIndentLevel(attrs, listInfo: listInfo)
+
+        // リストタイプを判定（最も深いリストの markerFormat を確認）
+        let currentList = paragraphStyle.textLists.last!
+        let markerFormat = currentList.markerFormat
+        let isOrdered = markerFormat == .decimal || markerFormat == .lowercaseAlpha ||
+                        markerFormat == .uppercaseAlpha || markerFormat == .lowercaseRoman ||
+                        markerFormat == .uppercaseRoman
+
+        let indent = String(repeating: "  ", count: indentLevel)
+        let prefix = isOrdered ? "1. " : "- "
+
+        // テキスト本文からリストマーカー部分（\t...\t）を除去してコンテンツを取得
+        let content = stripListMarkerText(text)
+        let contentStartIndex = text.count - content.count
+
+        if contentStartIndex > 0 && contentStartIndex < nsText.length {
+            let restRange = NSRange(location: contentStartIndex, length: nsText.length - contentStartIndex)
+            let restAttr = lineAttr.attributedSubstring(from: restRange)
+            let inlineMarkdown = convertInlineToMarkdown(restAttr)
+            return indent + prefix + inlineMarkdown
+        }
+
+        let inlineMarkdown = convertInlineToMarkdown(lineAttr)
+        return indent + prefix + inlineMarkdown
+    }
+
+    /// テキストからリストマーカー部分を除去する
+    /// Cocoa RTF リーダーが挿入する "\t•\t" や "\t1.\t" のパターンを除去
+    /// 注意: 先頭にタブがない場合はリストマーカーテキストではないのでそのまま返す
+    private static func stripListMarkerText(_ text: String) -> String {
+        var i = text.startIndex
+
+        // 先頭のタブが必須（RTF リストマーカーは必ずタブで始まる）
+        guard i < text.endIndex && text[i] == "\t" else {
+            return text
+        }
+
+        // 先頭のタブをスキップ
+        while i < text.endIndex && text[i] == "\t" {
+            i = text.index(after: i)
+        }
+
+        // マーカー文字（bullet, checkbox, 数字+ドット）をスキップ
+        if i < text.endIndex {
+            let ch = text[i]
+            if ch == "\u{2022}" || ch == "\u{2611}" || ch == "\u{2610}" {
+                // bullet / checkbox
+                i = text.index(after: i)
+            } else if ch.isASCII && ch.isNumber {
+                // 番号付き: ASCII 数字 + ドット（ドットが必須）
+                // isNumber は漢数字にも true を返すため、isASCII を併用する
+                let numStart = i
+                while i < text.endIndex && text[i].isASCII && text[i].isNumber {
+                    i = text.index(after: i)
+                }
+                if i < text.endIndex && text[i] == "." {
+                    i = text.index(after: i)
+                } else {
+                    // ドットがない → リストマーカーではない（例: "14:00" の先頭数字）
+                    return text
+                }
+            } else {
+                // マーカーが見つからなければそのまま返す
+                return text
+            }
+        }
+
+        // オプショナルなスペース
+        if i < text.endIndex && text[i] == " " {
+            i = text.index(after: i)
+        }
+
+        // 後続のタブ
+        if i < text.endIndex && text[i] == "\t" {
+            i = text.index(after: i)
+        }
+
+        return String(text[i...])
+    }
+
     /// インライン書式を Markdown テキストに変換
     /// - Parameter baseIsBold: true の場合、基準フォントが太字（見出し等）なので太字マーキングをスキップ
     private static func convertInlineToMarkdown(_ attrString: NSAttributedString, baseIsBold: Bool = false) -> String {
         let nsText = attrString.string as NSString
-        var result = ""
+        guard nsText.length > 0 else { return "" }
+
+        // Phase 1: attribute run をスタイル付きセグメントに変換
+        var segments: [InlineSegment] = []
         var i = 0
 
         while i < nsText.length {
@@ -1478,7 +1684,7 @@ enum MarkdownParser {
             // NSTextAttachment（画像）の検出
             if let attachment = attrs[.attachment] as? NSTextAttachment {
                 let imageName = attachment.fileWrapper?.preferredFilename ?? "image"
-                result += "![\(imageName)]()"
+                segments.append(InlineSegment(text: imageName, style: .image(name: imageName)))
                 i = NSMaxRange(effectiveRange)
                 continue
             }
@@ -1491,13 +1697,8 @@ enum MarkdownParser {
                 } else {
                     urlString = "\(link)"
                 }
-                // ツールチップ（タイトル）
                 let title = attrs[.toolTip] as? String
-                if let title = title, !title.isEmpty {
-                    result += "[\(segmentText)](\(urlString) \"\(title)\")"
-                } else {
-                    result += "[\(segmentText)](\(urlString))"
-                }
+                segments.append(InlineSegment(text: segmentText, style: .link(url: urlString, title: title)))
                 i = NSMaxRange(effectiveRange)
                 continue
             }
@@ -1510,32 +1711,65 @@ enum MarkdownParser {
             let hasCodeBackground = attrs[.backgroundColor] as? NSColor != nil && isMonospaced
             let hasStrikethrough = (attrs[.strikethroughStyle] as? Int ?? 0) != 0
 
-            // baseIsBold の場合、太字は基準状態なのでマーキング不要
             let effectiveBold = isBold && !baseIsBold
 
-            var segment = segmentText
-
-            // インラインコード
+            let style: InlineStyle
             if hasCodeBackground {
-                segment = "`\(segment)`"
+                style = .code
+            } else if hasStrikethrough {
+                style = effectiveBold ? .boldStrikethrough : .strikethrough
+            } else if effectiveBold && isItalic {
+                style = .boldItalic
+            } else if effectiveBold {
+                style = .bold
+            } else if isItalic {
+                style = .italic
             } else {
-                // 太字 + 斜体
-                if effectiveBold && isItalic {
-                    segment = "***\(segment)***"
-                } else if effectiveBold {
-                    segment = "**\(segment)**"
-                } else if isItalic {
-                    segment = "*\(segment)*"
-                }
+                style = .plain
             }
 
-            // 取り消し線
-            if hasStrikethrough {
-                segment = "~~\(segment)~~"
-            }
-
-            result += segment
+            segments.append(InlineSegment(text: segmentText, style: style))
             i = NSMaxRange(effectiveRange)
+        }
+
+        // Phase 2: 同一スタイルの隣接セグメントをマージ
+        // （フォントファミリが異なるだけで同じ bold/italic の場合に `****` を防ぐ）
+        var merged: [InlineSegment] = []
+        for seg in segments {
+            if let last = merged.last, last.style == seg.style {
+                merged[merged.count - 1].text += seg.text
+            } else {
+                merged.append(seg)
+            }
+        }
+
+        // Phase 3: マージ済みセグメントを Markdown 記法に変換
+        var result = ""
+        for seg in merged {
+            switch seg.style {
+            case .image(let name):
+                result += "![\(name)]()"
+            case .link(let url, let title):
+                if let title = title, !title.isEmpty {
+                    result += "[\(seg.text)](\(url) \"\(title)\")"
+                } else {
+                    result += "[\(seg.text)](\(url))"
+                }
+            case .code:
+                result += "`\(seg.text)`"
+            case .boldItalic:
+                result += "***\(seg.text)***"
+            case .bold:
+                result += "**\(seg.text)**"
+            case .italic:
+                result += "*\(seg.text)*"
+            case .strikethrough:
+                result += "~~\(seg.text)~~"
+            case .boldStrikethrough:
+                result += "~~**\(seg.text)**~~"
+            case .plain:
+                result += seg.text
+            }
         }
 
         return result
@@ -1572,6 +1806,8 @@ enum MarkdownParser {
     }
 
     /// 見出しレベルの検出（フォントサイズから判定）
+    /// Markdown 由来の属性がない場合（RTF等）は、ベースフォントサイズより大きいボールドフォントを
+    /// サイズの範囲に基づいて見出しとして検出する
     private static func detectHeadingLevel(_ attrs: [NSAttributedString.Key: Any]) -> Int? {
         guard let font = attrs[.font] as? NSFont else { return nil }
         let size = font.pointSize
@@ -1579,12 +1815,23 @@ enum MarkdownParser {
         let traits = fontManager.traits(of: font)
         guard traits.contains(.boldFontMask) else { return nil }
 
+        // まず Markdown パーサー由来の正確なサイズでマッチを試みる
         // headingFontSizes = [28, 24, 20, 17, 15, 13] に対応
         for (index, headingSize) in headingFontSizes.enumerated() {
             if abs(size - headingSize) < 0.5 {
                 return index + 1  // H1=1, H2=2, ...
             }
         }
+
+        // RTF 等のフォールバック: ベースフォントサイズより明確に大きいボールドは見出しとみなす
+        // サイズ範囲で判定（一般的な RTF フォントサイズにも対応）
+        if size >= 26 { return 1 }       // H1: 26pt 以上
+        if size >= 22 { return 2 }       // H2: 22-25pt
+        if size >= 18 { return 3 }       // H3: 18-21pt（RTF \fs36 = 18pt など）
+        if size >= 15.5 { return 4 }     // H4: 15.5-17pt
+        if size >= 13.5 { return 5 }     // H5: 13.5-15pt（RTF \fs28 = 14pt など）
+
+        // ベースフォントサイズ（baseFontSize = 14pt）以下のボールドは見出しとしない
         return nil
     }
 
@@ -1600,6 +1847,33 @@ enum MarkdownParser {
                abs(converted.blueComponent - secondary.blueComponent) < 0.05
     }
 
+    /// 段落スタイルからリストのネストレベルを検出する
+    /// 1. headIndent + ドキュメント全体のインデント情報から相対的に計算
+    /// 2. NSTextList の textLists.count から計算（フォールバック）
+    private static func detectListIndentLevel(_ attrs: [NSAttributedString.Key: Any], listInfo: ListIndentInfo) -> Int {
+        guard let paragraphStyle = attrs[.paragraphStyle] as? NSParagraphStyle else {
+            return 0
+        }
+
+        // 方法1: headIndent からの相対計算
+        let headIndent = paragraphStyle.headIndent
+        if headIndent >= 1 {
+            let diff = headIndent - listInfo.minHeadIndent
+            if diff < listInfo.indentStep * 0.3 {
+                return 0
+            }
+            let level = Int(round(diff / listInfo.indentStep))
+            return max(0, level)
+        }
+
+        // 方法2: NSTextList の数からの計算（headIndent が 0 の場合のフォールバック）
+        if !paragraphStyle.textLists.isEmpty {
+            return max(0, paragraphStyle.textLists.count - 1)
+        }
+
+        return 0
+    }
+
     /// リストプレフィックスの検出結果
     private struct ListPrefixResult {
         let markdownPrefix: String
@@ -1607,34 +1881,119 @@ enum MarkdownParser {
     }
 
     /// リストプレフィックスの検出
+    /// Markdown パーサー由来のリストマーカー（"• ", "☑ ", "☐ ", "1. "）に加え、
+    /// Cocoa RTF リーダー由来のタブ付きリストマーカー（"\t•\t"）にも対応する
     private static func detectListPrefix(_ text: String) -> ListPrefixResult? {
-        let trimmed = text
+        // --- Markdown パーサー由来のフォーマット ---
 
         // タスクリスト（チェック済み ☑）
-        if trimmed.hasPrefix("\u{2611} ") {
+        if text.hasPrefix("\u{2611} ") {
             return ListPrefixResult(markdownPrefix: "- [x] ", contentStartIndex: 2)
         }
         // タスクリスト（未チェック ☐）
-        if trimmed.hasPrefix("\u{2610} ") {
+        if text.hasPrefix("\u{2610} ") {
             return ListPrefixResult(markdownPrefix: "- [ ] ", contentStartIndex: 2)
         }
-        // 箇条書き（bullet •）
-        if trimmed.hasPrefix("\u{2022} ") {
+        // 箇条書き（bullet •）+ スペース
+        if text.hasPrefix("\u{2022} ") {
             return ListPrefixResult(markdownPrefix: "- ", contentStartIndex: 2)
         }
-        // 番号付きリスト（例: "1. "）
-        if let dotIndex = trimmed.firstIndex(of: ".") {
-            let prefix = trimmed[trimmed.startIndex..<dotIndex]
-            if !prefix.isEmpty, prefix.allSatisfy({ $0.isNumber }) {
-                let afterDot = trimmed.index(after: dotIndex)
-                if afterDot < trimmed.endIndex && trimmed[afterDot] == " " {
-                    let mdPrefix = "\(prefix). "
-                    let startIndex = trimmed.distance(from: trimmed.startIndex, to: trimmed.index(after: afterDot))
-                    return ListPrefixResult(markdownPrefix: mdPrefix, contentStartIndex: startIndex)
-                }
-            }
+
+        // --- Cocoa RTF リーダー由来のフォーマット ---
+        // {\\listtext \t• \t} → テキスト本文に "\t•\t" または "\t• \t" が挿入される
+        // タブ + bullet + タブ のパターン
+        if let bulletRange = findRTFListMarker(text, marker: "\u{2022}") {
+            return ListPrefixResult(markdownPrefix: "- ", contentStartIndex: bulletRange)
         }
+        // タブ + チェック済み + タブ
+        if let bulletRange = findRTFListMarker(text, marker: "\u{2611}") {
+            return ListPrefixResult(markdownPrefix: "- [x] ", contentStartIndex: bulletRange)
+        }
+        // タブ + 未チェック + タブ
+        if let bulletRange = findRTFListMarker(text, marker: "\u{2610}") {
+            return ListPrefixResult(markdownPrefix: "- [ ] ", contentStartIndex: bulletRange)
+        }
+
+        // --- 番号付きリスト ---
+        // "1. " 形式（Markdown 由来）
+        if let result = detectNumberedListPrefix(text) {
+            return result
+        }
+        // "\t1.\t" 形式（RTF 由来）
+        if let result = detectRTFNumberedListPrefix(text) {
+            return result
+        }
+
         return nil
+    }
+
+    /// RTF リーダー由来のリストマーカー（\t + marker + [\s] + \t）を検索し、
+    /// コンテンツの開始インデックスを返す
+    private static func findRTFListMarker(_ text: String, marker: Character) -> Int? {
+        // パターン: 先頭付近の \t + marker + (オプショナルなスペース) + \t の後
+        var i = text.startIndex
+
+        // 先頭のタブをスキップ
+        while i < text.endIndex && text[i] == "\t" {
+            i = text.index(after: i)
+        }
+
+        // マーカー文字を確認
+        guard i < text.endIndex && text[i] == marker else { return nil }
+        i = text.index(after: i)
+
+        // オプショナルなスペース
+        if i < text.endIndex && text[i] == " " {
+            i = text.index(after: i)
+        }
+
+        // タブまたは行末
+        if i < text.endIndex && text[i] == "\t" {
+            i = text.index(after: i)
+        }
+
+        return text.distance(from: text.startIndex, to: i)
+    }
+
+    /// Markdown 由来の番号付きリスト検出（"1. " 形式）
+    private static func detectNumberedListPrefix(_ text: String) -> ListPrefixResult? {
+        guard let dotIndex = text.firstIndex(of: ".") else { return nil }
+        let prefix = text[text.startIndex..<dotIndex]
+        guard !prefix.isEmpty, prefix.allSatisfy({ $0.isASCII && $0.isNumber }) else { return nil }
+        let afterDot = text.index(after: dotIndex)
+        guard afterDot < text.endIndex && text[afterDot] == " " else { return nil }
+        let mdPrefix = "\(prefix). "
+        let startIndex = text.distance(from: text.startIndex, to: text.index(after: afterDot))
+        return ListPrefixResult(markdownPrefix: mdPrefix, contentStartIndex: startIndex)
+    }
+
+    /// RTF 由来の番号付きリスト検出（"\t1.\t" 形式）
+    private static func detectRTFNumberedListPrefix(_ text: String) -> ListPrefixResult? {
+        var i = text.startIndex
+        // 先頭のタブをスキップ
+        while i < text.endIndex && text[i] == "\t" {
+            i = text.index(after: i)
+        }
+        // ASCII 数字を読み取る（漢数字を誤認しないため isASCII を併用）
+        let numStart = i
+        while i < text.endIndex && text[i].isASCII && text[i].isNumber {
+            i = text.index(after: i)
+        }
+        guard i > numStart else { return nil }
+        // ドットを確認
+        guard i < text.endIndex && text[i] == "." else { return nil }
+        i = text.index(after: i)
+        // オプショナルなスペース
+        if i < text.endIndex && text[i] == " " {
+            i = text.index(after: i)
+        }
+        // タブ
+        if i < text.endIndex && text[i] == "\t" {
+            i = text.index(after: i)
+        }
+        let contentStart = text.distance(from: text.startIndex, to: i)
+        let numStr = String(text[numStart..<i].prefix(while: { $0.isASCII && $0.isNumber }))
+        return ListPrefixResult(markdownPrefix: "\(numStr). ", contentStartIndex: contentStart)
     }
 
     /// フォントが太字かどうか
