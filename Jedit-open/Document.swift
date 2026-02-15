@@ -115,6 +115,13 @@ class Document: NSDocument {
         return windowControllers.first.flatMap { ($0 as? EditorWindowController)?.currentTextView() }
     }
 
+    /// AppleScript select コマンドから呼ばれる選択範囲設定メソッド
+    func setSelectionRange(_ range: NSRange) {
+        guard let textView = currentTextView else { return }
+        textView.setSelectedRange(range)
+        textView.scrollRangeToVisible(range)
+    }
+
     /// AppleScript 用の選択テキスト（rich text）アクセサ
     /// getter: 選択範囲のテキストを NSTextStorage として返す
     /// setter: 選択範囲のテキストを置き換える
@@ -138,22 +145,22 @@ class Document: NSDocument {
     }
 
     /// AppleScript 用の選択範囲（{location, length}）アクセサ
-    @objc var scriptingSelectionRange: [String: Int] {
-        get {
-            guard let textView = currentTextView else { return ["location": 0, "length": 0] }
-            let range = textView.selectedRange()
-            return ["location": range.location, "length": range.length]
+    /// getter: selection range record ({location:N, length:N}) を NSAppleEventDescriptor で返す
+    /// setter: setValue(_:forKey:) 経由で処理（computed property の setter は型の制約により使用不可）
+    @objc var scriptingSelectionRange: Any {
+        let record = NSAppleEventDescriptor.record()
+        let range: NSRange
+        if let textView = currentTextView {
+            range = textView.selectedRange()
+        } else {
+            range = NSRange(location: 0, length: 0)
         }
-        set {
-            guard let textView = currentTextView else { return }
-            let loc = newValue["location"] ?? 0
-            let len = newValue["length"] ?? 0
-            let maxLen = textStorage.length
-            let safeLoc = min(loc, maxLen)
-            let safeLen = min(len, maxLen - safeLoc)
-            textView.setSelectedRange(NSRange(location: safeLoc, length: safeLen))
-            textView.scrollRangeToVisible(NSRange(location: safeLoc, length: safeLen))
-        }
+        // "JLoc" = 0x4A4C6F63, "JLen" = 0x4A4C656E
+        record.setDescriptor(NSAppleEventDescriptor(int32: Int32(range.location)),
+                             forKeyword: AEKeyword(0x4A4C6F63))
+        record.setDescriptor(NSAppleEventDescriptor(int32: Int32(range.length)),
+                             forKeyword: AEKeyword(0x4A4C656E))
+        return record
     }
 
     /// AppleScript 用の書類タイプアクセサ
@@ -213,6 +220,28 @@ class Document: NSDocument {
             } else {
                 textStorage.endEditing()
             }
+            return
+        }
+        if key == "scriptingSelectionRange" {
+            guard let textView = currentTextView else { return }
+            var loc = 0
+            var len = 0
+            // SDEF record-type のキーワードコード: JLoc=0x4A4C6F63, JLen=0x4A4C656E
+            if let desc = value as? NSAppleEventDescriptor {
+                loc = Int(desc.forKeyword(AEKeyword(0x4A4C6F63))?.int32Value ?? 0)
+                len = Int(desc.forKeyword(AEKeyword(0x4A4C656E))?.int32Value ?? 0)
+            } else if let dict = value as? [String: Int] {
+                loc = dict["location"] ?? 0
+                len = dict["length"] ?? 0
+            } else if let dict = value as? [AnyHashable: Any] {
+                loc = dict["location"] as? Int ?? 0
+                len = dict["length"] as? Int ?? 0
+            }
+            let maxLen = textStorage.length
+            let safeLoc = min(max(loc, 0), maxLen)
+            let safeLen = min(max(len, 0), maxLen - safeLoc)
+            textView.setSelectedRange(NSRange(location: safeLoc, length: safeLen))
+            textView.scrollRangeToVisible(NSRange(location: safeLoc, length: safeLen))
             return
         }
         super.setValue(value, forKey: key)

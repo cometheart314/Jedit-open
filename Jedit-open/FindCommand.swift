@@ -2,17 +2,17 @@
 //  FindCommand.swift
 //  Jedit-open
 //
-//  AppleScript search command handler.
+//  AppleScript find command handler.
 //
 
 import Cocoa
 
-/// AppleScript "search" コマンドの実装
-/// search string "text" in document 1 [case sensitive true] [using regular expression true] [searching all true]
+/// AppleScript "find" コマンドの実装
+/// find string "text" in document 1 [case sensitive true] [using regular expression true] [searching all true]
 class FindCommand: NSScriptCommand {
 
     /// {location:N, length:N} のレコードを NSAppleEventDescriptor として構築
-    private func rangeDescriptor(location: Int, length: Int) -> NSAppleEventDescriptor {
+    static func rangeDescriptor(location: Int, length: Int) -> NSAppleEventDescriptor {
         let record = NSAppleEventDescriptor.record()
         // SDEF の selection range record-type のプロパティコードに対応
         // "JLoc" = 0x4A4C6F63, "JLen" = 0x4A4C656E
@@ -23,16 +23,9 @@ class FindCommand: NSScriptCommand {
         return record
     }
 
-    override func performDefaultImplementation() -> Any? {
-        let args = evaluatedArguments
-
-        guard let searchText = args?["forText"] as? String else {
-            scriptErrorNumber = -1708
-            scriptErrorString = "Missing search text."
-            return nil
-        }
-
-        guard let document = resolveDocument() else { return nil }
+    /// 検索の本体ロジック。コマンドハンドラ・responds-to ハンドラの両方から呼ばれる。
+    static func performSearch(document: Document, args: [String: Any]?) -> Any? {
+        guard let searchText = args?["forText"] as? String else { return nil }
 
         let caseSensitive = args?["caseSensitive"] as? Bool ?? false
         let useRegex = args?["usingRegularExpression"] as? Bool ?? false
@@ -66,5 +59,19 @@ class FindCommand: NSScriptCommand {
             if foundRange.location == NSNotFound { return nil }
             return rangeDescriptor(location: foundRange.location, length: foundRange.length)
         }
+    }
+
+    override func performDefaultImplementation() -> Any? {
+        let args = evaluatedArguments
+
+        guard let _ = args?["forText"] as? String else {
+            scriptErrorNumber = -1708
+            scriptErrorString = "Missing search text."
+            return nil
+        }
+
+        guard let document = resolveDocument() else { return nil }
+
+        return FindCommand.performSearch(document: document, args: args)
     }
 }

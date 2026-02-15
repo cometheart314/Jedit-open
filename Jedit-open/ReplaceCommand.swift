@@ -11,21 +11,10 @@ import Cocoa
 /// replace for "text" by "replacement" in document 1 [case sensitive true] [using regular expression true] [replacing all true]
 class ReplaceCommand: NSScriptCommand {
 
-    override func performDefaultImplementation() -> Any? {
-        let args = evaluatedArguments
-
-        guard let searchText = args?["forText"] as? String else {
-            scriptErrorNumber = -1708
-            scriptErrorString = "Missing search text."
-            return nil
-        }
-        guard let replacementText = args?["byText"] as? String else {
-            scriptErrorNumber = -1708
-            scriptErrorString = "Missing replacement text."
-            return nil
-        }
-
-        guard let document = resolveDocument() else { return nil }
+    /// 置換の本体ロジック。コマンドハンドラ・responds-to ハンドラの両方から呼ばれる。
+    static func performReplace(document: Document, args: [String: Any]?) -> Any? {
+        guard let searchText = args?["forText"] as? String else { return NSNumber(value: 0) }
+        guard let replacementText = args?["byText"] as? String else { return NSNumber(value: 0) }
 
         let caseSensitive = args?["caseSensitive"] as? Bool ?? false
         let useRegex = args?["usingRegularExpression"] as? Bool ?? false
@@ -80,5 +69,24 @@ class ReplaceCommand: NSScriptCommand {
         textStorage.endEditing()
 
         return NSNumber(value: ranges.count)
+    }
+
+    override func performDefaultImplementation() -> Any? {
+        let args = evaluatedArguments
+
+        guard let _ = args?["forText"] as? String else {
+            scriptErrorNumber = -1708
+            scriptErrorString = "Missing search text."
+            return nil
+        }
+        guard let _ = args?["byText"] as? String else {
+            scriptErrorNumber = -1708
+            scriptErrorString = "Missing replacement text."
+            return nil
+        }
+
+        guard let document = resolveDocument() else { return nil }
+
+        return ReplaceCommand.performReplace(document: document, args: args)
     }
 }

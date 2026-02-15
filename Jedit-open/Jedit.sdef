@@ -137,13 +137,13 @@
 			<enumerator name="bottom" code="JEnd" description="The end of the document."/>
 		</enumeration>
 
-		<!-- search command: search string "text" in document -->
-		<command name="search" code="JEdTJFnd" description="Search for text in a document.">
+		<!-- find command: find string "text" in document -->
+		<command name="find" code="JEdTJFnd" description="Find text in a document.">
 			<cocoa class="Jedit.FindCommand"/>
 			<parameter name="string" code="JFfr" type="text" description="The text to search for.">
 				<cocoa key="forText"/>
 			</parameter>
-			<parameter name="in" code="JFin" type="document" description="The document to search in.">
+			<parameter name="in" code="JFin" type="document" optional="yes" description="The document to search in. If omitted, the target of the tell block is used.">
 				<cocoa key="inDocument"/>
 			</parameter>
 			<parameter name="case sensitive" code="JFcs" type="boolean" optional="yes" description="Whether the search is case sensitive (default: false).">
@@ -167,7 +167,7 @@
 			<parameter name="by" code="JRby" type="text" description="The replacement text.">
 				<cocoa key="byText"/>
 			</parameter>
-			<parameter name="in" code="JRin" type="document" description="The document to replace in.">
+			<parameter name="in" code="JRin" type="document" optional="yes" description="The document to replace in. If omitted, the target of the tell block is used.">
 				<cocoa key="inDocument"/>
 			</parameter>
 			<parameter name="case sensitive" code="JRcs" type="boolean" optional="yes" description="Whether the search is case sensitive (default: false).">
@@ -185,7 +185,7 @@
 		<!-- insert into command: insert into document text "..." at bottom -->
 		<command name="insert into" code="JEdTJIns" description="Insert text into a document.">
 			<cocoa class="Jedit.InsertCommand"/>
-			<parameter name="in" code="JIin" type="document" description="The document to insert into.">
+			<parameter name="in" code="JIin" type="document" optional="yes" description="The document to insert into. If omitted, the target of the tell block is used.">
 				<cocoa key="inDocument"/>
 			</parameter>
 			<parameter name="string" code="JItx" type="text" description="The text to insert.">
@@ -199,6 +199,39 @@
 			</parameter>
 		</command>
 
+		<!-- select command: select in document 1 location 0 length 5 -->
+		<!-- also supports: select paragraph 10, select word 5, select character 3 -->
+		<command name="select" code="JEdTJSel" description="Set the selection range of a document.">
+			<cocoa class="Jedit.SelectCommand"/>
+			<parameter name="in" code="JSin" type="document" optional="yes" description="The document to select in. If omitted, the target of the tell block is used.">
+				<cocoa key="inDocument"/>
+			</parameter>
+			<parameter name="location" code="JSlc" type="integer" optional="yes" description="The start position of the selection (0-based).">
+				<cocoa key="selLocation"/>
+			</parameter>
+			<parameter name="length" code="JSln" type="integer" optional="yes" description="The length of the selection (default: 0).">
+				<cocoa key="selLength"/>
+			</parameter>
+			<parameter name="paragraph" code="JSpa" type="integer" optional="yes" description="The 1-based paragraph number to select.">
+				<cocoa key="selParagraph"/>
+			</parameter>
+			<parameter name="word" code="JSwo" type="integer" optional="yes" description="The 1-based word number to select.">
+				<cocoa key="selWord"/>
+			</parameter>
+			<parameter name="character" code="JSch" type="integer" optional="yes" description="The 1-based character number to select.">
+				<cocoa key="selCharacter"/>
+			</parameter>
+			<parameter name="through paragraph" code="JStP" type="integer" optional="yes" description="Select from paragraph N through paragraph M.">
+				<cocoa key="selThroughParagraph"/>
+			</parameter>
+			<parameter name="through word" code="JStW" type="integer" optional="yes" description="Select from word N through word M.">
+				<cocoa key="selThroughWord"/>
+			</parameter>
+			<parameter name="through character" code="JStC" type="integer" optional="yes" description="Select from character N through character M.">
+				<cocoa key="selThroughCharacter"/>
+			</parameter>
+		</command>
+
 		<class name="document" code="docu" description="A Jedit document." inherits="document">
 			<cocoa class="Jedit.Document"/>
 			<contents name="text" code="ctxt" type="attribute run" access="rw" description="The text of the document.">
@@ -207,7 +240,7 @@
 			<property name="selection" code="sele" type="rich text" access="rw" description="The selected text of the document.">
 				<cocoa key="scriptingSelection"/>
 			</property>
-			<property name="selection range" code="JSlR" type="selection range" access="rw" description="The range of the selection.">
+			<property name="selection range" code="JSlR" type="any" access="rw" description="The range of the selection ({location:N, length:N}).">
 				<cocoa key="scriptingSelectionRange"/>
 			</property>
 			<property name="document type" code="JDtp" type="text" access="rw" description="The type of the document: &quot;plain text&quot;, &quot;RTF&quot;, or &quot;RTFD&quot;.">

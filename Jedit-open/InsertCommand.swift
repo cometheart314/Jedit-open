@@ -13,19 +13,12 @@ class InsertCommand: NSScriptCommand {
 
     // insertion position 列挙型コード（SDEF の enumerator code に対応）
     // "JBeg" = 0x4A426567, "JEnd" = 0x4A456E64
-    private static let positionTop: UInt32 = 0x4A426567
-    private static let positionBottom: UInt32 = 0x4A456E64
+    static let positionTop: UInt32 = 0x4A426567
+    static let positionBottom: UInt32 = 0x4A456E64
 
-    override func performDefaultImplementation() -> Any? {
-        let args = evaluatedArguments
-
-        guard let insertText = args?["insertText"] as? String else {
-            scriptErrorNumber = -1708
-            scriptErrorString = "Missing text to insert."
-            return nil
-        }
-
-        guard let document = resolveDocument() else { return nil }
+    /// 挿入の本体ロジック。コマンドハンドラ・responds-to ハンドラの両方から呼ばれる。
+    static func performInsert(document: Document, args: [String: Any]?) -> Any? {
+        guard let insertText = args?["insertText"] as? String else { return nil }
 
         let textStorage = document.textStorage
 
@@ -48,5 +41,19 @@ class InsertCommand: NSScriptCommand {
         textStorage.endEditing()
 
         return nil
+    }
+
+    override func performDefaultImplementation() -> Any? {
+        let args = evaluatedArguments
+
+        guard let _ = args?["insertText"] as? String else {
+            scriptErrorNumber = -1708
+            scriptErrorString = "Missing text to insert."
+            return nil
+        }
+
+        guard let document = resolveDocument() else { return nil }
+
+        return InsertCommand.performInsert(document: document, args: args)
     }
 }
