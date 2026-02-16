@@ -11,20 +11,24 @@ import Cocoa
 /// find string "text" in document 1 [case sensitive true] [using regular expression true] [searching all true]
 class FindCommand: NSScriptCommand {
 
-    /// {location:N, length:N} のレコードを NSAppleEventDescriptor として構築
+    /// {rangeLocation:N, rangeLength:N} のユーザー定義レコードを NSAppleEventDescriptor として構築
+    /// usrf キーワードで文字列キーのレコードとして AppleScript に返す
     static func rangeDescriptor(location: Int, length: Int) -> NSAppleEventDescriptor {
         let record = NSAppleEventDescriptor.record()
-        // SDEF の selection range record-type のプロパティコードに対応
-        // "JLoc" = 0x4A4C6F63, "JLen" = 0x4A4C656E
-        record.setDescriptor(NSAppleEventDescriptor(int32: Int32(location)),
-                             forKeyword: AEKeyword(0x4A4C6F63))
-        record.setDescriptor(NSAppleEventDescriptor(int32: Int32(length)),
-                             forKeyword: AEKeyword(0x4A4C656E))
+        // usrf (0x75737266) = ユーザー定義フィールドリスト
+        // {key1, value1, key2, value2, ...} のフラットリストとして格納
+        let usrfList = NSAppleEventDescriptor.list()
+        usrfList.insert(NSAppleEventDescriptor(string: "rangeLocation"), at: 1)
+        usrfList.insert(NSAppleEventDescriptor(int32: Int32(location)), at: 2)
+        usrfList.insert(NSAppleEventDescriptor(string: "rangeLength"), at: 3)
+        usrfList.insert(NSAppleEventDescriptor(int32: Int32(length)), at: 4)
+        record.setDescriptor(usrfList, forKeyword: AEKeyword(0x75737266))
         return record
     }
 
     /// 検索の本体ロジック。コマンドハンドラ・responds-to ハンドラの両方から呼ばれる。
-    static func performSearch(document: Document, args: [String: Any]?) -> Any? {
+    /// selectResult が true の場合、見つかった範囲を自動的に選択する（searching all でない場合のみ）
+    static func performSearch(document: Document, args: [String: Any]?, selectResult: Bool = false) -> Any? {
         guard let searchText = args?["forText"] as? String else { return nil }
 
         let caseSensitive = args?["caseSensitive"] as? Bool ?? false
@@ -57,6 +61,10 @@ class FindCommand: NSScriptCommand {
         } else {
             let foundRange = text.range(of: searchText, options: options, range: fullRange)
             if foundRange.location == NSNotFound { return nil }
+            // 見つかった範囲を自動的に選択する
+            if selectResult {
+                document.setSelectionRange(foundRange)
+            }
             return rangeDescriptor(location: foundRange.location, length: foundRange.length)
         }
     }
@@ -72,6 +80,6 @@ class FindCommand: NSScriptCommand {
 
         guard let document = resolveDocument() else { return nil }
 
-        return FindCommand.performSearch(document: document, args: args)
+        return FindCommand.performSearch(document: document, args: args, selectResult: true)
     }
 }

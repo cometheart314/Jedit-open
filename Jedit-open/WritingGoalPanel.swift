@@ -90,6 +90,8 @@ class WritingGoalPanel: NSPanel {
         methodPopup = NSPopUpButton(frame: NSRect(x: 85, y: 59, width: 250, height: 25), pullsDown: false)
         methodPopup.addItem(withTitle: NSLocalizedString("Visible Characters", comment: "Count method"))
         methodPopup.addItem(withTitle: NSLocalizedString("Manuscript Pages (400 chars)", comment: "Count method"))
+        methodPopup.target = self
+        methodPopup.action = #selector(countMethodChanged(_:))
         contentView.addSubview(methodPopup)
 
         // Cancel ボタン
@@ -127,6 +129,7 @@ class WritingGoalPanel: NSPanel {
         goalField.integerValue = goal.targetCount
         goalStepper.integerValue = goal.targetCount
         methodPopup.selectItem(at: goal.countMethod)
+        updateStepperIncrement()
 
         window.beginSheet(self) { _ in }
     }
@@ -135,6 +138,23 @@ class WritingGoalPanel: NSPanel {
 
     @objc private func stepperChanged(_ sender: NSStepper) {
         goalField.integerValue = sender.integerValue
+    }
+
+    @objc private func countMethodChanged(_ sender: NSPopUpButton) {
+        updateStepperIncrement()
+        goalField.integerValue = 0
+        goalStepper.integerValue = 0
+    }
+
+    /// カウント方法に応じてステッパーの刻みを更新
+    private func updateStepperIncrement() {
+        if methodPopup.indexOfSelectedItem == 1 {
+            // Manuscript Pages: 1ページごと
+            goalStepper.increment = 1
+        } else {
+            // Visible Characters: 100文字ごと
+            goalStepper.increment = 100
+        }
     }
 
     @objc private func cancelAction(_ sender: Any?) {

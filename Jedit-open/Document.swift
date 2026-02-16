@@ -98,6 +98,148 @@ class Document: NSDocument {
     /// プリセットデータを保存する拡張属性キー
     static let presetDataExtendedAttributeKey = "jp.co.artman21.jedit.presetData"
 
+    // MARK: - Selection Proxy for AppleScript
+
+    /// AppleScript の `set font/size/color of selection` で元の textStorage に属性変更を反映するプロキシ
+    /// NSTextStorage のサブクラスとして、読み取りは選択範囲のコピーを返し、
+    /// 属性の書き込みは元の textStorage の対応範囲に直接適用する
+    private class SelectionProxyTextStorage: NSTextStorage {
+        private let backingStorage: NSTextStorage
+        private let backingRange: NSRange
+        private let localStorage: NSMutableAttributedString
+        private weak var textView: NSTextView?
+
+        init(backingStorage: NSTextStorage, range: NSRange, textView: NSTextView?) {
+            self.backingStorage = backingStorage
+            self.backingRange = range
+            self.textView = textView
+            self.localStorage = NSMutableAttributedString(
+                attributedString: backingStorage.attributedSubstring(from: range)
+            )
+            super.init()
+        }
+
+        required init?(coder: NSCoder) {
+            fatalError("init(coder:) has not been implemented")
+        }
+
+        required init?(pasteboardPropertyList propertyList: Any, ofType type: NSPasteboard.PasteboardType) {
+            fatalError("init(pasteboardPropertyList:ofType:) has not been implemented")
+        }
+
+        override var string: String {
+            return localStorage.string
+        }
+
+        override func attributes(at location: Int, effectiveRange range: NSRangePointer?) -> [NSAttributedString.Key: Any] {
+            return localStorage.attributes(at: location, effectiveRange: range)
+        }
+
+        override func replaceCharacters(in range: NSRange, with str: String) {
+            localStorage.replaceCharacters(in: range, with: str)
+            edited(.editedCharacters, range: range, changeInLength: str.count - range.length)
+        }
+
+        override func setAttributes(_ attrs: [NSAttributedString.Key: Any]?, range: NSRange) {
+            localStorage.setAttributes(attrs, range: range)
+            edited(.editedAttributes, range: range, changeInLength: 0)
+            // 元の textStorage にも属性を適用（Undo 対応）
+            applyToBackingStorage(range: range) { mappedRange in
+                backingStorage.setAttributes(attrs, range: mappedRange)
+            }
+        }
+
+        override func addAttributes(_ attrs: [NSAttributedString.Key: Any], range: NSRange) {
+            localStorage.addAttributes(attrs, range: range)
+            edited(.editedAttributes, range: range, changeInLength: 0)
+            // 元の textStorage にも属性を適用（Undo 対応）
+            applyToBackingStorage(range: range) { mappedRange in
+                backingStorage.addAttributes(attrs, range: mappedRange)
+            }
+        }
+
+        /// backingStorage への変更を Undo 対応で適用するヘルパー
+        private func applyToBackingStorage(range: NSRange, apply: (NSRange) -> Void) {
+            let mappedRange = NSRange(
+                location: backingRange.location + range.location,
+                length: range.length
+            )
+            guard mappedRange.location + mappedRange.length <= backingStorage.length else { return }
+            // shouldChangeText で Undo マネージャに変更を登録
+            if let tv = textView {
+                tv.shouldChangeText(in: mappedRange, replacementString: nil)
+            }
+            backingStorage.beginEditing()
+            apply(mappedRange)
+            backingStorage.endEditing()
+            if let tv = textView {
+                tv.didChangeText()
+            }
+        }
+
+        // MARK: - KVC for AppleScript (font, size, color)
+
+        @objc var fontName: String {
+            get {
+                guard localStorage.length > 0 else { return "" }
+                let font = localStorage.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+                return font?.fontName ?? ""
+            }
+            set {
+                let range = NSRange(location: 0, length: localStorage.length)
+                guard range.length > 0 else { return }
+                // 各文字のフォントサイズを保持しつつフォント名だけ変更
+                localStorage.enumerateAttribute(.font, in: range) { value, attrRange, _ in
+                    let currentFont = value as? NSFont ?? NSFont.systemFont(ofSize: 12)
+                    if let newFont = NSFont(name: newValue, size: currentFont.pointSize) {
+                        localStorage.addAttribute(.font, value: newFont, range: attrRange)
+                        applyToBackingStorage(range: attrRange) { mappedRange in
+                            backingStorage.addAttribute(.font, value: newFont, range: mappedRange)
+                        }
+                    }
+                }
+            }
+        }
+
+        @objc var fontSize: Int {
+            get {
+                guard localStorage.length > 0 else { return 12 }
+                let font = localStorage.attribute(.font, at: 0, effectiveRange: nil) as? NSFont
+                return Int(font?.pointSize ?? 12)
+            }
+            set {
+                let range = NSRange(location: 0, length: localStorage.length)
+                guard range.length > 0 else { return }
+                let newSize = CGFloat(newValue)
+                // 各文字のフォント名を保持しつつサイズだけ変更
+                localStorage.enumerateAttribute(.font, in: range) { value, attrRange, _ in
+                    let currentFont = value as? NSFont ?? NSFont.systemFont(ofSize: 12)
+                    let newFont = NSFont(name: currentFont.fontName, size: newSize)
+                                  ?? NSFont.systemFont(ofSize: newSize)
+                    localStorage.addAttribute(.font, value: newFont, range: attrRange)
+                    applyToBackingStorage(range: attrRange) { mappedRange in
+                        backingStorage.addAttribute(.font, value: newFont, range: mappedRange)
+                    }
+                }
+            }
+        }
+
+        override var foregroundColor: NSColor? {
+            get {
+                guard localStorage.length > 0 else { return .textColor }
+                return localStorage.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor ?? .textColor
+            }
+            set {
+                let range = NSRange(location: 0, length: localStorage.length)
+                guard range.length > 0, let color = newValue else { return }
+                localStorage.addAttribute(.foregroundColor, value: color, range: range)
+                applyToBackingStorage(range: range) { mappedRange in
+                    backingStorage.addAttribute(.foregroundColor, value: color, range: mappedRange)
+                }
+            }
+        }
+    }
+
     // MARK: - Properties
 
     var textStorage: JOTextStorage = JOTextStorage()
@@ -108,6 +250,26 @@ class Document: NSDocument {
     /// getter: textStorage を返す
     @objc var scriptingTextStorage: NSTextStorage {
         return textStorage
+    }
+
+    // MARK: - AppleScript Element Accessors (characters, words, paragraphs, attributeRuns)
+    // contents タグの要素透過が class-extension で動作しない場合のため、
+    // Document に直接 KVC アクセサを実装して textStorage に委譲する
+
+    @objc var characters: NSArray {
+        return textStorage.value(forKey: "characters") as? NSArray ?? NSArray()
+    }
+
+    @objc var words: NSArray {
+        return textStorage.value(forKey: "words") as? NSArray ?? NSArray()
+    }
+
+    @objc var paragraphs: NSArray {
+        return textStorage.value(forKey: "paragraphs") as? NSArray ?? NSArray()
+    }
+
+    @objc var attributeRuns: NSArray {
+        return textStorage.value(forKey: "attributeRuns") as? NSArray ?? NSArray()
     }
 
     /// 現在のテキストビューを取得するヘルパー
@@ -123,15 +285,15 @@ class Document: NSDocument {
     }
 
     /// AppleScript 用の選択テキスト（rich text）アクセサ
-    /// getter: 選択範囲のテキストを NSTextStorage として返す
+    /// getter: 選択範囲に対応するプロキシ NSTextStorage を返す
+    ///         属性の変更（font, size, color）は元の textStorage に直接反映される
     /// setter: 選択範囲のテキストを置き換える
     @objc var scriptingSelection: NSTextStorage {
         get {
             guard let textView = currentTextView else { return NSTextStorage() }
             let range = textView.selectedRange()
             if range.length == 0 { return NSTextStorage() }
-            let sub = textStorage.attributedSubstring(from: range)
-            return NSTextStorage(attributedString: sub)
+            return SelectionProxyTextStorage(backingStorage: textStorage, range: range, textView: textView)
         }
         set {
             guard let textView = currentTextView else { return }
@@ -144,23 +306,39 @@ class Document: NSDocument {
         }
     }
 
-    /// AppleScript 用の選択範囲（{location, length}）アクセサ
-    /// getter: selection range record ({location:N, length:N}) を NSAppleEventDescriptor で返す
-    /// setter: setValue(_:forKey:) 経由で処理（computed property の setter は型の制約により使用不可）
-    @objc var scriptingSelectionRange: Any {
-        let record = NSAppleEventDescriptor.record()
-        let range: NSRange
-        if let textView = currentTextView {
-            range = textView.selectedRange()
-        } else {
-            range = NSRange(location: 0, length: 0)
+    /// AppleScript 用の選択位置アクセサ（0-based）
+    @objc var scriptingSelectionLocation: Int {
+        get {
+            guard let textView = currentTextView else { return 0 }
+            return textView.selectedRange().location
         }
-        // "JLoc" = 0x4A4C6F63, "JLen" = 0x4A4C656E
-        record.setDescriptor(NSAppleEventDescriptor(int32: Int32(range.location)),
-                             forKeyword: AEKeyword(0x4A4C6F63))
-        record.setDescriptor(NSAppleEventDescriptor(int32: Int32(range.length)),
-                             forKeyword: AEKeyword(0x4A4C656E))
-        return record
+        set {
+            guard let textView = currentTextView else { return }
+            let currentRange = textView.selectedRange()
+            let maxLen = textStorage.length
+            let safeLoc = min(max(newValue, 0), maxLen)
+            let safeLen = min(currentRange.length, maxLen - safeLoc)
+            let range = NSRange(location: safeLoc, length: safeLen)
+            textView.setSelectedRange(range)
+            textView.scrollRangeToVisible(range)
+        }
+    }
+
+    /// AppleScript 用の選択長さアクセサ
+    @objc var scriptingSelectionLength: Int {
+        get {
+            guard let textView = currentTextView else { return 0 }
+            return textView.selectedRange().length
+        }
+        set {
+            guard let textView = currentTextView else { return }
+            let currentRange = textView.selectedRange()
+            let maxLen = textStorage.length
+            let safeLen = min(max(newValue, 0), maxLen - currentRange.location)
+            let range = NSRange(location: currentRange.location, length: safeLen)
+            textView.setSelectedRange(range)
+            textView.scrollRangeToVisible(range)
+        }
     }
 
     /// AppleScript 用の書類タイプアクセサ
@@ -188,6 +366,59 @@ class Document: NSDocument {
             NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
         }
     }
+
+    /// AppleScript 用のデフォルトフォント名（読み取り専用）
+    @objc var scriptingCharFont: String {
+        let fontData = presetData?.fontAndColors ?? NewDocData.FontAndColorsData.default
+        return fontData.baseFontName
+    }
+
+    /// AppleScript 用のデフォルトフォントサイズ（読み取り専用）
+    @objc var scriptingCharSize: Double {
+        let fontData = presetData?.fontAndColors ?? NewDocData.FontAndColorsData.default
+        return Double(fontData.baseFontSize)
+    }
+
+    /// AppleScript 用のデフォルトテキスト色（読み取り専用）
+    @objc var scriptingCharColor: NSColor {
+        let fontData = presetData?.fontAndColors ?? NewDocData.FontAndColorsData.default
+        return fontData.colors.character.nsColor
+    }
+
+    /// AppleScript 用のデフォルト背景色（読み取り専用）
+    @objc var scriptingCharBackColor: NSColor {
+        let fontData = presetData?.fontAndColors ?? NewDocData.FontAndColorsData.default
+        return fontData.colors.background.nsColor
+    }
+
+    /// AppleScript 用のリッチテキスト判定プロパティ
+    /// true ならリッチテキスト（RTF/RTFD）、false ならプレーンテキスト
+    @objc var scriptingIsRichText: Bool {
+        get {
+            return documentType != .plain
+        }
+        set {
+            if newValue {
+                // プレーンテキスト → リッチテキスト
+                if documentType == .plain {
+                    documentType = .rtf
+                    updateFileTypeFromDocumentType()
+                    NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                }
+            } else {
+                // リッチテキスト → プレーンテキスト
+                if documentType != .plain {
+                    documentType = .plain
+                    updateFileTypeFromDocumentType()
+                    NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                }
+            }
+        }
+    }
+
+    // MARK: - AppleScript Print Command
+    // AppleScript の print コマンドは AppDelegate.swift の handlePrintAppleEvent で
+    // Apple Event レベルで処理する（Cocoa Scripting のルーティングが機能しないため）
 
     /// KVC 経由で AppleScript からテキストがセットされた際に、
     /// NSString / NSAttributedString を適切に textStorage の内容として反映する
@@ -222,26 +453,12 @@ class Document: NSDocument {
             }
             return
         }
-        if key == "scriptingSelectionRange" {
-            guard let textView = currentTextView else { return }
-            var loc = 0
-            var len = 0
-            // SDEF record-type のキーワードコード: JLoc=0x4A4C6F63, JLen=0x4A4C656E
-            if let desc = value as? NSAppleEventDescriptor {
-                loc = Int(desc.forKeyword(AEKeyword(0x4A4C6F63))?.int32Value ?? 0)
-                len = Int(desc.forKeyword(AEKeyword(0x4A4C656E))?.int32Value ?? 0)
-            } else if let dict = value as? [String: Int] {
-                loc = dict["location"] ?? 0
-                len = dict["length"] ?? 0
-            } else if let dict = value as? [AnyHashable: Any] {
-                loc = dict["location"] as? Int ?? 0
-                len = dict["length"] as? Int ?? 0
+        if key == "scriptingIsRichText" {
+            if let boolValue = value as? Bool {
+                scriptingIsRichText = boolValue
+            } else if let numValue = value as? NSNumber {
+                scriptingIsRichText = numValue.boolValue
             }
-            let maxLen = textStorage.length
-            let safeLoc = min(max(loc, 0), maxLen)
-            let safeLen = min(max(len, 0), maxLen - safeLoc)
-            textView.setSelectedRange(NSRange(location: safeLoc, length: safeLen))
-            textView.scrollRangeToVisible(NSRange(location: safeLoc, length: safeLen))
             return
         }
         super.setValue(value, forKey: key)

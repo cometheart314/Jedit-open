@@ -15,6 +15,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private var isTerminating = false
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
+        // AppleScript print コマンドの Apple Event ハンドラを登録
+        // Cocoa Scripting の handlePrintScriptCommand: ルーティングが機能しないため、
+        // Apple Event レベルで直接 print イベントを処理する
+        NSAppleEventManager.shared().setEventHandler(
+            self,
+            andSelector: #selector(handlePrintAppleEvent(_:withReplyEvent:)),
+            forEventClass: AEEventClass(kCoreEventClass),
+            andEventID: AEEventID(kAEPrintDocuments)
+        )
+
         // UserDefaultsのデフォルト値を登録
         UserDefaults.registerDefaults()
 
@@ -33,6 +43,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Edit > Import from iPhone or iPad メニューを設定
         setupImportFromDeviceMenuItem()
+
+        // Script メニューを設定
+        ScriptMenuController.shared.setupMenu()
 
         // Continuity Camera用: アプリが画像を受け取れることをServicesに登録
         let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
@@ -91,6 +104,75 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // 前回開いていたドキュメントを復元
         restoreOpenDocuments()
+    }
+
+    // MARK: - AppleScript Print Command
+
+    /// AppleScript の print コマンドを Apple Event レベルで処理する。
+    /// print document 1 [with properties {copies:2}] [print dialog true/false]
+    @objc func handlePrintAppleEvent(_ event: NSAppleEventDescriptor, withReplyEvent reply: NSAppleEventDescriptor) {
+        // direct-parameter からドキュメントを解決
+        let document: Document? = {
+            guard let directParam = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject)) else {
+                return nil
+            }
+            // object specifier → NSScriptObjectSpecifier → evaluate
+            if let specifier = NSScriptObjectSpecifier(descriptor: directParam),
+               let doc = specifier.objectsByEvaluatingSpecifier as? Document {
+                return doc
+            }
+            return nil
+        }()
+
+        // ドキュメントが解決できない場合は最前面ドキュメントにフォールバック
+        guard let targetDocument = document ?? NSDocumentController.shared.documents.first as? Document else {
+            return
+        }
+
+        // print dialog パラメータ（デフォルト: true）
+        var showPrintDialog = true
+        if let dialogDesc = event.paramDescriptor(forKeyword: AEKeyword(0x70646C67)) { // 'pdlg'
+            showPrintDialog = dialogDesc.booleanValue
+        }
+
+        // print settings を取得
+        // SDEF の record-type で定義されたキーワードコードと NSPrintInfo.AttributeKey の対応
+        let keywordToAttributeKey: [AEKeyword: NSPrintInfo.AttributeKey] = [
+            0x6C776370: .init(rawValue: "NSCopies"),           // 'lwcp' → copies
+            0x6C77636C: .init(rawValue: "NSMustCollate"),      // 'lwcl' → collating
+            0x6C776670: .init(rawValue: "NSFirstPage"),        // 'lwfp' → starting page
+            0x6C776C70: .init(rawValue: "NSLastPage"),         // 'lwlp' → ending page
+            0x6C776C61: .init(rawValue: "NSPagesAcross"),      // 'lwla' → pages across
+            0x6C776C64: .init(rawValue: "NSPagesDown"),        // 'lwld' → pages down
+            0x6C776568: .init(rawValue: "NSDetailedErrorReporting"), // 'lweh' → error handling
+            0x6661786E: .init(rawValue: "NSFaxNumber"),        // 'faxn' → fax number
+            0x74727072: .init(rawValue: "NSPrinterName"),      // 'trpr' → target printer
+        ]
+        var printSettings: [NSPrintInfo.AttributeKey: Any] = [:]
+        if let settingsDesc = event.paramDescriptor(forKeyword: AEKeyword(0x70726474)) { // 'prdt'
+            let count = settingsDesc.numberOfItems
+            for i in 1...max(count, 1) {
+                guard count > 0 else { break }
+                let keyword = settingsDesc.keywordForDescriptor(at: i)
+                guard keyword != 0, let valueDesc = settingsDesc.atIndex(i),
+                      let attrKey = keywordToAttributeKey[keyword] else { continue }
+                // 型に応じて値を変換
+                if let intVal = valueDesc.coerce(toDescriptorType: typeSInt32) {
+                    printSettings[attrKey] = Int(intVal.int32Value)
+                } else if let boolVal = valueDesc.coerce(toDescriptorType: typeBoolean) {
+                    printSettings[attrKey] = boolVal.booleanValue
+                } else if let strVal = valueDesc.stringValue {
+                    printSettings[attrKey] = strVal
+                }
+            }
+        }
+
+        // 印刷を実行
+        targetDocument.print(withSettings: printSettings,
+                            showPrintPanel: showPrintDialog,
+                            delegate: nil,
+                            didPrint: nil,
+                            contextInfo: nil)
     }
 
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {

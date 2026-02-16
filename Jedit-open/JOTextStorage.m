@@ -109,8 +109,40 @@ static NSString * const JOCantSeparateChars = @"CantSeparateChars";
         }
     }
 
+    // Undo 登録: 変更前の属性を保存して Undo マネージャに登録する
+    [self registerUndoForAttributesInRange:range];
+
     [mutableAttributedString setAttributes:attrs range:range];
     [self edited:NSTextStorageEditedAttributes range:range changeInLength:0];
+}
+
+/// 指定範囲の現在の属性を Undo マネージャに登録する
+- (void)registerUndoForAttributesInRange:(NSRange)range
+{
+    NSTextView *textView = [self firstTextView];
+    if (!textView) return;
+
+    NSUndoManager *undoManager = [textView undoManager];
+    if (!undoManager) return;
+
+    // 変更前の attributed string を保存
+    NSAttributedString *oldAttrs = [mutableAttributedString attributedSubstringFromRange:range];
+    NSRange savedRange = range;
+
+    [undoManager registerUndoWithTarget:self handler:^(JOTextStorage *target) {
+        [target->mutableAttributedString replaceCharactersInRange:savedRange withAttributedString:oldAttrs];
+        [target edited:NSTextStorageEditedAttributes range:savedRange changeInLength:0];
+    }];
+}
+
+/// layoutManagers 経由で最初の NSTextView を取得する
+- (nullable NSTextView *)firstTextView
+{
+    for (NSLayoutManager *lm in [self layoutManagers]) {
+        NSTextView *tv = [lm firstTextView];
+        if (tv) return tv;
+    }
+    return nil;
 }
 
 - (NSUInteger)lineBreakBeforeIndex:(NSUInteger)location withinRange:(NSRange)aRange
