@@ -1863,6 +1863,16 @@ class Document: NSDocument {
                 // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
                 self.applyLoadedDocumentAttributeViewSettings()
             }
+        } else if let omegaPresetData = JeditOmegaSettingImporter.importSettings(from: url) {
+            // JeditΩ の拡張属性が見つかった場合
+            MainActor.assumeIsolated {
+                self.presetData = omegaPresetData
+                // JeditΩ の印刷設定（orientation, margins, scale）を document の printInfo に直接適用
+                // paperSize は document の元の値を維持する
+                JeditOmegaSettingImporter.applyPrintSettings(from: url, to: self.printInfo)
+                // プレーンテキストの場合はBasic Fontを適用
+                self.applyBasicFontIfPlainText()
+            }
         } else {
             // 拡張属性がない場合は、ファイルタイプに応じたデフォルトのNewDocDataを設定
             MainActor.assumeIsolated {

@@ -530,10 +530,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         // スケールを適用
-        if let scrollView = scrollView1 {
-            scrollView.magnification = viewData.scale
-            scrollView.updateScaleDisplay()
-        }
+        scrollView1?.setZoomLevel(viewData.scale)
 
         // Editing Direction（縦書き/横書き）を適用
         let formatData = presetData.format
@@ -579,10 +576,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         updateLineNumberDisplay()
 
         // setupTextViews後にスケールを再適用（setupTextViewsで上書きされる可能性があるため）
-        if let scrollView = scrollView1 {
-            scrollView.magnification = viewData.scale
-            scrollView.updateScaleDisplay()
-        }
+        scrollView1?.setZoomLevel(viewData.scale)
 
         // ウィンドウサイズと位置を適用
         // プリセットから生成したドキュメントではウィンドウ復元機能を無効にして、
