@@ -1350,7 +1350,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         // TextKit 1 リスト表示バグの回避策を適用
-        fixTextListRenderingIfNeeded(in: textStorage)
+        // RTFD の場合、画像データの serialize/deserialize が重いため、
+        // ウィンドウ表示後に非同期で実行する
+        DispatchQueue.main.async { [weak self] in
+            self?.fixTextListRenderingIfNeeded(in: textStorage)
+        }
     }
 
     // MARK: - TextKit 1 List Rendering Workaround
