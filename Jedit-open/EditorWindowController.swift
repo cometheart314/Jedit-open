@@ -1354,6 +1354,48 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
             textViewObservers.append(selectionObserver)
         }
+
+        // TextKit 1 リスト表示バグの回避策を適用
+        fixTextListRenderingIfNeeded(in: textStorage)
+    }
+
+    // MARK: - TextKit 1 List Rendering Workaround
+
+    /// TextKit 1 の NSLayoutManager が RTF/RTFD 読み込み後に NSTextList 属性を
+    /// 正しくレンダリングしないバグを回避する。
+    /// RTF ラウンドトリップで再適用することでリスト表示を修復する。
+    private func fixTextListRenderingIfNeeded(in textStorage: NSTextStorage) {
+        // RTF/RTFD ドキュメントのみ対象
+        guard let docType = textDocument?.documentType,
+              (docType == .rtf || docType == .rtfd) else { return }
+        guard textStorage.length > 0 else { return }
+
+        // textStorage にリスト属性が含まれているか確認
+        var hasTextLists = false
+        textStorage.enumerateAttribute(.paragraphStyle, in: NSRange(location: 0, length: textStorage.length), options: [.longestEffectiveRangeNotRequired]) { value, _, stop in
+            if let style = value as? NSParagraphStyle, !style.textLists.isEmpty {
+                hasTextLists = true
+                stop.pointee = true
+            }
+        }
+        guard hasTextLists else { return }
+
+        // 新しく作成された textView に対して RTF ラウンドトリップを適用
+        if let textView = scrollView1?.documentView as? NSTextView {
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            do {
+                let rtfData = try textStorage.data(from: fullRange, documentAttributes: [
+                    .documentType: NSAttributedString.DocumentType.rtf
+                ])
+                textView.replaceCharacters(in: fullRange, withRTF: rtfData)
+            } catch {
+                #if DEBUG
+                Swift.print("fixTextListRenderingIfNeeded: RTF round-trip failed: \(error)")
+                #endif
+            }
+        }
+        // scrollView2 は同じ textStorage を共有しているため、
+        // textStorage への修正は自動的に反映される（追加の処理不要）
     }
 
     /// 行番号ビューをセットアップ

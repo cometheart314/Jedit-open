@@ -73,8 +73,6 @@
                 <outlet property="tabWidthField" destination="ZRo-t7-Nwa" id="VJi-Xv-f3C"/>
                 <outlet property="tabWidthStepper" destination="wFd-jE-1xU" id="tws-stp-out"/>
                 <outlet property="tabWidthUnitPopup" destination="WhX-pX-Itz" id="twu-pop-out"/>
-                <outlet property="writingGoalTargetField" destination="hCA-SS-oBQ" id="wgt-fld-out"/>
-                <outlet property="writingGoalMethodPopup" destination="9tt-l6-J18" id="wgm-pop-out"/>
                 <outlet property="textColorWell" destination="khm-tZ-ig1" id="TFs-5v-pzr"/>
                 <outlet property="textStyleMatrix" destination="oPo-f2-5W5" id="NQV-7b-Wwi"/>
                 <outlet property="themePopupButton" destination="i32-qM-aHn" id="tpb-out-001"/>
@@ -86,6 +84,8 @@
                 <outlet property="windowWidthField" destination="Byx-wk-7aV" id="GCh-wt-kVw"/>
                 <outlet property="wordWrapPopup" destination="Fv2-2l-Xxv" id="UM9-e2-fjL"/>
                 <outlet property="wrappedLineIndentField" destination="fAa-3F-WrF" id="wli-fld-out"/>
+                <outlet property="writingGoalMethodPopup" destination="9tt-l6-J18" id="wgm-pop-out"/>
+                <outlet property="writingGoalTargetField" destination="hCA-SS-oBQ" id="wgt-fld-out"/>
             </connections>
         </customObject>
         <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
@@ -1118,7 +1118,6 @@
                                             <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <!-- Writing Goal Label -->
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iAP-w7-FWF">
                                         <rect key="frame" x="30" y="113" width="67" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -1128,7 +1127,6 @@
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <!-- Writing Goal Target Field -->
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hCA-SS-oBQ">
                                         <rect key="frame" x="98" y="112" width="70" height="16"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -1137,7 +1135,7 @@
                                                 <attributedString key="attributedStringForZero">
                                                     <fragment content="0"/>
                                                 </attributedString>
-                                                <real key="minimum" value="0"/>
+                                                <real key="minimum" value="0.0"/>
                                                 <decimal key="maximum" value="9999999"/>
                                             </numberFormatter>
                                             <font key="font" metaFont="miniSystem"/>
@@ -1145,7 +1143,6 @@
                                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                         </textFieldCell>
                                     </textField>
-                                    <!-- Writing Goal Count Method Popup -->
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="9tt-l6-J18">
                                         <rect key="frame" x="172" y="111" width="160" height="16"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -1154,13 +1151,12 @@
                                             <font key="font" metaFont="miniSystem"/>
                                             <menu key="menu" id="k4f-FG-IZj">
                                                 <items>
-                                                    <menuItem title="Visible Characters" state="on" tag="0" id="wg-item0"/>
+                                                    <menuItem title="Visible Characters" state="on" id="wg-item0"/>
                                                     <menuItem title="Manuscript Pages (400 chars)" tag="1" id="wg-item1"/>
                                                 </items>
                                             </menu>
                                         </popUpButtonCell>
                                     </popUpButton>
-                                    <!-- (0 = No goal) hint -->
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="o2I-ON-Cp7">
                                         <rect key="frame" x="336" y="113" width="80" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
@@ -1668,7 +1664,7 @@
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="Yxb-EA-UHh">
                                             <rect key="frame" x="1" y="1" width="474" height="103"/>
-                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="MCd-yq-CCl">
                                                     <rect key="frame" x="0.0" y="0.0" width="474" height="103"/>
@@ -1809,7 +1805,7 @@
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <clipView key="contentView" drawsBackground="NO" id="vCn-fD-0uC">
                                             <rect key="frame" x="1" y="1" width="474" height="104"/>
-                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="dYM-gi-Wc0">
                                                     <rect key="frame" x="0.0" y="0.0" width="474" height="104"/>
