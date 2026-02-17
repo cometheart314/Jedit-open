@@ -14,6 +14,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private var hasHandledStartup = false
     private var isTerminating = false
 
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        // NSDocumentController.shared が初めてアクセスされる前にサブクラスをインスタンス化する。
+        // NSDocumentController の init が自身を shared として登録する。
+        _ = JeditDocumentController()
+    }
+
     func applicationDidFinishLaunching(_ aNotification: Notification) {
         // AppleScript print コマンドの Apple Event ハンドラを登録
         // Cocoa Scripting の handlePrintScriptCommand: ルーティングが機能しないため、
