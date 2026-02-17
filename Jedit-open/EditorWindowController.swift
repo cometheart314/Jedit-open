@@ -1374,18 +1374,40 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
         guard hasTextLists else { return }
 
-        // 新しく作成された textView に対して RTF ラウンドトリップを適用
+        // 新しく作成された textView に対して RTF/RTFD ラウンドトリップを適用
         if let textView = scrollView1?.documentView as? NSTextView {
+            // RTFD の場合、ラウンドトリップで添付ファイルの bounds 情報が失われるため保存
+            let savedBoundsInfo: [AttachmentBoundsInfo]?
+            if docType == .rtfd {
+                savedBoundsInfo = textDocument?.collectAttachmentBoundsMetadata()
+            } else {
+                savedBoundsInfo = nil
+            }
+
             let fullRange = NSRange(location: 0, length: textStorage.length)
             do {
-                let rtfData = try textStorage.data(from: fullRange, documentAttributes: [
-                    .documentType: NSAttributedString.DocumentType.rtf
-                ])
-                textView.replaceCharacters(in: fullRange, withRTF: rtfData)
+                if docType == .rtfd {
+                    // RTFD: 添付ファイル（画像・図形）を保持するため RTFD フォーマットを使用
+                    let rtfdData = try textStorage.data(from: fullRange, documentAttributes: [
+                        .documentType: NSAttributedString.DocumentType.rtfd
+                    ])
+                    textView.replaceCharacters(in: fullRange, withRTFD: rtfdData)
+                } else {
+                    // RTF: 添付ファイルなしの場合は RTF フォーマットを使用
+                    let rtfData = try textStorage.data(from: fullRange, documentAttributes: [
+                        .documentType: NSAttributedString.DocumentType.rtf
+                    ])
+                    textView.replaceCharacters(in: fullRange, withRTF: rtfData)
+                }
             } catch {
                 #if DEBUG
-                Swift.print("fixTextListRenderingIfNeeded: RTF round-trip failed: \(error)")
+                Swift.print("fixTextListRenderingIfNeeded: RTF/RTFD round-trip failed: \(error)")
                 #endif
+            }
+
+            // RTFD ラウンドトリップで失われた添付ファイルの bounds 情報を復元
+            if let boundsInfo = savedBoundsInfo, !boundsInfo.isEmpty {
+                textDocument?.applyAttachmentBoundsMetadata(boundsInfo)
             }
         }
         // scrollView2 は同じ textStorage を共有しているため、

@@ -797,7 +797,7 @@ class Document: NSDocument {
     // MARK: - Attachment Bounds Metadata
 
     /// 画像attachmentのbounds情報を収集
-    private func collectAttachmentBoundsMetadata() -> [AttachmentBoundsInfo] {
+    func collectAttachmentBoundsMetadata() -> [AttachmentBoundsInfo] {
         var boundsInfoList: [AttachmentBoundsInfo] = []
 
         textStorage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: textStorage.length)) { value, range, _ in
@@ -821,7 +821,7 @@ class Document: NSDocument {
     }
 
     /// 画像attachmentにbounds情報を適用
-    private func applyAttachmentBoundsMetadata(_ boundsInfoList: [AttachmentBoundsInfo]) {
+    func applyAttachmentBoundsMetadata(_ boundsInfoList: [AttachmentBoundsInfo]) {
         // attachmentを置き換えてboundsを適用する
         // 単にboundsを設定するだけでは表示に反映されないため、attachmentごと置き換える
 
