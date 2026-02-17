@@ -491,6 +491,9 @@ class Document: NSDocument {
     /// presetData が変更されたかどうか（保存時に拡張属性を更新するためのフラグ）
     var presetDataEdited: Bool = false
 
+    /// Finder ロックファイルの処理済みフラグ（updateChangeCount での重複処理防止用）
+    private var isLockedFileHandled: Bool = false
+
     /// 印刷パネルアクセサリコントローラ（印刷操作中の保持用）
     private var printAccessoryController: PrintPanelAccessoryController?
 
@@ -615,6 +618,26 @@ class Document: NSDocument {
 
     override nonisolated class var autosavesInPlace: Bool {
         return true
+    }
+
+    /// Finder でロックされたファイルの場合は変更カウント更新をブロックし、
+    /// _checkAutosavingThenUpdateChangeCount: による autosave 安全性チェック
+    /// （Unlock/Duplicate/Cancel ダイアログ）の発生を防ぐ
+    override func updateChangeCount(_ change: NSDocument.ChangeType) {
+        if self.isLocked {
+            if !isLockedFileHandled {
+                // 初回のみ編集ロック処理を実行
+                isLockedFileHandled = true
+                presetData?.view.preventEditing = true
+                for wc in windowControllers {
+                    if let editorWC = wc as? EditorWindowController {
+                        editorWC.setAllTextViewsEditable(false)
+                    }
+                }
+            }
+            return  // ロック中は変更カウント更新をすべてブロック → autosave チェックが発生しない
+        }
+        super.updateChangeCount(change)
     }
 
     // MARK: - Window Controllers

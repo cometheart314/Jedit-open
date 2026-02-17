@@ -4889,6 +4889,19 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    /// 全テキストビューの isEditable を設定する（Finder ロックファイル対応で Document から呼ばれる）
+    func setAllTextViewsEditable(_ editable: Bool) {
+        var views: [NSTextView] = []
+        if let tv = scrollView1?.documentView as? NSTextView { views.append(tv) }
+        if let tv = scrollView2?.documentView as? NSTextView { views.append(tv) }
+        views.append(contentsOf: textViews1)
+        views.append(contentsOf: textViews2)
+        for textView in views {
+            textView.isEditable = editable
+        }
+        updateEditLockButtons()
+    }
+
     /// 編集ロック状態を実際に変更する
     private func performSetPreventEditing(editable: Bool) {
         var views: [NSTextView] = []
