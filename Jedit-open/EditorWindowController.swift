@@ -2113,11 +2113,35 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if let textStorage = textDocument?.textStorage {
             textStorage.setLineBreakingType(type.rawValue)
 
-            // lineBreakBeforeIndex:withinRange: の結果が変わるため、
-            // 全レイアウトマネージャーに再レイアウトを指示する
-            let fullRange = NSRange(location: 0, length: textStorage.length)
-            for layoutManager in textStorage.layoutManagers {
-                layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+            if displayMode == .page {
+                // ページ表示モードでは、invalidateLayout が didCompleteLayoutFor デリゲートを
+                // 繰り返し呼び出し、ページ追加が無限ループになる問題を防ぐため、
+                // デリゲートコールバックを一時的に抑制してから再レイアウトを行う
+                isChangingLayoutOrientation = true
+                let fullRange = NSRange(location: 0, length: textStorage.length)
+                for layoutManager in textStorage.layoutManagers {
+                    layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+                }
+                isChangingLayoutOrientation = false
+
+                // 遅延してレイアウトを再計算（didCompleteLayoutFor が正常に動作するタイミングで）
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    // クールダウンをリセットして再レイアウトを許可
+                    self.layoutCooldownUntil = nil
+                    // 各レイアウトマネージャーの最初のコンテナでレイアウトを再実行
+                    for layoutManager in textStorage.layoutManagers {
+                        if let firstContainer = layoutManager.textContainers.first {
+                            layoutManager.ensureLayout(for: firstContainer)
+                        }
+                    }
+                }
+            } else {
+                // Continuous モードでは直接 invalidateLayout を呼ぶ
+                let fullRange = NSRange(location: 0, length: textStorage.length)
+                for layoutManager in textStorage.layoutManagers {
+                    layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+                }
             }
         }
 
