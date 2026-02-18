@@ -271,6 +271,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             name: NSNotification.Name("RichTextLightModeSettingChanged"),
             object: nil
         )
+
+        // ファイル読み込み〜applyPresetData() の過程で textStorage が変更され、
+        // UndoManager にアクションが記録される。RunLoop 終了時に
+        // _endTopLevelGroupings 経由で changeDone が発火して "Edited" マークがつくため、
+        // 次のイベントループで UndoManager をクリアし、変更カウントもリセットする。
+        (document as? Document)?.scheduleFinishInitialLoading()
     }
 
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {

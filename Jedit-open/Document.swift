@@ -671,6 +671,18 @@ class Document: NSDocument {
         windowController.window?.invalidateRestorableState()
     }
 
+    /// ファイル読み込み〜初期設定完了後の "Edited" マーク解除をスケジュールする。
+    /// EditorWindowController.windowDidLoad() の最後から呼ばれる。
+    /// perform(_:with:afterDelay:) で次のイベントループに遅延実行し、
+    /// _endTopLevelGroupings による changeDone 発火後に変更カウントをリセットする。
+    func scheduleFinishInitialLoading() {
+        perform(#selector(finishInitialLoading), with: nil, afterDelay: 0)
+    }
+
+    @objc private func finishInitialLoading() {
+        updateChangeCount(.changeCleared)
+    }
+
     // MARK: - Helper Methods
 
     private func findTextView(in view: NSView) -> NSTextView? {
