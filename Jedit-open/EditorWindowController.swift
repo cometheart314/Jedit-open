@@ -2112,6 +2112,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // JOTextStorageに反映
         if let textStorage = textDocument?.textStorage {
             textStorage.setLineBreakingType(type.rawValue)
+
+            // lineBreakBeforeIndex:withinRange: の結果が変わるため、
+            // 全レイアウトマネージャーに再レイアウトを指示する
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            for layoutManager in textStorage.layoutManagers {
+                layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+            }
         }
 
         // 文書幅を再計算してレイアウトを更新
