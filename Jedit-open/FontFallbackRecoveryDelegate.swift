@@ -72,9 +72,13 @@ class FontFallbackRecoveryDelegate: NSObject, NSTextStorageDelegate {
         }
 
         if needsUpdate {
+            // Undo 登録を無効化して、NSTextView の自動 Undo グルーピングを壊さないようにする
+            let undoManager = textStorage.layoutManagers.first?.firstTextView?.undoManager
+            undoManager?.disableUndoRegistration()
             isProcessingParagraphStyle = true
             textStorage.addAttribute(.paragraphStyle, value: changedStyle, range: fullRange)
             isProcessingParagraphStyle = false
+            undoManager?.enableUndoRegistration()
         }
     }
 
@@ -114,9 +118,15 @@ class FontFallbackRecoveryDelegate: NSObject, NSTextStorageDelegate {
         }
 
         // フォント復帰処理
+        // Undo 登録を無効化して、NSTextView の自動 Undo グルーピングを壊さないようにする。
+        // willProcessEditing 内での属性変更が個別の Undo アクションとして記録されると、
+        // 連続したキー入力が1文字ずつ Undo される問題が発生する。
+        let undoManager = textStorage.layoutManagers.first?.firstTextView?.undoManager
+        undoManager?.disableUndoRegistration()
         isProcessingFontRecovery = true
         textStorage.addAttribute(.font, value: recoveryFont, range: editedRange)
         isProcessingFontRecovery = false
+        undoManager?.enableUndoRegistration()
     }
 
     // MARK: - Font Recovery Logic

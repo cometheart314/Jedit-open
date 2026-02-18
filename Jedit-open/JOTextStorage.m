@@ -109,30 +109,12 @@ static NSString * const JOCantSeparateChars = @"CantSeparateChars";
         }
     }
 
-    // Undo 登録: 変更前の属性を保存して Undo マネージャに登録する
-    [self registerUndoForAttributesInRange:range];
+    // Note: NSTextView (allowsUndo=YES) が文字と属性の両方の変更を Undo 管理するため、
+    // textStorage レベルでの手動 Undo 登録は不要。手動登録すると NSTextView の
+    // 自動 Undo グルーピングが壊れ、連続入力が1文字ずつ Undo される問題が発生する。
 
     [mutableAttributedString setAttributes:attrs range:range];
     [self edited:NSTextStorageEditedAttributes range:range changeInLength:0];
-}
-
-/// 指定範囲の現在の属性を Undo マネージャに登録する
-- (void)registerUndoForAttributesInRange:(NSRange)range
-{
-    NSTextView *textView = [self firstTextView];
-    if (!textView) return;
-
-    NSUndoManager *undoManager = [textView undoManager];
-    if (!undoManager) return;
-
-    // 変更前の attributed string を保存
-    NSAttributedString *oldAttrs = [mutableAttributedString attributedSubstringFromRange:range];
-    NSRange savedRange = range;
-
-    [undoManager registerUndoWithTarget:self handler:^(JOTextStorage *target) {
-        [target->mutableAttributedString replaceCharactersInRange:savedRange withAttributedString:oldAttrs];
-        [target edited:NSTextStorageEditedAttributes range:savedRange changeInLength:0];
-    }];
 }
 
 /// layoutManagers 経由で最初の NSTextView を取得する

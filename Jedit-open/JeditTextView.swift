@@ -1208,9 +1208,11 @@ class JeditTextView: NSTextView {
                 let mutableStyle = (currentStyle?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
                 mutableStyle.textLists = []
 
-                // 全文に適用
+                // 全文に適用（Undo グルーピングを壊さないよう Undo 登録を無効化）
                 let fullRange = NSRange(location: 0, length: textStorage.length)
+                undoManager?.disableUndoRegistration()
                 textStorage.addAttribute(.paragraphStyle, value: mutableStyle, range: fullRange)
+                undoManager?.enableUndoRegistration()
             }
         } else if let currentStyle = currentStyle {
             // リストがない場合、段落スタイル（Line Spacingなど）を全文に適用
@@ -1235,7 +1237,10 @@ class JeditTextView: NSTextView {
         // 現在のスタイルと同じかどうかを確認（最初の文字の段落スタイルと比較）
         let firstCharStyle = textStorage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
         if firstCharStyle != newStyle {
+            // Undo 登録を無効化して、NSTextView の自動 Undo グルーピングを壊さないようにする
+            undoManager?.disableUndoRegistration()
             textStorage.addAttribute(.paragraphStyle, value: newStyle, range: fullRange)
+            undoManager?.enableUndoRegistration()
         }
     }
 

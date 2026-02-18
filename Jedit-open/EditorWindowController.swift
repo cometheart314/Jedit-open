@@ -4286,8 +4286,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 文字幅を再計算
         let charWidth = basicCharWidth(from: font)
 
-        // プレーンテキストの場合、全文にBasic Fontを適用
+        // プレーンテキストの場合、全文にBasic Fontを適用し、typingAttributesも更新
         if textDocument?.documentType == .plain {
+            applyFontToTextViews(font)
             if let textStorage = textDocument?.textStorage {
                 let range = NSRange(location: 0, length: textStorage.length)
                 textStorage.addAttribute(.font, value: font, range: range)
