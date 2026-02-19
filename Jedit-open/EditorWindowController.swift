@@ -35,6 +35,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // MARK: - Toolbar Item Identifiers
 
+    private static let findToolbarItemIdentifier = NSToolbarItem.Identifier("FindItem")
     private static let encodingToolbarItemIdentifier = NSToolbarItem.Identifier("EncodingItem")
     private static let lineEndingToolbarItemIdentifier = NSToolbarItem.Identifier("LineEndingItem")
     private static let writingProgressToolbarItemIdentifier = NSToolbarItem.Identifier("WritingProgressItem")
@@ -5686,9 +5687,26 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    // MARK: - Find Toolbar Item
+
+    /// 検索ツールバーアイテムを作成
+    private func createFindToolbarItem() -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: Self.findToolbarItemIdentifier)
+        item.label = NSLocalizedString("Find", comment: "Toolbar item label")
+        item.paletteLabel = NSLocalizedString("Find", comment: "Toolbar item palette label")
+        item.toolTip = NSLocalizedString("Show Find Bar", comment: "Toolbar item tooltip")
+        item.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: "Find")
+        item.target = nil  // レスポンダチェーンを通じて送信
+        item.action = #selector(showFindBar(_:))
+        return item
+    }
+
     // MARK: - NSToolbarDelegate
 
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
+        if itemIdentifier == Self.findToolbarItemIdentifier {
+            return createFindToolbarItem()
+        }
         if itemIdentifier == Self.encodingToolbarItemIdentifier {
             return createEncodingToolbarItem()
         }
@@ -5708,6 +5726,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             .showColors,
             .showFonts,
             .print,
+            Self.findToolbarItemIdentifier,
             Self.encodingToolbarItemIdentifier,
             Self.lineEndingToolbarItemIdentifier,
             Self.writingProgressToolbarItemIdentifier
