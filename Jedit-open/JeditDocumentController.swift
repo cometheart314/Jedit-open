@@ -17,9 +17,25 @@ class JeditDocumentController: NSDocumentController {
     /// ポップアップで選択されたプリセットインデックス（-1 = 未選択、-2 = Clipboard）
     private var selectedPresetIndex: Int = -1
 
+    /// 起動処理が完了するまで openDocument を抑制するフラグ
+    var suppressOpenPanel = true
+
+    // MARK: - Open Document Override
+
+    override func openDocument(_ sender: Any?) {
+        if suppressOpenPanel { return }
+        super.openDocument(sender)
+    }
+
     // MARK: - Open Panel Override
 
     override func runModalOpenPanel(_ openPanel: NSOpenPanel, forTypes types: [String]?) -> Int {
+        // 起動時の自動呼び出しを抑制
+        // macOS の State Restoration 完了ハンドラから非同期で呼ばれるケースに対応
+        if suppressOpenPanel {
+            return NSApplication.ModalResponse.cancel.rawValue
+        }
+
         // アクセサリビューに「New」ポップアップボタンを設定
         openPanel.accessoryView = createNewDocumentAccessoryView()
         openPanel.isAccessoryViewDisclosed = true

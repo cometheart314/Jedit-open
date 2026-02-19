@@ -60,6 +60,15 @@ extension UserDefaults {
         static let cantBeEndChars = "CantBeEndChars"
         static let burasagariChars = "BurasagariChars"
         static let cantSeparateChars = "CantSeparateChars"
+
+        // Find Bar
+        static let findSearchHistory = "findSearchHistory"
+        static let findReplaceHistory = "findReplaceHistory"
+        static let findSavedPatterns = "findSavedPatterns"
+        static let findCaseSensitive = "findCaseSensitive"
+        static let findUseRegex = "findUseRegex"
+        static let findWholeWord = "findWholeWord"
+        static let findWrapAround = "findWrapAround"
     }
 
     /// スケールメニューのデフォルト値
@@ -115,7 +124,14 @@ extension UserDefaults {
             Keys.cantBeTopChars: "、。，．・：；？！゛゜´｀¨ヽヾゝゞ々ー）］｝〕〉》」』】°′″℃¢％‰",
             Keys.cantBeEndChars: "（［｛〔〈《「『【",
             Keys.burasagariChars: "、。，．",
-            Keys.cantSeparateChars: "—…‥"
+            Keys.cantSeparateChars: "—…‥",
+            // Find Bar
+            Keys.findSearchHistory: [String](),
+            Keys.findReplaceHistory: [String](),
+            Keys.findCaseSensitive: false,
+            Keys.findUseRegex: false,
+            Keys.findWholeWord: false,
+            Keys.findWrapAround: true
         ])
     }
 }

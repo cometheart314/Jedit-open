@@ -109,7 +109,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         )
 
         // 前回開いていたドキュメントを復元
-        restoreOpenDocuments()
+        let didRestore = restoreOpenDocuments()
+
+        // startup 処理済みフラグをセット
+        hasHandledStartup = true
+
+        // 復元ドキュメントがない場合のみ startupOption を処理
+        if !didRestore {
+            let startupResult = handleStartupOption()
+            if startupResult == .newDocument {
+                // Default プリセットで新規書類を作成
+                let menuItem = NSMenuItem()
+                menuItem.tag = 0
+                newDocumentWithPreset(menuItem)
+            } else if startupResult == .openPanel {
+                // ユーザーが startupOption で Open Panel を指定した場合は
+                // suppressOpenPanel を解除してから開く
+                (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
+                DispatchQueue.main.async {
+                    NSDocumentController.shared.openDocument(nil)
+                }
+            }
+        }
+
+        // 起動時の Open Panel 抑制を解除
+        // macOS の State Restoration（_reopenWindowsAsNecessaryIncludingRestorableState:）が
+        // 非同期の完了ハンドラ内から _doOpenUntitled → openDocument: を呼ぶため、
+        // applicationDidFinishLaunching 完了後もしばらく待つ必要がある。
+        // runModalOpenPanel にも抑制チェックを入れているため、二重の安全策となる。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+            (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
+        }
     }
 
     // MARK: - AppleScript Print Command
@@ -244,10 +274,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     /// 前回開いていたドキュメントを復元
-    private func restoreOpenDocuments() {
+    /// - Returns: 復元すべきドキュメントがあり、復元処理を行った場合 true
+    @discardableResult
+    private func restoreOpenDocuments() -> Bool {
         guard let savedURLs = UserDefaults.standard.stringArray(forKey: UserDefaults.Keys.openDocumentURLs),
               !savedURLs.isEmpty else {
-            return
+            return false
         }
 
         // 保存されたURLリストをクリア（復元は一度だけ）
@@ -255,7 +287,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Shiftキーが押されている場合は復元をスキップ（壊れたファイルによるフリーズ対策）
         if NSEvent.modifierFlags.contains(.shift) {
-            return
+            return false
         }
 
         for savedURL in savedURLs {
@@ -275,6 +307,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
             }
         }
+        return true
     }
 
     func applicationSupportsSecureRestorableState(_ app: NSApplication) -> Bool {
@@ -284,41 +317,60 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     // MARK: - Application Open Handling
 
     func applicationShouldOpenUntitledFile(_ sender: NSApplication) -> Bool {
-        // 起動時のオプションに応じて処理
+        // 起動時は常に false を返す。
+        // startupOption の処理は applicationDidFinishLaunching で
+        // restoreOpenDocuments() の後に行う。
+        // これにより、ドキュメント復元前にダイアログが表示される問題を防ぐ。
         if !hasHandledStartup {
-            hasHandledStartup = true
-            return handleStartupOption()
+            return false
         }
         // 起動後は applicationShouldHandleReopen で処理するため false を返す
         return false
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        // 既にウィンドウが表示されている場合は何もしない（デフォルト動作）
+        // 既にウィンドウが表示されている場合は何もしない
         if flag {
-            return true
+            return false
         }
 
         // ウィンドウがない場合、startupOption に従って処理
-        return handleStartupOption()
+        let action = handleStartupOption()
+        switch action {
+        case .newDocument:
+            // Default プリセットで新規書類を作成
+            let menuItem = NSMenuItem()
+            menuItem.tag = 0
+            newDocumentWithPreset(menuItem)
+            return false
+        case .openPanel:
+            NSDocumentController.shared.openDocument(nil)
+            return false
+        case .doNothing:
+            return false
+        }
     }
 
-    /// startupOption に応じた処理を実行
-    /// - Returns: 新規書類を開くべきかどうか
-    private func handleStartupOption() -> Bool {
+    /// startupOption の処理結果
+    private enum StartupAction {
+        case doNothing
+        case newDocument
+        case openPanel
+    }
+
+    /// startupOption に応じた処理を決定
+    /// - Returns: 実行すべきアクション
+    private func handleStartupOption() -> StartupAction {
         let startupOption = UserDefaults.standard.integer(forKey: UserDefaults.Keys.startupOption)
         switch startupOption {
         case 0: // Do Nothing
-            return false
+            return .doNothing
         case 1: // Open New Document
-            return true
+            return .newDocument
         case 2: // Show Open Panel
-            DispatchQueue.main.async {
-                NSDocumentController.shared.openDocument(nil)
-            }
-            return false
+            return .openPanel
         default:
-            return false
+            return .doNothing
         }
     }
 

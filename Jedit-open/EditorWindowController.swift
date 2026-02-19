@@ -56,6 +56,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     private var imageResizeController: ImageResizeController?
 
+    // MARK: - Find Bar
+
+    private var findBarViewController: FindBarViewController?
+    private var splitViewTopConstraint: NSLayoutConstraint?
+
     // MARK: - Properties
 
     var textDocument: Document? {
@@ -234,6 +239,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // アピアランス変更を監視
         if let window = self.window {
             window.contentView?.addObserver(self, forKeyPath: "effectiveAppearance", options: [.new], context: nil)
+        }
+
+        // splitView の上端制約を保存（Find Bar 挿入用）
+        if let contentView = window?.contentView, let splitView = self.splitView {
+            for constraint in contentView.constraints {
+                if let firstItem = constraint.firstItem as? NSView,
+                   firstItem === splitView,
+                   constraint.firstAttribute == .top {
+                    splitViewTopConstraint = constraint
+                    break
+                }
+            }
         }
 
         // ツールバーのセットアップ（コードで作成）
@@ -1157,7 +1174,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.autoresizingMask = []
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
-            textView.usesFindBar = true
+            textView.usesFindBar = false
             textView.isIncrementalSearchingEnabled = true
             // textContainerInsetで左右と上下のインセットを設定
             textView.textContainerInset = containerInset
@@ -1278,7 +1295,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.autoresizingMask = []
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
-            textView.usesFindBar = true
+            textView.usesFindBar = false
             textView.isIncrementalSearchingEnabled = true
             // textContainerInsetで左右と上下のインセットを設定
             textView.textContainerInset = containerInset
@@ -1793,7 +1810,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
             textView.usesInspectorBar = isInspectorBarVisible
             textView.usesRuler = true
-            textView.usesFindBar = true
+            textView.usesFindBar = false
             textView.isIncrementalSearchingEnabled = true
             // 縦書き/横書きレイアウトを適用
             textView.setLayoutOrientation(isVerticalLayout ? .vertical : .horizontal)
@@ -3324,7 +3341,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
         textView.usesInspectorBar = isInspectorBarVisible
         textView.usesRuler = true
-        textView.usesFindBar = true
+        textView.usesFindBar = false
         textView.isIncrementalSearchingEnabled = true
         // ImageResizeControllerを設定
         textView.imageResizeController = imageResizeController
@@ -6041,6 +6058,139 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         case 0xFFFD: return "REP"    // Replacement Character
         default: return nil
         }
+    }
+
+    // MARK: - Find Bar
+
+    @objc func showFindBar(_ sender: Any?) {
+        presentFindBar(replaceMode: false)
+    }
+
+    @objc func showFindAndReplaceBar(_ sender: Any?) {
+        presentFindBar(replaceMode: true)
+    }
+
+    @objc func performFindNext(_ sender: Any?) {
+        if let findBar = findBarViewController, findBar.view.superview != nil {
+            findBar.findNext()
+        } else {
+            presentFindBar(replaceMode: false)
+        }
+    }
+
+    @objc func performFindPrevious(_ sender: Any?) {
+        if let findBar = findBarViewController, findBar.view.superview != nil {
+            findBar.findPrevious()
+        } else {
+            presentFindBar(replaceMode: false)
+        }
+    }
+
+    @objc func useSelectionForFind(_ sender: Any?) {
+        guard let textView = currentTextView() else { return }
+        let selectedRange = textView.selectedRange()
+        guard selectedRange.length > 0 else { return }
+
+        let selectedText = (textView.string as NSString).substring(with: selectedRange)
+
+        // macOS 標準の Find Pasteboard にコピー
+        let findPasteboard = NSPasteboard(name: .find)
+        findPasteboard.clearContents()
+        findPasteboard.setString(selectedText, forType: .string)
+
+        if let findBar = findBarViewController, findBar.view.superview != nil {
+            findBar.setSearchText(selectedText)
+        }
+    }
+
+    private func presentFindBar(replaceMode: Bool) {
+        guard let contentView = window?.contentView, let splitView = self.splitView else { return }
+
+        if findBarViewController == nil {
+            findBarViewController = FindBarViewController()
+            findBarViewController!.delegate = self
+        }
+
+        let findBar = findBarViewController!
+
+        if findBar.view.superview == nil {
+            let findBarView = findBar.view
+            findBarView.translatesAutoresizingMaskIntoConstraints = false
+            contentView.addSubview(findBarView)
+
+            // 既存の splitView.top = contentView.top 制約を無効化
+            splitViewTopConstraint?.isActive = false
+
+            // Find Bar の制約を設定
+            NSLayoutConstraint.activate([
+                findBarView.topAnchor.constraint(equalTo: contentView.topAnchor),
+                findBarView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+                findBarView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+                splitView.topAnchor.constraint(equalTo: findBarView.bottomAnchor),
+            ])
+
+            // テキストストレージの変更を監視
+            findBar.observeTextStorage(textDocument?.textStorage)
+        }
+
+        findBar.setReplaceMode(replaceMode)
+
+        // 選択テキストがあれば検索フィールドにセット
+        if let textView = currentTextView() {
+            let selectedRange = textView.selectedRange()
+            if selectedRange.length > 0 && selectedRange.length < 200 {
+                let selectedText = (textView.string as NSString).substring(with: selectedRange)
+                if !selectedText.contains("\n") {
+                    findBar.setSearchText(selectedText)
+                }
+            }
+        }
+
+        findBar.focusSearchField()
+    }
+
+    private func dismissFindBar() {
+        guard let findBarView = findBarViewController?.view,
+              findBarView.superview != nil,
+              let contentView = window?.contentView,
+              let splitView = self.splitView else { return }
+
+        // ハイライトをクリア
+        findBarViewController?.clearSearch()
+
+        // Find Bar を削除
+        findBarView.removeFromSuperview()
+
+        // 元の制約を復元: splitView.top = contentView.top
+        let newTopConstraint = splitView.topAnchor.constraint(equalTo: contentView.topAnchor)
+        newTopConstraint.isActive = true
+        splitViewTopConstraint = newTopConstraint
+
+        // テキストビューにフォーカスを戻す
+        if let textView = currentTextView() {
+            window?.makeFirstResponder(textView)
+        }
+    }
+}
+
+// MARK: - FindBarDelegate
+
+extension EditorWindowController: FindBarDelegate {
+
+    func findBarCurrentTextView() -> NSTextView? {
+        return currentTextView()
+    }
+
+    func findBarTextStorage() -> NSTextStorage? {
+        return textDocument?.textStorage
+    }
+
+    func findBarAllLayoutManagers() -> [NSLayoutManager] {
+        return textDocument?.textStorage.layoutManagers ?? []
+    }
+
+    func findBarDidClose() {
+        dismissFindBar()
     }
 }
 
