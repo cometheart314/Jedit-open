@@ -28,6 +28,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
     // Find row
     private let searchField = NSSearchField()
+    private let insertPatternButton = NSButton()
     private let previousButton = NSButton()
     private let nextButton = NSButton()
     private let matchCountLabel = NSTextField(labelWithString: "")
@@ -247,6 +248,153 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         delegate?.findBarDidClose()
     }
 
+    @objc private func showInsertPatternMenu(_ sender: NSButton) {
+        let menu = NSMenu()
+
+        // --- 特殊文字セクション ---
+        let specialHeader = NSMenuItem(title: NSLocalizedString("Special Characters", comment: ""), action: nil, keyEquivalent: "")
+        specialHeader.isEnabled = false
+        menu.addItem(specialHeader)
+
+        let specialCharacters: [(symbol: String, title: String, insertion: String)] = [
+            ("▸", "Tab", "\\t"),
+            ("↩", "Return", "\\n"),
+            ("↓", "Line Break", "\\x{2028}"),
+            ("╍", "Page Break", "\\f"),
+        ]
+
+        for item in specialCharacters {
+            let menuItem = NSMenuItem()
+            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol, title: item.title)
+            menuItem.representedObject = item.insertion
+            menuItem.target = self
+            menuItem.action = #selector(insertRegexPatternFromMenu(_:))
+            menu.addItem(menuItem)
+        }
+
+        menu.addItem(.separator())
+
+        // --- 正規表現パターンセクション ---
+        let regexHeader = NSMenuItem(title: NSLocalizedString("Regex Patterns", comment: ""), action: nil, keyEquivalent: "")
+        regexHeader.isEnabled = false
+        menu.addItem(regexHeader)
+
+        let regexPatterns: [(symbol: String, title: String, insertion: String)] = [
+            ("Any", "Any Characters", "."),
+            ("Word", "Any Word Characters", "\\w"),
+            ("Break", "Word Break", "\\b"),
+            ("", "White Space", "\\s"),
+            ("#", "Digits", "\\d"),
+        ]
+
+        for item in regexPatterns {
+            let menuItem = NSMenuItem()
+            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol, title: item.title)
+            menuItem.representedObject = item.insertion
+            menuItem.target = self
+            menuItem.action = #selector(insertRegexPatternFromMenu(_:))
+            menu.addItem(menuItem)
+        }
+
+        menu.addItem(.separator())
+
+        // --- 定型パターンセクション ---
+        let templatePatterns: [(symbol: String, title: String, insertion: String)] = [
+            ("Email Address", "Email Address", "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"),
+            ("URL", "Web Address", "https?://[\\w\\-]+(\\.[\\w\\-]+)+[\\w.,@?^=%&:/~+#\\-]*"),
+            ("Phone #", "Phone Number", "[\\d\\-().+\\s]{7,}"),
+        ]
+
+        for item in templatePatterns {
+            let menuItem = NSMenuItem()
+            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol, title: item.title)
+            menuItem.representedObject = item.insertion
+            menuItem.target = self
+            menuItem.action = #selector(insertRegexPatternFromMenu(_:))
+            menu.addItem(menuItem)
+        }
+
+        // ボタンの下にメニューを表示
+        let point = NSPoint(x: 0, y: sender.bounds.maxY + 2)
+        menu.popUp(positioning: nil, at: point, in: sender)
+    }
+
+    /// メニュー項目のシンボル + タイトルの属性付き文字列を生成
+    private func makePatternMenuTitle(symbol: String, title: String) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+
+        // シンボル部分（固定幅フォント、グレー）
+        let symbolAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.monospacedSystemFont(ofSize: 12, weight: .medium),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+        let symbolStr = NSAttributedString(string: symbol.padding(toLength: max(symbol.count, 8), withPad: " ", startingAt: 0), attributes: symbolAttrs)
+        result.append(symbolStr)
+
+        // スペース
+        result.append(NSAttributedString(string: "  "))
+
+        // タイトル部分
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .font: NSFont.menuFont(ofSize: 13),
+        ]
+        result.append(NSAttributedString(string: title, attributes: titleAttrs))
+
+        return result
+    }
+
+    @objc private func insertPatternFromMenu(_ sender: NSMenuItem) {
+        guard let pattern = sender.representedObject as? String else { return }
+
+        // 現在フォーカスのあるフィールドに挿入
+        let targetField: NSControl
+        if let firstResponder = view.window?.firstResponder as? NSTextView,
+           firstResponder == replaceField.currentEditor() {
+            targetField = replaceField
+        } else {
+            targetField = searchField
+        }
+
+        // フィールドエディタを取得して挿入
+        if let fieldEditor = targetField.currentEditor() as? NSTextView {
+            let selectedRange = fieldEditor.selectedRange()
+            fieldEditor.insertText(pattern, replacementRange: selectedRange)
+        } else {
+            // フィールドエディタがない場合は末尾に追加
+            if targetField === searchField {
+                searchField.stringValue += pattern
+            } else {
+                replaceField.stringValue += pattern
+            }
+        }
+
+        // 検索フィールドの場合はインクリメンタル検索を実行
+        if targetField === searchField {
+            updateSearchFieldAppearance()
+            performIncrementalSearch()
+        }
+    }
+
+    @objc private func insertRegexPatternFromMenu(_ sender: NSMenuItem) {
+        // 正規表現オプションを自動的にオンにする
+        if !findEngine.options.useRegex {
+            findEngine.options.useRegex = true
+            UserDefaults.standard.set(true, forKey: UserDefaults.Keys.findUseRegex)
+            regexToggle.state = .on
+            updateToggleAppearance(regexToggle)
+
+            // Whole Word を無効化
+            findEngine.options.wholeWord = false
+            UserDefaults.standard.set(false, forKey: UserDefaults.Keys.findWholeWord)
+            wholeWordToggle.state = .off
+            wholeWordToggle.isEnabled = false
+            updateToggleAppearance(wholeWordToggle)
+        }
+
+        // パターンを挿入（共通処理を呼び出し）
+        insertPatternFromMenu(sender)
+    }
+
     @objc private func showRegexHelp(_ sender: Any?) {
         // 既にヘルプウィンドウが開いていたら前面に持ってくる
         if let existingPanel = Self.regexHelpPanel, existingPanel.isVisible {
@@ -454,7 +602,11 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
                   let ts = notification.object as? NSTextStorage,
                   ts.editedMask.contains(.editedCharacters) else { return }
             // テキスト変更時にハイライトを再計算
-            self.performIncrementalSearch()
+            // didProcessEditing 通知内では layoutManager の glyph ストレージが
+            // まだ同期されていないため、次のランループで実行する
+            DispatchQueue.main.async { [weak self] in
+                self?.performIncrementalSearch()
+            }
         }
     }
 
@@ -704,6 +856,19 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         searchField.action = #selector(searchFieldAction(_:))
         findRow.addSubview(searchField)
 
+        // Insert Pattern Button（検索フィールド右隣のポップアップ）
+        insertPatternButton.translatesAutoresizingMaskIntoConstraints = false
+        insertPatternButton.bezelStyle = .recessed
+        insertPatternButton.isBordered = false
+        insertPatternButton.image = NSImage(systemSymbolName: "list.bullet", accessibilityDescription: "Insert Pattern")
+        insertPatternButton.imagePosition = .imageOnly
+        insertPatternButton.controlSize = .small
+        insertPatternButton.target = self
+        insertPatternButton.action = #selector(showInsertPatternMenu(_:))
+        insertPatternButton.toolTip = NSLocalizedString("Insert Pattern", comment: "")
+        insertPatternButton.setContentHuggingPriority(.required, for: .horizontal)
+        findRow.addSubview(insertPatternButton)
+
         // Previous Button
         configureButton(previousButton, image: NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "Previous")!, action: #selector(findPrevious(_:)), toolTip: NSLocalizedString("Find Previous (Shift+Enter)", comment: ""))
         findRow.addSubview(previousButton)
@@ -796,7 +961,11 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             searchField.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
             searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 150),
 
-            previousButton.leadingAnchor.constraint(equalTo: searchField.trailingAnchor, constant: 4),
+            insertPatternButton.leadingAnchor.constraint(equalTo: searchField.trailingAnchor, constant: 2),
+            insertPatternButton.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
+            insertPatternButton.widthAnchor.constraint(equalToConstant: 20),
+
+            previousButton.leadingAnchor.constraint(equalTo: insertPatternButton.trailingAnchor, constant: 2),
             previousButton.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
             previousButton.widthAnchor.constraint(equalToConstant: 24),
 
@@ -826,7 +995,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         ])
 
         // Search field flexible width
-        let searchFieldTrailing = searchField.trailingAnchor.constraint(equalTo: previousButton.leadingAnchor, constant: -4)
+        let searchFieldTrailing = searchField.trailingAnchor.constraint(equalTo: insertPatternButton.leadingAnchor, constant: -2)
         searchFieldTrailing.priority = .defaultHigh
         searchFieldTrailing.isActive = true
 
@@ -901,7 +1070,8 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
                 item.representedObject = pattern
                 // サブメニューに削除オプション
                 let submenu = NSMenu()
-                let deleteItem = NSMenuItem(title: NSLocalizedString("Delete", comment: ""), action: #selector(deleteSavedPattern(_:)), keyEquivalent: "")
+                let deleteItem = NSMenuItem(title: "", action: #selector(deleteSavedPattern(_:)), keyEquivalent: "")
+                deleteItem.image = NSImage(systemSymbolName: "xmark.circle", accessibilityDescription: "Delete")
                 deleteItem.target = self
                 deleteItem.representedObject = pattern.name
                 submenu.addItem(deleteItem)

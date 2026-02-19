@@ -103,12 +103,31 @@ class FindHighlightManager {
     /// 全ハイライトをクリア
     func clearAllHighlights() {
         guard let textStorage = textStorage else { return }
-        guard textStorage.length > 0 else { return }
+        let length = textStorage.length
+        guard length > 0 else {
+            highlightedRanges = []
+            currentMatchIndex = -1
+            return
+        }
 
-        let fullRange = NSRange(location: 0, length: textStorage.length)
-
-        for layoutManager in textStorage.layoutManagers {
-            layoutManager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: fullRange)
+        // ハイライト済みの範囲のみを安全に除去する
+        // （全範囲一括だと layoutManager の glyph 同期前にクラッシュする場合がある）
+        if !highlightedRanges.isEmpty {
+            for layoutManager in textStorage.layoutManagers {
+                for range in highlightedRanges {
+                    if range.location < length {
+                        let safeRange = NSRange(location: range.location,
+                                                length: min(range.length, length - range.location))
+                        layoutManager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: safeRange)
+                    }
+                }
+            }
+        } else {
+            // highlightedRanges が空でも念のため全範囲をクリア
+            let safeRange = NSRange(location: 0, length: length)
+            for layoutManager in textStorage.layoutManagers {
+                layoutManager.removeTemporaryAttribute(.backgroundColor, forCharacterRange: safeRange)
+            }
         }
 
         highlightedRanges = []
