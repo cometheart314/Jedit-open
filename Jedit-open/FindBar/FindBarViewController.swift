@@ -502,6 +502,14 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         searchField.stringValue = pattern.searchText
         replaceField.stringValue = pattern.replaceText
 
+        // Replace 文字列の有無に応じて Replace 行を開閉
+        let shouldShowReplace = !pattern.replaceText.isEmpty
+        if isReplaceMode != shouldShowReplace {
+            isReplaceMode = shouldShowReplace
+            updateReplaceRowVisibility(animated: true)
+            setupSearchFieldMenu()
+        }
+
         findEngine.options.caseSensitive = pattern.caseSensitive
         findEngine.options.useRegex = pattern.useRegex
         findEngine.options.wholeWord = pattern.useRegex ? false : pattern.wholeWord
@@ -530,6 +538,15 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         searchField.stringValue = entry.searchText
         replaceField.stringValue = entry.replaceText
+
+        // Replace 文字列の有無に応じて Replace 行を開閉
+        let shouldShowReplace = !entry.replaceText.isEmpty
+        if isReplaceMode != shouldShowReplace {
+            isReplaceMode = shouldShowReplace
+            updateReplaceRowVisibility(animated: true)
+            setupSearchFieldMenu()
+        }
+
         updateSearchFieldAppearance()
         performIncrementalSearch()
     }
@@ -538,6 +555,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         historyManager.clearSearchEntries()
         historyManager.clearSearchHistory()
         historyManager.clearReplaceHistory()
+        searchField.recentSearches = []
         setupSearchFieldMenu()
     }
 

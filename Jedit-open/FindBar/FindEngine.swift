@@ -108,12 +108,16 @@ class FindEngine {
         let textStorage = textView.textStorage!
         let replacement = computeReplacement(for: range, in: textStorage.string)
 
-        guard textView.shouldChangeText(in: range, replacementString: replacement) else { return nil }
+        // 置換前のカーソル位置を保存
+        let savedSelection = textView.selectedRange()
 
-        textStorage.beginEditing()
-        textStorage.replaceCharacters(in: range, with: replacement)
-        textStorage.endEditing()
-        textView.didChangeText()
+        // カーソル復元を先に登録（Undo 時は LIFO なので最後に実行される）
+        textView.undoManager?.registerUndo(withTarget: textView) { tv in
+            tv.setSelectedRange(savedSelection)
+            tv.scrollRangeToVisible(savedSelection)
+        }
+
+        textView.insertText(replacement, replacementRange: range)
 
         return NSRange(location: range.location, length: (replacement as NSString).length)
     }
@@ -124,22 +128,25 @@ class FindEngine {
         let matches = findAllMatches(in: text)
         guard !matches.isEmpty else { return 0 }
 
-        let textStorage = textView.textStorage!
+        // 置換前のカーソル位置を保存
+        let savedSelection = textView.selectedRange()
 
-        // 全範囲の置換を一つの Undo グループにする
-        let fullRange = NSRange(location: 0, length: (text as NSString).length)
-        guard textView.shouldChangeText(in: fullRange, replacementString: nil) else { return 0 }
+        // 全置換を一つの Undo グループにまとめる
+        textView.undoManager?.beginUndoGrouping()
 
-        textStorage.beginEditing()
+        // カーソル復元を最初に登録（Undo 時は LIFO なので最後に実行される）
+        textView.undoManager?.registerUndo(withTarget: textView) { tv in
+            tv.setSelectedRange(savedSelection)
+            tv.scrollRangeToVisible(savedSelection)
+        }
 
         // 後方から置換してインデックスずれを防止
         for range in matches.reversed() {
-            let replacement = computeReplacement(for: range, in: textStorage.string)
-            textStorage.replaceCharacters(in: range, with: replacement)
+            let replacement = computeReplacement(for: range, in: textView.string)
+            textView.insertText(replacement, replacementRange: range)
         }
 
-        textStorage.endEditing()
-        textView.didChangeText()
+        textView.undoManager?.endUndoGrouping()
 
         return matches.count
     }
