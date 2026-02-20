@@ -7,6 +7,13 @@
 
 import Foundation
 
+// MARK: - Recent Search Entry (find/replace pair)
+
+struct RecentSearchEntry: Codable, Equatable {
+    var searchText: String
+    var replaceText: String
+}
+
 // MARK: - Saved Pattern
 
 struct SavedPattern: Codable, Equatable {
@@ -78,6 +85,45 @@ class SearchHistoryManager {
 
     func clearReplaceHistory() {
         recentReplacements = []
+    }
+
+    // MARK: - Recent Search Entries (find/replace pairs)
+
+    var recentSearchEntries: [RecentSearchEntry] {
+        get {
+            guard let data = UserDefaults.standard.data(forKey: UserDefaults.Keys.findRecentSearchEntries) else {
+                return []
+            }
+            return (try? JSONDecoder().decode([RecentSearchEntry].self, from: data)) ?? []
+        }
+        set {
+            let data = try? JSONEncoder().encode(newValue)
+            UserDefaults.standard.set(data, forKey: UserDefaults.Keys.findRecentSearchEntries)
+            NotificationCenter.default.post(name: Self.historyDidChangeNotification, object: self)
+        }
+    }
+
+    func addSearchEntry(searchText: String, replaceText: String) {
+        guard !searchText.isEmpty else { return }
+        let entry = RecentSearchEntry(searchText: searchText, replaceText: replaceText)
+        var entries = recentSearchEntries
+        // 同じ検索文字列のエントリを削除して先頭に追加
+        entries.removeAll { $0.searchText == searchText }
+        entries.insert(entry, at: 0)
+        if entries.count > Self.maxHistoryItems {
+            entries = Array(entries.prefix(Self.maxHistoryItems))
+        }
+        recentSearchEntries = entries
+    }
+
+    func removeSearchEntry(searchText: String) {
+        var entries = recentSearchEntries
+        entries.removeAll { $0.searchText == searchText }
+        recentSearchEntries = entries
+    }
+
+    func clearSearchEntries() {
+        recentSearchEntries = []
     }
 
     // MARK: - Saved Patterns

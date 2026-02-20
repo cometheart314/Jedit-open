@@ -453,6 +453,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     @objc private func toggleReplaceMode(_ sender: Any?) {
         isReplaceMode.toggle()
         updateReplaceRowVisibility(animated: true)
+        setupSearchFieldMenu()
     }
 
     // MARK: - Save / Load Patterns
@@ -491,6 +492,13 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     @objc private func loadSavedPattern(_ sender: NSMenuItem) {
         guard let pattern = sender.representedObject as? SavedPattern else { return }
 
+        // Option キーが押されている場合は削除
+        if NSApp.currentEvent?.modifierFlags.contains(.option) == true {
+            historyManager.deletePattern(named: pattern.name)
+            setupSearchFieldMenu()
+            return
+        }
+
         searchField.stringValue = pattern.searchText
         replaceField.stringValue = pattern.replaceText
 
@@ -508,6 +516,29 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         updateToggleAppearance(wholeWordToggle)
         updateSearchFieldAppearance()
         performIncrementalSearch()
+    }
+
+    @objc private func loadRecentSearchEntry(_ sender: NSMenuItem) {
+        guard let entry = sender.representedObject as? RecentSearchEntry else { return }
+
+        // Option キーが押されている場合は削除
+        if NSApp.currentEvent?.modifierFlags.contains(.option) == true {
+            historyManager.removeSearchEntry(searchText: entry.searchText)
+            setupSearchFieldMenu()
+            return
+        }
+
+        searchField.stringValue = entry.searchText
+        replaceField.stringValue = entry.replaceText
+        updateSearchFieldAppearance()
+        performIncrementalSearch()
+    }
+
+    @objc private func clearRecentSearchEntries(_ sender: Any?) {
+        historyManager.clearSearchEntries()
+        historyManager.clearSearchHistory()
+        historyManager.clearReplaceHistory()
+        setupSearchFieldMenu()
     }
 
     @objc private func deleteSavedPattern(_ sender: NSMenuItem) {
@@ -612,19 +643,16 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
     // MARK: - Private: Recent Searches
 
-    /// SearchHistoryManager と NSSearchField.recentSearches の両方に登録
+    /// SearchHistoryManager に find/replace ペアを登録し、メニューを更新
     private func addToRecentSearches(_ term: String) {
         guard !term.isEmpty else { return }
+        let replaceText = replaceField.stringValue
+        historyManager.addSearchEntry(searchText: term, replaceText: replaceText)
         historyManager.addSearchTerm(term)
-
-        // NSSearchField の recentSearches に追加（メニューに反映される）
-        var recents = searchField.recentSearches
-        recents.removeAll { $0 == term }
-        recents.insert(term, at: 0)
-        if recents.count > SearchHistoryManager.maxHistoryItems {
-            recents = Array(recents.prefix(SearchHistoryManager.maxHistoryItems))
+        if !replaceText.isEmpty {
+            historyManager.addReplaceTerm(replaceText)
         }
-        searchField.recentSearches = recents
+        setupSearchFieldMenu()
     }
 
     // MARK: - Private: Incremental Search
@@ -1035,39 +1063,55 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     private func setupSearchFieldMenu() {
         let menu = NSMenu()
 
-        // Recent Searches header
-        let recentHeader = NSMenuItem(title: NSLocalizedString("Recent Searches", comment: ""), action: nil, keyEquivalent: "")
-        recentHeader.tag = Int(NSSearchField.recentsTitleMenuItemTag)
-        menu.addItem(recentHeader)
+        // Replace Mode toggle (top item)
+        let replaceTitle = isReplaceMode
+            ? NSLocalizedString("Hide Replace", comment: "")
+            : NSLocalizedString("Replace", comment: "")
+        let replaceItem = NSMenuItem(title: replaceTitle, action: #selector(toggleReplaceMode(_:)), keyEquivalent: "")
+        replaceItem.image = NSImage(systemSymbolName: "arrow.right.square", accessibilityDescription: "Replace")
+        replaceItem.target = self
+        menu.addItem(replaceItem)
 
-        // Recent Searches items (auto-managed by NSSearchField)
-        let recentItem = NSMenuItem(title: "", action: nil, keyEquivalent: "")
-        recentItem.tag = Int(NSSearchField.recentsMenuItemTag)
-        menu.addItem(recentItem)
+        menu.addItem(.separator())
 
-        // Clear Recents
-        let clearItem = NSMenuItem(title: NSLocalizedString("Clear Recent Searches", comment: ""), action: nil, keyEquivalent: "")
-        clearItem.tag = Int(NSSearchField.clearRecentsMenuItemTag)
-        menu.addItem(clearItem)
+        // Recent Searches section (custom: find/replace pairs)
+        let recentEntries = historyManager.recentSearchEntries
+        if recentEntries.isEmpty {
+            let noRecentsItem = NSMenuItem(title: NSLocalizedString("No Recent Searches", comment: ""), action: nil, keyEquivalent: "")
+            noRecentsItem.isEnabled = false
+            menu.addItem(noRecentsItem)
+        } else {
+            for entry in recentEntries {
+                let title = Self.searchEntryMenuTitle(searchText: entry.searchText, replaceText: entry.replaceText)
+                let item = NSMenuItem(title: "", action: #selector(loadRecentSearchEntry(_:)), keyEquivalent: "")
+                item.attributedTitle = title
+                item.target = self
+                item.representedObject = entry
+                menu.addItem(item)
+            }
 
-        // No Recents
-        let noRecentsItem = NSMenuItem(title: NSLocalizedString("No Recent Searches", comment: ""), action: nil, keyEquivalent: "")
-        noRecentsItem.tag = Int(NSSearchField.noRecentsMenuItemTag)
-        menu.addItem(noRecentsItem)
+            menu.addItem(.separator())
+            let clearItem = NSMenuItem(title: NSLocalizedString("Clear Recent Searches", comment: ""), action: #selector(clearRecentSearchEntries(_:)), keyEquivalent: "")
+            clearItem.image = NSImage(systemSymbolName: "trash", accessibilityDescription: "Clear")
+            clearItem.target = self
+            menu.addItem(clearItem)
+        }
 
         // Saved Patterns section
         let savedPatterns = historyManager.savedPatterns
         if !savedPatterns.isEmpty {
             menu.addItem(.separator())
 
-            let patternsHeader = NSMenuItem(title: NSLocalizedString("Saved Patterns", comment: ""), action: nil, keyEquivalent: "")
-            patternsHeader.isEnabled = false
-            menu.addItem(patternsHeader)
-
             for pattern in savedPatterns {
                 let item = NSMenuItem(title: pattern.name, action: #selector(loadSavedPattern(_:)), keyEquivalent: "")
                 item.target = self
                 item.representedObject = pattern
+                // ToolTip に検索・置換文字列を表示
+                if pattern.replaceText.isEmpty {
+                    item.toolTip = pattern.searchText
+                } else {
+                    item.toolTip = "\(pattern.searchText) → \(pattern.replaceText)"
+                }
                 // サブメニューに削除オプション
                 let submenu = NSMenu()
                 let deleteItem = NSMenuItem(title: "", action: #selector(deleteSavedPattern(_:)), keyEquivalent: "")
@@ -1083,18 +1127,27 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         // Save Current Pattern
         menu.addItem(.separator())
         let saveItem = NSMenuItem(title: NSLocalizedString("Save Current Pattern…", comment: ""), action: #selector(saveCurrentPattern(_:)), keyEquivalent: "")
+        saveItem.image = NSImage(systemSymbolName: "square.and.arrow.down", accessibilityDescription: "Save")
         saveItem.target = self
         menu.addItem(saveItem)
 
-        // Replace Mode toggle
-        menu.addItem(.separator())
-        let replaceItem = NSMenuItem(title: NSLocalizedString("Find and Replace", comment: ""), action: #selector(toggleReplaceMode(_:)), keyEquivalent: "")
-        replaceItem.target = self
-        replaceItem.state = isReplaceMode ? .on : .off
-        menu.addItem(replaceItem)
-
         searchField.searchMenuTemplate = menu
-        searchField.recentsAutosaveName = "JeditFindBarSearchHistory"
+    }
+
+    /// Recent Search / Saved Pattern メニュー項目のタイトルを生成
+    /// replaceText が空の場合は searchText のみ、そうでなければ "searchText → replaceText" 形式
+    private static func searchEntryMenuTitle(searchText: String, replaceText: String) -> NSAttributedString {
+        if replaceText.isEmpty {
+            return NSAttributedString(string: searchText)
+        }
+        let full = "\(searchText) → \(replaceText)"
+        let attr = NSMutableAttributedString(string: full)
+        // "→ replaceText" 部分をグレーで表示
+        let arrowRange = (full as NSString).range(of: " → \(replaceText)")
+        if arrowRange.location != NSNotFound {
+            attr.addAttribute(.foregroundColor, value: NSColor.secondaryLabelColor, range: arrowRange)
+        }
+        return attr
     }
 
     // MARK: - Private: Button Configuration

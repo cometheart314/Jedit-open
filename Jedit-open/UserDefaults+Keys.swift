@@ -64,6 +64,7 @@ extension UserDefaults {
         // Find Bar
         static let findSearchHistory = "findSearchHistory"
         static let findReplaceHistory = "findReplaceHistory"
+        static let findRecentSearchEntries = "findRecentSearchEntries"
         static let findSavedPatterns = "findSavedPatterns"
         static let findCaseSensitive = "findCaseSensitive"
         static let findUseRegex = "findUseRegex"
