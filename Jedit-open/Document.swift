@@ -542,13 +542,18 @@ class Document: NSDocument {
 
     // MARK: - Initialization
 
+    /// Duplicate 時に元の書類の presetData を新しい書類へ引き渡すための一時変数
+    private static var duplicatingPresetData: NewDocData?
+
     override init() {
         super.init()
         setupFontFallbackRecoveryDelegate()
 
-        // Preferencesで選択されているプリセットを適用（新規書類作成時）
-        // ドキュメント名はdisplayName getterで遅延生成される
-        if let selectedPreset = DocumentPresetManager.shared.selectedPreset() {
+        if let sourceData = Self.duplicatingPresetData {
+            // Duplicate 中: 元の書類の presetData を適用
+            applyPresetData(sourceData)
+        } else if let selectedPreset = DocumentPresetManager.shared.selectedPreset() {
+            // 通常の新規書類作成: Preferences のプリセットを適用
             applyPresetData(selectedPreset.data)
         }
 
@@ -1579,10 +1584,24 @@ class Document: NSDocument {
 
     // MARK: - Duplicate
 
-    /// 複製されたドキュメントの isMarkdownDocument をリセットする
+    /// 複製されたドキュメントには元の書類の presetData を引き継ぐ
     /// （Duplicate で作られた書類は通常の RTF として扱う）
     override func duplicate() throws -> NSDocument {
-        let newDoc = try super.duplicate()
+        // 複製前に現在のウィンドウ状態で presetData を更新
+        updatePresetDataFromCurrentState()
+
+        // init() で参照できるよう static 変数にセット
+        Self.duplicatingPresetData = self.presetData
+
+        let newDoc: NSDocument
+        do {
+            newDoc = try super.duplicate()
+        } catch {
+            Self.duplicatingPresetData = nil
+            throw error
+        }
+        Self.duplicatingPresetData = nil
+
         if let newDocument = newDoc as? Document {
             newDocument.isMarkdownDocument = false
         }
@@ -1620,8 +1639,6 @@ class Document: NSDocument {
             if error == nil {
                 // 保存成功後にプリセットデータを拡張属性に書き込む
                 self.writePresetDataToExtendedAttribute(at: url)
-                // Open Recent に登録
-                NSDocumentController.shared.noteNewRecentDocumentURL(url)
             }
 
             // フォーマット変更は一時的なもの。成功・失敗に関わらず常に元のタイプに復元する
@@ -1696,6 +1713,26 @@ class Document: NSDocument {
     /// 現在のウィンドウ状態でプリセットデータを更新
     private func updatePresetDataFromCurrentState() {
         guard presetData != nil else { return }
+
+        // ドキュメントタイプに基づいてフォーマット情報を同期
+        switch documentType {
+        case .plain:
+            presetData?.format.richText = false
+            presetData?.format.textEncoding = documentEncoding.rawValue
+            presetData?.format.bom = hasBOM
+            switch lineEnding {
+            case .lf:
+                presetData?.format.lineEndingType = .lf
+            case .cr:
+                presetData?.format.lineEndingType = .cr
+            case .crlf:
+                presetData?.format.lineEndingType = .crlf
+            }
+        case .rtf, .rtfd:
+            presetData?.format.richText = true
+        default:
+            presetData?.format.richText = true
+        }
 
         // 最初のウィンドウコントローラからウィンドウ情報を取得
         guard let windowController = windowControllers.first as? EditorWindowController,
@@ -1871,11 +1908,6 @@ class Document: NSDocument {
 
         // まず通常のファイル読み込みを行う
         try super.read(from: url, ofType: typeName)
-
-        // Open Recent に登録（nonisolatedコンテキストのため明示的に呼び出す）
-        MainActor.assumeIsolated {
-            NSDocumentController.shared.noteNewRecentDocumentURL(url)
-        }
 
         // 拡張属性からプリセットデータのJSONを読み込む
         if let jsonData = Document.readPresetDataRaw(at: url) {
