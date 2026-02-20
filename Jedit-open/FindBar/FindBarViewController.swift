@@ -105,6 +105,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     func setReplaceMode(_ enabled: Bool) {
         isReplaceMode = enabled
         updateReplaceRowVisibility(animated: false)
+        setupSearchFieldMenu()
     }
 
     func setSearchText(_ text: String) {
@@ -114,6 +115,12 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
     func focusSearchField() {
         view.window?.makeFirstResponder(searchField)
+        // フォーカス後にインクリメンタル検索を確実に実行
+        // （既存の検索文字列がある場合にハイライトを表示するため）
+        DispatchQueue.main.async { [weak self] in
+            self?.updateSearchFieldAppearance()
+            self?.performIncrementalSearch()
+        }
     }
 
     func clearSearch() {
@@ -451,9 +458,20 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     }
 
     @objc private func toggleReplaceMode(_ sender: Any?) {
+        let savedSearchText = searchField.stringValue
         isReplaceMode.toggle()
         updateReplaceRowVisibility(animated: true)
         setupSearchFieldMenu()
+
+        // NSSearchField のメニューから呼ばれた場合、stringValue が上書きされるため復元
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.searchField.stringValue != savedSearchText {
+                self.searchField.stringValue = savedSearchText
+                self.updateSearchFieldAppearance()
+                self.performIncrementalSearch()
+            }
+        }
     }
 
     // MARK: - Save / Load Patterns
@@ -499,9 +517,6 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             return
         }
 
-        searchField.stringValue = pattern.searchText
-        replaceField.stringValue = pattern.replaceText
-
         // Replace 文字列の有無に応じて Replace 行を開閉
         let shouldShowReplace = !pattern.replaceText.isEmpty
         if isReplaceMode != shouldShowReplace {
@@ -522,8 +537,18 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         updateToggleAppearance(caseSensitiveToggle)
         updateToggleAppearance(regexToggle)
         updateToggleAppearance(wholeWordToggle)
-        updateSearchFieldAppearance()
-        performIncrementalSearch()
+
+        // NSSearchField がメニュー選択後に stringValue を上書きするため、
+        // 次のランループで値を再設定する
+        let searchText = pattern.searchText
+        let replaceText = pattern.replaceText
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.searchField.stringValue = searchText
+            self.replaceField.stringValue = replaceText
+            self.updateSearchFieldAppearance()
+            self.performIncrementalSearch()
+        }
     }
 
     @objc private func loadRecentSearchEntry(_ sender: NSMenuItem) {
@@ -536,33 +561,60 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             return
         }
 
-        searchField.stringValue = entry.searchText
-        replaceField.stringValue = entry.replaceText
+        let searchText = entry.searchText
+        let replaceText = entry.replaceText
 
         // Replace 文字列の有無に応じて Replace 行を開閉
-        let shouldShowReplace = !entry.replaceText.isEmpty
+        let shouldShowReplace = !replaceText.isEmpty
         if isReplaceMode != shouldShowReplace {
             isReplaceMode = shouldShowReplace
             updateReplaceRowVisibility(animated: true)
             setupSearchFieldMenu()
         }
 
-        updateSearchFieldAppearance()
-        performIncrementalSearch()
+        // NSSearchField がメニュー選択後に stringValue を上書きするため、
+        // 次のランループで値を再設定する
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            self.searchField.stringValue = searchText
+            self.replaceField.stringValue = replaceText
+            self.updateSearchFieldAppearance()
+            self.performIncrementalSearch()
+        }
     }
 
     @objc private func clearRecentSearchEntries(_ sender: Any?) {
+        let savedSearchText = searchField.stringValue
         historyManager.clearSearchEntries()
         historyManager.clearSearchHistory()
         historyManager.clearReplaceHistory()
         searchField.recentSearches = []
         setupSearchFieldMenu()
+
+        // NSSearchField のメニューから呼ばれた場合、stringValue が上書きされるため復元
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.searchField.stringValue != savedSearchText {
+                self.searchField.stringValue = savedSearchText
+                self.performIncrementalSearch()
+            }
+        }
     }
 
     @objc private func deleteSavedPattern(_ sender: NSMenuItem) {
+        let savedSearchText = searchField.stringValue
         guard let name = sender.representedObject as? String else { return }
         historyManager.deletePattern(named: name)
         setupSearchFieldMenu()
+
+        // NSSearchField のメニューから呼ばれた場合、stringValue が上書きされるため復元
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if self.searchField.stringValue != savedSearchText {
+                self.searchField.stringValue = savedSearchText
+                self.performIncrementalSearch()
+            }
+        }
     }
 
     // MARK: - NSSearchFieldDelegate / NSTextFieldDelegate
@@ -1002,10 +1054,16 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         ])
 
         // Find Row internal layout
+        // searchField は伸縮可能（hugging を低く、compression を低めに設定）
+        searchField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        searchField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        // matchCountLabel も縮小を許可
+        matchCountLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         NSLayoutConstraint.activate([
             searchField.leadingAnchor.constraint(equalTo: findRow.leadingAnchor),
             searchField.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
-            searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 150),
+            searchField.widthAnchor.constraint(greaterThanOrEqualToConstant: 80),
 
             insertPatternButton.leadingAnchor.constraint(equalTo: searchField.trailingAnchor, constant: 2),
             insertPatternButton.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
@@ -1021,7 +1079,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
             matchCountLabel.leadingAnchor.constraint(equalTo: nextButton.trailingAnchor, constant: 6),
             matchCountLabel.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
-            matchCountLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 50),
+            matchCountLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
 
             caseSensitiveToggle.leadingAnchor.constraint(equalTo: matchCountLabel.trailingAnchor, constant: 6),
             caseSensitiveToggle.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
@@ -1040,7 +1098,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             doneButton.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
         ])
 
-        // Search field flexible width
+        // Search field flexible width（右側要素に押されて縮む）
         let searchFieldTrailing = searchField.trailingAnchor.constraint(equalTo: insertPatternButton.leadingAnchor, constant: -2)
         searchFieldTrailing.priority = .defaultHigh
         searchFieldTrailing.isActive = true
@@ -1056,16 +1114,20 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         ])
 
         // Replace Row internal layout
+        replaceField.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        replaceField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         NSLayoutConstraint.activate([
             replaceField.leadingAnchor.constraint(equalTo: replaceRow.leadingAnchor),
             replaceField.centerYAnchor.constraint(equalTo: replaceRow.centerYAnchor),
-            replaceField.widthAnchor.constraint(equalTo: searchField.widthAnchor),
 
-            replaceButton.leadingAnchor.constraint(equalTo: replaceField.trailingAnchor, constant: 4),
+            replaceButton.trailingAnchor.constraint(equalTo: replaceAllButton.leadingAnchor, constant: -4),
             replaceButton.centerYAnchor.constraint(equalTo: replaceRow.centerYAnchor),
 
-            replaceAllButton.leadingAnchor.constraint(equalTo: replaceButton.trailingAnchor, constant: 4),
+            replaceAllButton.trailingAnchor.constraint(equalTo: replaceRow.trailingAnchor),
             replaceAllButton.centerYAnchor.constraint(equalTo: replaceRow.centerYAnchor),
+
+            replaceField.trailingAnchor.constraint(equalTo: replaceButton.leadingAnchor, constant: -4),
         ])
 
         // Separator constraints
