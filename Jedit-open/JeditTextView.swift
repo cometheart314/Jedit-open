@@ -677,6 +677,14 @@ class JeditTextView: NSTextView {
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
 
+        // Cmd+クリックでURLを開く
+        if event.modifierFlags.contains(.command),
+           event.clickCount == 1,
+           let url = urlAtPoint(point) {
+            NSWorkspace.shared.open(url)
+            return
+        }
+
         // Check for double-click on an attachment
         if event.clickCount == 2 {
             // アタッチメントがファイルアタッチメント（非画像）の場合は対応アプリで開く
@@ -718,6 +726,58 @@ class JeditTextView: NSTextView {
 
         let attributes = textStorage.attributes(at: charIndex, effectiveRange: nil)
         return attributes[.attachment] as? NSTextAttachment
+    }
+
+    /// 指定座標にあるURLを取得（.link属性またはベアURL検出）
+    private func urlAtPoint(_ point: NSPoint) -> URL? {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer,
+              let textStorage = textStorage,
+              textStorage.length > 0 else {
+            return nil
+        }
+
+        let textContainerOrigin = textContainerOrigin
+        let locationInContainer = NSPoint(
+            x: point.x - textContainerOrigin.x,
+            y: point.y - textContainerOrigin.y
+        )
+
+        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer)
+        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+        guard charIndex < textStorage.length else { return nil }
+
+        // 1. .link属性があればそれを使う（Markdownリンクなど）
+        let attributes = textStorage.attributes(at: charIndex, effectiveRange: nil)
+        if let link = attributes[.link] {
+            if let url = link as? URL {
+                return url
+            } else if let urlString = link as? String, let url = URL(string: urlString) {
+                return url
+            }
+        }
+
+        // 2. テキストからベアURLを検出
+        let string = textStorage.string as NSString
+        // クリック位置を含む行の範囲を取得
+        let lineRange = string.lineRange(for: NSRange(location: charIndex, length: 0))
+        let lineString = string.substring(with: lineRange)
+
+        // URLパターンで検索
+        guard let detector = try? NSDataDetector(types: NSTextCheckingResult.CheckingType.link.rawValue) else {
+            return nil
+        }
+        let matches = detector.matches(in: lineString, range: NSRange(location: 0, length: lineString.utf16.count))
+
+        // クリック位置がURL範囲内にあるかチェック
+        let charOffsetInLine = charIndex - lineRange.location
+        for match in matches {
+            if match.range.contains(charOffsetInLine), let url = match.url {
+                return url
+            }
+        }
+
+        return nil
     }
 
     /// アタッチメントがファイルアタッチメント（非画像）かどうかを判定
