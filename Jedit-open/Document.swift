@@ -1195,6 +1195,11 @@ class Document: NSDocument {
         let effectiveTypeName: String
         if Self.isMarkdownType(typeName) {
             effectiveTypeName = "public.rtf"
+        } else if typeName == "public.plain-text" && Self.dataIsRTF(data) {
+            // autosave 復元時: .txt 拡張子だが実際のデータが RTF の場合は RTF として読み込む
+            // （data(ofType:) は documentType に基づいて RTF データを生成するが、
+            //  autosave ファイルの拡張子が .txt のため、復元時に plain text として渡される）
+            effectiveTypeName = "public.rtf"
         } else {
             effectiveTypeName = typeName
         }
@@ -1639,6 +1644,11 @@ class Document: NSDocument {
             if error == nil {
                 // 保存成功後にプリセットデータを拡張属性に書き込む
                 self.writePresetDataToExtendedAttribute(at: url)
+                // ユーザーが明示的に保存した場合、untitledDocumentName をクリア
+                // （autosave 操作ではクリアしない）
+                if saveOperation == .saveOperation || saveOperation == .saveAsOperation {
+                    self.untitledDocumentName = nil
+                }
             }
 
             // フォーマット変更は一時的なもの。成功・失敗に関わらず常に元のタイプに復元する
@@ -2630,14 +2640,17 @@ class Document: NSDocument {
 
     override var displayName: String! {
         get {
+            // untitledDocumentName が設定されている場合は、autosave で fileURL が
+            // 設定されていてもカスタム名を優先する（ユーザーが明示的に保存するまで）
+            if let customName = untitledDocumentName {
+                return customName
+            }
             // ファイルがある場合は通常の表示名
             if fileURL != nil {
                 return super.displayName
             }
             // 新規ドキュメントの場合はカスタム名を使用（遅延生成）
-            if untitledDocumentName == nil {
-                generateUntitledDocumentName()
-            }
+            generateUntitledDocumentName()
             return untitledDocumentName ?? super.displayName
         }
         set {
@@ -2874,14 +2887,20 @@ class Document: NSDocument {
         savePanelLineEndingPopUp = lineEndingPopUp
         savePanelBOMCheckbox = bomCheckbox
 
-        // 新規ドキュメント（fileURLがnil）の場合、ファイル名を提案
-        if fileURL == nil {
+        // 新規ドキュメント（まだユーザーが明示的に保存していない）の場合、ファイル名を提案
+        // autosavesInPlace により fileURL が設定済みの場合があるため、
+        // untitledDocumentName の有無で判定する
+        if let customName = untitledDocumentName {
             let nameType = presetData?.format.newDocNameType ?? .untitled
             if nameType == .untitled {
+                // Untitled の場合は先頭テキストの要約をファイル名として提案
                 let suggestedName = generateSuggestedFileName()
                 if !suggestedName.isEmpty {
                     savePanel.nameFieldStringValue = suggestedName
                 }
+            } else {
+                // 日付系などカスタム名の場合はそのカスタム名をファイル名として使用
+                savePanel.nameFieldStringValue = customName
             }
         }
 
@@ -3324,5 +3343,15 @@ class Document: NSDocument {
         suggestion = suggestion.trimmingCharacters(in: CharacterSet.whitespaces.union(CharacterSet(charactersIn: "-")))
 
         return suggestion
+    }
+
+    // MARK: - RTF Data Detection
+
+    /// データの先頭が RTF シグネチャ "{\rtf" で始まるかチェックする
+    /// autosave 復元時に .txt 拡張子のファイルが実際には RTF データかどうかを判定するために使用
+    private static func dataIsRTF(_ data: Data) -> Bool {
+        let rtfSignature: [UInt8] = [0x7B, 0x5C, 0x72, 0x74, 0x66]  // "{\rtf"
+        guard data.count >= rtfSignature.count else { return false }
+        return data.prefix(rtfSignature.count).elementsEqual(rtfSignature)
     }
 }

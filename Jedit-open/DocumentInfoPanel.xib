@@ -198,7 +198,7 @@
                                         <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="wcO-4k-BGK" customClass="EncodingPopUpButton" customModule="Jedit" customModuleProvider="target">
                                             <rect key="frame" x="113" y="240" width="233" height="22"/>
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
-                                            <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="c3M-8j-AhV" customClass="EncodingPopUpButtonCell">
+                                            <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" id="c3M-8j-AhV" customClass="EncodingPopUpButtonCell" customModule="Jedit" customModuleProvider="target">
                                                 <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                                 <font key="font" metaFont="smallSystem"/>
                                                 <menu key="menu" id="SEz-v9-2Bo">
