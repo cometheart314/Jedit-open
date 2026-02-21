@@ -53,6 +53,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // Script メニューを設定
         ScriptMenuController.shared.setupMenu()
 
+        // サンプルスクリプトの初回インストール
+        ScriptMenuController.shared.installSampleScriptsIfNeeded()
+
         // Continuity Camera用: アプリが画像を受け取れることをServicesに登録
         let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
         NSApp.registerServicesMenuSendTypes([.string, .rtf, .rtfd], returnTypes: imageReturnTypes + [.tiff, .png])
