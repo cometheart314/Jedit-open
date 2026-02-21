@@ -24,11 +24,15 @@ class FontFallbackRecoveryDelegate: NSObject, NSTextStorageDelegate {
     /// フォント復帰処理中かどうか（再帰呼び出し防止用）
     private var isProcessingFontRecovery = false
 
+    /// Smart Language Separation 処理
+    private(set) var smartLanguageSeparation: SmartLanguageSeparation?
+
     // MARK: - Initialization
 
     init(document: Document) {
         self.document = document
         super.init()
+        smartLanguageSeparation = SmartLanguageSeparation(document: document)
     }
 
     /// 段落スタイル変更処理中かどうか（再帰呼び出し防止用）
@@ -37,15 +41,34 @@ class FontFallbackRecoveryDelegate: NSObject, NSTextStorageDelegate {
     // MARK: - NSTextStorageDelegate
 
     func textStorage(_ textStorage: NSTextStorage, didProcessEditing editedMask: NSTextStorageEditActions, range editedRange: NSRange, changeInLength delta: Int) {
-        // プレーンテキストで属性が変更された場合、段落スタイルを全文に適用
-        guard let document = document,
-              document.documentType == .plain,
-              editedMask.contains(.editedAttributes),
-              !isProcessingParagraphStyle,
-              textStorage.length > 0 else {
-            return
+        guard let document = document else { return }
+
+        // --- プレーンテキストの段落スタイル統一処理 ---
+        if document.documentType == .plain,
+           editedMask.contains(.editedAttributes),
+           !isProcessingParagraphStyle,
+           textStorage.length > 0 {
+            applyUnifiedParagraphStyle(textStorage: textStorage, editedRange: editedRange)
         }
 
+        // --- Smart Language Separation ---
+        if editedMask.contains(.editedCharacters), delta >= 0 {
+            // テキストビューを取得してフラグをチェック
+            if let textView = textStorage.layoutManagers.first?.firstTextView as? JeditTextView,
+               textView.isSmartSeparationEnglishJapaneseEnabled,
+               !textView.hasMarkedText(),
+               !(textView.undoManager?.isRedoing ?? false) {
+
+                // ペースト中はスキップ
+                if let separation = smartLanguageSeparation, !separation.isPasting {
+                    separation.requestSeparation(for: editedRange)
+                }
+            }
+        }
+    }
+
+    /// プレーンテキストで属性が変更された場合、段落スタイルを全文に適用
+    private func applyUnifiedParagraphStyle(textStorage: NSTextStorage, editedRange: NSRange) {
         // 変更された範囲の段落スタイルを取得
         let safeLocation = min(editedRange.location, textStorage.length - 1)
         guard let changedStyle = textStorage.attribute(.paragraphStyle, at: safeLocation, effectiveRange: nil) as? NSParagraphStyle else {

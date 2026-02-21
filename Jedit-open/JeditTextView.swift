@@ -49,6 +49,14 @@ class JeditTextView: NSTextView {
         return UserDefaults.standard.bool(forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
     }
 
+    /// 英語と日本語の間にスペースを自動挿入するかどうか
+    var isSmartSeparationEnglishJapaneseEnabled: Bool = false
+
+    /// SmartLanguageSeparation インスタンスへのアクセス
+    private var smartLanguageSeparation: SmartLanguageSeparation? {
+        return (textStorage?.delegate as? FontFallbackRecoveryDelegate)?.smartLanguageSeparation
+    }
+
     /// 同期的にdocumentTypeをRTFDに昇格させる（アラートなし）
     /// readSelection(from:type:)のような同期メソッドから呼ばれる
     /// ドラッグ＆ドロップ時は既にRTFDであるはずだが、念のため昇格を確認する
@@ -940,6 +948,11 @@ class JeditTextView: NSTextView {
     @IBAction override func toggleAutomaticTextReplacement(_ sender: Any?) {
         super.toggleAutomaticTextReplacement(sender)
         UserDefaults.standard.set(isAutomaticTextReplacementEnabled, forKey: UserDefaults.Keys.textReplacements)
+    }
+
+    @IBAction func toggleSmartSeparationEnglishJapanese(_ sender: Any?) {
+        isSmartSeparationEnglishJapaneseEnabled.toggle()
+        UserDefaults.standard.set(isSmartSeparationEnglishJapaneseEnabled, forKey: UserDefaults.Keys.smartSeparationEnglishJapanese)
     }
 
     // MARK: - Stamp Date/Time Actions
@@ -1866,6 +1879,10 @@ class JeditTextView: NSTextView {
     override func paste(_ sender: Any?) {
         let pasteboard = NSPasteboard.general
 
+        // Smart Language Separation のペースト中フラグを設定
+        smartLanguageSeparation?.isPasting = true
+        defer { smartLanguageSeparation?.isPasting = false }
+
         // リッチテキスト書類の場合
         if !isPlainText {
             // RTFDデータまたは画像データがある場合はRTFDに昇格してsuperに委譲
@@ -1875,6 +1892,7 @@ class JeditTextView: NSTextView {
                 upgradeToRTFDIfNeeded { [weak self] proceed in
                     guard let self = self, proceed else { return }
                     self.performSuperPaste(sender)
+                    self.smartLanguageSeparation?.isPasting = false
                 }
                 return
             }
@@ -1904,6 +1922,9 @@ class JeditTextView: NSTextView {
 
     /// 属性付きテキストのペースト時に文字変換を適用
     override func pasteAsRichText(_ sender: Any?) {
+        smartLanguageSeparation?.isPasting = true
+        defer { smartLanguageSeparation?.isPasting = false }
+
         let pasteboard = NSPasteboard.general
         if let rtfData = pasteboard.data(forType: .rtf),
            let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
@@ -1918,6 +1939,9 @@ class JeditTextView: NSTextView {
 
     /// プレーンテキストとしてペースト時に文字変換を適用
     override func pasteAsPlainText(_ sender: Any?) {
+        smartLanguageSeparation?.isPasting = true
+        defer { smartLanguageSeparation?.isPasting = false }
+
         let pasteboard = NSPasteboard.general
         if let string = pasteboard.string(forType: .string) {
             let convertedString = applyTextConversions(string)
@@ -2133,6 +2157,12 @@ class JeditTextView: NSTextView {
             default:
                 break
             }
+        }
+
+        // Smart Separation のチェックマーク制御
+        if action == #selector(toggleSmartSeparationEnglishJapanese(_:)) {
+            menuItem.state = isSmartSeparationEnglishJapaneseEnabled ? .on : .off
+            return true
         }
 
         // リッチテキスト書類でクリップボードに画像がある場合、Pasteを有効化

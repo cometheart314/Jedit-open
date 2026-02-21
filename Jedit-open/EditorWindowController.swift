@@ -4231,6 +4231,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let dataDetectors = defaults.bool(forKey: UserDefaults.Keys.dataDetectors)
         let smartLinks = defaults.bool(forKey: UserDefaults.Keys.smartLinks)
         let smartCopyPaste = defaults.bool(forKey: UserDefaults.Keys.smartCopyPaste)
+        let smartSeparation = defaults.bool(forKey: UserDefaults.Keys.smartSeparationEnglishJapanese)
 
         // Rich Text Substitutions の設定
         let richTextSubstitutionsOnly = defaults.bool(forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
@@ -4252,6 +4253,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                                      dataDetectors: dataDetectors,
                                      smartLinks: smartLinks,
                                      smartCopyPaste: smartCopyPaste,
+                                     smartSeparation: smartSeparation,
                                      textReplacements: textReplacements,
                                      smartQuotes: smartQuotes,
                                      smartDashes: smartDashes,
@@ -4266,6 +4268,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                                      dataDetectors: dataDetectors,
                                      smartLinks: smartLinks,
                                      smartCopyPaste: smartCopyPaste,
+                                     smartSeparation: smartSeparation,
                                      textReplacements: textReplacements,
                                      smartQuotes: smartQuotes,
                                      smartDashes: smartDashes,
@@ -4280,6 +4283,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                                      dataDetectors: dataDetectors,
                                      smartLinks: smartLinks,
                                      smartCopyPaste: smartCopyPaste,
+                                     smartSeparation: smartSeparation,
                                      textReplacements: textReplacements,
                                      smartQuotes: smartQuotes,
                                      smartDashes: smartDashes,
@@ -4293,6 +4297,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                                      dataDetectors: dataDetectors,
                                      smartLinks: smartLinks,
                                      smartCopyPaste: smartCopyPaste,
+                                     smartSeparation: smartSeparation,
                                      textReplacements: textReplacements,
                                      smartQuotes: smartQuotes,
                                      smartDashes: smartDashes,
@@ -4307,6 +4312,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                                           dataDetectors: Bool,
                                           smartLinks: Bool,
                                           smartCopyPaste: Bool,
+                                          smartSeparation: Bool,
                                           textReplacements: Bool,
                                           smartQuotes: Bool,
                                           smartDashes: Bool,
@@ -4320,6 +4326,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textView.isAutomaticQuoteSubstitutionEnabled = smartQuotes
         textView.isAutomaticDashSubstitutionEnabled = smartDashes
         textView.isAutomaticSpellingCorrectionEnabled = correctSpelling
+        if let jeditTextView = textView as? JeditTextView {
+            jeditTextView.isSmartSeparationEnglishJapaneseEnabled = smartSeparation
+        }
     }
 
     // MARK: - Basic Font

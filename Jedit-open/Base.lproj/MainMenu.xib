@@ -338,6 +338,12 @@
                                                 <action selector="toggleAutomaticLinkDetection:" target="-1" id="Gip-E3-Fov"/>
                                             </connections>
                                         </menuItem>
+                                        <menuItem title="Smart Language Separation" id="mnu-ej-001">
+                                            <modifierMask key="keyEquivalentModifierMask"/>
+                                            <connections>
+                                                <action selector="toggleSmartSeparationEnglishJapanese:" target="-1" id="act-ej-001"/>
+                                            </connections>
+                                        </menuItem>
                                         <menuItem title="Data Detectors" id="tRr-pd-1PS">
                                             <modifierMask key="keyEquivalentModifierMask"/>
                                             <connections>
