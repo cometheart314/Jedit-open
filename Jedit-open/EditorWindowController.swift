@@ -1386,7 +1386,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// TextKit 1 の NSLayoutManager が RTF/RTFD 読み込み後に NSTextList 属性を
     /// 正しくレンダリングしないバグを回避する。
     /// RTF ラウンドトリップで再適用することでリスト表示を修復する。
-    private func fixTextListRenderingIfNeeded(in textStorage: NSTextStorage) {
+    func fixTextListRenderingIfNeeded(in textStorage: NSTextStorage) {
         // RTF/RTFD ドキュメントのみ対象
         guard let docType = textDocument?.documentType,
               (docType == .rtf || docType == .rtfd) else { return }

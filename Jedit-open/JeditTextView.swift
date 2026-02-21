@@ -1642,6 +1642,21 @@ class JeditTextView: NSTextView {
             return
         }
 
+        // リッチテキストでリスト内にいる場合は super に委譲する
+        // （NSTextView のデフォルト動作がリストマーカーの継続を処理する。
+        //  insertText() を使うと typingAttributes が適用され NSTextList が失われるため）
+        if !isPlainText, let textStorage = textStorage {
+            let loc = selectedRange().location
+            if loc > 0 && loc <= textStorage.length {
+                let checkIndex = min(loc, textStorage.length - 1)
+                if let style = textStorage.attribute(.paragraphStyle, at: checkIndex, effectiveRange: nil) as? NSParagraphStyle,
+                   !style.textLists.isEmpty {
+                    super.insertNewline(sender)
+                    return
+                }
+            }
+        }
+
         // 現在のカーソル位置を取得
         let currentRange = selectedRange()
 
@@ -1871,6 +1886,7 @@ class JeditTextView: NSTextView {
                let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
                 let convertedString = applyTextConversionsToAttributedString(attributedString)
                 replaceString(in: selectedRange(), with: convertedString)
+                fixTextListRenderingAfterPaste()
                 return
             }
         }
@@ -1894,6 +1910,7 @@ class JeditTextView: NSTextView {
             let convertedString = applyTextConversionsToAttributedString(attributedString)
             // insertText ではなく replaceString を使用（書式を保持するため）
             replaceString(in: selectedRange(), with: convertedString)
+            fixTextListRenderingAfterPaste()
         } else {
             super.pasteAsRichText(sender)
         }
@@ -1972,9 +1989,22 @@ class JeditTextView: NSTextView {
             let convertedString = applyTextConversionsToAttributedString(attributedString)
             // insertText ではなく replaceString を使用（書式を保持するため）
             replaceString(in: selectedRange(), with: convertedString)
+            fixTextListRenderingAfterPaste()
             return true
         }
         return super.readSelection(from: pboard, type: type)
+    }
+
+    /// ペースト後に NSTextList のレンダリングを修復する
+    /// TextKit 1 の NSLayoutManager は RTF デシリアライズ後に NSTextList 属性を
+    /// 正しくレンダリングしないバグがあるため、RTF ラウンドトリップで修復する
+    private func fixTextListRenderingAfterPaste() {
+        guard !isPlainText,
+              let windowController = window?.windowController as? EditorWindowController,
+              let textStorage = textStorage else { return }
+        DispatchQueue.main.async {
+            windowController.fixTextListRenderingIfNeeded(in: textStorage)
+        }
     }
 
     /// 文字列に対して文字変換を適用
