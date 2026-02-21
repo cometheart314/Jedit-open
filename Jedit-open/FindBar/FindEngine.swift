@@ -67,6 +67,17 @@ class FindEngine {
 
         // location 以降で検索
         if let range = findFirst(in: nsText, searchRange: NSRange(location: location, length: textLength - location)) {
+            // 長さ0のマッチが同じ位置で見つかった場合、1つ進めて再検索
+            if range.length == 0 && range.location == location && location < textLength {
+                if let nextRange = findFirst(in: nsText, searchRange: NSRange(location: location + 1, length: textLength - location - 1)) {
+                    return nextRange
+                }
+                // ラップアラウンド
+                if options.wrapAround {
+                    return findFirst(in: nsText, searchRange: NSRange(location: 0, length: textLength))
+                }
+                return nil
+            }
             return range
         }
 
@@ -301,7 +312,11 @@ class FindEngine {
     }
 
     private func regexOptions() -> NSRegularExpression.Options {
-        var opts: NSRegularExpression.Options = []
+        var opts: NSRegularExpression.Options = [
+            .anchorsMatchLines,
+            .useUnixLineSeparators,
+            .useUnicodeWordBoundaries
+        ]
         if !options.caseSensitive { opts.insert(.caseInsensitive) }
         return opts
     }
