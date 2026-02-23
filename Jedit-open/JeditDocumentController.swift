@@ -12,7 +12,7 @@ class JeditDocumentController: NSDocumentController {
     // MARK: - Properties
 
     /// キャンセル用に保持する現在表示中の Open パネル
-    private weak var currentOpenPanel: NSOpenPanel?
+    private(set) weak var currentOpenPanel: NSOpenPanel?
 
     /// ポップアップで選択されたプリセットインデックス（-1 = 未選択、-2 = Clipboard）
     private var selectedPresetIndex: Int = -1
@@ -24,19 +24,13 @@ class JeditDocumentController: NSDocumentController {
 
     override func openDocument(_ sender: Any?) {
         if suppressOpenPanel { return }
-        super.openDocument(sender)
-    }
 
-    // MARK: - Open Panel Override
+        let openPanel = NSOpenPanel()
+        openPanel.allowsMultipleSelection = true
+        openPanel.canChooseDirectories = false
+        openPanel.canChooseFiles = true
 
-    override func runModalOpenPanel(_ openPanel: NSOpenPanel, forTypes types: [String]?) -> Int {
-        // 起動時の自動呼び出しを抑制
-        // macOS の State Restoration 完了ハンドラから非同期で呼ばれるケースに対応
-        if suppressOpenPanel {
-            return NSApplication.ModalResponse.cancel.rawValue
-        }
-
-        // アクセサリビューに「New」ポップアップボタンを設定
+        // アクセサリビューに「New」ポップアップボタンと「Show Hidden Files」チェックボックスを設定
         openPanel.accessoryView = createNewDocumentAccessoryView()
         openPanel.isAccessoryViewDisclosed = true
 
@@ -44,30 +38,67 @@ class JeditDocumentController: NSDocumentController {
         currentOpenPanel = openPanel
         selectedPresetIndex = -1
 
-        // モーダルでパネルを表示（ユーザーが閉じるまでブロック）
-        let result = super.runModalOpenPanel(openPanel, forTypes: types)
+        // 非同期でパネルを表示（メニューバーをブロックしない）
+        openPanel.begin { [weak self] response in
+            guard let self = self else { return }
 
-        // クリーンアップ
-        currentOpenPanel = nil
+            // クリーンアップ
+            self.currentOpenPanel = nil
+            let presetIndex = self.selectedPresetIndex
+            self.selectedPresetIndex = -1
 
-        // プリセットが選択された場合（ポップアップから cancel された場合）、
-        // パネルが完全に閉じた後に新規書類を作成
-        let presetIndex = selectedPresetIndex
-        selectedPresetIndex = -1
-
-        if presetIndex == -2 {
-            DispatchQueue.main.async {
+            if presetIndex == -2 {
+                // Clipboard から新規書類を作成
                 (NSApp.delegate as? AppDelegate)?.newDocumentFromClipboard(nil)
-            }
-        } else if presetIndex >= 0 {
-            DispatchQueue.main.async {
+            } else if presetIndex >= 0 {
+                // プリセットから新規書類を作成
                 let menuItem = NSMenuItem()
                 menuItem.tag = presetIndex
                 (NSApp.delegate as? AppDelegate)?.newDocumentWithPreset(menuItem)
+            } else if response == .OK {
+                // 選択されたファイルを開く
+                for url in openPanel.urls {
+                    self.openDocument(withContentsOf: url, display: true) { _, _, error in
+                        if let error = error {
+                            NSApp.presentError(error)
+                        }
+                    }
+                }
             }
         }
+    }
 
-        return result
+    // MARK: - Open Recent (Option+クリックで削除)
+
+    override func openDocument(withContentsOf url: URL, display displayDocument: Bool, completionHandler: @escaping (NSDocument?, Bool, (any Error)?) -> Void) {
+        // Option キーが押されている場合、ファイルを開かずに Recents から削除
+        if NSEvent.modifierFlags.contains(.option) {
+            removeFromRecents(url: url)
+            completionHandler(nil, false, nil)
+            return
+        }
+        super.openDocument(withContentsOf: url, display: displayDocument, completionHandler: completionHandler)
+    }
+
+    /// 指定 URL を Recent Documents から削除
+    private func removeFromRecents(url: URL) {
+        let currentURLs = recentDocumentURLs
+        clearRecentDocuments(nil)
+        // 逆順で再登録して順序を保持
+        for recentURL in currentURLs.reversed() where recentURL != url {
+            noteNewRecentDocumentURL(recentURL)
+        }
+    }
+
+    // MARK: - Open Panel Override (State Restoration 用)
+
+    override func runModalOpenPanel(_ openPanel: NSOpenPanel, forTypes types: [String]?) -> Int {
+        // 起動時の自動呼び出しを抑制
+        // macOS の State Restoration 完了ハンドラから非同期で呼ばれるケースに対応
+        if suppressOpenPanel {
+            return NSApplication.ModalResponse.cancel.rawValue
+        }
+        return super.runModalOpenPanel(openPanel, forTypes: types)
     }
 
     // MARK: - Accessory View

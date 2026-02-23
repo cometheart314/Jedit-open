@@ -1050,6 +1050,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
+        // レイアウト関連の状態をリセット（ページ追加クールダウン等）
+        layoutCooldownUntil = nil
+        layoutCheckWorkItem?.cancel()
+        layoutCheckWorkItem = nil
+        isUpdatingPages = false
+        isAddingPage = false
+
         // 既存のページとlayoutManagerをクリア
         layoutManager1 = nil
         layoutManager2 = nil
@@ -1662,10 +1669,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             if let layoutManager = self.layoutManager1 {
                 textStorage.addLayoutManager(layoutManager)
 
-                // 最初のページのレイアウトを即座に実行
-                if let firstContainer = self.textContainers1.first {
-                    layoutManager.ensureLayout(for: firstContainer)
-                }
+                // 全テキストのレイアウトを強制（動的ページ追加のトリガーに必要）
+                let fullRange = NSRange(location: 0, length: textStorage.length)
+                layoutManager.ensureLayout(forCharacterRange: fullRange)
 
                 // 行番号表示のため再描画
                 self.pagesView1?.needsDisplay = true
@@ -1675,10 +1681,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             if let layoutManager = self.layoutManager2 {
                 textStorage.addLayoutManager(layoutManager)
 
-                // 最初のページのレイアウトを即座に実行
-                if let firstContainer = self.textContainers2.first {
-                    layoutManager.ensureLayout(for: firstContainer)
-                }
+                // 全テキストのレイアウトを強制（動的ページ追加のトリガーに必要）
+                let fullRange = NSRange(location: 0, length: textStorage.length)
+                layoutManager.ensureLayout(forCharacterRange: fullRange)
 
                 // 行番号表示のため再描画
                 self.pagesView2?.needsDisplay = true

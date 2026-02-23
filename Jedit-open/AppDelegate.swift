@@ -723,6 +723,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// プリセットを使用して新規書類を作成
     @IBAction func newDocumentWithPreset(_ sender: NSMenuItem) {
+        // Open Panel が表示中なら閉じる
+        if let docController = NSDocumentController.shared as? JeditDocumentController {
+            docController.currentOpenPanel?.cancel(nil)
+        }
+
         let presetIndex = sender.tag
         guard let preset = DocumentPresetManager.shared.preset(at: presetIndex) else {
             // プリセットが見つからない場合はデフォルトの新規書類を作成
@@ -768,6 +773,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// クリップボードの内容から新規書類を作成
     @IBAction func newDocumentFromClipboard(_ sender: Any?) {
+        // Open Panel が表示中なら閉じる
+        if let docController = NSDocumentController.shared as? JeditDocumentController {
+            docController.currentOpenPanel?.cancel(nil)
+        }
+
         let pasteboard = NSPasteboard.general
 
         // RTFD（画像含むリッチテキスト）を優先チェック

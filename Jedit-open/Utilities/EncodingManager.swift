@@ -348,7 +348,7 @@ class EncodingManager: NSObject {
         for i in 0..<menu.numberOfItems {
             guard let item = menu.item(at: i),
                   let enc = encoding(from: item) else { continue }
-            item.isEnabled = (text.data(using: enc) != nil)
+            item.isEnabled = canConvert(text: text, to: enc)
         }
     }
 
@@ -360,8 +360,15 @@ class EncodingManager: NSObject {
         for i in 0..<cell.numberOfItems {
             guard let item = cell.item(at: i),
                   let enc = encoding(from: item) else { continue }
-            item.isEnabled = (text.data(using: enc) != nil)
+            item.isEnabled = canConvert(text: text, to: enc)
         }
+    }
+
+    /// テキストが指定エンコーディングで変換可能かを安全に判定する
+    /// NSTextAttachment の特殊文字 (U+FFFC) 等が含まれる場合に NSException が発生するため、
+    /// NSString の canBeConverted(to:) を使用してクラッシュを防止する
+    private func canConvert(text: String, to encoding: String.Encoding) -> Bool {
+        return (text as NSString).canBeConverted(to: encoding.rawValue)
     }
 
     /// エンコーディングが Unicode 系かどうかを判定

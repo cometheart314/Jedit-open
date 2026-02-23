@@ -810,6 +810,9 @@ class Document: NSDocument {
             // ビュー・ページ設定を document attributes に設定
             setViewAndPageLayoutDocumentAttributes(&documentAttributes)
 
+            // リスト行のマーカー属性を正規化（RTFD エンコード前に必要）
+            normalizeListMarkerAttributes()
+
             guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: documentAttributes) else {
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
                     NSLocalizedDescriptionKey: "Could not create RTFD file wrapper"
@@ -832,6 +835,57 @@ class Document: NSDocument {
             let data = try data(ofType: typeName)
             return FileWrapper(regularFileWithContents: data)
         }
+    }
+
+    // MARK: - List Marker Attribute Normalization
+
+    /// RTF/RTFD 保存前にリスト行のマーカー属性を正規化する
+    ///
+    /// NSTextView がリスト行を管理する際、テキストストレージには `\t•\t` のようなマーカー文字が含まれる。
+    /// ユーザーがマーカーの途中から属性（色、字消し線など）を変更すると、マーカー部分に部分的に属性が
+    /// 適用された状態になる。RTF 保存時に `\t•\t` は `{\listtext}` としてエンコードされるが、
+    /// マーカー部分に部分的にかかった属性は RTF フォーマットでは正しく表現できず、再読み込み時に
+    /// マーカー文字が除去される際に属性情報が失われる。
+    ///
+    /// この問題を回避するため、保存前にマーカー部分 (`\t•\t`) の属性をマーカー直後のテキストの
+    /// 属性に統一する。
+    private func normalizeListMarkerAttributes() {
+        guard textStorage.length > 0 else { return }
+
+        let nsString = textStorage.string as NSString
+        var paragraphStart = 0
+
+        textStorage.beginEditing()
+        while paragraphStart < textStorage.length {
+            let paragraphRange = nsString.paragraphRange(for: NSRange(location: paragraphStart, length: 0))
+
+            // リスト属性を持つ段落のみ処理
+            if let style = textStorage.attribute(.paragraphStyle, at: paragraphStart, effectiveRange: nil) as? NSParagraphStyle,
+               !style.textLists.isEmpty {
+
+                // 段落の先頭に \t + (任意の文字) + \t のマーカーパターンがあるか確認
+                let lineText = nsString.substring(with: paragraphRange)
+                if lineText.hasPrefix("\t"),
+                   lineText.count >= 3 {
+                    // 2番目の \t を探してマーカー範囲を決定
+                    if let secondTabIndex = lineText.index(lineText.startIndex, offsetBy: 1, limitedBy: lineText.endIndex),
+                       let markerEnd = lineText[secondTabIndex...].firstIndex(of: "\t") {
+                        let markerLength = lineText.distance(from: lineText.startIndex, to: lineText.index(after: markerEnd))
+                        let textStart = paragraphRange.location + markerLength
+
+                        // マーカー後にテキストがある場合のみ処理
+                        if textStart < NSMaxRange(paragraphRange) {
+                            let markerRange = NSRange(location: paragraphRange.location, length: markerLength)
+                            let textAttrs = textStorage.attributes(at: UInt(textStart), effectiveRange: nil)
+                            textStorage.setAttributes(textAttrs, range: markerRange)
+                        }
+                    }
+                }
+            }
+
+            paragraphStart = NSMaxRange(paragraphRange)
+        }
+        textStorage.endEditing()
     }
 
     // MARK: - Attachment Bounds Metadata
@@ -962,6 +1016,9 @@ class Document: NSDocument {
 
             // ビュー・ページ設定を document attributes に設定
             setViewAndPageLayoutDocumentAttributes(&options)
+
+            // リスト行のマーカー属性を正規化（RTF エンコード前に必要）
+            normalizeListMarkerAttributes()
 
             do {
                 let data = try textStorage.data(from: range, documentAttributes: options)
