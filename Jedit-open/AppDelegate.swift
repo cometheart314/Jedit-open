@@ -56,6 +56,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // サンプルスクリプトの初回インストール
         ScriptMenuController.shared.installSampleScriptsIfNeeded()
 
+        // ヘルプファイルを Application Support にコピー/更新
+        updateHelpFileIfNeeded()
+
         // Continuity Camera用: アプリが画像を受け取れることをServicesに登録
         let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
         NSApp.registerServicesMenuSendTypes([.string, .rtf, .rtfd], returnTypes: imageReturnTypes + [.tiff, .png])
@@ -263,7 +266,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private func saveOpenDocumentURLs() {
         let urls = NSDocumentController.shared.documents.compactMap { document -> String? in
             guard let doc = document as? Document,
-                  let url = doc.fileURL else { return nil }
+                  var url = doc.fileURL else { return nil }
+
+            // バンドル内ヘルプファイルまたは旧形式の場合は Application Support の rtfd URL に変換して保存
+            if let appSupportHelpURL = self.helpFileURL {
+                if let bundleHelpURL = Bundle.main.url(forResource: "JeditHelp", withExtension: "rtfd"),
+                   url.path == bundleHelpURL.path {
+                    url = appSupportHelpURL
+                } else if url.lastPathComponent == "JeditHelp.rtf",
+                          url.path != appSupportHelpURL.path {
+                    // 旧形式 (.rtf) のバンドルURL or Application Support URL を新形式に変換
+                    url = appSupportHelpURL
+                }
+            }
+
             // セキュリティスコープ付きブックマークデータとしてURLを保存
             do {
                 let bookmarkData = try url.bookmarkData(options: [.withSecurityScope], includingResourceValuesForKeys: nil, relativeTo: nil)
@@ -293,20 +309,50 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return false
         }
 
+        // バンドル内ヘルプ URL → Application Support URL への変換用
+        let bundleHelpPath = Bundle.main.url(forResource: "JeditHelp", withExtension: "rtfd")?.path
+        // 旧形式（.rtf）のバンドルパスも変換対象
+        let oldBundleHelpPath = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/JeditHelp.rtf").path
+        // 旧形式の Application Support パスも変換対象
+        let oldAppSupportHelpPath: String? = {
+            guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
+            return appSupport.appendingPathComponent("Jedit/Help/JeditHelp.rtf").path
+        }()
+
         for savedURL in savedURLs {
             // まずブックマークとして復元を試みる
             if let bookmarkData = Data(base64Encoded: savedURL) {
                 var isStale = false
-                if let url = try? URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale) {
+                if var url = try? URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale) {
                     _ = url.startAccessingSecurityScopedResource()
+                    // バンドル内ヘルプ URL を Application Support に変換
+                    if let appSupportURL = self.helpFileURL {
+                        if let bhPath = bundleHelpPath, url.path == bhPath {
+                            url = appSupportURL
+                        } else if url.path == oldBundleHelpPath {
+                            url = appSupportURL
+                        } else if let oldPath = oldAppSupportHelpPath, url.path == oldPath {
+                            url = appSupportURL
+                        }
+                    }
                     NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
                     continue
                 }
             }
 
             // ブックマーク復元に失敗した場合はパスとして扱う
-            let url = URL(fileURLWithPath: savedURL)
-            if FileManager.default.fileExists(atPath: savedURL) {
+            var url = URL(fileURLWithPath: savedURL)
+            // ヘルプパスを Application Support の rtfd に変換
+            if let appSupportURL = self.helpFileURL {
+                if let bhPath = bundleHelpPath, savedURL == bhPath {
+                    url = appSupportURL
+                } else if savedURL == oldBundleHelpPath {
+                    url = appSupportURL
+                } else if let oldPath = oldAppSupportHelpPath, savedURL == oldPath {
+                    url = appSupportURL
+                }
+            }
+            if FileManager.default.fileExists(atPath: url.path) {
                 NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
             }
         }
@@ -880,6 +926,90 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
 
         error.pointee = "No suitable text data found on the pasteboard." as NSString
+    }
+
+    // MARK: - Help
+
+    /// Application Support 内のヘルプファイルの URL を返す
+    private var helpFileURL: URL? {
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return appSupport.appendingPathComponent("Jedit/Help/JeditHelp.rtfd")
+    }
+
+    /// バンドル内のヘルプファイルを Application Support にコピー/更新する
+    /// バンドル内の方が新しい場合、または Application Support にまだない場合にコピーする
+    private func updateHelpFileIfNeeded() {
+        guard let bundleURL = Bundle.main.url(forResource: "JeditHelp", withExtension: "rtfd"),
+              let destURL = helpFileURL else { return }
+
+        let fm = FileManager.default
+
+        // ディレクトリを作成
+        let destDir = destURL.deletingLastPathComponent()
+        try? fm.createDirectory(at: destDir, withIntermediateDirectories: true)
+
+        // 旧形式の .rtf ファイルが残っていれば削除
+        let oldRTFURL = destDir.appendingPathComponent("JeditHelp.rtf")
+        if fm.fileExists(atPath: oldRTFURL.path) {
+            try? fm.removeItem(at: oldRTFURL)
+        }
+
+        if fm.fileExists(atPath: destURL.path) {
+            // 既にコピー済みの場合は修正日付を比較
+            guard let bundleAttrs = try? fm.attributesOfItem(atPath: bundleURL.path),
+                  let destAttrs = try? fm.attributesOfItem(atPath: destURL.path),
+                  let bundleDate = bundleAttrs[.modificationDate] as? Date,
+                  let destDate = destAttrs[.modificationDate] as? Date else { return }
+
+            if bundleDate > destDate {
+                // バンドルの方が新しい場合は上書きコピー
+                try? fm.removeItem(at: destURL)
+                try? fm.copyItem(at: bundleURL, to: destURL)
+            }
+        } else {
+            // まだコピーされていない場合は初回コピー
+            try? fm.copyItem(at: bundleURL, to: destURL)
+        }
+    }
+
+    /// Help > Jedit Help メニューアクション
+    /// Application Support 内のヘルプファイルを開く
+    @IBAction func openJeditHelp(_ sender: Any?) {
+        guard let helpURL = helpFileURL,
+              FileManager.default.fileExists(atPath: helpURL.path) else { return }
+
+        NSDocumentController.shared.openDocument(withContentsOf: helpURL, display: true) { document, _, error in
+            if let error = error {
+                NSApp.presentError(error)
+                return
+            }
+            // 初回オープン時のみヘルプ用表示設定を適用
+            guard let doc = document as? Document,
+                  let wc = doc.windowControllers.first as? EditorWindowController else { return }
+
+            // 拡張属性が既にある場合（2回目以降）は設定を復元済みなのでスキップ
+            if doc.presetData?.view.preventEditing == true { return }
+
+            // Read-only
+            doc.presetData?.view.preventEditing = true
+            wc.setAllTextViewsEditable(false)
+
+            // Toolbar off
+            wc.window?.toolbar?.isVisible = false
+
+            // Inspector bar off
+            if doc.presetData?.view.showInspectorBar == true {
+                wc.toggleInspectorBar(nil)
+            }
+
+            // Ruler off
+            wc.setRulerHide(nil)
+
+            // Line number off
+            wc.hideLineNumbers(nil)
+        }
     }
 
     // MARK: - NSMenuItemValidation

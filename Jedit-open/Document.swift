@@ -1853,17 +1853,25 @@ class Document: NSDocument {
     }
 
     /// 修正日付を保持したままプリセットデータを拡張属性に書き込む（外部から呼び出し可能）
+    /// Finder ロックファイルの場合は書き込みをスキップする
     func savePresetDataToExtendedAttribute(at url: URL) {
         guard let presetData = self.presetData else { return }
 
-        // 現在の修正日付を取得
-        let originalModificationDate: Date?
+        // 現在のファイル属性を取得（ロック状態）
+        let isLocked: Bool
         do {
             let attrs = try FileManager.default.attributesOfItem(atPath: url.path)
-            originalModificationDate = attrs[.modificationDate] as? Date
+            isLocked = (attrs[.immutable] as? Bool) ?? false
         } catch {
-            originalModificationDate = nil
+            isLocked = false
         }
+
+        // Finder ロックされている場合は書き込みをスキップ
+        if isLocked { return }
+
+        // stat で元のアクセス日時・修正日時を取得
+        var originalStat = stat()
+        let statResult = stat(url.path, &originalStat)
 
         do {
             let encoder = JSONEncoder()
@@ -1886,11 +1894,11 @@ class Document: NSDocument {
                 Swift.print("Failed to write preset data to extended attribute: \(errno)")
             } else {
                 // 拡張属性の書き込み成功後、修正日付を元に戻す
-                if let originalDate = originalModificationDate {
-                    try? FileManager.default.setAttributes(
-                        [.modificationDate: originalDate],
-                        ofItemAtPath: url.path
-                    )
+                if statResult == 0 {
+                    var times = [timespec](repeating: timespec(), count: 2)
+                    times[0] = originalStat.st_atimespec  // アクセス日時
+                    times[1] = originalStat.st_mtimespec  // 修正日時
+                    utimensat(AT_FDCWD, url.path, &times, 0)
                 }
                 // フラグをリセット
                 presetDataEdited = false

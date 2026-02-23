@@ -1,0 +1,1251 @@
+{\rtf1\ansi\ansicpg932\cocoartf2868
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fnil\fcharset0 HelveticaNeue;\f1\fnil\fcharset0 HelveticaNeue-Bold;\f2\fnil\fcharset0 LucidaGrande;
+\f3\fnil\fcharset0 HelveticaNeue-Italic;\f4\fnil\fcharset128 HiraginoSans-W3;}
+{\colortbl;\red255\green255\blue255;\red0\green0\blue0;\red100\green100\blue100;}
+{\*\expandedcolortbl;;\cssrgb\c0\c0\c0\cname textColor;\csgenericrgb\c39216\c39216\c39216;}
+\paperw11905\paperh16837\margl1440\margr1440\vieww12000\viewh15000\viewkind0\viewscale100
+\deftab640
+\pard\pardeftab640\slleading200\pardirnatural\qc\partightenfactor0
+
+\f0\fs28 \cf2 {{\NeXTGraphic 64x64@2x.png \width2560 \height2560 \appleattachmentpadding0 \appleembedtype0 \appleaqc
+}¬}\
+\pard\pardeftab640\slleading200\qc\partightenfactor0
+
+\f1\b\fs36 \cf0 Jedit User Guide
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 1. Welcome to Jedit
+\f0\b0\fs24 \
+Jedit is a powerful, full-featured text editor for macOS. It supports both plain text and rich text editing, with advanced features for Japanese language processing, multiple character encodings, AppleScript automation, and much more.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Key Features
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Plain text and rich text (RTF/RTFD) editing\
+\'95 Multiple character encoding support with automatic detection\
+\'95 Advanced find and replace with regular expression support\
+\'95 Page view mode with pagination\
+\'95 Split view editing (horizontal and vertical)\
+\'95 Customizable document presets for new documents\
+\'95 Japanese typographic support including line breaking rules\
+\'95 Smart Language Separation (English/Japanese automatic spacing)\
+\'95 AppleScript support for automation\
+\'95 Markdown rendering and export\
+\'95 Document statistics and writing goals\
+\'95 Invisible character display\
+\'95 Printing with customizable headers and footers\
+\'95 Word, ODT, and Markdown format support\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Supported Document Formats
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Plain Text (.txt) \'97 with any character encoding\
+\'95 Rich Text Format (.rtf) \'97 formatted text with styles\
+\'95 Rich Text with Attachments (.rtfd) \'97 formatted text with embedded images\
+\'95 Microsoft Word (.doc, .docx) \'97 Word document format\
+\'95 OpenDocument Text (.odt) \'97 open standard format\
+\'95 Markdown (.md) \'97 lightweight markup language\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 2. Getting Started
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 The Jedit Window
+\f0\b0\fs24 \
+The Jedit window consists of several key areas:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Toolbar \'97 Located at the top of the window. Contains quick-access buttons for the find bar, encoding selection, line ending selection, and writing progress indicator. Show or hide it with View > Show Toolbar (
+\f2 \uc0\u8997 \u8984 
+\f0 T).\
+\'95 Inspector Bar \'97 Displays document statistics such as character count, word count, and cursor position. Toggle it with View > Show Inspector Bar.\
+\'95 Editor Area \'97 The main text editing area where you write and edit your documents.\
+\'95 Ruler \'97 Displayed above the editor area in rich text mode. Shows margins, tab stops, and indentation. Control it via View > Ruler.\
+\'95 Line Number Gutter \'97 Optionally displayed on the left side of the editor. Shows paragraph numbers or row numbers. Control it via View > Line Number.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 First Launch
+\f0\b0\fs24 \
+When you first launch Jedit, a new empty document is created using the default preset. You can configure what happens at launch in Preferences > General:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Create a new document\
+\'95 Show the Open dialog\
+\'95 Restore previously open documents\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 On first launch, Jedit also installs sample AppleScript files to your ~/Library/Application Scripts/ folder. These scripts demonstrate Jedit's AppleScript capabilities and can be accessed from the Scripts menu.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 3. Creating and Opening Documents
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Creating a New Document
+\f0\b0\fs24 \
+To create a new document, choose File > New and select a preset from the submenu:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Default \'97 Creates a document using the default preset configured in Preferences (
+\f2 \uc0\u8984 
+\f0 N).\
+\'95 Plain Text \'97 Creates a plain text document with no formatting.\
+\'95 Rich Text \'97 Creates a rich text (RTF) document with full formatting support.\
+\'95 Custom Presets \'97 Any custom presets you have created will also appear in this menu.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 You can also create a new document from the clipboard content by selecting "New from Clipboard" from the New submenu. This creates a new document and pastes the current clipboard content into it.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Document Presets
+\f0\b0 \
+Document presets save a complete set of document settings including: encoding, line endings, font, colors, page layout, margins, headers/footers, view settings (toolbar, ruler, line numbers, zoom), and more. You can create and manage presets in Preferences > New Documents.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Opening Documents
+\f0\b0\fs24 \
+To open an existing document, choose File > Open (
+\f2 \uc0\u8984 
+\f0 O). The Open dialog appears with the following features:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Select one or more files to open simultaneously.\
+\'95 An accessory view provides a "New Document" pull-down button to create new documents using presets directly from the Open dialog.\
+\'95 While the Open dialog is displayed, the File > New submenu remains accessible, so you can create new documents without closing the dialog first.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Open Recent
+\f0\b0\fs24 \
+Choose File > Open Recent to see a list of recently opened documents. Click any item to reopen it.\
+To remove a single item from the recent documents list, hold the Option key (
+\f2 \uc0\u8997 
+\f0 ) and click the item. It will be removed from the list without opening the document.\
+To clear all recent documents, choose File > Open Recent > Clear Menu.\
+
+\f1\b\fs28 Character Encoding Detection
+\f0\b0\fs24 \
+When opening a plain text file, Jedit automatically detects the character encoding using a multi-step process:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 BOM (Byte Order Mark) detection \'97 Checks for UTF-8, UTF-16, and UTF-32 byte order marks.\
+\'95 Extended attribute detection \'97 Reads the com.apple.TextEncoding extended attribute stored by macOS.\
+\'95 Content analysis \'97 Analyzes byte patterns to determine the most likely encoding.\
+\'95 Trial conversion \'97 Attempts conversion with multiple encodings, prioritizing Japanese encodings (EUC-JP, Shift-JIS, ISO-2022-JP).\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 If automatic detection fails or has low confidence, Jedit will prompt you to choose the encoding manually.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 4. Saving and Exporting
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Saving Documents
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Save (
+\f2 \uc0\u8984 
+\f0 S) \'97 Saves the current document. If the document has never been saved, a Save dialog appears.\
+\'95 Save As (
+\f2 \uc0\u8679 \u8984 
+\f0 S) \'97 Saves the document with a new name or location.\
+\'95 Revert to Saved (
+\f2 \uc0\u8984 
+\f0 R) \'97 Discards all changes and reloads the last saved version.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Document Format Selection
+\f0\b0\fs24 \
+In the Save dialog, you can choose the document format from the format popup:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Plain Text \'97 Unformatted text with the selected encoding.\
+\'95 Rich Text Format (RTF) \'97 Formatted text without embedded attachments.\
+\'95 Rich Text with Attachments (RTFD) \'97 Formatted text with embedded images and files.\
+\'95 Word Format (.doc/.docx) \'97 Microsoft Word compatible format.\
+\'95 OpenDocument Text (.odt) \'97 Open standard document format.\
+\'95 Markdown (.md) \'97 Exports with Markdown syntax.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Export
+\f0\b0\fs24 \
+Choose File > Export (
+\f2 \uc0\u8679 \u8984 
+\f0 E) to export the document to a different format while keeping the original document open. The export dialog provides options for encoding, line endings, and BOM settings.\
+
+\f1\b\fs28 Encoding and Line Ending Options
+\f0\b0\fs24 \
+When saving plain text files, the save dialog includes options for:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Character Encoding \'97 Select from the list of enabled encodings (e.g., UTF-8, Shift-JIS, EUC-JP).\
+\'95 Line Endings \'97 Choose LF (Unix/macOS), CR (Classic Mac), or CRLF (Windows).\
+\'95 BOM (Byte Order Mark) \'97 Optionally include a BOM for Unicode encodings.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Automatic Format Upgrade
+\f0\b0\fs24 \
+When you insert an image into a plain text or RTF document, Jedit offers to upgrade the document format:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Plain Text 
+\f2 \uc0\u8594 
+\f0  Rich Text: When adding formatting to a plain text document.\
+\'95 RTF 
+\f2 \uc0\u8594 
+\f0  RTFD: When inserting images or file attachments into an RTF document.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 You can choose to Convert (upgrade in place), Duplicate (create a new document), or Cancel.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 5. Editing Text
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Basic Editing
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Cut (
+\f2 \uc0\u8984 
+\f0 X) \'97 Cut the selected text to the clipboard.\
+\'95 Copy (
+\f2 \uc0\u8984 
+\f0 C) \'97 Copy the selected text to the clipboard.\
+\'95 Paste (
+\f2 \uc0\u8984 
+\f0 V) \'97 Paste text from the clipboard.\
+\'95 Paste and Match Style (
+\f2 \uc0\u8997 \u8984 
+\f0 V) \'97 Paste text without formatting, matching the destination style.\
+\'95 Delete \'97 Delete the selected text.\
+\'95 Select All (
+\f2 \uc0\u8984 
+\f0 A) \'97 Select all text in the document.\
+\'95 Undo (
+\f2 \uc0\u8984 
+\f0 Z) \'97 Undo the last action.\
+\'95 Redo (
+\f2 \uc0\u8679 \u8984 
+\f0 Z) \'97 Redo the last undone action.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Inserting Content
+\f0\b0\fs24 \
+Use the Edit > Insert submenu to insert special content:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Line Break \'97 Insert a soft line break (does not start a new paragraph).\
+\'95 Paragraph Break \'97 Insert a paragraph break (standard Return key behavior).\
+\'95 Page Break \'97 Insert a page break for printing and page view mode.\
+\'95 Date (
+\f2 \uc0\u8679 \u8984 
+\f0 D) \'97 Insert the current date using the format configured in Preferences.\
+\'95 Time (
+\f2 \uc0\u8679 \u8984 
+\f0 T) \'97 Insert the current time using the format configured in Preferences.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Attaching Files and Links
+\f0\b0\fs24 \
+In rich text documents, you can attach files and create hyperlinks:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Attach Files \'97 Choose Edit > Attach Files to embed files or images into the document (requires RTFD format).\
+\'95 Link (
+\f2 \uc0\u8984 
+\f0 K) \'97 Select text and choose Edit > Link to create a clickable hyperlink. You can also Cmd-click (
+\f2 \uc0\u8984 
+\f0 +click) on any URL in the text to open it in your default browser.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Text Transformations
+\f0\b0\fs24 \
+Choose Edit > Transformations to change the case of selected text:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Make Upper Case \'97 Converts selected text to all uppercase.\
+\'95 Make Lower Case \'97 Converts selected text to all lowercase.\
+\'95 Capitalize \'97 Capitalizes the first letter of each word.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Auto Indent
+\f0\b0\fs24 \
+Toggle auto-indent with Format > Auto Indent. When enabled, pressing Return automatically matches the indentation of the previous line.\
+
+\f1\b\fs28 Wrapped Line Indent
+\f0\b0\fs24 \
+Choose Format > Wrapped Line Indent to set the indentation for wrapped lines (continuation lines that result from word wrapping). This helps visually distinguish continuation lines from new paragraphs.\
+
+\f1\b\fs28 Prevent Editing
+\f0\b0\fs24 \
+Choose Format > Prevent Editing to lock the document against changes. This is useful for reference documents that should not be accidentally modified. Jedit also detects Finder-locked files and automatically enters read-only mode.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 6. Formatting Text (Rich Text)
+\f0\b0\fs24 \
+Formatting options are available only in rich text (RTF/RTFD) documents. To convert a plain text document to rich text, choose Format > Make Rich Text.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Font Formatting
+\f0\b0\fs24 \
+Use the Format > Font menu or the Fonts panel (
+\f2 \uc0\u8984 
+\f0 T) to format text:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Bold (
+\f2 \uc0\u8984 
+\f0 B) \'97 Apply bold weight to selected text.\
+\'95 Italic (
+\f2 \uc0\u8984 
+\f0 I) \'97 Apply italic style to selected text.\
+\'95 Underline (
+\f2 \uc0\u8984 
+\f0 U) \'97 Underline selected text.\
+\'95 Bigger (
+\f2 \uc0\u8984 
+\f0 +) \'97 Increase font size.\
+\'95 Smaller (
+\f2 \uc0\u8984 
+\f0 -) \'97 Decrease font size.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Advanced Font Options
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Kern \'97 Adjust character spacing: Use Default, Use None, Tighten, Loosen.\
+\'95 Ligatures \'97 Control ligature use: Use Default, Use None, Use All.\
+\'95 Baseline \'97 Adjust baseline: Use Default, Superscript, Subscript, Raise, Lower.\
+\'95 Copy Style (
+\f2 \uc0\u8997 \u8984 
+\f0 C) \'97 Copy the formatting of selected text.\
+\'95 Paste Style (
+\f2 \uc0\u8997 \u8984 
+\f0 V) \'97 Apply copied formatting to selected text.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Basic Font
+\f0\b0 \
+Choose Format > Font > Basic Font to set the base font for plain text documents. This font is used as the default for new text and is the fallback when the font recovery system detects language-specific fallback fonts.\
+
+\f1\b Character Colors
+\f0\b0 \
+Choose Format > Font > Character Fore Color to apply a text color to the selected text. Choose from preset colors (Red, Orange, Yellow, Green, Mint, Teal, Cyan, Blue, Indigo, Purple, Pink, Brown, Gray) or choose "Other Color..." to pick a custom color.\
+Choose Format > Font > Character Back Color to apply a background highlight color to selected text. Choose from preset colors (Clear, Salmon, Carnation, Lavender, Ice, Flora, Banana) or choose "Other Color..." to pick a custom color.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Text Alignment and Direction
+\f0\b0\fs24 \
+Use the Format > Text menu to control text alignment and direction:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Align Left (
+\f2 \uc0\u8984 
+\f0 \{) \'97 Align text to the left margin.\
+\'95 Center (
+\f2 \uc0\u8984 
+\f0 |) \'97 Center text between margins.\
+\'95 Align Right (
+\f2 \uc0\u8984 
+\f0 \}) \'97 Align text to the right margin.\
+\'95 Justify \'97 Stretch text to fill both margins.\
+\'95 Writing Direction \'97 Set paragraph or selection direction to Default, Left to Right, or Right to Left.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Ruler and Tabs
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Show Ruler \'97 Display the ruler above the text editing area for setting margins and tab stops.\
+\'95 Copy Ruler (
+\f2 \uc0\u8963 \u8984 
+\f0 C) \'97 Copy the current paragraph's ruler settings.\
+\'95 Paste Ruler (
+\f2 \uc0\u8963 \u8984 
+\f0 V) \'97 Apply copied ruler settings to selected paragraphs.\
+\'95 Tab Width \'97 Choose Format > Text > Tab Width to set custom tab stop intervals.\
+\'95 Line Spacing \'97 Choose Format > Text > Line Spacing to adjust line height and paragraph spacing.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Word Wrapping
+\f0\b0\fs24 \
+Choose Format > Text > Word Wrapping to set the wrapping mode:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 System Default \'97 Use the standard macOS word wrapping algorithm.\
+\'95 Japanese Word Wrap \'97 Use Japanese typographic rules for word wrapping (Kinsoku Shori).\
+\'95 Don't Word Wrap \'97 Disable word wrapping for the paragraph.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Lists and Tables
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 List \'97 Choose Format > List to create bulleted or numbered lists. Select text and apply list formatting to convert paragraphs into list items.\
+\'95 Table \'97 Choose Format > Table to insert or edit tables in the document.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Rich Text / Plain Text Conversion
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Make Rich Text \'97 Choose Format > Make Rich Text to convert a plain text document to rich text (RTF). This enables full formatting capabilities.\
+\'95 Make Plain Text \'97 Choose Format > Make Plain Text to convert a rich text document to plain text. All formatting will be removed.\
+\pard\pardeftab640\li360\ri365\slleading200\partightenfactor0
+
+\f3\i\fs22 \cf0 Note: When converting from rich text to plain text in page view mode, the layout is automatically recalculated to display all pages correctly.
+\f0\i0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Vertical Layout
+\f0\b0\fs24 \
+Choose Format > Make Vertical Layout to switch the document to vertical (top-to-bottom, right-to-left) text layout. This is commonly used for traditional Japanese and Chinese text formatting.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 7. Find and Replace
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Find Bar
+\f0\b0\fs24 \
+Choose Find > Find (
+\f2 \uc0\u8984 
+\f0 F) to open the Find bar at the top of the editor. The Find bar provides incremental search \'97 results are highlighted as you type.\
+Choose Find > Find and Replace (
+\f2 \uc0\u8997 \u8984 
+\f0 F) to open the Find bar with the Replace field visible.\
+
+\f1\b\fs28 Search Options
+\f0\b0\fs24 \
+The Find bar includes the following options:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Case Sensitive \'97 When enabled, "Hello" will not match "hello".\
+\'95 Regular Expression \'97 Enable regex pattern matching. The search field provides regex syntax highlighting to help you write patterns.\
+\'95 Whole Word \'97 Match only complete words, not substrings.\
+\'95 Wrap Around \'97 Continue searching from the beginning when the end of the document is reached.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Find Operations
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Find Next (
+\f2 \uc0\u8984 
+\f0 G) \'97 Find the next occurrence of the search term.\
+\'95 Find Previous (
+\f2 \uc0\u8679 \u8984 
+\f0 G) \'97 Find the previous occurrence of the search term.\
+\'95 Use Selection for Find (
+\f2 \uc0\u8984 
+\f0 E) \'97 Use the currently selected text as the search term.\
+\'95 Jump to Selection (
+\f2 \uc0\u8984 
+\f0 J) \'97 Scroll to show the current selection.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Replace Operations
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Replace \'97 Replace the current match with the replacement text.\
+\'95 Replace All \'97 Replace all matches in the document at once.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 The Find bar shows the total number of matches found in the document.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Search History and Saved Patterns
+\f0\b0\fs24 \
+Jedit remembers your recent search terms and replacement text (up to 20 entries each). Access the search history from the Find bar's history menu.\
+You can also save frequently used search/replace patterns with a name for quick access. Saved patterns include all search options (case sensitivity, regex, whole word).\
+
+\f1\b\fs28 Regular Expression Support
+\f0\b0\fs24 \
+When the Regular Expression option is enabled, the search field accepts ICU regular expression syntax. Common patterns include:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 \\\\d \'97 Match any digit\
+\'95 \\\\w \'97 Match any word character\
+\'95 \\\\s \'97 Match any whitespace\
+\'95 . \'97 Match any character\
+\'95 * \'97 Match zero or more times\
+\'95 + \'97 Match one or more times\
+\'95 ? \'97 Match zero or one time\
+\'95 [abc] \'97 Match any character in the set\
+\'95 (group) \'97 Capture group, referenced in replace as $1, $2, etc.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 The Find bar provides real-time regex syntax highlighting to help you identify errors in your patterns.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 8. View Options
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Toolbar
+\f0\b0\fs24 \
+Toggle the toolbar with View > Show Toolbar (
+\f2 \uc0\u8997 \u8984 
+\f0 T). The toolbar provides quick access to:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Find bar toggle\
+\'95 Encoding selector \'97 View and change the document's character encoding\
+\'95 Line ending selector \'97 View and change line endings (LF/CR/CRLF)\
+\'95 Writing progress indicator \'97 Shows progress toward your writing goal\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Inspector Bar
+\f0\b0\fs24 \
+Toggle the Inspector Bar with View > Show Inspector Bar. It displays real-time document statistics including character count, word count, and cursor position.\
+
+\f1\b\fs28 Ruler
+\f0\b0\fs24 \
+Choose View > Ruler to control the ruler display:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Hide \'97 Hide the ruler.\
+\'95 Points \'97 Show the ruler with point measurements.\
+\'95 Centimeters \'97 Show the ruler with centimeter measurements.\
+\'95 Inches \'97 Show the ruler with inch measurements.\
+\'95 Characters \'97 Show the ruler with character-width measurements.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Line Numbers
+\f0\b0\fs24 \
+Choose View > Line Number to control line number display:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 None \'97 Hide line numbers.\
+\'95 Paragraph Number \'97 Show logical paragraph numbers (each paragraph gets one number regardless of wrapped lines).\
+\'95 Row Number \'97 Show physical row numbers (each displayed line gets its own number).\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Invisible Characters
+\f0\b0\fs24 \
+Choose View > Show Invisibles to reveal hidden characters in the text. You can toggle individual invisible character types:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Show All \'97 Show all invisible characters at once.\
+\'95 Return \'97 Show paragraph breaks (pilcrow mark \'b6).\
+\'95 Tab \'97 Show tab characters.\
+\'95 Space \'97 Show space characters (middle dot \'b7).\
+\'95 Full-width Space \'97 Show Japanese full-width space characters.\
+\'95 Line Separator \'97 Show Unicode line separator characters.\
+\'95 Non-breaking Space \'97 Show non-breaking space characters.\
+\'95 Page Break \'97 Show page break characters.\
+\'95 Vertical Tab \'97 Show vertical tab characters.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Document Width
+\f0\b0\fs24 \
+Choose View > Document Width to control how text is wrapped:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Follows Paper Width \'97 Text wraps at the width defined by the paper size in Page Setup.\
+\'95 Follows Window Width \'97 Text wraps at the window edge (default).\
+\'95 Don't Wrap Line \'97 Lines extend beyond the window width with horizontal scrolling.\
+\'95 Fixed Width \'97 Set a custom wrap width by specifying the number of characters.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Page Mode
+\f0\b0\fs24 \
+Choose View > Toggle Page Mode to switch between continuous editing mode and page view mode. In page mode, the document is displayed as printed pages with margins, headers, and footers visible. This gives you a WYSIWYG preview of how the document will look when printed.\
+
+\f1\b\fs28 Split View
+\f0\b0\fs24 \
+Choose View > Split View to split the editor into two panes:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 No Split \'97 Single editor pane.\
+\'95 Horizontal Split \'97 Two panes stacked vertically, viewing different parts of the same document.\
+\'95 Vertical Split (
+\f2 \uc0\u8984 
+\f0 D) \'97 Two panes side by side, viewing different parts of the same document.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 Each split pane can have its own independent zoom level and scroll position.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Zoom
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Zoom In (
+\f2 \uc0\u8984 
+\f0 +) \'97 Increase the text display size.\
+\'95 Zoom Out (
+\f2 \uc0\u8984 
+\f0 -) \'97 Decrease the text display size.\
+\'95 Actual Size (
+\f2 \uc0\u8984 
+\f0 0) \'97 Reset zoom to 100%.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 The zoom range is 25% to 400%.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Document Colors
+\f0\b0\fs24 \
+Choose View > Document Colors to customize the colors used in the editor. You can set separate colors for plain text and rich text mode:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Text color\
+\'95 Background color\
+\'95 Caret (cursor) color\
+\'95 Invisible character color\
+\'95 Line number color and background\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Page Layout
+\f0\b0\fs24 \
+Choose View > Page Layout to customize the page layout for the current document. Settings include paper size, margins (top, bottom, left, right), and orientation.\
+
+\f1\b\fs28 Full Screen
+\f0\b0\fs24 \
+Choose View > Enter Full Screen (
+\f2 \uc0\u8963 \u8984 
+\f0 F) to enter full screen mode. This hides the menu bar and dock, providing maximum space for editing.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 9. Document Information
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Document Info Panel
+\f0\b0\fs24 \
+Choose File > Show Document Info (
+\f2 \uc0\u8984 
+\f0 I) to display the Document Info panel. It shows comprehensive statistics about your document:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Character count\
+\'95 Word count\
+\'95 Sentence count\
+\'95 Paragraph count\
+\'95 Line count (logical and physical)\
+\'95 Manuscript page count (based on 400-character pages, a Japanese standard)\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 When text is selected, the panel also shows statistics for the selected text only. All statistics update in real time as you edit.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Document Properties
+\f0\b0\fs24 \
+Choose File > Properties to view and edit document metadata. Available fields include:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Author\
+\'95 Company\
+\'95 Copyright\
+\'95 Title\
+\'95 Subject\
+\'95 Keywords\
+\'95 Comment\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 These properties are saved in the RTF document metadata.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Writing Goal
+\f0\b0\fs24 \
+Choose File > Writing Goal to set a target word count or character count for your document. Once a goal is set, a circular progress indicator appears in the toolbar showing your progress. The indicator fills clockwise as you approach your target. A double circle with a checkmark is displayed when you reach your goal.\
+Click the progress indicator in the toolbar to edit or remove your writing goal.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 10. Printing
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Page Setup
+\f0\b0\fs24 \
+Choose File > Page Setup (
+\f2 \uc0\u8679 \u8984 
+\f0 P) to configure the paper size, orientation, and scale for printing. These settings also affect the page view mode display.\
+
+\f1\b\fs28 Print
+\f0\b0\fs24 \
+Choose File > Print (
+\f2 \uc0\u8984 
+\f0 P) to print the current document. The print dialog includes a custom Jedit accessory panel with the following options:\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Line Number Printing
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Same as Editing \'97 Print line numbers matching the current editor setting.\
+\'95 Print Line Numbers \'97 Always print line numbers.\
+\'95 Don't Print \'97 Never print line numbers.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Color Printing
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Same as Editing \'97 Print with the same colors shown in the editor.\
+\'95 Suppress Background \'97 Print with colored text but without background colors.\
+\'95 Black and White \'97 Print in black text on white background.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Other Print Options
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Print Header \'97 Include the header on each printed page.\
+\'95 Print Footer \'97 Include the footer on each printed page.\
+\'95 Print Invisible Characters \'97 Include invisible character marks in the printout.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Headers and Footers
+\f0\b0\fs24 \
+Customize headers and footers in Preferences > New Documents or through the document preset system. Headers and footers support rich text formatting and the following substitution codes:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 %name \'97 Document name (without extension)\
+\'95 %filename \'97 File name with extension\
+\'95 %page \'97 Current page number\
+\'95 %total \'97 Total number of pages\
+\'95 %date \'97 Current date\
+\'95 %time \'97 Current time\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 11. Preferences
+\f0\b0\fs24 \
+Open Preferences with Jedit > Preferences (
+\f2 \uc0\u8984 
+\f0 ,). Preferences are organized into the following tabs:\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 General Preferences
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Appearance \'97 Choose between System Default, Light, or Dark appearance mode.\
+\'95 Startup \'97 Configure what happens when Jedit launches: create a new document, show the Open dialog, or restore previously open documents.\
+\'95 Auto-start \'97 Option to launch Jedit at system login.\
+\'95 Date Format \'97 Choose from predefined date formats or create a custom format for the Insert > Date command.\
+\'95 Time Format \'97 Choose from predefined time formats or create a custom format for the Insert > Time command.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 New Documents Preferences
+\f0\b0\fs24 \
+Configure the default settings for newly created documents:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Default Preset \'97 Select which preset to use for the 
+\f2 \uc0\u8984 
+\f0 N shortcut.\
+\'95 Document Naming \'97 Choose the naming format for untitled documents: sequential number, timestamp, date with serial, locale-aware date, etc.\
+\'95 Default Encoding \'97 Set the default character encoding for new plain text documents.\
+\'95 Default Line Endings \'97 Set the default line ending style.\
+\'95 Font \'97 Set the default font and size for new documents.\
+\'95 Colors \'97 Set the default text and background colors.\
+\'95 Page Layout \'97 Set default margins, paper size, and orientation.\
+\'95 Headers/Footers \'97 Configure default header and footer content for printing.\
+\'95 View Settings \'97 Set default toolbar, ruler, line number, zoom, and other display options.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Encodings Preferences
+\f0\b0\fs24 \
+Customize the list of character encodings shown in encoding popup menus throughout Jedit. You can enable or disable individual encodings and reorder them. Click "Revert to Default" to restore the default encoding list.\
+
+\f1\b\fs28 Line Breaking Preferences
+\f0\b0\fs24 \
+Configure Japanese typographic line-breaking rules (Kinsoku Shori). These rules control where line breaks can and cannot occur:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Line-start prohibited characters \'97 Characters that must not appear at the beginning of a line (e.g., closing brackets, punctuation).\
+\'95 Line-end prohibited characters \'97 Characters that must not appear at the end of a line (e.g., opening brackets).\
+\'95 Hanging characters (Burasagari) \'97 Characters that are allowed to extend beyond the right margin.\
+\'95 Non-separable characters \'97 Character pairs that must not be split across lines.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 Choose from preset rules (Simple, Standard, Strict) or customize individual character sets.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 12. Spelling, Grammar, and Substitutions
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Spelling and Grammar
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Show Spelling and Grammar (
+\f2 \uc0\u8984 
+\f0 :) \'97 Open the spelling and grammar panel.\
+\'95 Check Document Now (
+\f2 \uc0\u8984 
+\f0 ;) \'97 Check the entire document for spelling errors.\
+\'95 Check Spelling While Typing \'97 Automatically underline misspelled words as you type.\
+\'95 Check Grammar With Spelling \'97 Also check grammar when checking spelling.\
+\'95 Correct Spelling Automatically \'97 Automatically correct common spelling mistakes.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Substitutions
+\f0\b0\fs24 \
+Choose Edit > Substitutions to access text substitution features:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Smart Copy/Paste \'97 Automatically adjust spacing when cutting and pasting text.\
+\'95 Smart Quotes \'97 Automatically convert straight quotes (" and ') to typographic (curly) quotes.\
+\'95 Smart Dashes \'97 Automatically convert -- to an em dash (\'97) and similar substitutions.\
+\'95 Smart Links \'97 Automatically detect and make URLs clickable.\
+\'95 Data Detectors \'97 Detect dates, addresses, and other data in text.\
+\'95 Text Replacement \'97 Use macOS System Preferences text replacements.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Smart Language Separation
+\f0\b0\fs24 \
+Choose Edit > Substitutions > Smart Language Separation to enable automatic space insertion between English and Japanese text. When you type a sequence like "Hello
+\f4 \'82\'b1\'82\'f1\'82\'c9\'82\'bf\'82\'cd
+\f0 ", Jedit automatically inserts a space at the boundary between English and Japanese characters.\
+This feature intelligently handles:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Latin characters (A-Z, a-z) adjacent to Japanese characters (Hiragana, Katakana, CJK Kanji)\
+\'95 Skips separation when there is already whitespace or punctuation at the boundary\
+\'95 Works correctly with IME input (does not interfere with Japanese input method composition)\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 13. Encoding and Line Endings
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Supported Encodings
+\f0\b0\fs24 \
+Jedit supports a wide range of character encodings, including:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Unicode: UTF-8, UTF-16 (Big Endian, Little Endian), UTF-32\
+\'95 Japanese: Shift-JIS, EUC-JP, ISO-2022-JP, Mac Japanese\
+\'95 Western: Mac Roman, Windows Latin-1, ISO Latin-1, ASCII\
+\'95 Chinese: Mac Chinese Traditional, Mac Chinese Simplified, GB-18030\
+\'95 Korean: Mac Korean\
+\'95 And many more via the macOS text encoding system\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Automatic Encoding Detection
+\f0\b0\fs24 \
+When opening a plain text file, Jedit uses a sophisticated multi-step detection process:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 1. BOM Detection \'97 Checks for byte order marks at the start of the file.\
+\'95 2. Extended Attribute \'97 Reads the com.apple.TextEncoding attribute if present.\
+\'95 3. Content Analysis \'97 Analyzes byte patterns to determine the encoding with a confidence score.\
+\'95 4. User Selection \'97 If confidence is low, prompts you to choose.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 The encoding is displayed in the toolbar and can be changed at any time.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Line Endings
+\f0\b0\fs24 \
+Jedit supports three line ending styles:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 LF (Line Feed, \\n) \'97 Unix, macOS, and Linux standard.\
+\'95 CR (Carriage Return, \\r) \'97 Classic Mac OS standard.\
+\'95 CRLF (CR+LF, \\r\\n) \'97 Windows standard.\
+\pard\pardeftab640\slleading200\partightenfactor0
+\cf0 When opening a file, Jedit automatically detects the line ending style by counting occurrences of each type and using the most frequent. You can change the line ending style using the toolbar popup or when saving.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Byte Order Mark (BOM)
+\f0\b0\fs24 \
+A BOM is an optional marker at the start of a Unicode text file that identifies the encoding. You can choose to include or exclude a BOM when saving Unicode files. The BOM option is available for UTF-8, UTF-16, and UTF-32 encodings.\
+
+\f1\b\fs28 Special Character Conversions
+\f0\b0\fs24 \
+Jedit supports special character conversion options for Japanese text:\
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Yen Sign (\'a5) 
+\f4 \uc0\u8596 
+\f0  Backslash (\\) conversion \'97 Handle the classic Japanese encoding ambiguity.\
+\'95 Overline (\uc0\u8254 ) 
+\f4 \uc0\u8596 
+\f0  Tilde (~) conversion\
+\'95 Full-width Tilde conversion\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 14. AppleScript Support
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Scripts Menu
+\f0\b0\fs24 \
+Jedit includes a Scripts menu that provides access to AppleScript files. Scripts are loaded from ~/Library/Application Scripts/. On first launch, Jedit installs sample scripts demonstrating common automation tasks.\
+To add your own scripts, place .scpt, .applescript, or .scptd files in the Application Scripts folder. They will appear in the Scripts menu automatically.\
+
+\f1\b\fs28 Scripting Commands
+\f0\b0\fs24 \
+Jedit's AppleScript dictionary (accessible via Script Editor > Open Dictionary) supports the following commands:\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Standard Suite
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 open \'97 Open a document\
+\'95 close \'97 Close a document\
+\'95 save \'97 Save a document\
+\'95 print \'97 Print a document (with options for copies, collating, pages)\
+\'95 quit \'97 Quit the application\
+\'95 count \'97 Count objects (characters, words, paragraphs)\
+\'95 delete \'97 Delete text\
+\'95 duplicate \'97 Duplicate objects\
+\'95 exists \'97 Check if an object exists\
+\'95 make \'97 Create new objects\
+\'95 move \'97 Move objects\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Jedit-Specific Commands
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 find \'97 Search for text in a document\
+\'95 insert \'97 Insert text at the current selection\
+\'95 select \'97 Select a range of text\
+\'95 replace \'97 Find and replace text\
+\'95 begin undo group \'97 Start grouping multiple actions as a single undo step\
+\'95 end undo group \'97 End the undo group\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Document Properties via Script
+\f0\b0\fs24 \
+AppleScript can access and modify document properties including text content, selection, font settings, formatting, and metadata (author, title, keywords, etc.).\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 15. Markdown Support
+\f0\b0\fs24 \
+Jedit includes built-in Markdown support, providing both rendering and export capabilities.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Supported Markdown Syntax
+\f0\b0\fs24 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Block Elements
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Headings \'97 # H1, ## H2, ### H3, #### H4, ##### H5, ###### H6\
+\'95 Paragraphs \'97 Separated by blank lines\
+\'95 Code Blocks \'97 Indented by 4 spaces or fenced with ``` (triple backticks)\
+\'95 Block Quotes \'97 Lines starting with >\
+\'95 Unordered Lists \'97 Lines starting with *, -, or +\
+\'95 Ordered Lists \'97 Lines starting with numbers (1., 2., etc.)\
+\'95 Horizontal Rules \'97 Three or more -, *, or _\
+\'95 Tables \'97 With header rows and alignment separators\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b \cf0 Inline Elements
+\f0\b0 \
+\pard\pardeftab640\li360\fi-360\slleading200\partightenfactor0
+\cf0 \'95 Bold \'97 **text** or __text__\
+\'95 Italic \'97 *text* or _text_\
+\'95 Bold Italic \'97 ***text*** or ___text___\
+\'95 Inline Code \'97 `code`\
+\'95 Links \'97 [text](url) or [text][reference]\
+\'95 Strikethrough \'97 ~~text~~\
+\'95 Subscript \'97 ~text~\
+\'95 Superscript \'97 ^text^\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Markdown Display
+\f0\b0\fs24 \
+When you open a Markdown (.md) file, Jedit renders the Markdown syntax as formatted rich text. Headings are displayed in larger fonts, bold and italic text is properly styled, code blocks use a monospace font with a background color, and lists are properly indented.\
+
+\f1\b\fs28 Markdown Export
+\f0\b0\fs24 \
+You can export any document as Markdown by choosing Markdown (.md) in the Save As or Export dialog's format popup. Jedit converts the rich text formatting back to Markdown syntax, preserving headings, bold/italic, code blocks, lists, and other supported elements.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs32 \cf0 16. Keyboard Shortcuts
+\f0\b0\fs24 \
+The following table lists all keyboard shortcuts available in Jedit. Key symbols: 
+\f2 \uc0\u8984 
+\f0  = Command, 
+\f2 \uc0\u8679 
+\f0  = Shift, 
+\f2 \uc0\u8997 
+\f0  = Option, 
+\f2 \uc0\u8963 
+\f0  = Control.\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 File Menu
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\slleading200\partightenfactor0
+
+\f1\b\fs22 \cf0 New (Default)
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 N\
+
+\f1\b Open
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 O\
+
+\f1\b Close
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 W\
+
+\f1\b Save
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 S\
+
+\f1\b Save As
+\f0\b0 	
+\f2 \uc0\u8679 \u8984 
+\f0 S\
+
+\f1\b Export
+\f0\b0 	
+\f2 \uc0\u8679 \u8984 
+\f0 E\
+
+\f1\b Revert to Saved
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 R\
+
+\f1\b Show Document Info
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 I\
+
+\f1\b Stamp Date
+\f0\b0 	
+\f2 \uc0\u8679 \u8984 
+\f0 D\
+
+\f1\b Stamp Time
+\f0\b0 	
+\f2 \uc0\u8679 \u8984 
+\f0 T\
+
+\f1\b Page Setup
+\f0\b0 	
+\f2 \uc0\u8679 \u8984 
+\f0 P\
+
+\f1\b Print
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 P\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Edit Menu
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\slleading200\partightenfactor0
+
+\f1\b\fs22 \cf0 Undo
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 Z\
+
+\f1\b Redo
+\f0\b0 	
+\f2 \uc0\u8679 \u8984 
+\f0 Z\
+
+\f1\b Cut
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 X\
+
+\f1\b Copy
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 C\
+
+\f1\b Paste
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 V\
+
+\f1\b Paste and Match Style
+\f0\b0 	
+\f2 \uc0\u8997 \u8984 
+\f0 V\
+
+\f1\b Select All
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 A\
+
+\f1\b Link
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 K\
+
+\f1\b Show Spelling and Grammar
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 :\
+
+\f1\b Check Document Now
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 ;\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 View Menu
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\slleading200\partightenfactor0
+
+\f1\b\fs22 \cf0 Show/Hide Toolbar
+\f0\b0 	
+\f2 \uc0\u8997 \u8984 
+\f0 T\
+
+\f1\b Vertical Split
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 D\
+
+\f1\b Zoom In
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 +\
+
+\f1\b Zoom Out
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 -\
+
+\f1\b Actual Size
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 0\
+
+\f1\b Full Screen
+\f0\b0 	
+\f2 \uc0\u8963 \u8984 
+\f0 F\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Format Menu
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\slleading200\partightenfactor0
+
+\f1\b\fs22 \cf0 Show Fonts
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 T\
+
+\f1\b Bold
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 B\
+
+\f1\b Italic
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 I\
+
+\f1\b Underline
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 U\
+
+\f1\b Align Left
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 \{\
+
+\f1\b Center
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 |\
+
+\f1\b Align Right
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 \}\
+
+\f1\b Copy Style
+\f0\b0 	
+\f2 \uc0\u8997 \u8984 
+\f0 C\
+
+\f1\b Paste Style
+\f0\b0 	
+\f2 \uc0\u8997 \u8984 
+\f0 V\
+
+\f1\b Copy Ruler
+\f0\b0 	
+\f2 \uc0\u8963 \u8984 
+\f0 C\
+
+\f1\b Paste Ruler
+\f0\b0 	
+\f2 \uc0\u8963 \u8984 
+\f0 V\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Find Menu
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\slleading200\partightenfactor0
+
+\f1\b\fs22 \cf0 Find
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 F\
+
+\f1\b Find and Replace
+\f0\b0 	
+\f2 \uc0\u8997 \u8984 
+\f0 F\
+
+\f1\b Find Next
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 G\
+
+\f1\b Find Previous
+\f0\b0 	
+\f2 \uc0\u8679 \u8984 
+\f0 G\
+
+\f1\b Use Selection for Find
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 E\
+
+\f1\b Jump to Selection
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 J\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\f1\b\fs28 \cf0 Window Menu
+\f0\b0\fs24 \
+\pard\pardeftab640\li360\slleading200\partightenfactor0
+
+\f1\b\fs22 \cf0 Minimize
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 M\
+
+\f1\b Preferences
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 ,\
+
+\f1\b Quit Jedit
+\f0\b0 	
+\f2 \uc0\u8984 
+\f0 Q\
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs2 \cf0 \
+\pard\pardeftab640\slleading200\partightenfactor0
+
+\fs24 \cf0 \
+\pard\pardeftab640\slleading200\qc\partightenfactor0
+
+\fs20 \cf3 Jedit User Guide\
+\'a9 Artman21. All rights reserved.\
+}
