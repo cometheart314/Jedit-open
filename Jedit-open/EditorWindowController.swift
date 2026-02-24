@@ -98,6 +98,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var pagesView1: MultiplePageView?
     private var pagesView2: MultiplePageView?
 
+    // スクロール位置復元用（レイアウト完了待ち）
+    private var pendingScrollPosition: NSPoint?
+
     // ページ設定（document.printInfo から取得）
     // Note: NSPrintInfo.paperSize は orientation に応じて既に調整されている
     // （landscape の場合は width > height となっている）
@@ -665,22 +668,55 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
-        // スクロール位置を復元（レイアウト完了後に実行するため遅延させる）
-        // 縦書きページモードはレイアウトに時間がかかるため、より長い遅延が必要
-        let isVerticalPageMode = (displayMode == .page && isVerticalLayout)
-        let delay: TimeInterval = isVerticalPageMode ? 0.5 : 0.1
+        // スクロール位置を復元
+        // allowsNonContiguousLayout が有効な場合、documentView のサイズは推定値であり、
+        // スクロール先のコンテンツがレイアウトされていないと真っ白になる。
+        // ensureLayout で全テキストのレイアウトを完了させ、documentView のサイズを
+        // 正確に更新してから、次のランループでスクロール位置を適用する。
+        if let scrollPositionX = viewData.scrollPositionX,
+           let scrollPositionY = viewData.scrollPositionY {
+            pendingScrollPosition = NSPoint(x: scrollPositionX, y: scrollPositionY)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self = self else { return }
-            if let scrollPositionX = viewData.scrollPositionX,
-               let scrollPositionY = viewData.scrollPositionY,
-               let scrollView = self.scrollView1,
-               let clipView = scrollView.contentView as? NSClipView {
-                let scrollPosition = NSPoint(x: scrollPositionX, y: scrollPositionY)
-                clipView.scroll(to: scrollPosition)
-                scrollView.reflectScrolledClipView(clipView)
+            // Continuousモード: 全テキストのレイアウトを完了させ、
+            // documentView (NSTextView) のサイズを正確に更新する。
+            // layoutManager1 は Page モード専用なので、
+            // NSTextView の layoutManager プロパティを直接使用する。
+            if displayMode == .continuous,
+               let textView = scrollView1?.documentView as? NSTextView,
+               let layoutManager = textView.layoutManager,
+               let textContainer = textView.textContainer {
+                let textLength = textView.textStorage?.length ?? 0
+                if textLength > 0 {
+                    let fullRange = NSRange(location: 0, length: textLength)
+                    layoutManager.ensureLayout(forCharacterRange: fullRange)
+                    // allowsNonContiguousLayout=true だと ensureLayout 後も
+                    // NSTextView の frame が自動更新されないため、
+                    // usedRect から正確なサイズを取得して手動で更新する
+                    let usedRect = layoutManager.usedRect(for: textContainer)
+                    let inset = textView.textContainerInset
+                    let newHeight = usedRect.height + inset.height * 2
+                    if textView.frame.height < newHeight {
+                        textView.setFrameSize(NSSize(width: textView.frame.width, height: newHeight))
+                    }
+                }
+            }
+
+            // ensureLayout によるスクロールリセットが完了した後にスクロール位置を適用
+            DispatchQueue.main.async { [weak self] in
+                self?.applyPendingScrollPosition()
             }
         }
+    }
+
+    /// ペンディング中のスクロール位置を適用する
+    private func applyPendingScrollPosition() {
+        guard let scrollPosition = pendingScrollPosition else { return }
+        guard let scrollView = self.scrollView1,
+              let clipView = scrollView.contentView as? NSClipView else { return }
+
+        pendingScrollPosition = nil
+        clipView.scroll(to: scrollPosition)
+        scrollView.reflectScrolledClipView(clipView)
     }
 
     /// 現在の選択範囲を取得
@@ -4188,6 +4224,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // フレーム更新完了
             needsPageFrameUpdate = false
+
+            // ペンディング中のスクロール位置があれば適用
+            if pendingScrollPosition != nil && target == .scrollView1 {
+                DispatchQueue.main.async { [weak self] in
+                    self?.applyPendingScrollPosition()
+                }
+            }
         }
     }
 
