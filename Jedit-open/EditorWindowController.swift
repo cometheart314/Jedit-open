@@ -583,6 +583,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // setupTextViews後にパラグラフスタイル（タブ幅、行間、段落間隔）を適用
         // スペースモードではタブ幅はデフォルト値を使用
         let tabWidthPoints = formatData.tabWidthUnit == .points ? formatData.tabWidthPoints : 28.0
+        // リッチテキストの既存ファイルの場合、RTFに保存されたパラグラフごとの行間設定を保持する。
+        // presetData の行間値で上書きすると、個別に設定した行間が失われてしまうため。
+        let isExistingRichTextFile = textDocument?.fileURL != nil
+            && textDocument?.documentType != .plain
         applyParagraphStyle(
             tabWidthPoints: tabWidthPoints,
             interLineSpacing: formatData.interLineSpacing,
@@ -590,7 +594,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             paragraphSpacingAfter: formatData.paragraphSpacingAfter,
             lineHeightMultiple: formatData.lineHeightMultiple,
             lineHeightMinimum: formatData.lineHeightMinimum,
-            lineHeightMaximum: formatData.lineHeightMaximum
+            lineHeightMaximum: formatData.lineHeightMaximum,
+            preserveExistingLineSpacing: isExistingRichTextFile
         )
 
         // setupTextViews後にルーラー設定を適用（単位設定を含む）
@@ -820,7 +825,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         lineHeightMultiple: CGFloat = 1.0,
         lineHeightMinimum: CGFloat = 0,
         lineHeightMaximum: CGFloat = 0,
-        applyToExistingText: Bool = true
+        applyToExistingText: Bool = true,
+        preserveExistingLineSpacing: Bool = false
     ) {
         // デフォルトのパラグラフスタイルを作成
         let defaultParagraphStyle = NSMutableParagraphStyle()
@@ -889,14 +895,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     } else {
                         newStyle = NSMutableParagraphStyle()
                     }
+                    // タブ幅は常に適用
                     newStyle.defaultTabInterval = tabWidthPoints
                     newStyle.tabStops = []
-                    newStyle.lineHeightMultiple = lineHeightMultiple
-                    newStyle.minimumLineHeight = lineHeightMinimum
-                    newStyle.maximumLineHeight = lineHeightMaximum
-                    newStyle.lineSpacing = interLineSpacing
-                    newStyle.paragraphSpacingBefore = paragraphSpacingBefore
-                    newStyle.paragraphSpacing = paragraphSpacingAfter
+                    // preserveExistingLineSpacing が true の場合、
+                    // RTFから読み込んだパラグラフごとの行間設定を保持する。
+                    // 既存のスタイルがない場合のみ presetData の値を適用する。
+                    if !preserveExistingLineSpacing || value == nil {
+                        newStyle.lineHeightMultiple = lineHeightMultiple
+                        newStyle.minimumLineHeight = lineHeightMinimum
+                        newStyle.maximumLineHeight = lineHeightMaximum
+                        newStyle.lineSpacing = interLineSpacing
+                        newStyle.paragraphSpacingBefore = paragraphSpacingBefore
+                        newStyle.paragraphSpacing = paragraphSpacingAfter
+                    }
                     textStorage.addAttribute(.paragraphStyle, value: newStyle, range: range)
                 }
             }

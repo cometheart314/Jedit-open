@@ -120,19 +120,26 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // startup 処理済みフラグをセット
         hasHandledStartup = true
 
-        // 復元ドキュメントがない場合のみ startupOption を処理
+        // 復元ドキュメントがない場合のみ startupOption を処理する。
+        // DispatchQueue.main.async で次の run loop に遅延させることで、
+        // ファイルドロップによる openDocument(withContentsOf:) が先に処理される。
+        // これにより、ドロップされたファイルが既に開かれている場合は startupOption をスキップできる。
         if !didRestore {
-            let startupResult = handleStartupOption()
-            if startupResult == .newDocument {
-                // Default プリセットで新規書類を作成
-                let menuItem = NSMenuItem()
-                menuItem.tag = 0
-                newDocumentWithPreset(menuItem)
-            } else if startupResult == .openPanel {
-                // ユーザーが startupOption で Open Panel を指定した場合は
-                // suppressOpenPanel を解除してから開く
-                (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
-                DispatchQueue.main.async {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                // ファイルドロップ等で既にドキュメントが開かれていれば何もしない
+                if !NSDocumentController.shared.documents.isEmpty { return }
+
+                let startupResult = self.handleStartupOption()
+                if startupResult == .newDocument {
+                    // Default プリセットで新規書類を作成
+                    let menuItem = NSMenuItem()
+                    menuItem.tag = 0
+                    self.newDocumentWithPreset(menuItem)
+                } else if startupResult == .openPanel {
+                    // ユーザーが startupOption で Open Panel を指定した場合は
+                    // suppressOpenPanel を解除してから開く
+                    (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
                     NSDocumentController.shared.openDocument(nil)
                 }
             }
@@ -829,7 +836,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // RTFD（画像含むリッチテキスト）を優先チェック
         if let rtfdData = pasteboard.data(forType: .rtfd),
            let attributedString = NSAttributedString(rtfd: rtfdData, documentAttributes: nil) {
-            createRichTextDocument(with: attributedString)
+            createRichTextDocument(with: attributedString, isRTFD: true)
             return
         }
 
@@ -847,7 +854,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             let cell = NSTextAttachmentCell(imageCell: image)
             attachment.attachmentCell = cell
             let attributedString = NSAttributedString(attachment: attachment)
-            createRichTextDocument(with: attributedString)
+            createRichTextDocument(with: attributedString, isRTFD: true)
             return
         }
 
@@ -858,12 +865,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
     }
 
-    /// Rich Text の新規書類を作成してAttributedStringを設定
-    private func createRichTextDocument(with attributedString: NSAttributedString) {
+    /// Rich Text（RTF/RTFD）の新規書類を作成してAttributedStringを設定
+    /// - Parameters:
+    ///   - attributedString: 設定するAttributedString
+    ///   - isRTFD: true の場合 RTFD（添付ファイルを含む）として作成
+    private func createRichTextDocument(with attributedString: NSAttributedString, isRTFD: Bool = false) {
         do {
             guard let document = try NSDocumentController.shared.makeUntitledDocument(ofType: "public.plain-text") as? Document else { return }
 
             document.applyPresetData(NewDocData.richText)
+            // RTFD の場合はドキュメントタイプを rtfd に変更（添付ファイルを保持するため）
+            if isRTFD {
+                document.documentType = .rtfd
+            }
             NSDocumentController.shared.addDocument(document)
             document.makeWindowControllers()
             document.showWindows()
@@ -908,7 +922,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // RTFD（画像含むリッチテキスト）を優先チェック
         if let rtfdData = pasteboard.data(forType: .rtfd),
            let attributedString = NSAttributedString(rtfd: rtfdData, documentAttributes: nil) {
-            createRichTextDocument(with: attributedString)
+            createRichTextDocument(with: attributedString, isRTFD: true)
             return
         }
 
