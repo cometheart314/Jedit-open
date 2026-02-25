@@ -328,10 +328,9 @@ extension Document {
             root.addChild(data.toBookmark())
         }
 
-        // RTF から読み込んだ場合、JEDITANCHOR: リンク属性が残っているので一括削除
-        removeAllAnchorLinkAttributes()
-
         // textStorage にアンカー属性を設定
+        // ブックマーク位置の JEDITANCHOR: リンクは .anchor に変換し、
+        // クロスリファレンス（ドロップされたリンク）はそのまま残す
         applyAnchorAttributesFromBookmarks(root)
 
         return true
@@ -426,13 +425,20 @@ extension Document {
     }
 
     /// ブックマークツリーの全ブックマークのアンカー属性を textStorage に設定する。
-    /// 呼び出し前に removeAllAnchorLinkAttributes() で JEDITANCHOR: リンクを
-    /// 削除済みであること。
+    /// ブックマーク位置に残っている JEDITANCHOR: リンク属性（保存時に変換されたもの）は
+    /// 削除してから .anchor 属性を設定する。
+    /// クロスリファレンス（ドロップされたリンク）は影響しない。
     private func applyAnchorAttributesFromBookmarks(_ bookmark: Bookmark) {
         for child in bookmark.childBookmarks {
             let range = child.range
             // 範囲が textStorage 内に収まることを確認
             if range.location + range.length <= textStorage.length {
+                // RTF 読み込み後に残っている JEDITANCHOR: リンク属性を削除
+                if let linkValue = textStorage.attribute(.link, at: range.location, effectiveRange: nil),
+                   let linkString = linkValueAsString(linkValue),
+                   linkString.hasPrefix("JEDITANCHOR:") {
+                    textStorage.removeAttribute(.link, range: range)
+                }
                 textStorage.addAttribute(.anchor, value: child.uuid, range: range)
             }
             // 子孫を再帰的に処理

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <objects>
+        <customObject id="-2" userLabel="File's Owner" customClass="LinkPanelController" customModule="Jedit" customModuleProvider="target">
+            <connections>
+                <outlet property="bookmarkPopUpButton" destination="lnk-bkm-popup" id="lnk-conn-004"/>
+                <outlet property="deleteLinkButton" destination="lnk-del-btn" id="lnk-conn-006"/>
+                <outlet property="displayTextField" destination="lnk-display-field" id="lnk-conn-003"/>
+                <outlet property="linkPanel" destination="lnk-panel-001" id="lnk-conn-001"/>
+                <outlet property="setLinkButton" destination="lnk-set-btn" id="lnk-conn-005"/>
+                <outlet property="urlField" destination="lnk-url-field" id="lnk-conn-002"/>
+            </connections>
+        </customObject>
+        <customObject id="-1" userLabel="First Responder" customClass="FirstResponder"/>
+        <customObject id="-3" userLabel="Application" customClass="NSObject"/>
+        <window title="Link" allowsToolTipsWhenApplicationIsInactive="NO" autorecalculatesKeyViewLoop="NO" releasedWhenClosed="NO" visibleAtLaunch="NO" frameAutosaveName="LinkPanelAutoSave" animationBehavior="default" id="lnk-panel-001" customClass="NSPanel">
+            <windowStyleMask key="styleMask" titled="YES" closable="YES" utility="YES"/>
+            <windowPositionMask key="initialPositionMask" leftStrut="YES" rightStrut="YES" topStrut="YES" bottomStrut="YES"/>
+            <rect key="contentRect" x="200" y="400" width="460" height="120"/>
+            <rect key="screenRect" x="0.0" y="0.0" width="3440" height="1410"/>
+            <view key="contentView" wantsLayer="YES" id="lnk-content-view">
+                <rect key="frame" x="0.0" y="0.0" width="460" height="120"/>
+                <autoresizingMask key="autoresizingMask"/>
+                <subviews>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-url-label">
+                        <rect key="frame" x="18" y="92" width="34" height="16"/>
+                        <textFieldCell key="cell" lineBreakMode="clipping" title="URL:" id="lnk-url-label-cell">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-url-field" customClass="DroppableTextField" customModule="Jedit" customModuleProvider="target">
+                        <rect key="frame" x="52" y="92" width="374" height="16"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" bordered="YES" bezeled="YES" bezelStyle="squareBezel" sendsActionOnEndEditing="YES" placeholderString="URL or JEDITANCHOR:..." id="lnk-url-field-cell">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-bkm-popup">
+                        <rect key="frame" x="423" y="100" width="25" height="0.0"/>
+                        <popUpButtonCell key="cell" type="bevel" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" autoenablesItems="NO" id="lnk-bkm-popup-cell">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="message"/>
+                        </popUpButtonCell>
+                        <connections>
+                            <action selector="bookmarkPopUpChanged:" target="-2" id="lnk-act-popup"/>
+                        </connections>
+                    </popUpButton>
+                    <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-display-label">
+                        <rect key="frame" x="18" y="68" width="34" height="16"/>
+                        <textFieldCell key="cell" lineBreakMode="clipping" title="Text:" id="lnk-display-label-cell">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-display-field">
+                        <rect key="frame" x="52" y="68" width="398" height="16"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" bordered="YES" bezeled="YES" bezelStyle="squareBezel" sendsActionOnEndEditing="YES" placeholderString="Display text" id="lnk-display-field-cell">
+                            <font key="font" metaFont="system"/>
+                            <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                            <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
+                        </textFieldCell>
+                    </textField>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-del-btn">
+                        <rect key="frame" x="303" y="12" width="64" height="24"/>
+                        <buttonCell key="cell" type="push" title="Delete" bezelStyle="rounded" alignment="center" borderStyle="border" id="lnk-del-btn-cell">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="deleteLink:" target="-2" id="lnk-act-del"/>
+                        </connections>
+                    </button>
+                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-set-btn">
+                        <rect key="frame" x="375" y="12" width="73" height="24"/>
+                        <buttonCell key="cell" type="push" title="Set Link" bezelStyle="rounded" alignment="center" borderStyle="border" id="lnk-set-btn-cell">
+                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                            <font key="font" metaFont="system"/>
+                        </buttonCell>
+                        <connections>
+                            <action selector="setLink:" target="-2" id="lnk-act-set"/>
+                        </connections>
+                    </button>
+                </subviews>
+                <constraints>
+                    <constraint firstItem="lnk-url-label" firstAttribute="leading" secondItem="lnk-content-view" secondAttribute="leading" constant="20" id="c001"/>
+                    <constraint firstItem="lnk-url-label" firstAttribute="centerY" secondItem="lnk-url-field" secondAttribute="centerY" id="c002"/>
+                    <constraint firstItem="lnk-url-field" firstAttribute="leading" secondItem="lnk-url-label" secondAttribute="trailing" constant="4" id="c003"/>
+                    <constraint firstItem="lnk-url-field" firstAttribute="top" secondItem="lnk-content-view" secondAttribute="top" constant="12" id="c004"/>
+                    <constraint firstItem="lnk-bkm-popup" firstAttribute="leading" secondItem="lnk-url-field" secondAttribute="trailing" constant="4" id="c005"/>
+                    <constraint firstItem="lnk-bkm-popup" firstAttribute="centerY" secondItem="lnk-url-field" secondAttribute="centerY" id="c006"/>
+                    <constraint firstAttribute="trailing" secondItem="lnk-bkm-popup" secondAttribute="trailing" constant="12" id="c007"/>
+                    <constraint firstItem="lnk-display-label" firstAttribute="leading" secondItem="lnk-content-view" secondAttribute="leading" constant="20" id="c008"/>
+                    <constraint firstItem="lnk-display-label" firstAttribute="centerY" secondItem="lnk-display-field" secondAttribute="centerY" id="c009"/>
+                    <constraint firstItem="lnk-display-field" firstAttribute="leading" secondItem="lnk-url-field" secondAttribute="leading" id="c010"/>
+                    <constraint firstItem="lnk-display-field" firstAttribute="top" secondItem="lnk-url-field" secondAttribute="bottom" constant="8" id="c011"/>
+                    <constraint firstAttribute="trailing" secondItem="lnk-display-field" secondAttribute="trailing" constant="12" id="c012"/>
+                    <constraint firstAttribute="trailing" secondItem="lnk-set-btn" secondAttribute="trailing" constant="12" id="c013"/>
+                    <constraint firstAttribute="bottom" secondItem="lnk-set-btn" secondAttribute="bottom" constant="12" id="c014"/>
+                    <constraint firstItem="lnk-set-btn" firstAttribute="leading" secondItem="lnk-del-btn" secondAttribute="trailing" constant="8" id="c015"/>
+                    <constraint firstItem="lnk-del-btn" firstAttribute="centerY" secondItem="lnk-set-btn" secondAttribute="centerY" id="c016"/>
+                    <constraint firstItem="lnk-url-label" firstAttribute="width" secondItem="lnk-display-label" secondAttribute="width" id="c017"/>
+                </constraints>
+            </view>
+            <point key="canvasLocation" x="140" y="146"/>
+        </window>
+    </objects>
+</document>

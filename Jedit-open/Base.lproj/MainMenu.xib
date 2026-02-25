@@ -225,7 +225,7 @@
                             </menuItem>
                             <menuItem title="Link…" keyEquivalent="k" id="link-panel-001">
                                 <connections>
-                                    <action selector="orderFrontLinkPanel:" target="-1" id="link-panel-act"/>
+                                    <action selector="showLinkPanel:" target="-1" id="link-panel-act"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Insert" id="insert-submenu-001">

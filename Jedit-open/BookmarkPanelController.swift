@@ -85,7 +85,8 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
         // ドラッグ＆ドロップの設定
         bookmarkOutlineView.registerForDraggedTypes([bookmarkDragType, .string])
-        bookmarkOutlineView.setDraggingSourceOperationMask(.move, forLocal: true)
+        bookmarkOutlineView.setDraggingSourceOperationMask([.move, .copy], forLocal: true)
+        bookmarkOutlineView.setDraggingSourceOperationMask(.copy, forLocal: false)
 
         // アクションポップアップメニューを設定
         setupActionPopUpMenu()
@@ -310,9 +311,10 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
     /// アクションポップアップメニューを設定
     private func setupActionPopUpMenu() {
         guard let popup = actionPopUpButton else { return }
+        popup.pullsDown = true
         popup.removeAllItems()
 
-        // 先頭にアイコンのみの項目（タイトル空）
+        // 先頭にアイコンのみの項目（タイトル空）— pullsDown モードでは常にこの項目が表示される
         popup.addItem(withTitle: "")
         popup.item(at: 0)?.image = NSImage(named: NSImage.actionTemplateName)
 
@@ -568,11 +570,30 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
     // MARK: - Drag & Drop (NSOutlineViewDataSource)
 
-    /// ドラッグ開始: ドラッグ対象のブックマークの UUID をパステボードに書き込む
+    /// ドラッグ開始: ドラッグ対象のブックマークの UUID をパステボードに書き込む。
+    /// パネル内ドラッグ用に bookmarkDragType、書類へのドロップ用に RTF データも書き込む。
     func outlineView(_ outlineView: NSOutlineView, pasteboardWriterForItem item: Any) -> NSPasteboardWriting? {
         guard let bookmark = item as? Bookmark else { return nil }
         let pasteboardItem = NSPasteboardItem()
+
+        // パネル内の並べ替え用
         pasteboardItem.setString(bookmark.uuid, forType: bookmarkDragType)
+
+        // 書類へのドロップ用: ブックマーク名にアンカーリンクを付けた RTF データ
+        let linkText = NSAttributedString(
+            string: bookmark.displayName,
+            attributes: [.link: bookmark.uuid]
+        )
+        if let rtfData = try? linkText.data(
+            from: NSRange(location: 0, length: linkText.length),
+            documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
+        ) {
+            pasteboardItem.setData(rtfData, forType: .rtf)
+        }
+
+        // プレーンテキストのフォールバック
+        pasteboardItem.setString(bookmark.displayName, forType: .string)
+
         return pasteboardItem
     }
 

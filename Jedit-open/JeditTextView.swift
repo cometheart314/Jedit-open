@@ -692,7 +692,16 @@ class JeditTextView: NSTextView {
     override func mouseDown(with event: NSEvent) {
         let point = convert(event.locationInWindow, from: nil)
 
-        // Cmd+クリックでURLを開く
+        // JEDITANCHOR: リンクのクリック → アンカー位置にジャンプ（Cmd 不要）
+        if event.clickCount == 1,
+           let anchorID = anchorLinkAtPoint(point) {
+            if let document = window?.windowController?.document as? Document {
+                document.selectAnchor(identifier: anchorID)
+            }
+            return
+        }
+
+        // Cmd+クリックで通常の URL リンクをブラウザで開く
         if event.modifierFlags.contains(.command),
            event.clickCount == 1,
            let url = urlAtPoint(point) {
@@ -741,6 +750,45 @@ class JeditTextView: NSTextView {
 
         let attributes = textStorage.attributes(at: charIndex, effectiveRange: nil)
         return attributes[.attachment] as? NSTextAttachment
+    }
+
+    /// 指定座標にある JEDITANCHOR: リンクの UUID を取得する。
+    /// ブックマークアンカーへのリンクは通常の URL ではないため、別メソッドで処理する。
+    private func anchorLinkAtPoint(_ point: NSPoint) -> String? {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer,
+              let textStorage = textStorage,
+              textStorage.length > 0 else {
+            return nil
+        }
+
+        let locationInContainer = NSPoint(
+            x: point.x - textContainerOrigin.x,
+            y: point.y - textContainerOrigin.y
+        )
+
+        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer)
+        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+        guard charIndex < textStorage.length else { return nil }
+
+        let attributes = textStorage.attributes(at: charIndex, effectiveRange: nil)
+        if let link = attributes[.link] {
+            // link 属性値は String / URL / NSURL のいずれかになりうる
+            let linkString: String?
+            if let str = link as? String {
+                linkString = str
+            } else if let url = link as? URL {
+                linkString = url.absoluteString
+            } else if let url = link as? NSURL {
+                linkString = url.absoluteString
+            } else {
+                linkString = nil
+            }
+            if let str = linkString, str.hasPrefix("JEDITANCHOR:") {
+                return str
+            }
+        }
+        return nil
     }
 
     /// 指定座標にあるURLを取得（.link属性またはベアURL検出）
@@ -836,6 +884,13 @@ class JeditTextView: NSTextView {
         } catch {
             NSSound.beep()
         }
+    }
+
+    // MARK: - Link Panel
+
+    /// カスタムリンクパネルを表示する（Format > Link… メニューから呼び出される）
+    @objc func showLinkPanel(_ sender: Any?) {
+        LinkPanelController.shared.showPanel()
     }
 
     // MARK: - Context Menu

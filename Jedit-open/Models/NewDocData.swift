@@ -19,6 +19,7 @@ struct NewDocData: Codable, Equatable {
     var printInfo: PrintInfoData?
     var printOptions: PrintOptionsData?
     var writingGoal: WritingGoalData?
+    var bookmarks: [BookmarkData]?
 
     // MARK: - ViewData
 
@@ -710,7 +711,8 @@ struct NewDocData: Codable, Equatable {
             properties: .default,
             printInfo: nil,  // 新規ドキュメントはシステムのデフォルトを使用
             printOptions: nil,  // デフォルトの印刷オプションを使用
-            writingGoal: nil  // 執筆目標なし
+            writingGoal: nil,  // 執筆目標なし
+            bookmarks: nil  // ブックマークなし
         )
     }
 

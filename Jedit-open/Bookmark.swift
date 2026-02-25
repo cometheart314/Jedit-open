@@ -130,3 +130,37 @@ class Bookmark: NSObject {
         return nil
     }
 }
+
+// MARK: - BookmarkData (Codable Serialization)
+
+/// ブックマークツリーのシリアライズ用データ構造。
+/// presetData（拡張属性）に保存するための Codable 表現。
+struct BookmarkData: Codable, Equatable {
+    var uuid: String
+    var displayName: String
+    var yomi: String
+    var rangeLocation: Int
+    var rangeLength: Int
+    var children: [BookmarkData]
+
+    /// Bookmark オブジェクトから BookmarkData を作成
+    init(from bookmark: Bookmark) {
+        self.uuid = bookmark.uuid
+        self.displayName = bookmark.displayName
+        self.yomi = bookmark.yomi
+        self.rangeLocation = bookmark.range.location
+        self.rangeLength = bookmark.range.length
+        self.children = bookmark.childBookmarks.map { BookmarkData(from: $0) }
+    }
+
+    /// BookmarkData から Bookmark オブジェクトを復元
+    func toBookmark() -> Bookmark {
+        let bookmark = Bookmark(uuid: uuid, displayName: displayName,
+                                range: NSRange(location: rangeLocation, length: rangeLength))
+        bookmark.yomi = yomi
+        for childData in children {
+            bookmark.addChild(childData.toBookmark())
+        }
+        return bookmark
+    }
+}
