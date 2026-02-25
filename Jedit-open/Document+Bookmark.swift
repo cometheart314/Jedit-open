@@ -250,6 +250,196 @@ extension Document {
         return true
     }
 
+    // MARK: - Bookmark Serialization (Save)
+
+    /// ブックマークツリーを BookmarkData 配列にシリアライズして presetData に保存する。
+    /// updatePresetDataFromCurrentState() から呼ばれる。
+    func serializeBookmarksToPresetData() {
+        // range を最新に更新
+        refreshBookmarkRanges()
+
+        let children = rootBookmark.childBookmarks
+        if children.isEmpty {
+            presetData?.bookmarks = nil
+        } else {
+            presetData?.bookmarks = children.map { BookmarkData(from: $0) }
+        }
+    }
+
+    /// RTF 保存前にアンカー属性をリンク属性に変換する。
+    /// 保存後は restoreAnchorsAfterSave(_:) で元に戻す。
+    /// - Returns: 復元用のデータ。
+    func convertAnchorsToLinksForSave() -> [(range: NSRange, uuid: String, originalLink: Any?)] {
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        var anchorData: [(range: NSRange, uuid: String, originalLink: Any?)] = []
+
+        textStorage.enumerateAttribute(.anchor, in: fullRange, options: []) { value, attrRange, _ in
+            if let uuid = value as? String {
+                let originalLink = textStorage.attribute(.link, at: attrRange.location, effectiveRange: nil)
+                anchorData.append((attrRange, uuid, originalLink))
+            }
+        }
+
+        guard !anchorData.isEmpty else { return [] }
+
+        textStorage.beginEditing()
+        for (range, uuid, _) in anchorData {
+            textStorage.removeAttribute(.anchor, range: range)
+            textStorage.addAttribute(.link, value: uuid, range: range)
+        }
+        textStorage.endEditing()
+
+        return anchorData
+    }
+
+    /// RTF 保存後にリンク属性をアンカー属性に復元する。
+    /// - Parameter savedData: convertAnchorsToLinksForSave() で返されたデータ。
+    func restoreAnchorsAfterSave(_ savedData: [(range: NSRange, uuid: String, originalLink: Any?)]) {
+        guard !savedData.isEmpty else { return }
+
+        textStorage.beginEditing()
+        for (range, uuid, originalLink) in savedData {
+            textStorage.removeAttribute(.link, range: range)
+            textStorage.addAttribute(.anchor, value: uuid, range: range)
+            if let originalLink = originalLink {
+                textStorage.addAttribute(.link, value: originalLink, range: range)
+            }
+        }
+        textStorage.endEditing()
+    }
+
+    // MARK: - Bookmark Restoration (Load)
+
+    /// presetData のブックマークデータからブックマークツリーを復元し、
+    /// textStorage にアンカー属性を付加する。
+    /// RTF の場合、保存時に anchor→link に変換された JEDITANCHOR: リンク属性を
+    /// 全て削除してからアンカー属性を設定する。
+    /// - Returns: ブックマークが復元された場合は true。
+    @discardableResult
+    func restoreBookmarksFromPresetData() -> Bool {
+        guard let bookmarkDataArray = presetData?.bookmarks, !bookmarkDataArray.isEmpty else {
+            return false
+        }
+
+        let root = rootBookmark
+        root.childBookmarks.removeAll()
+
+        for data in bookmarkDataArray {
+            root.addChild(data.toBookmark())
+        }
+
+        // RTF から読み込んだ場合、JEDITANCHOR: リンク属性が残っているので一括削除
+        removeAllAnchorLinkAttributes()
+
+        // textStorage にアンカー属性を設定
+        applyAnchorAttributesFromBookmarks(root)
+
+        return true
+    }
+
+    /// リンク属性値から文字列を取得するヘルパー。
+    /// RTF ラウンドトリップ後、リンク属性値が String / URL / NSURL のいずれかになりうるため、
+    /// 全てのケースを処理する。
+    private func linkValueAsString(_ value: Any?) -> String? {
+        if let str = value as? String {
+            return str
+        } else if let url = value as? URL {
+            return url.absoluteString
+        } else if let url = value as? NSURL {
+            return url.absoluteString
+        } else if let value = value {
+            // その他の型の場合、文字列表現を試す
+            let str = "\(value)"
+            if str.hasPrefix("JEDITANCHOR:") {
+                return str
+            }
+        }
+        return nil
+    }
+
+    /// textStorage 内の全ての JEDITANCHOR: リンク属性を削除する。
+    private func removeAllAnchorLinkAttributes() {
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        var rangesToRemove: [NSRange] = []
+
+        textStorage.enumerateAttribute(.link, in: fullRange, options: []) { value, attrRange, _ in
+            if let linkString = self.linkValueAsString(value),
+               linkString.hasPrefix("JEDITANCHOR:") {
+                rangesToRemove.append(attrRange)
+            }
+        }
+
+        guard !rangesToRemove.isEmpty else { return }
+
+        textStorage.beginEditing()
+        for range in rangesToRemove {
+            textStorage.removeAttribute(.link, range: range)
+        }
+        textStorage.endEditing()
+    }
+
+    /// リッチテキストのリンク属性からブックマークを復元する。
+    /// "JEDITANCHOR:" で始まるリンク属性をアンカー属性に変換し、
+    /// ブックマークツリーを構築する。
+    /// - Returns: ブックマークが復元された場合は true。
+    @discardableResult
+    func restoreBookmarksFromLinkAttributes() -> Bool {
+        let fullRange = NSRange(location: 0, length: textStorage.length)
+        var anchorLinks: [(range: NSRange, uuid: String)] = []
+
+        textStorage.enumerateAttribute(.link, in: fullRange, options: []) { value, attrRange, _ in
+            if let linkString = self.linkValueAsString(value),
+               linkString.hasPrefix("JEDITANCHOR:") {
+                anchorLinks.append((attrRange, linkString))
+            }
+        }
+
+        guard !anchorLinks.isEmpty else { return false }
+
+        // リンク属性をアンカー属性に変換
+        textStorage.beginEditing()
+        for (range, uuid) in anchorLinks {
+            textStorage.removeAttribute(.link, range: range)
+            textStorage.addAttribute(.anchor, value: uuid, range: range)
+        }
+        textStorage.endEditing()
+
+        // ブックマークツリーを構築
+        let root = rootBookmark
+        root.childBookmarks.removeAll()
+
+        for (range, uuid) in anchorLinks {
+            let text = (textStorage.string as NSString).substring(with: range)
+            let lines = text.components(separatedBy: .newlines)
+            let displayName = lines.first(where: {
+                !$0.trimmingCharacters(in: .whitespaces).isEmpty
+            })?.trimmingCharacters(in: .whitespaces) ?? "Bookmark"
+            let maxLength = 50
+            let trimmedName = displayName.count > maxLength
+                ? String(displayName.prefix(maxLength)) + "…" : displayName
+
+            let bookmark = Bookmark(uuid: uuid, displayName: trimmedName, range: range)
+            root.addChild(bookmark)
+        }
+
+        return true
+    }
+
+    /// ブックマークツリーの全ブックマークのアンカー属性を textStorage に設定する。
+    /// 呼び出し前に removeAllAnchorLinkAttributes() で JEDITANCHOR: リンクを
+    /// 削除済みであること。
+    private func applyAnchorAttributesFromBookmarks(_ bookmark: Bookmark) {
+        for child in bookmark.childBookmarks {
+            let range = child.range
+            // 範囲が textStorage 内に収まることを確認
+            if range.location + range.length <= textStorage.length {
+                textStorage.addAttribute(.anchor, value: child.uuid, range: range)
+            }
+            // 子孫を再帰的に処理
+            applyAnchorAttributesFromBookmarks(child)
+        }
+    }
+
     // MARK: - Show Bookmark Panel
 
     /// ブックマークパネルを表示する（メニューアクションから呼び出される）。

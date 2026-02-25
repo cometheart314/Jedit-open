@@ -813,11 +813,19 @@ class Document: NSDocument {
             // リスト行のマーカー属性を正規化（RTFD エンコード前に必要）
             normalizeListMarkerAttributes()
 
+            // RTFD 保存前にアンカー属性をリンク属性に変換
+            let savedAnchorData = convertAnchorsToLinksForSave()
+
             guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: documentAttributes) else {
+                // エラー時も復元
+                restoreAnchorsAfterSave(savedAnchorData)
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
                     NSLocalizedDescriptionKey: "Could not create RTFD file wrapper"
                 ])
             }
+
+            // 保存後にリンク属性をアンカー属性に復元
+            restoreAnchorsAfterSave(savedAnchorData)
 
             // 画像のbounds情報をメタデータとして保存
             let boundsMetadata = collectAttachmentBoundsMetadata()
@@ -1020,10 +1028,17 @@ class Document: NSDocument {
             // リスト行のマーカー属性を正規化（RTF エンコード前に必要）
             normalizeListMarkerAttributes()
 
+            // RTF 保存前にアンカー属性をリンク属性に変換（RTF にはカスタム属性が保存されないため）
+            let savedAnchorData = convertAnchorsToLinksForSave()
+
             do {
                 let data = try textStorage.data(from: range, documentAttributes: options)
+                // 保存後にリンク属性をアンカー属性に復元
+                restoreAnchorsAfterSave(savedAnchorData)
                 return data
             } catch {
+                // エラー時も復元
+                restoreAnchorsAfterSave(savedAnchorData)
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
                     NSLocalizedDescriptionKey: "Could not write \(docType == .rtf ? "RTF" : "RTFD") document: \(error.localizedDescription)"
                 ])
@@ -1821,6 +1836,9 @@ class Document: NSDocument {
 
         // printInfo を presetData に保存
         presetData?.printInfo = NewDocData.PrintInfoData(from: self.printInfo)
+
+        // ブックマークツリーを presetData に保存
+        serializeBookmarksToPresetData()
     }
 
     /// プリセットデータを拡張属性に書き込む
@@ -2004,6 +2022,15 @@ class Document: NSDocument {
                 self.applyLoadedDocumentAttributeProperties()
                 // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
                 self.applyLoadedDocumentAttributeViewSettings()
+
+                // ブックマーク復元: presetData にブックマークがあれば復元
+                if !self.restoreBookmarksFromPresetData() {
+                    // presetData にブックマークがない場合、
+                    // RTF/RTFD ならリンク属性から復元を試みる
+                    if self.documentType == .rtf || self.documentType == .rtfd {
+                        self.restoreBookmarksFromLinkAttributes()
+                    }
+                }
             }
         } else if let omegaPresetData = JeditOmegaSettingImporter.importSettings(from: url) {
             // JeditΩ の拡張属性が見つかった場合
@@ -2026,6 +2053,11 @@ class Document: NSDocument {
                 self.applyLoadedDocumentAttributeProperties()
                 // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
                 self.applyLoadedDocumentAttributeViewSettings()
+
+                // 拡張属性なしの RTF/RTFD の場合、リンク属性からブックマーク復元を試みる
+                if self.documentType == .rtf || self.documentType == .rtfd {
+                    self.restoreBookmarksFromLinkAttributes()
+                }
             }
         }
     }

@@ -1468,6 +1468,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
 
             let fullRange = NSRange(location: 0, length: textStorage.length)
+
+            // RTF ラウンドトリップではカスタム属性 (.anchor) が失われるため、
+            // ラウンドトリップ前に保存し、後で復元する
+            var savedAnchors: [(range: NSRange, uuid: String)] = []
+            textStorage.enumerateAttribute(.anchor, in: fullRange, options: []) { value, attrRange, _ in
+                if let uuid = value as? String {
+                    savedAnchors.append((attrRange, uuid))
+                }
+            }
+
             do {
                 if docType == .rtfd {
                     // RTFD: 添付ファイル（画像・図形）を保持するため RTFD フォーマットを使用
@@ -1491,6 +1501,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // RTFD ラウンドトリップで失われた添付ファイルの bounds 情報を復元
             if let boundsInfo = savedBoundsInfo, !boundsInfo.isEmpty {
                 textDocument?.applyAttachmentBoundsMetadata(boundsInfo)
+            }
+
+            // RTF ラウンドトリップで失われたアンカー属性を復元
+            if !savedAnchors.isEmpty {
+                textStorage.beginEditing()
+                for (range, uuid) in savedAnchors {
+                    if range.location + range.length <= textStorage.length {
+                        textStorage.addAttribute(.anchor, value: uuid, range: range)
+                    }
+                }
+                textStorage.endEditing()
             }
         }
         // scrollView2 は同じ textStorage を共有しているため、
