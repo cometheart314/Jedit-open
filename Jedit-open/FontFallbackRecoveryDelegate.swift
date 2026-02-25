@@ -59,9 +59,13 @@ class FontFallbackRecoveryDelegate: NSObject, NSTextStorageDelegate {
                !textView.hasMarkedText(),
                !(textView.undoManager?.isRedoing ?? false) {
 
-                // ペースト中はスキップ
-                if let separation = smartLanguageSeparation, !separation.isPasting {
-                    separation.requestSeparation(for: editedRange)
+                if let separation = smartLanguageSeparation {
+                    if separation.isPasting {
+                        // ペースト中は範囲を記録し、完了後にまとめて分離処理
+                        separation.recordPastedRange(editedRange)
+                    } else {
+                        separation.requestSeparation(for: editedRange)
+                    }
                 }
             }
         }

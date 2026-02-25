@@ -60,6 +60,9 @@ class SmartLanguageSeparation {
     /// ペースト処理中フラグ
     var isPasting = false
 
+    /// ペースト完了後に全範囲分離を実行する予約範囲
+    private var pendingFullRange: NSRange?
+
     /// タイマー遅延間隔（秒）
     private static let timerInterval: TimeInterval = 0.05
 
@@ -96,9 +99,41 @@ class SmartLanguageSeparation {
         }
     }
 
+    // MARK: - Paste Support
+
+    /// ペースト中の編集範囲を記録する
+    func recordPastedRange(_ range: NSRange) {
+        if let existing = pendingFullRange {
+            pendingFullRange = NSUnionRange(existing, range)
+        } else {
+            pendingFullRange = range
+        }
+    }
+
+    /// ペースト/ドロップ完了後に記録された範囲の分離を即座に実行する。
+    /// タイマーを使わず同期的に実行することで、ペースト/ドロップ操作と同じUndoグループに含める。
+    func processPendingFullSeparation() {
+        guard let range = pendingFullRange else { return }
+        pendingFullRange = nil
+
+        // 既存のタイマーがあればキャンセル
+        timer?.invalidate()
+        timer = nil
+
+        // requestedRange を設定して直接実行
+        if let existing = requestedRange {
+            requestedRange = NSUnionRange(existing, range)
+        } else {
+            requestedRange = range
+        }
+        performSeparation()
+    }
+
     // MARK: - Perform Separation
 
     /// 実際の分離処理を実行する
+    /// 編集範囲の前後の境界に加え、範囲内部のすべての英日・日英境界もチェックする。
+    /// これにより、ペーストやドロップで挿入された複数文字のテキスト内部にもスペースが挿入される。
     private func performSeparation() {
         timer = nil
 
@@ -130,84 +165,60 @@ class SmartLanguageSeparation {
         isProcessing = true
         defer { isProcessing = false }
 
-        let text = textStorage.string
-        let nsText = text as NSString
+        let nsText = textStorage.string as NSString
         let textLength = nsText.length
 
         guard textLength > 0, targetRange.location < textLength else { return }
 
-        var delta = 0
-        var changed = false
-        var resetSelection = false
-        var nextIndex = NSMaxRange(targetRange)
+        // スキャン範囲を決定（編集範囲の1文字前から編集範囲の末尾まで）
+        let scanStart = targetRange.location > 0 ? targetRange.location - 1 : 0
+        let scanEnd = min(NSMaxRange(targetRange), textLength - 1)
 
-        // --- 編集範囲の前方の境界をチェック ---
-        // targetRange.location の直前の文字と targetRange.location の文字の境界
-        if targetRange.location > 0 {
-            let prevChar = nsText.character(at: targetRange.location - 1)
-            let prevScalar = Unicode.Scalar(prevChar)!
+        guard scanStart < scanEnd else { return }
 
-            // 直前の文字がスキップ対象でなければチェック
-            if !Self.skipSet.contains(prevScalar) {
-                let newChar = nsText.character(at: targetRange.location)
-                let newScalar = Unicode.Scalar(newChar)!
+        // スペース挿入が必要な位置を収集
+        var insertPositions: [Int] = []
 
-                if needsSeparation(prev: prevScalar, new: newScalar) {
-                    // スペースを挿入
-                    if textView.allowsUndo {
-                        textView.undoManager?.beginUndoGrouping()
-                    }
-                    if textView.shouldChangeText(in: NSRange(location: targetRange.location, length: 0), replacementString: " ") {
-                        textStorage.replaceCharacters(in: NSRange(location: targetRange.location, length: 0), with: " ")
-                        textView.didChangeText()
-                        delta += 1
-                    }
-                    changed = true
-                }
+        for i in scanStart..<scanEnd {
+            let charA = nsText.character(at: i)
+            let charB = nsText.character(at: i + 1)
+            guard let scalarA = Unicode.Scalar(charA),
+                  let scalarB = Unicode.Scalar(charB) else { continue }
+
+            // スキップ対象文字（空白、改行、句読点）は無視
+            if Self.skipSet.contains(scalarA) || Self.skipSet.contains(scalarB) {
+                continue
+            }
+
+            if needsSeparation(prev: scalarA, new: scalarB) {
+                insertPositions.append(i + 1)
             }
         }
 
-        // --- 編集範囲の後方の境界をチェック ---
-        // targetRange の末尾の文字と次の文字の境界
-        let afterIndex = NSMaxRange(targetRange) + delta
-        if afterIndex < textStorage.string.count {
-            // textStorage の内容が変わっている可能性があるので再取得
-            let currentText = textStorage.string as NSString
-            let currentLength = currentText.length
+        guard !insertPositions.isEmpty else { return }
 
-            if afterIndex < currentLength {
-                let newChar = currentText.character(at: afterIndex)
-                let newScalar = Unicode.Scalar(newChar)!
+        // Undo グルーピング開始
+        if textView.allowsUndo {
+            textView.undoManager?.beginUndoGrouping()
+        }
 
-                if !Self.skipSet.contains(newScalar) && afterIndex > 0 {
-                    let prevChar = currentText.character(at: afterIndex - 1)
-                    let prevScalar = Unicode.Scalar(prevChar)!
-
-                    if needsSeparation(prev: prevScalar, new: newScalar) {
-                        if !changed && textView.allowsUndo {
-                            textView.undoManager?.beginUndoGrouping()
-                        }
-                        if textView.shouldChangeText(in: NSRange(location: afterIndex, length: 0), replacementString: " ") {
-                            textStorage.replaceCharacters(in: NSRange(location: afterIndex, length: 0), with: " ")
-                            textView.didChangeText()
-                            resetSelection = true
-                        }
-                        changed = true
-                    }
-                }
+        // 後方から挿入（位置ずれ防止）
+        for position in insertPositions.reversed() {
+            if textView.shouldChangeText(in: NSRange(location: position, length: 0), replacementString: " ") {
+                textStorage.replaceCharacters(in: NSRange(location: position, length: 0), with: " ")
+                textView.didChangeText()
             }
         }
 
-        if changed {
-            if textView.allowsUndo {
-                textView.undoManager?.endUndoGrouping()
-            }
-            if resetSelection {
-                // カーソル位置を補正
-                nextIndex = NSMaxRange(targetRange) + delta
-                textView.setSelectedRange(NSRange(location: nextIndex, length: 0))
-            }
+        if textView.allowsUndo {
+            textView.undoManager?.endUndoGrouping()
         }
+
+        // カーソル位置を補正
+        // 編集範囲の末尾より前に挿入されたスペースの数だけカーソルを後方に移動
+        let endPos = NSMaxRange(targetRange)
+        let spacesBeforeEnd = insertPositions.filter { $0 < endPos }.count
+        textView.setSelectedRange(NSRange(location: endPos + spacesBeforeEnd, length: 0))
     }
 
     // MARK: - Private Helpers

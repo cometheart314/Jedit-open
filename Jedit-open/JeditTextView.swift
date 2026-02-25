@@ -319,6 +319,13 @@ class JeditTextView: NSTextView {
 
     /// 同一書類内のドラッグ＆ドロップで移動を実現
     override func performDragOperation(_ sender: any NSDraggingInfo) -> Bool {
+        // Smart Language Separation: ドロップ操作と同じUndoグループで分離処理を実行
+        smartLanguageSeparation?.isPasting = true
+        defer {
+            smartLanguageSeparation?.isPasting = false
+            smartLanguageSeparation?.processPendingFullSeparation()
+        }
+
         let pboard = sender.draggingPasteboard
 
         // 同一書類内のドラッグで、Optionキーが押されていなければ移動処理
@@ -1881,7 +1888,10 @@ class JeditTextView: NSTextView {
 
         // Smart Language Separation のペースト中フラグを設定
         smartLanguageSeparation?.isPasting = true
-        defer { smartLanguageSeparation?.isPasting = false }
+        defer {
+            smartLanguageSeparation?.isPasting = false
+            smartLanguageSeparation?.processPendingFullSeparation()
+        }
 
         // リッチテキスト書類の場合
         if !isPlainText {
@@ -1923,7 +1933,10 @@ class JeditTextView: NSTextView {
     /// 属性付きテキストのペースト時に文字変換を適用
     override func pasteAsRichText(_ sender: Any?) {
         smartLanguageSeparation?.isPasting = true
-        defer { smartLanguageSeparation?.isPasting = false }
+        defer {
+            smartLanguageSeparation?.isPasting = false
+            smartLanguageSeparation?.processPendingFullSeparation()
+        }
 
         let pasteboard = NSPasteboard.general
         if let rtfData = pasteboard.data(forType: .rtf),
@@ -1940,7 +1953,10 @@ class JeditTextView: NSTextView {
     /// プレーンテキストとしてペースト時に文字変換を適用
     override func pasteAsPlainText(_ sender: Any?) {
         smartLanguageSeparation?.isPasting = true
-        defer { smartLanguageSeparation?.isPasting = false }
+        defer {
+            smartLanguageSeparation?.isPasting = false
+            smartLanguageSeparation?.processPendingFullSeparation()
+        }
 
         let pasteboard = NSPasteboard.general
         if let string = pasteboard.string(forType: .string) {
