@@ -1026,6 +1026,19 @@
                                     <action selector="centerSelectionInVisibleArea:" target="-1" id="IOG-6D-g5B"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="bkm-sep-001"/>
+                            <menuItem title="Bookmark Selection" id="bkm-mi-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="bookmarkSelection:" target="-1" id="bkm-ac-001"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Show Bookmarks" id="bkm-mi-002">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showBookmarkPanel:" target="-1" id="bkm-ac-002"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>

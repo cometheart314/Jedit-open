@@ -273,7 +273,7 @@ class Document: NSDocument {
     }
 
     /// 現在のテキストビューを取得するヘルパー
-    private var currentTextView: NSTextView? {
+    var currentTextView: NSTextView? {
         return windowControllers.first.flatMap { ($0 as? EditorWindowController)?.currentTextView() }
     }
 

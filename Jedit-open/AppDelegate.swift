@@ -443,6 +443,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         DocumentInfoPanelController.shared.showPanel()
     }
 
+    // MARK: - Bookmark Panel
+
+    @IBAction func showBookmarkPanel(_ sender: Any?) {
+        BookmarkPanelController.shared.showPanel()
+    }
+
     /// ドキュメントウィンドウがメイン/キーになった時にDocument Info パネルを更新
     @objc private func documentWindowDidChange(_ notification: Notification) {
         // 通知元ウィンドウからドキュメントを直接取得して更新
@@ -1115,6 +1121,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         if menuItem.action == #selector(showDocumentInfo(_:)) {
             // パネルが表示中ならチェックマークを付ける
             menuItem.state = DocumentInfoPanelController.shared.isPanelVisible ? .on : .off
+            return true
+        }
+        if menuItem.action == #selector(showBookmarkPanel(_:)) {
+            // パネルが表示中ならチェックマークを付ける
+            menuItem.state = BookmarkPanelController.shared.isPanelVisible ? .on : .off
             return true
         }
         return true
