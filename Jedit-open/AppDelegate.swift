@@ -1041,7 +1041,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     }
 
     @objc private func openAppleFeedback(_ sender: Any?) {
-        NSWorkspace.shared.open(URL(string: "https://www.apple.com/feedback/")!)
+        NSWorkspace.shared.open(URL(string: "applefeedback://")!)
     }
 
     /// Help メニューの検索フィールドでリターンが押されたときのアクション
