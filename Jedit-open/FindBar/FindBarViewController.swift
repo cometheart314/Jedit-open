@@ -113,6 +113,35 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         performIncrementalSearch()
     }
 
+    /// Help 検索用: 大文字小文字を区別せず、正規表現オフでテキストを設定して検索
+    func setSearchTextCaseInsensitive(_ text: String) {
+        findEngine.options.caseSensitive = false
+        caseSensitiveToggle.state = .off
+        updateToggleAppearance(caseSensitiveToggle)
+
+        findEngine.options.useRegex = false
+        regexToggle.state = .off
+        wholeWordToggle.isEnabled = true
+        updateToggleAppearance(regexToggle)
+
+        searchField.stringValue = text
+        performIncrementalSearch()
+    }
+
+    /// 現在のマッチ位置へスクロールして選択・点滅表示する
+    func scrollToCurrentMatch() {
+        guard !currentResult.isEmpty, let textView = delegate?.findBarCurrentTextView() else { return }
+        let range = currentResult.ranges[currentResult.currentIndex]
+
+        // テキストレイアウトを強制してスクロール位置を確定させる
+        if let layoutManager = textView.layoutManager, let textContainer = textView.textContainer {
+            let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+            layoutManager.ensureLayout(forGlyphRange: glyphRange)
+        }
+
+        selectAndScrollTo(range: range, in: textView)
+    }
+
     func focusSearchField() {
         view.window?.makeFirstResponder(searchField)
         // フォーカス後にインクリメンタル検索を確実に実行
@@ -794,6 +823,9 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     private func selectAndScrollTo(range: NSRange, in textView: NSTextView) {
         textView.setSelectedRange(range)
         textView.scrollRangeToVisible(range)
+
+        // 見つかった箇所を黄色で一時的に点滅表示（macOS 標準のバウンスアニメーション）
+        textView.showFindIndicator(for: range)
 
         // Find Pasteboard にコピー（macOS 標準動作）
         let findPasteboard = NSPasteboard(name: .find)

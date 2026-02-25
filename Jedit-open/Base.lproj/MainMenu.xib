@@ -1056,7 +1056,7 @@
                 </menuItem>
                 <menuItem title="Help" id="wpr-3q-Mcd">
                     <modifierMask key="keyEquivalentModifierMask"/>
-                    <menu key="submenu" title="Help" systemMenu="help" id="F2S-fz-NVQ">
+                    <menu key="submenu" title="Help" id="F2S-fz-NVQ">
                         <items>
                             <menuItem title="Jedit Help" keyEquivalent="?" id="FKE-Sm-Kum">
                                 <connections>

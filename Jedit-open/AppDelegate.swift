@@ -18,6 +18,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // NSDocumentController.shared が初めてアクセスされる前にサブクラスをインスタンス化する。
         // NSDocumentController の init が自身を shared として登録する。
         _ = JeditDocumentController()
+
+        // macOS が "Help" タイトルのメニューにシステム検索フィールドを追加するのを防ぐ。
+        // nib ロード直後（メニューバーの構築前）にダミーを設定する。
+        NSApp.helpMenu = NSMenu(title: "DummyHelp")
     }
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -58,6 +62,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // ヘルプファイルを Application Support にコピー/更新
         updateHelpFileIfNeeded()
+
+        // Help メニューに検索フィールドを追加
+        setupHelpSearchField()
 
         // Continuity Camera用: アプリが画像を受け取れることをServicesに登録
         let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
@@ -988,9 +995,76 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
     }
 
-    /// Help > Jedit Help メニューアクション
-    /// Application Support 内のヘルプファイルを開く
-    @IBAction func openJeditHelp(_ sender: Any?) {
+    /// Help メニューに検索フィールドを追加する
+    private func setupHelpSearchField() {
+        guard let helpMenu = NSApp.mainMenu?.item(withTitle: "Help")?.submenu else { return }
+
+        // macOS はタイトル "Help" のメニューを自動検出してシステム検索フィールドを追加する。
+        // ダミーメニューを helpMenu に設定し、実際の Help メニューへのシステム干渉を防ぐ。
+        NSApp.helpMenu = NSMenu(title: "DummyHelp")
+
+        // システムが既に追加した項目（検索フィールド、セパレータ）があれば削除
+        while let firstItem = helpMenu.item(at: 0),
+              firstItem.title != "Jedit Help" {
+            helpMenu.removeItem(at: 0)
+        }
+
+        let searchField = NSSearchField(frame: NSRect(x: 0, y: 0, width: 220, height: 22))
+        searchField.placeholderString = NSLocalizedString("Search Help", comment: "")
+        searchField.sendsSearchStringImmediately = false
+        searchField.sendsWholeSearchString = true
+        searchField.target = self
+        searchField.action = #selector(helpSearchFieldAction(_:))
+        searchField.font = .systemFont(ofSize: 14)
+        searchField.controlSize = .regular
+
+        // パディング用のコンテナビュー
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 240, height: 36))
+        searchField.frame = NSRect(x: 10, y: 4, width: 220, height: 28)
+        container.addSubview(searchField)
+
+        let searchItem = NSMenuItem()
+        searchItem.view = container
+
+        helpMenu.insertItem(searchItem, at: 0)
+        helpMenu.insertItem(NSMenuItem.separator(), at: 1)
+
+        // システムが提供していた「Appleにフィードバックを送信...」を追加
+        helpMenu.addItem(NSMenuItem.separator())
+        let feedbackItem = NSMenuItem(
+            title: NSLocalizedString("Provide Feedback to Apple…", comment: ""),
+            action: #selector(openAppleFeedback(_:)),
+            keyEquivalent: ""
+        )
+        feedbackItem.target = self
+        helpMenu.addItem(feedbackItem)
+    }
+
+    @objc private func openAppleFeedback(_ sender: Any?) {
+        NSWorkspace.shared.open(URL(string: "https://www.apple.com/feedback/")!)
+    }
+
+    /// Help メニューの検索フィールドでリターンが押されたときのアクション
+    @objc private func helpSearchFieldAction(_ sender: NSSearchField) {
+        let searchText = sender.stringValue
+        guard !searchText.isEmpty else { return }
+
+        // メニューを閉じる
+        sender.enclosingMenuItem?.menu?.cancelTracking()
+
+        // 検索フィールドをクリア（次回表示時用）
+        sender.stringValue = ""
+
+        // メニュートラッキングが完全に終了してからドキュメントを開く
+        DispatchQueue.main.async { [weak self] in
+            self?.openHelpFile { wc in
+                wc.showFindBarAndSearch(searchText)
+            }
+        }
+    }
+
+    /// ヘルプファイルを開き、表示設定を適用してからコールバックを呼ぶ
+    private func openHelpFile(completion: ((EditorWindowController) -> Void)? = nil) {
         guard let helpURL = helpFileURL,
               FileManager.default.fileExists(atPath: helpURL.path) else { return }
 
@@ -999,31 +1073,34 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 NSApp.presentError(error)
                 return
             }
-            // 初回オープン時のみヘルプ用表示設定を適用
             guard let doc = document as? Document,
                   let wc = doc.windowControllers.first as? EditorWindowController else { return }
 
-            // 拡張属性が既にある場合（2回目以降）は設定を復元済みなのでスキップ
-            if doc.presetData?.view.preventEditing == true { return }
-
-            // Read-only
-            doc.presetData?.view.preventEditing = true
-            wc.setAllTextViewsEditable(false)
-
-            // Toolbar off
-            wc.window?.toolbar?.isVisible = false
-
-            // Inspector bar off
-            if doc.presetData?.view.showInspectorBar == true {
-                wc.toggleInspectorBar(nil)
+            // 初回オープン時のみヘルプ用表示設定を適用
+            let isFirstOpen = doc.presetData?.view.preventEditing != true
+            if isFirstOpen {
+                doc.presetData?.view.preventEditing = true
+                wc.setAllTextViewsEditable(false)
+                wc.window?.toolbar?.isVisible = false
+                if doc.presetData?.view.showInspectorBar == true {
+                    wc.toggleInspectorBar(nil)
+                }
+                wc.setRulerHide(nil)
+                wc.hideLineNumbers(nil)
             }
 
-            // Ruler off
-            wc.setRulerHide(nil)
-
-            // Line number off
-            wc.hideLineNumbers(nil)
+            // ウィンドウ表示・レイアウト完了を待ってから completion を実行
+            wc.window?.makeKeyAndOrderFront(nil)
+            DispatchQueue.main.async {
+                completion?(wc)
+            }
         }
+    }
+
+    /// Help > Jedit Help メニューアクション
+    /// Application Support 内のヘルプファイルを開く
+    @IBAction func openJeditHelp(_ sender: Any?) {
+        openHelpFile()
     }
 
     // MARK: - NSMenuItemValidation

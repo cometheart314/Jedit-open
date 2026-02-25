@@ -6154,6 +6154,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         presentFindBar(replaceMode: false)
     }
 
+    /// FindBar を表示して指定テキストで検索を実行する（Help 検索用）
+    func showFindBarAndSearch(_ searchText: String) {
+        presentFindBar(replaceMode: false)
+        findBarViewController?.setSearchTextCaseInsensitive(searchText)
+
+        // 新規ドキュメントの場合、ウィンドウ表示とテキストレイアウトの完了を待ってからスクロール
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.findBarViewController?.scrollToCurrentMatch()
+        }
+    }
+
     @objc func showFindAndReplaceBar(_ sender: Any?) {
         presentFindBar(replaceMode: true)
     }
