@@ -52,6 +52,11 @@ class PreferencesWindowController: NSWindowController {
                 title: "Line Breaking",
                 icon: NSImage(systemSymbolName: "return", accessibilityDescription: nil)!,
                 identifier: "lineBreaking"
+            ),
+            PreferenceCategory(
+                title: "Styles",
+                icon: NSImage(systemSymbolName: "jacket", accessibilityDescription: nil)!,
+                identifier: "styles"
             )
         ]
     }
@@ -139,6 +144,8 @@ class PreferencesWindowController: NSWindowController {
             return EncodingsPreferencesViewController(nibName: "EncodingsPreferences", bundle: nil)
         case "lineBreaking":
             return LineBreakingPreferencesViewController(nibName: "LineBreakingPreferences", bundle: nil)
+        case "styles":
+            return StylesPreferencesViewController()
         default:
             return NSViewController()
         }

@@ -949,6 +949,13 @@ class JeditTextView: NSTextView {
             menu.insertItem(NSMenuItem.separator(), at: 1)
         }
 
+        // リッチテキストの場合、Styles サブメニューを追加
+        if !isPlainText {
+            menu.addItem(.separator())
+            let stylesItem = StyleMenuManager.shared.createContextStylesMenuItem()
+            menu.addItem(stylesItem)
+        }
+
         return menu
     }
 
@@ -2184,6 +2191,12 @@ class JeditTextView: NSTextView {
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         let action = menuItem.action
 
+        // スタイルメニュー項目のバリデーション
+        if action == #selector(applyTextStyle(_:)) {
+            if isPlainText { return false }
+            return selectedRange().length > 0
+        }
+
         // Set paperclip image for Attach Files menu item
         if action == #selector(attachFile(_:)), menuItem.image == nil {
             if let image = NSImage(systemSymbolName: "paperclip", accessibilityDescription: "Attach Files") {
@@ -2261,5 +2274,27 @@ class JeditTextView: NSTextView {
         }
 
         return super.validateUserInterfaceItem(item)
+    }
+
+    // MARK: - Style Menu Actions
+
+    /// スタイルメニューからスタイルを適用
+    @objc func applyTextStyle(_ sender: NSMenuItem) {
+        guard let style = sender.representedObject as? TextStyle,
+              let textStorage = textStorage else { return }
+
+        let range = selectedRange()
+        guard range.length > 0 else { return }
+
+        // shouldChangeText(replacementString: nil) で属性変更を通知し、Undo を自動登録
+        if shouldChangeText(in: range, replacementString: nil) {
+            textStorage.beginEditing()
+            textStorage.enumerateAttributes(in: range, options: []) { existingAttrs, subRange, _ in
+                let mergedAttrs = style.mergedAttributes(with: existingAttrs)
+                textStorage.setAttributes(mergedAttrs, range: subRange)
+            }
+            textStorage.endEditing()
+            didChangeText()
+        }
     }
 }

@@ -51,6 +51,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // Format > Font メニューに Character Fore Color / Back Color サブメニューを追加
         setupCharacterColorMenus()
 
+        // Format > Styles サブメニューを追加
+        StyleMenuManager.shared.setupStylesMenu()
+
         // Edit > Import from iPhone or iPad メニューを設定
         setupImportFromDeviceMenuItem()
 
@@ -502,6 +505,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         preferencesWindowController?.showWindow(nil)
         preferencesWindowController?.window?.makeKeyAndOrderFront(nil)
         preferencesWindowController?.selectCategory(identifier: identifier)
+    }
+
+    /// Styles設定画面を開く（メニューから呼び出し用）
+    @objc func showStylesPreferences(_ sender: Any?) {
+        showPreferencesWindow(selectingCategory: "styles")
     }
 
     // MARK: - Appearance

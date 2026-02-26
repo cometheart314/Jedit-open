@@ -141,8 +141,10 @@ class LineNumberDrawer {
         let searchRange = NSRange(location: charRange.location, length: charRange.length)
 
         if let stringRange = Range(searchRange, in: textStorage.string) {
-            textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (_, substringRange, _, _) in
-                let nsRange = NSRange(substringRange, in: textStorage.string)
+            textStorage.string.enumerateSubstrings(in: stringRange, options: .byParagraphs) { (_, _, enclosingRange, _) in
+                // enclosingRangeを使用（改行文字を含む）。substringRangeは空行の場合に
+                // 長さ0になり、グリフが見つからずに行番号が描画されない問題を防ぐ。
+                let nsRange = NSRange(enclosingRange, in: textStorage.string)
                 let paragraphGlyphRange = layoutManager.glyphRange(forCharacterRange: nsRange, actualCharacterRange: nil)
 
                 // 最初の行フラグメントの位置を取得
