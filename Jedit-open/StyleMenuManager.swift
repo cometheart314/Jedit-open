@@ -77,6 +77,15 @@ class StyleMenuManager: NSObject {
         mainStylesMenu = stylesMenu
 
         formatMenu.insertItem(stylesItem, at: insertIndex)
+
+        // Styles の直後に Style Info… メニュー項目を挿入
+        let styleInfoItem = NSMenuItem(
+            title: "Style Info…",
+            action: #selector(AppDelegate.showStyleInfoPanel(_:)),
+            keyEquivalent: ""
+        )
+        styleInfoItem.image = NSImage(systemSymbolName: "info.circle.text.page", accessibilityDescription: nil)
+        formatMenu.insertItem(styleInfoItem, at: insertIndex + 1)
     }
 
     // MARK: - Menu Building

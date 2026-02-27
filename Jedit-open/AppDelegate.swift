@@ -452,6 +452,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         BookmarkPanelController.shared.showPanel()
     }
 
+    // MARK: - Style Info Panel
+
+    @IBAction func showStyleInfoPanel(_ sender: Any?) {
+        StyleInfoPanelController.shared.showPanel()
+    }
+
     /// ドキュメントウィンドウがメイン/キーになった時にDocument Info パネルを更新
     @objc private func documentWindowDidChange(_ notification: Notification) {
         // 通知元ウィンドウからドキュメントを直接取得して更新
@@ -1134,6 +1140,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         if menuItem.action == #selector(showBookmarkPanel(_:)) {
             // パネルが表示中ならチェックマークを付ける
             menuItem.state = BookmarkPanelController.shared.isPanelVisible ? .on : .off
+            return true
+        }
+        if menuItem.action == #selector(showStyleInfoPanel(_:)) {
+            menuItem.state = StyleInfoPanelController.shared.isPanelVisible ? .on : .off
             return true
         }
         return true

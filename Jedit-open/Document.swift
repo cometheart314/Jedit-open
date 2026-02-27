@@ -1510,7 +1510,7 @@ class Document: NSDocument {
                         self.applyDocumentAttributesToProperties(attrs)
                     }
 
-    
+
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
             } catch {

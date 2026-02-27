@@ -1427,6 +1427,11 @@ class JeditTextView: NSTextView {
         if colorPanelMode != .none {
             return
         }
+        // スタイル情報パネルがカラーパネルを管理中の場合は無視
+        // （全ての色変更は StyleInfoPanelController.colorPanelDidChangeColor で処理する）
+        if StyleInfoPanelController.shared.isManagingColorPanel() {
+            return
+        }
         // それ以外は標準動作
         super.changeColor(sender)
     }
