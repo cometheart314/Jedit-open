@@ -25,7 +25,7 @@ class StyleInfoPanelController: NSObject {
         case background
         case underlineColor
         case strikethroughColor
-        case strokeColor
+        case strokeColor  // Other Color… 用
     }
     private var editingColorTarget: ColorEditTarget?
 
@@ -55,7 +55,7 @@ class StyleInfoPanelController: NSObject {
     // MARK: - Outline Section
     private var strokeWidthField: NSTextField!
     private var strokeWidthStepper: NSStepper!
-    private var strokeColorWell: RectangularColorWell!
+    private var strokeColorPopup: NSPopUpButton!
 
     // MARK: - Baseline & Spacing Section
     private var baselineOffsetField: NSTextField!
@@ -247,7 +247,7 @@ class StyleInfoPanelController: NSObject {
         fontSizeStepper = createStepper(minValue: 1, maxValue: 999, increment: 1, action: #selector(fontSizeStepperChanged(_:)))
         sizeRow.addArrangedSubview(fontSizeField)
         sizeRow.addArrangedSubview(fontSizeStepper)
-        sizeRow.addArrangedSubview(NSTextField(labelWithString: "pt"))
+        sizeRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(sizeRow)
 
         stack.addArrangedSubview(createSeparator())
@@ -439,10 +439,11 @@ class StyleInfoPanelController: NSObject {
         strokeWidthStepper = createStepper(minValue: -10, maxValue: 10, increment: 0.5, action: #selector(strokeWidthStepperChanged(_:)))
         row.addArrangedSubview(strokeWidthField)
         row.addArrangedSubview(strokeWidthStepper)
+        row.addArrangedSubview(NSTextField(labelWithString: "pt."))
         row.addArrangedSubview(createSmallSpacer())
         row.addArrangedSubview(NSTextField(labelWithString: "Color:"))
-        strokeColorWell = createColorWell()
-        row.addArrangedSubview(strokeColorWell)
+        strokeColorPopup = createDecorationColorPopup(action: #selector(strokeColorPopupChanged(_:)))
+        row.addArrangedSubview(strokeColorPopup)
         stack.addArrangedSubview(row)
 
         stack.addArrangedSubview(createSeparator())
@@ -457,6 +458,7 @@ class StyleInfoPanelController: NSObject {
         baselineOffsetStepper = createStepper(minValue: -100, maxValue: 100, increment: 1, action: #selector(baselineOffsetStepperChanged(_:)))
         baselineRow.addArrangedSubview(baselineOffsetField)
         baselineRow.addArrangedSubview(baselineOffsetStepper)
+        baselineRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(baselineRow)
 
         // Kerning
@@ -465,6 +467,7 @@ class StyleInfoPanelController: NSObject {
         kernStepper = createStepper(minValue: -100, maxValue: 100, increment: 0.5, action: #selector(kernStepperChanged(_:)))
         kernRow.addArrangedSubview(kernField)
         kernRow.addArrangedSubview(kernStepper)
+        kernRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(kernRow)
 
         // Ligatures
@@ -524,6 +527,7 @@ class StyleInfoPanelController: NSObject {
         lineHeightMinStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(lineHeightMinStepperChanged(_:)))
         minRow.addArrangedSubview(lineHeightMinField)
         minRow.addArrangedSubview(lineHeightMinStepper)
+        minRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(minRow)
 
         // Max
@@ -532,6 +536,7 @@ class StyleInfoPanelController: NSObject {
         lineHeightMaxStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(lineHeightMaxStepperChanged(_:)))
         maxRow.addArrangedSubview(lineHeightMaxField)
         maxRow.addArrangedSubview(lineHeightMaxStepper)
+        maxRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(maxRow)
 
         stack.addArrangedSubview(createSeparator())
@@ -545,6 +550,7 @@ class StyleInfoPanelController: NSObject {
         firstLineHeadIndentStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(firstLineHeadIndentStepperChanged(_:)))
         firstRow.addArrangedSubview(firstLineHeadIndentField)
         firstRow.addArrangedSubview(firstLineHeadIndentStepper)
+        firstRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(firstRow)
 
         let headRow = createLabeledRow("Head:")
@@ -552,6 +558,7 @@ class StyleInfoPanelController: NSObject {
         headIndentStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(headIndentStepperChanged(_:)))
         headRow.addArrangedSubview(headIndentField)
         headRow.addArrangedSubview(headIndentStepper)
+        headRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(headRow)
 
         let tailRow = createLabeledRow("Tail:")
@@ -559,6 +566,7 @@ class StyleInfoPanelController: NSObject {
         tailIndentStepper = createStepper(minValue: -999, maxValue: 999, increment: 1, action: #selector(tailIndentStepperChanged(_:)))
         tailRow.addArrangedSubview(tailIndentField)
         tailRow.addArrangedSubview(tailIndentStepper)
+        tailRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(tailRow)
 
         stack.addArrangedSubview(createSeparator())
@@ -572,6 +580,7 @@ class StyleInfoPanelController: NSObject {
         lineSpacingStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(lineSpacingStepperChanged(_:)))
         lineSpaceRow.addArrangedSubview(lineSpacingField)
         lineSpaceRow.addArrangedSubview(lineSpacingStepper)
+        lineSpaceRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(lineSpaceRow)
 
         let beforeRow = createLabeledRow("Before:")
@@ -579,6 +588,7 @@ class StyleInfoPanelController: NSObject {
         paragraphSpacingBeforeStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(paragraphSpacingBeforeStepperChanged(_:)))
         beforeRow.addArrangedSubview(paragraphSpacingBeforeField)
         beforeRow.addArrangedSubview(paragraphSpacingBeforeStepper)
+        beforeRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(beforeRow)
 
         let afterRow = createLabeledRow("After:")
@@ -586,6 +596,7 @@ class StyleInfoPanelController: NSObject {
         paragraphSpacingAfterStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(paragraphSpacingAfterStepperChanged(_:)))
         afterRow.addArrangedSubview(paragraphSpacingAfterField)
         afterRow.addArrangedSubview(paragraphSpacingAfterStepper)
+        afterRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(afterRow)
     }
 
@@ -654,15 +665,6 @@ class StyleInfoPanelController: NSObject {
         stepper.target = self
         stepper.action = action
         return stepper
-    }
-
-    private func createColorWell() -> RectangularColorWell {
-        let well = RectangularColorWell()
-        well.translatesAutoresizingMaskIntoConstraints = false
-        well.widthAnchor.constraint(equalToConstant: 36).isActive = true
-        well.heightAnchor.constraint(equalToConstant: 20).isActive = true
-        // target/action は使わない — colorPanelDidChangeColor で一括処理
-        return well
     }
 
     private func createLineStylePopup(action: Selector) -> NSPopUpButton {
@@ -777,9 +779,8 @@ class StyleInfoPanelController: NSObject {
         case .strikethroughColor:
             applySimpleAttribute(.strikethroughColor, value: color)
         case .strokeColor:
-            strokeColorWell.color = color
-            strokeColorWell.needsDisplay = true
             applySimpleAttribute(.strokeColor, value: color)
+            updateFromSelection()
         }
 
         // 色を適用したらカラーパネルを閉じる（どの属性用か混乱しないように）
@@ -804,15 +805,7 @@ class StyleInfoPanelController: NSObject {
         panel.orderFront(nil)
     }
 
-    /// カラーウェル（輪郭用）がクリックされた時 — カラーパネルを開いて管理を開始
-    fileprivate func beginEditingColor(for well: RectangularColorWell) {
-        if well === strokeColorWell {
-            editingColorTarget = .strokeColor
-        } else {
-            return
-        }
-        openColorPanelForEditing(currentColor: well.color)
-    }
+    // beginEditingColor は不要（全てポップアップメニューに移行済み）
 
     // MARK: - Current Text View Helper
 
@@ -907,7 +900,7 @@ class StyleInfoPanelController: NSObject {
 
         // Outline
         updateNumberField(strokeWidthField, stepper: strokeWidthStepper, values: strokeWidths)
-        updateOptionalColorWell(strokeColorWell, colors: strokeColors)
+        updateDecorationColorPopup(strokeColorPopup, colors: strokeColors)
 
         // Baseline & Spacing
         updateNumberField(baselineOffsetField, stepper: baselineOffsetStepper, values: baselineOffsets)
@@ -956,7 +949,7 @@ class StyleInfoPanelController: NSObject {
         let strokeWidth = (attrs[.strokeWidth] as? CGFloat) ?? 0
         strokeWidthField.doubleValue = Double(strokeWidth)
         strokeWidthStepper.doubleValue = Double(strokeWidth)
-        strokeColorWell.color = (attrs[.strokeColor] as? NSColor) ?? .textColor
+        updateDecorationColorPopup(strokeColorPopup, colors: [attrs[.strokeColor] as? NSColor])
 
         // Baseline & Spacing
         let baseline = (attrs[.baselineOffset] as? CGFloat) ?? 0
@@ -1030,20 +1023,6 @@ class StyleInfoPanelController: NSObject {
         } else {
             fontSizeField.placeholderString = Self.mixedPlaceholder
             fontSizeField.stringValue = ""
-        }
-    }
-
-    private func updateOptionalColorWell(_ well: RectangularColorWell, colors: [NSColor?]) {
-        let nonNil = colors.compactMap { $0 }
-        if nonNil.isEmpty {
-            well.color = .white
-        } else {
-            let unique = Set(nonNil.map { $0.description })
-            if unique.count == 1, let color = nonNil.first {
-                well.color = color
-            } else {
-                well.color = .gray
-            }
         }
     }
 
@@ -1489,7 +1468,21 @@ class StyleInfoPanelController: NSObject {
         }
     }
 
-    // strokeColorChanged: colorPanelDidChangeColor で処理
+    @objc private func strokeColorPopupChanged(_ sender: NSPopUpButton) {
+        guard !isUpdatingUI else { return }
+        guard let item = sender.selectedItem else { return }
+        if item.representedObject is NSString {
+            // "Other Color…"
+            editingColorTarget = .strokeColor
+            let current = currentAttributeColor(.strokeColor)
+            openColorPanelForEditing(currentColor: current ?? .textColor)
+        } else if let color = item.representedObject as? NSColor {
+            applySimpleAttribute(.strokeColor, value: color)
+        } else {
+            // Not Assigned
+            removeSimpleAttribute(.strokeColor)
+        }
+    }
 
     // MARK: Baseline & Kerning Actions
 
@@ -1559,6 +1552,10 @@ class StyleInfoPanelController: NSObject {
 
     @objc private func lineHeightMultipleStepperChanged(_ sender: NSStepper) {
         guard !isUpdatingUI else { return }
+        // 0 から上矢印を押した場合は 0.1 ではなく 1.0 から開始（0.1 だと行が重なって見づらいため）
+        if sender.doubleValue > 0 && sender.doubleValue < 1.0 && lineHeightMultipleField.doubleValue == 0 {
+            sender.doubleValue = 1.0
+        }
         lineHeightMultipleField.doubleValue = sender.doubleValue
         applyParagraphAttribute { $0.lineHeightMultiple = CGFloat(sender.doubleValue) }
     }
@@ -1730,32 +1727,4 @@ class StyleInfoPanelController: NSObject {
     }
 }
 
-// MARK: - RectangularColorWell
-
-/// 長方形のカラーウェル — NSColorWell の activate 機構を使わず、
-/// StyleInfoPanelController が NSColorPanel を直接管理する方式。
-/// これにより changeColor: がテキストビューに送られても
-/// StyleInfoPanelController 側で確実にブロックできる。
-private class RectangularColorWell: NSView {
-    var color: NSColor = .black {
-        didSet { needsDisplay = true }
-    }
-
-    override func draw(_ dirtyRect: NSRect) {
-        let rect = bounds.insetBy(dx: 1, dy: 1)
-        // 色の矩形を描画
-        color.setFill()
-        rect.fill()
-        // 枠線を描画
-        NSColor.separatorColor.setStroke()
-        let border = NSBezierPath(rect: rect)
-        border.lineWidth = 1
-        border.stroke()
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        // StyleInfoPanelController にカラーパネル表示を委譲
-        StyleInfoPanelController.shared.beginEditingColor(for: self)
-    }
-}
 
