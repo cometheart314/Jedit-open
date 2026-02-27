@@ -90,6 +90,7 @@ class StylesPreferencesViewController: NSViewController {
     private var selectedStyleIndex: Int = -1
 
     private var isUpdatingUI = false
+    private var isSelfEditing = false
 
     // MARK: - Lifecycle
 
@@ -115,6 +116,11 @@ class StylesPreferencesViewController: NSViewController {
     }
 
     @objc private func stylesDidChange(_ notification: Notification) {
+        // 自分自身の編集操作による通知の場合はテーブルのみ更新（スクロールリセットを避ける）
+        if isSelfEditing {
+            tableView.reloadData()
+            return
+        }
         tableView.reloadData()
         updateEditorForSelection()
     }
@@ -831,6 +837,13 @@ class StylesPreferencesViewController: NSViewController {
         }
     }
 
+    /// スタイルを更新する（通知による再スクロールを防止）
+    private func saveStyle(_ style: TextStyle) {
+        isSelfEditing = true
+        styleManager.updateStyle(style)
+        isSelfEditing = false
+    }
+
     // MARK: - Preview
 
     private func updatePreview() {
@@ -888,7 +901,7 @@ class StylesPreferencesViewController: NSViewController {
         guard !isUpdatingUI, selectedStyleIndex >= 0 else { return }
         var style = styleManager.styles[selectedStyleIndex]
         style.name = sender.stringValue
-        styleManager.updateStyle(style)
+        saveStyle(style)
         tableView.reloadData()
     }
 
@@ -906,7 +919,7 @@ class StylesPreferencesViewController: NSViewController {
             isUpdatingUI = false
         }
 
-        styleManager.updateStyle(style)
+        saveStyle(style)
     }
 
     @objc private func modifierChanged(_ sender: NSButton) {
@@ -920,7 +933,7 @@ class StylesPreferencesViewController: NSViewController {
         if modifierControlCheckBox.state == .on { modifiers.insert(.control) }
 
         style.keyEquivalentModifierMask = modifiers
-        styleManager.updateStyle(style)
+        saveStyle(style)
     }
 
     @objc private func checkBoxChanged(_ sender: NSButton) {
@@ -1027,7 +1040,7 @@ class StylesPreferencesViewController: NSViewController {
             break
         }
 
-        styleManager.updateStyle(style)
+        saveStyle(style)
         updatePreview()
     }
 
@@ -1054,7 +1067,7 @@ class StylesPreferencesViewController: NSViewController {
             break
         }
 
-        styleManager.updateStyle(style)
+        saveStyle(style)
         updatePreview()
     }
 
@@ -1088,7 +1101,7 @@ class StylesPreferencesViewController: NSViewController {
             break
         }
 
-        styleManager.updateStyle(style)
+        saveStyle(style)
         updatePreview()
     }
 
@@ -1097,7 +1110,7 @@ class StylesPreferencesViewController: NSViewController {
         fontSizeField.doubleValue = sender.doubleValue
         var style = styleManager.styles[selectedStyleIndex]
         style.fontSize = CGFloat(sender.doubleValue)
-        styleManager.updateStyle(style)
+        saveStyle(style)
         updatePreview()
     }
 
@@ -1113,7 +1126,7 @@ class StylesPreferencesViewController: NSViewController {
             break
         }
 
-        styleManager.updateStyle(style)
+        saveStyle(style)
         updatePreview()
     }
 
@@ -1134,7 +1147,7 @@ class StylesPreferencesViewController: NSViewController {
             break
         }
 
-        styleManager.updateStyle(style)
+        saveStyle(style)
         updatePreview()
     }
 }
@@ -1235,7 +1248,7 @@ extension StylesPreferencesViewController: NSComboBoxDelegate {
                 break
             }
 
-            self.styleManager.updateStyle(style)
+            self.saveStyle(style)
             self.updatePreview()
         }
     }

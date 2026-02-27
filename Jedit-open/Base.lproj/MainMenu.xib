@@ -200,7 +200,7 @@
                                 </connections>
                             </menuItem>
                             <menuItem title="Paste and Match Style" keyEquivalent="V" id="WeT-3V-zwk">
-                                <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
+                                <modifierMask key="keyEquivalentModifierMask" shift="YES" command="YES"/>
                                 <connections>
                                     <action selector="pasteAsPlainText:" target="-1" id="cEh-KX-wJQ"/>
                                 </connections>
@@ -221,11 +221,6 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="attachFile:" target="-1" id="attach-files-act"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Link…" keyEquivalent="k" id="link-panel-001">
-                                <connections>
-                                    <action selector="showLinkPanel:" target="-1" id="link-panel-act"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Insert" id="insert-submenu-001">
@@ -969,6 +964,11 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="list-table-sep"/>
+                            <menuItem title="Link…" image="link" catalog="system" keyEquivalent="k" id="link-panel-001">
+                                <connections>
+                                    <action selector="showLinkPanel:" target="-1" id="link-panel-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="List…" id="list-panel-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -1087,6 +1087,7 @@
         <image name="clock" catalog="system" width="15" height="15"/>
         <image name="highlighter.badge.ellipsis" catalog="system" width="19" height="18"/>
         <image name="info.circle" catalog="system" width="15" height="15"/>
+        <image name="link" catalog="system" width="17" height="17"/>
         <image name="list.bullet.rectangle.portrait" catalog="system" width="15" height="16"/>
         <image name="plus" catalog="system" width="15" height="13"/>
         <image name="square.and.arrow.up" catalog="system" width="16" height="18"/>
