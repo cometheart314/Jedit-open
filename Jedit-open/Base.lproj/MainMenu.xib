@@ -223,6 +223,18 @@
                                     <action selector="attachFile:" target="-1" id="attach-files-act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem isSeparatorItem="YES" id="shift-sep-001"/>
+                            <menuItem title="Shift Right" keyEquivalent="]" id="shift-right-001">
+                                <connections>
+                                    <action selector="shiftRight:" target="-1" id="shift-right-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Shift Left" keyEquivalent="[" id="shift-left-001">
+                                <connections>
+                                    <action selector="shiftLeft:" target="-1" id="shift-left-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="shift-sep-002"/>
                             <menuItem title="Insert" id="insert-submenu-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Insert" id="insert-submenu-menu">

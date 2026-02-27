@@ -598,7 +598,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             lineHeightMultiple: formatData.lineHeightMultiple,
             lineHeightMinimum: formatData.lineHeightMinimum,
             lineHeightMaximum: formatData.lineHeightMaximum,
-            preserveExistingLineSpacing: isExistingRichTextFile
+            preserveExistingLineSpacing: isExistingRichTextFile,
+            preserveExistingTabStops: isExistingRichTextFile
         )
 
         // setupTextViews後にルーラー設定を適用（単位設定を含む）
@@ -862,7 +863,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         lineHeightMinimum: CGFloat = 0,
         lineHeightMaximum: CGFloat = 0,
         applyToExistingText: Bool = true,
-        preserveExistingLineSpacing: Bool = false
+        preserveExistingLineSpacing: Bool = false,
+        preserveExistingTabStops: Bool = false
     ) {
         // デフォルトのパラグラフスタイルを作成
         let defaultParagraphStyle = NSMutableParagraphStyle()
@@ -931,9 +933,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     } else {
                         newStyle = NSMutableParagraphStyle()
                     }
-                    // タブ幅は常に適用
+                    // タブ幅を適用
                     newStyle.defaultTabInterval = tabWidthPoints
-                    newStyle.tabStops = []
+                    // preserveExistingTabStops が true の場合、
+                    // RTFから読み込んだパラグラフごとのタブストップ設定を保持する。
+                    if !preserveExistingTabStops || value == nil {
+                        newStyle.tabStops = []
+                    }
                     // preserveExistingLineSpacing が true の場合、
                     // RTFから読み込んだパラグラフごとの行間設定を保持する。
                     // 既存のスタイルがない場合のみ presetData の値を適用する。

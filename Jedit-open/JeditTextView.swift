@@ -1686,27 +1686,193 @@ class JeditTextView: NSTextView {
         windowController.applyFontToEntireDocument(font)
     }
 
-    // MARK: - Tab Handling
+    // MARK: - Tab Handling / Indent
+
+    /// インデントに使う文字列を返す（スペースモードならスペース、それ以外はタブ）
+    private func indentString(for presetData: NewDocData) -> String {
+        if presetData.format.tabWidthUnit == .spaces {
+            let spaceCount = Int(presetData.format.tabWidthPoints)
+            return String(repeating: " ", count: max(1, spaceCount))
+        } else {
+            return "\t"
+        }
+    }
+
+    /// 選択範囲が複数行にまたがるかを判定
+    private func selectionSpansMultipleLines() -> Bool {
+        guard let textStorage = textStorage else { return false }
+        let range = selectedRange()
+        guard range.length > 0 else { return false }
+        let text = textStorage.string as NSString
+        let lineRange = text.lineRange(for: range)
+        // 選択範囲内に改行が含まれていれば複数行
+        let selectedText = text.substring(with: range)
+        return selectedText.contains("\n") || selectedText.contains("\r")
+            || lineRange.length > range.length
+    }
 
     /// タブキーが押されたときの処理
-    /// タブ幅の単位が "spaces" の場合はスペース文字を挿入
+    /// 複数行選択中はインデント、それ以外はタブ/スペース挿入
     override func insertTab(_ sender: Any?) {
+        // 複数行選択中の場合はインデント動作
+        if selectionSpansMultipleLines() {
+            shiftRight(sender)
+            return
+        }
+
         guard let windowController = window?.windowController as? EditorWindowController,
               let presetData = windowController.textDocument?.presetData else {
             super.insertTab(sender)
             return
         }
 
-        let tabUnit = presetData.format.tabWidthUnit
+        let indent = indentString(for: presetData)
+        insertText(indent, replacementRange: selectedRange())
+    }
 
-        if tabUnit == .spaces {
-            // スペースモード: 指定された数のスペース文字を挿入
-            let spaceCount = Int(presetData.format.tabWidthPoints)
-            let spaces = String(repeating: " ", count: max(1, spaceCount))
-            insertText(spaces, replacementRange: selectedRange())
+    /// Shift+Tab が押されたときの処理
+    /// 複数行選択中はアンインデント
+    override func insertBacktab(_ sender: Any?) {
+        shiftLeft(sender)
+    }
+
+    /// 選択行をインデント（Shift Right / Cmd+]）
+    @IBAction func shiftRight(_ sender: Any?) {
+        guard let textStorage = textStorage else { return }
+        let windowController = window?.windowController as? EditorWindowController
+        let presetData = windowController?.textDocument?.presetData
+
+        let indent: String
+        if let presetData = presetData {
+            indent = indentString(for: presetData)
         } else {
-            // ポイントモード: 通常のタブ文字を挿入
-            super.insertTab(sender)
+            indent = "\t"
+        }
+
+        let text = textStorage.string as NSString
+        let range = selectedRange()
+        let lineRange = text.lineRange(for: range)
+
+        // 対象行の各行頭にインデント文字列を挿入
+        var newText = ""
+        var insertedCount = 0
+        text.enumerateSubstrings(in: lineRange, options: .byLines) { substring, substringRange, _, _ in
+            guard let substring = substring else { return }
+            newText += indent + substring
+            insertedCount += 1
+            // 元のテキストで行末に改行があれば追加
+            let afterSubstring = substringRange.location + substringRange.length
+            if afterSubstring < lineRange.location + lineRange.length {
+                let nlRange = NSRange(location: afterSubstring, length: 1)
+                newText += text.substring(with: nlRange)
+            }
+        }
+
+        // 最後の改行が lineRange にあるが enumerateSubstrings で処理されない場合を考慮
+        let lastChar = lineRange.location + lineRange.length - 1
+        if lastChar >= 0 && lastChar < text.length {
+            let ch = text.character(at: lastChar)
+            if (ch == 0x0A || ch == 0x0D) && !newText.hasSuffix("\n") && !newText.hasSuffix("\r") {
+                newText += String(Character(UnicodeScalar(ch)!))
+            }
+        }
+
+        // Undo 対応で置換
+        if shouldChangeText(in: lineRange, replacementString: newText) {
+            textStorage.replaceCharacters(in: lineRange, with: newText)
+            didChangeText()
+
+            // 選択範囲を更新（インデントされた範囲全体を選択）
+            let indentLen = (indent as NSString).length
+            let newStart = range.location + indentLen
+            let newLength = range.length + indentLen * (insertedCount - 1)
+            setSelectedRange(NSRange(location: newStart, length: max(0, newLength)))
+        }
+    }
+
+    /// 選択行をアンインデント（Shift Left / Cmd+[）
+    @IBAction func shiftLeft(_ sender: Any?) {
+        guard let textStorage = textStorage else { return }
+        let windowController = window?.windowController as? EditorWindowController
+        let presetData = windowController?.textDocument?.presetData
+
+        let indent: String
+        if let presetData = presetData {
+            indent = indentString(for: presetData)
+        } else {
+            indent = "\t"
+        }
+
+        let text = textStorage.string as NSString
+        let range = selectedRange()
+        let lineRange = text.lineRange(for: range)
+
+        // 各行頭から先頭のインデント文字列を1レベル分除去
+        var newText = ""
+        var removedFromFirstLine = 0
+        var totalRemoved = 0
+        var isFirstLine = true
+
+        text.enumerateSubstrings(in: lineRange, options: .byLines) { substring, substringRange, _, _ in
+            guard let substring = substring else { return }
+            var line = substring
+
+            if indent == "\t" {
+                // タブモード: 先頭のタブを1つ除去
+                if line.hasPrefix("\t") {
+                    line = String(line.dropFirst())
+                    if isFirstLine { removedFromFirstLine = 1 }
+                    totalRemoved += 1
+                }
+            } else {
+                // スペースモード: 先頭のスペースをインデント幅分除去
+                let indentLen = indent.count
+                var removeCount = 0
+                for ch in line {
+                    if ch == " " && removeCount < indentLen {
+                        removeCount += 1
+                    } else {
+                        break
+                    }
+                }
+                if removeCount > 0 {
+                    line = String(line.dropFirst(removeCount))
+                    if isFirstLine { removedFromFirstLine = removeCount }
+                    totalRemoved += removeCount
+                }
+            }
+
+            isFirstLine = false
+            newText += line
+
+            // 行末の改行を追加
+            let afterSubstring = substringRange.location + substringRange.length
+            if afterSubstring < lineRange.location + lineRange.length {
+                let nlRange = NSRange(location: afterSubstring, length: 1)
+                newText += text.substring(with: nlRange)
+            }
+        }
+
+        // 末尾改行の処理
+        let lastChar = lineRange.location + lineRange.length - 1
+        if lastChar >= 0 && lastChar < text.length {
+            let ch = text.character(at: lastChar)
+            if (ch == 0x0A || ch == 0x0D) && !newText.hasSuffix("\n") && !newText.hasSuffix("\r") {
+                newText += String(Character(UnicodeScalar(ch)!))
+            }
+        }
+
+        if totalRemoved == 0 { return }
+
+        // Undo 対応で置換
+        if shouldChangeText(in: lineRange, replacementString: newText) {
+            textStorage.replaceCharacters(in: lineRange, with: newText)
+            didChangeText()
+
+            // 選択範囲を更新
+            let newStart = max(lineRange.location, range.location - removedFromFirstLine)
+            let newLength = max(0, range.length - (totalRemoved - removedFromFirstLine))
+            setSelectedRange(NSRange(location: newStart, length: newLength))
         }
     }
 
