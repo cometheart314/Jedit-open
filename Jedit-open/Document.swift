@@ -650,7 +650,36 @@ class Document: NSDocument {
     override func makeWindowControllers() {
         // Document.xibからEditorWindowControllerを読み込む
         let windowController = EditorWindowController(windowNibName: NSNib.Name("Document"))
+        // 既存ファイルの場合、保存されたウィンドウ位置を使用するためカスケードを無効化
+        // （shouldCascadeWindows のデフォルトは true で、showWindows() 時にウィンドウ位置が
+        //   ずらされてしまい、保存位置ではなくデフォルト位置に一瞬表示される原因になる）
+        if fileURL != nil {
+            windowController.shouldCascadeWindows = false
+        }
         self.addWindowController(windowController)
+    }
+
+    override func showWindows() {
+        // ウィンドウ表示前にプリセットフレームを適用
+        // （windowDidLoad の時点では document が関連付けられていない場合があり、
+        //   applyPresetData() でフレームが設定されないことがある。
+        //   showWindows() の時点では確実に presetData にアクセスできるため、
+        //   ここでフレームを設定してからウィンドウを表示する）
+        if let presetData = self.presetData {
+            let viewData = presetData.view
+            for windowController in windowControllers {
+                guard let window = windowController.window else { continue }
+                window.setFrameAutosaveName("")
+                let newFrame = NSRect(
+                    x: viewData.windowX,
+                    y: viewData.windowY,
+                    width: viewData.windowWidth,
+                    height: viewData.windowHeight
+                )
+                window.setFrame(newFrame, display: false)
+            }
+        }
+        super.showWindows()
     }
 
     override func windowControllerDidLoadNib(_ windowController: NSWindowController) {

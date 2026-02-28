@@ -22,6 +22,9 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
 
     /// デフォルトメニュー項目（super.menu(for:) が提供するシステム標準項目）
     private static let defaultMenuItems: [KnownMenuItem] = [
+        KnownMenuItem(displayTitle: "Look Up",               identifier: "action:define",                 isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Translate",             identifier: "action:translate",              isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Search with Google",    identifier: "action:searchWithGoogle",       isSubmenu: false, submenuDetectionAction: nil),
         KnownMenuItem(displayTitle: "Cut",                   identifier: "cut:",                          isSubmenu: false, submenuDetectionAction: nil),
         KnownMenuItem(displayTitle: "Copy",                  identifier: "copy:",                         isSubmenu: false, submenuDetectionAction: nil),
         KnownMenuItem(displayTitle: "Paste",                 identifier: "paste:",                        isSubmenu: false, submenuDetectionAction: nil),
@@ -34,6 +37,7 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         KnownMenuItem(displayTitle: "Substitutions",         identifier: "submenu:substitutions",         isSubmenu: true,  submenuDetectionAction: "toggleAutomaticQuoteSubstitution:"),
         KnownMenuItem(displayTitle: "Transformations",       identifier: "submenu:transformations",       isSubmenu: true,  submenuDetectionAction: "uppercaseWord:"),
         KnownMenuItem(displayTitle: "Speech",                identifier: "submenu:speech",                isSubmenu: true,  submenuDetectionAction: "startSpeaking:"),
+        KnownMenuItem(displayTitle: "Share",                 identifier: "submenu:share",                 isSubmenu: true,  submenuDetectionAction: nil),
         KnownMenuItem(displayTitle: "Layout Orientation",    identifier: "submenu:layoutOrientation",     isSubmenu: true,  submenuDetectionAction: "changeLayoutOrientation:"),
     ]
 
@@ -55,6 +59,8 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         "Substitutions":         "submenu:substitutions",
         "Transformations":       "submenu:transformations",
         "Speech":                "submenu:speech",
+        "Share":                 "submenu:share",
+        "Share…":                "submenu:share",
         "Layout Orientation":    "submenu:layoutOrientation",
         "Styles":                "submenu:styles",
         // 日本語
@@ -63,6 +69,8 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         "置換":                   "submenu:substitutions",
         "変換":                   "submenu:transformations",
         "スピーチ":               "submenu:speech",
+        "共有":                   "submenu:share",
+        "共有…":                  "submenu:share",
         "レイアウトの方向":         "submenu:layoutOrientation",
         "スタイル":               "submenu:styles",
     ]
@@ -79,6 +87,30 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         "校正":                  "action:proofread",
         "書き直す":               "action:rewrite",
     ]
+
+    /// 動的タイトル（選択テキストを含む等）から安定した識別子を返す
+    /// 例: 'Look Up "hello"' → "action:define", '"hello"を翻訳' → "action:translate"
+    private static func identifierForDynamicTitle(_ title: String) -> String? {
+        // Look Up / 調べる
+        if title.hasPrefix("Look Up") || title.hasSuffix("を調べる") {
+            return "action:define"
+        }
+        // Translate / 翻訳
+        if title.hasPrefix("Translate") || title.hasSuffix("を翻訳") {
+            return "action:translate"
+        }
+        // Search With Google / Google で検索（大文字・小文字両対応）
+        let lower = title.lowercased()
+        if lower.hasPrefix("search with google") || (title.contains("Google") && title.contains("検索")) {
+            return "action:searchWithGoogle"
+        }
+        // Share / 共有（サブメニュー検出が失敗した場合のフォールバック）
+        if title == "Share" || title == "Share..." || title == "Share…" ||
+           title == "共有" || title == "共有..." || title == "共有…" {
+            return "submenu:share"
+        }
+        return nil
+    }
 
     /// 実行時にメニュー項目から安定した識別子を返す（ロケール不変）
     static func identifierForMenuItem(_ item: NSMenuItem) -> String {
@@ -100,6 +132,10 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         }
         // タイトルフォールバック（Apple Intelligence 等、アクションが nil や非公開セレクタの項目対策）
         if let identifier = actionTitleFallback[item.title] {
+            return identifier
+        }
+        // 動的タイトル項目（Look Up "xxx", Translate "xxx" 等）
+        if let identifier = identifierForDynamicTitle(item.title) {
             return identifier
         }
         // アクションがある項目はセレクタ名で一意に識別
