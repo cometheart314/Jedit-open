@@ -896,67 +896,103 @@ class JeditTextView: NSTextView {
     // MARK: - Context Menu
 
     override func menu(for event: NSEvent) -> NSMenu? {
-        // Get the base context menu
-        guard let menu = super.menu(for: event) else {
-            return nil
+        let defaults = UserDefaults.standard
+        let showDefaultMenu = !defaults.bool(forKey: UserDefaults.Keys.dontShowContextMenuDefaultItems)
+        let hiddenActions = Set(defaults.stringArray(forKey: UserDefaults.Keys.hiddenContextMenuActions) ?? [])
+
+        // デフォルトメニューまたは空メニュー
+        let menu: NSMenu
+        if showDefaultMenu {
+            guard let defaultMenu = super.menu(for: event) else { return nil }
+            menu = defaultMenu
+        } else {
+            menu = NSMenu()
         }
 
-        // Check if the click is on an image attachment
-        let point = convert(event.locationInWindow, from: nil)
-
-        guard let layoutManager = layoutManager,
-              let textContainer = textContainer,
-              let textStorage = textStorage,
-              textStorage.length > 0 else {
-            return menu
-        }
-
-        // Convert point to text container coordinates
-        let textContainerOrigin = textContainerOrigin
-        let locationInContainer = NSPoint(
-            x: point.x - textContainerOrigin.x,
-            y: point.y - textContainerOrigin.y
-        )
-
-        // Get glyph index at point
-        var fraction: CGFloat = 0
-        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer, fractionOfDistanceThroughGlyph: &fraction)
-
-        // Convert glyph index to character index
-        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
-
-        // Check if there's an attachment at this character index
-        guard charIndex < textStorage.length else {
-            return menu
-        }
-
-        // Check for attachment attribute using imageResizeController
-        if let controller = imageResizeController,
-           controller.getImageAttachment(in: self, at: charIndex) != nil {
-            // Store the character index for the menu action
-            contextMenuImageCharIndex = charIndex
-
-            // Create "Change Image Size..." menu item
-            let changeImageSizeItem = NSMenuItem(
-                title: NSLocalizedString("Change Image Size...", comment: "Context menu item for changing image size"),
-                action: #selector(changeImageSize(_:)),
-                keyEquivalent: ""
+        // Jedit カスタム項目: Change Image Size
+        if !hiddenActions.contains("changeImageSize:"),
+           let layoutManager = layoutManager,
+           let textContainer = textContainer,
+           let textStorage = textStorage,
+           textStorage.length > 0 {
+            let point = convert(event.locationInWindow, from: nil)
+            let textContainerOrigin = textContainerOrigin
+            let locationInContainer = NSPoint(
+                x: point.x - textContainerOrigin.x,
+                y: point.y - textContainerOrigin.y
             )
-            changeImageSizeItem.target = self
+            var fraction: CGFloat = 0
+            let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer, fractionOfDistanceThroughGlyph: &fraction)
+            let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
 
-            // Insert at the beginning of the menu
-            menu.insertItem(changeImageSizeItem, at: 0)
-            menu.insertItem(NSMenuItem.separator(), at: 1)
+            if charIndex < textStorage.length,
+               let controller = imageResizeController,
+               controller.getImageAttachment(in: self, at: charIndex) != nil {
+                contextMenuImageCharIndex = charIndex
+                let changeImageSizeItem = NSMenuItem(
+                    title: NSLocalizedString("Change Image Size...", comment: "Context menu item for changing image size"),
+                    action: #selector(changeImageSize(_:)),
+                    keyEquivalent: ""
+                )
+                changeImageSizeItem.target = self
+                menu.insertItem(changeImageSizeItem, at: 0)
+                if menu.items.count > 1 {
+                    menu.insertItem(NSMenuItem.separator(), at: 1)
+                }
+            }
         }
 
-        // リッチテキストの場合、Styles サブメニューを追加
-        if !isPlainText {
-            menu.addItem(.separator())
+        // Jedit カスタム項目: Styles サブメニュー
+        if !isPlainText && !hiddenActions.contains("submenu:styles") {
+            if menu.items.count > 0 {
+                menu.addItem(.separator())
+            }
             let stylesItem = StyleMenuManager.shared.createContextStylesMenuItem()
             menu.addItem(stylesItem)
         }
 
+        // デフォルトメニュー項目の個別フィルタリング
+        if showDefaultMenu {
+            filterContextMenu(menu, hiddenActions: hiddenActions)
+        }
+
+        cleanupSeparators(in: menu)
         return menu
+    }
+
+    /// デフォルトメニュー項目を個別にフィルタリング
+    private func filterContextMenu(_ menu: NSMenu, hiddenActions: Set<String>) {
+        guard !hiddenActions.isEmpty else { return }
+
+        let itemsToRemove = menu.items.filter { item in
+            guard !item.isSeparatorItem else { return false }
+            let identifier = ContextMenuPreferencesViewController.identifierForMenuItem(item)
+            return hiddenActions.contains(identifier)
+        }
+        for item in itemsToRemove {
+            menu.removeItem(item)
+        }
+    }
+
+    /// メニュー内の余分なセパレータを除去
+    private func cleanupSeparators(in menu: NSMenu) {
+        // 先頭のセパレータを除去
+        while let first = menu.items.first, first.isSeparatorItem {
+            menu.removeItem(first)
+        }
+        // 末尾のセパレータを除去
+        while let last = menu.items.last, last.isSeparatorItem {
+            menu.removeItem(last)
+        }
+        // 連続するセパレータを除去
+        var i = 0
+        while i < menu.items.count - 1 {
+            if menu.items[i].isSeparatorItem && menu.items[i + 1].isSeparatorItem {
+                menu.removeItem(at: i + 1)
+            } else {
+                i += 1
+            }
+        }
     }
 
     /// Action for "Change Image Size..." context menu item

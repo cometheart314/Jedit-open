@@ -31,7 +31,6 @@ class GeneralPreferencesViewController: NSViewController {
     @IBOutlet weak var smartLinksCheckBox: NSButton!
     @IBOutlet weak var smartSeparationCheckBox: NSButton!
     @IBOutlet weak var smartCopyPasteCheckBox: NSButton!
-    @IBOutlet weak var dontShowContextMenuDefaultItemsCheckBox: NSButton!
     @IBOutlet weak var richTextSubstitutionsCheckBox: NSButton!
     @IBOutlet weak var textReplacementsCheckBox: NSButton!
     @IBOutlet weak var smartQuotesCheckBox: NSButton!
@@ -151,7 +150,6 @@ class GeneralPreferencesViewController: NSViewController {
         smartLinksCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartLinks) ? .on : .off
         smartSeparationCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartSeparationEnglishJapanese) ? .on : .off
         smartCopyPasteCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.smartCopyPaste) ? .on : .off
-        dontShowContextMenuDefaultItemsCheckBox?.state = defaults.bool(forKey: UserDefaults.Keys.dontShowContextMenuDefaultItems) ? .on : .off
 
         // Rich Text Substitutions
         // オン: 以下の置換オプションはリッチテキストのみに適用
@@ -290,13 +288,6 @@ class GeneralPreferencesViewController: NSViewController {
         applyTextEditingSettingsToAllWindows()
     }
 
-    @IBAction func dontShowContextMenuDefaultItemsClicked(_ sender: Any) {
-        guard let button = sender as? NSButton else { return }
-        let isOn = button.state == .on
-        defaults.set(isOn, forKey: UserDefaults.Keys.dontShowContextMenuDefaultItems)
-        // This setting affects context menu, no immediate action needed
-    }
-
     @IBAction func richTextSubstitutionsClicked(_ sender: Any) {
         guard let button = sender as? NSButton else { return }
         let isOn = button.state == .on
@@ -350,7 +341,6 @@ class GeneralPreferencesViewController: NSViewController {
         defaults.set(false, forKey: UserDefaults.Keys.smartLinks)
         defaults.set(false, forKey: UserDefaults.Keys.smartSeparationEnglishJapanese)
         defaults.set(false, forKey: UserDefaults.Keys.smartCopyPaste)
-        defaults.set(false, forKey: UserDefaults.Keys.dontShowContextMenuDefaultItems)
         defaults.set(true, forKey: UserDefaults.Keys.richTextSubstitutionsEnabled)
         defaults.set(false, forKey: UserDefaults.Keys.textReplacements)
         defaults.set(false, forKey: UserDefaults.Keys.smartQuotes)
@@ -364,7 +354,6 @@ class GeneralPreferencesViewController: NSViewController {
         smartLinksCheckBox?.state = .off
         smartSeparationCheckBox?.state = .off
         smartCopyPasteCheckBox?.state = .off
-        dontShowContextMenuDefaultItemsCheckBox?.state = .off
         richTextSubstitutionsCheckBox?.state = .on
         textReplacementsCheckBox?.state = .off
         smartQuotesCheckBox?.state = .off

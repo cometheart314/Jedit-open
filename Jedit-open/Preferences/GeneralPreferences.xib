@@ -10,13 +10,12 @@
                 <outlet property="appearancePopupButton" destination="qYb-hE-aST" id="6Qh-Ei-TPI"/>
                 <outlet property="autoStartCheckBox" destination="eVD-Kc-0NT" id="UQW-Fe-lWA"/>
                 <outlet property="checkGrammarWithSpellingCheckBox" destination="chk-gram-001" id="out-gram-001"/>
-                <outlet property="openMarkdownAsPlainTextCheckBox" destination="chk-md-plain-001" id="out-md-plain-001"/>
                 <outlet property="checkSpellingAsYouTypeCheckBox" destination="chk-spell-001" id="out-spell-001"/>
                 <outlet property="correctSpellingAutomaticallyCheckBox" destination="chk-corr-001" id="out-corr-001"/>
                 <outlet property="dataDetectorsCheckBox" destination="chk-data-001" id="out-data-001"/>
                 <outlet property="dateFormatField" destination="VTJ-q7-DRs" id="dff-out-con"/>
                 <outlet property="dateFormatPopupButton" destination="juc-dQ-EgR" id="dfp-out-con"/>
-                <outlet property="dontShowContextMenuDefaultItemsCheckBox" destination="chk-ctx-001" id="out-ctx-001"/>
+                <outlet property="openMarkdownAsPlainTextCheckBox" destination="chk-md-plain-001" id="out-md-plain-001"/>
                 <outlet property="richTextAlwaysUsesLightModeCheckBox" destination="chk-rtlm-001" id="out-rtlm-001"/>
                 <outlet property="richTextSubstitutionsCheckBox" destination="chk-rich-001" id="out-rich-001"/>
                 <outlet property="smartCopyPasteCheckBox" destination="chk-copy-001" id="out-copy-001"/>
@@ -112,72 +111,6 @@
                                             <action selector="smartCopyPasteClicked:" target="-2" id="act-copy-001"/>
                                         </connections>
                                     </button>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-ctx-001">
-                                        <rect key="frame" x="18" y="270" width="413" height="18"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="check" title="Don't show Context Menu Default Items" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-ctx-001">
-                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="dontShowContextMenuDefaultItemsClicked:" target="-2" id="act-ctx-001"/>
-                                        </connections>
-                                    </button>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-rich-001">
-                                        <rect key="frame" x="18" y="236" width="320" height="18"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="check" title="Following Substitutions Enabled Only in Rich Text" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-rich-001">
-                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="richTextSubstitutionsClicked:" target="-2" id="act-rich-001"/>
-                                        </connections>
-                                    </button>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-repl-001">
-                                        <rect key="frame" x="38" y="214" width="200" height="18"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="check" title="Text replacements" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-repl-001">
-                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="textReplacementsClicked:" target="-2" id="act-repl-001"/>
-                                        </connections>
-                                    </button>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-quot-001">
-                                        <rect key="frame" x="38" y="192" width="200" height="18"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="check" title="Smart quotes" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-quot-001">
-                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="smartQuotesClicked:" target="-2" id="act-quot-001"/>
-                                        </connections>
-                                    </button>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-dash-001">
-                                        <rect key="frame" x="38" y="170" width="200" height="18"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="check" title="Smart dashes" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-dash-001">
-                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="smartDashesClicked:" target="-2" id="act-dash-001"/>
-                                        </connections>
-                                    </button>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-corr-001">
-                                        <rect key="frame" x="38" y="148" width="399" height="18"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="check" title="Correct spelling automatically" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-corr-001">
-                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="correctSpellingAutomaticallyClicked:" target="-2" id="act-corr-001"/>
-                                        </connections>
-                                    </button>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="E7v-hY-ASR">
                                         <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="goO-rC-gEl">
@@ -190,6 +123,61 @@
                                         </constraints>
                                         <connections>
                                             <action selector="revertEditToDefaults:" target="-2" id="act-revert-edit"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-rich-001">
+                                        <rect key="frame" x="18" y="268" width="320" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Following Substitutions Enabled Only in Rich Text" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-rich-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="richTextSubstitutionsClicked:" target="-2" id="act-rich-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-repl-001">
+                                        <rect key="frame" x="38" y="246" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Text replacements" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-repl-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="textReplacementsClicked:" target="-2" id="act-repl-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-quot-001">
+                                        <rect key="frame" x="38" y="224" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Smart quotes" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-quot-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="smartQuotesClicked:" target="-2" id="act-quot-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-dash-001">
+                                        <rect key="frame" x="38" y="202" width="200" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Smart dashes" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-dash-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="smartDashesClicked:" target="-2" id="act-dash-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-corr-001">
+                                        <rect key="frame" x="38" y="180" width="399" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Correct spelling automatically" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-corr-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="correctSpellingAutomaticallyClicked:" target="-2" id="act-corr-001"/>
                                         </connections>
                                     </button>
                                 </subviews>

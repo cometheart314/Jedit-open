@@ -57,6 +57,11 @@ class PreferencesWindowController: NSWindowController {
                 title: "Styles",
                 icon: NSImage(systemSymbolName: "jacket", accessibilityDescription: nil)!,
                 identifier: "styles"
+            ),
+            PreferenceCategory(
+                title: "Context Menu",
+                icon: NSImage(systemSymbolName: "contextualmenu.and.cursorarrow", accessibilityDescription: nil)!,
+                identifier: "contextMenu"
             )
         ]
     }
@@ -146,6 +151,8 @@ class PreferencesWindowController: NSWindowController {
             return LineBreakingPreferencesViewController(nibName: "LineBreakingPreferences", bundle: nil)
         case "styles":
             return StylesPreferencesViewController()
+        case "contextMenu":
+            return ContextMenuPreferencesViewController()
         default:
             return NSViewController()
         }

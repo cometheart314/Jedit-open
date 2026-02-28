@@ -61,6 +61,9 @@ extension UserDefaults {
         static let burasagariChars = "BurasagariChars"
         static let cantSeparateChars = "CantSeparateChars"
 
+        // Context Menu
+        static let hiddenContextMenuActions = "hiddenContextMenuActions"
+
         // Find Bar
         static let findSearchHistory = "findSearchHistory"
         static let findReplaceHistory = "findReplaceHistory"
@@ -126,6 +129,8 @@ extension UserDefaults {
             Keys.cantBeEndChars: "（［｛〔〈《「『【",
             Keys.burasagariChars: "、。，．",
             Keys.cantSeparateChars: "—…‥",
+            // Context Menu
+            Keys.hiddenContextMenuActions: [String](),
             // Find Bar
             Keys.findSearchHistory: [String](),
             Keys.findReplaceHistory: [String](),
