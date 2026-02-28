@@ -5,6 +5,38 @@
 
 import Cocoa
 
+/// 現在の色を表示する矩形ビュー（nil の場合は白背景に赤いスラッシュ）
+private class ColorIndicatorView: NSView {
+    var color: NSColor? {
+        didSet { needsDisplay = true }
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let rect = bounds
+
+        if let color = color {
+            color.setFill()
+            NSBezierPath.fill(rect)
+        } else {
+            // Not Assigned: テキスト背景色 + 赤スラッシュ
+            NSColor.textBackgroundColor.setFill()
+            NSBezierPath.fill(rect)
+            NSColor.systemRed.setStroke()
+            let slash = NSBezierPath()
+            slash.move(to: NSPoint(x: rect.minX + 2, y: rect.maxY - 2))
+            slash.line(to: NSPoint(x: rect.maxX - 2, y: rect.minY + 2))
+            slash.lineWidth = 1.5
+            slash.stroke()
+        }
+
+        // 枠線
+        NSColor.separatorColor.setStroke()
+        let border = NSBezierPath(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), xRadius: 2, yRadius: 2)
+        border.lineWidth = 1
+        border.stroke()
+    }
+}
+
 class StyleInfoPanelController: NSObject {
 
     // MARK: - Singleton
@@ -39,22 +71,27 @@ class StyleInfoPanelController: NSObject {
     private var fontSizeStepper: NSStepper!
 
     // MARK: - Color Section
+    private var foreColorIndicator: ColorIndicatorView!
     private var foreColorPopup: NSPopUpButton!
+    private var backColorIndicator: ColorIndicatorView!
     private var backColorPopup: NSPopUpButton!
 
     // MARK: - Underline Section
     private var underlineStylePopup: NSPopUpButton!
     private var underlinePatternPopup: NSPopUpButton!
+    private var underlineColorIndicator: ColorIndicatorView!
     private var underlineColorPopup: NSPopUpButton!
 
     // MARK: - Strikethrough Section
     private var strikethroughStylePopup: NSPopUpButton!
     private var strikethroughPatternPopup: NSPopUpButton!
+    private var strikethroughColorIndicator: ColorIndicatorView!
     private var strikethroughColorPopup: NSPopUpButton!
 
     // MARK: - Outline Section
     private var strokeWidthField: NSTextField!
     private var strokeWidthStepper: NSStepper!
+    private var strokeColorIndicator: ColorIndicatorView!
     private var strokeColorPopup: NSPopUpButton!
 
     // MARK: - Baseline & Spacing Section
@@ -169,6 +206,11 @@ class StyleInfoPanelController: NSObject {
         panel.level = .floating
         panel.minSize = NSSize(width: 380, height: 300)
         panel.maxSize = NSSize(width: 380, height: 2000)
+        panel.backgroundColor = NSColor(name: nil, dynamicProvider: { appearance in
+            appearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+                ? NSColor(white: 0.18, alpha: 1.0)
+                : NSColor(white: 0.95, alpha: 1.0)
+        })
 
         // メインスタックビュー
         let mainStack = NSStackView()
@@ -256,14 +298,18 @@ class StyleInfoPanelController: NSObject {
     private func addColorSection(to stack: NSStackView) {
         stack.addArrangedSubview(createSectionHeader("Colors"))
 
-        // 文字色ポップアップ
+        // 文字色: インジケータ + ポップアップ
         let foreRow = createLabeledRow("Foreground:")
+        foreColorIndicator = createColorIndicator(color: .textColor)
+        foreRow.addArrangedSubview(foreColorIndicator)
         foreColorPopup = createForeColorPopup()
         foreRow.addArrangedSubview(foreColorPopup)
         stack.addArrangedSubview(foreRow)
 
-        // 背景色ポップアップ
+        // 背景色: インジケータ + ポップアップ
         let backRow = createLabeledRow("Background:")
+        backColorIndicator = createColorIndicator(color: .clear)
+        backRow.addArrangedSubview(backColorIndicator)
         backColorPopup = createBackColorPopup()
         backRow.addArrangedSubview(backColorPopup)
         stack.addArrangedSubview(backRow)
@@ -300,10 +346,18 @@ class StyleInfoPanelController: NSObject {
         ("Banana",      NSColor(calibratedRed: 1, green: 1, blue: 0.75, alpha: 1)),
     ]
 
+    /// プルダウン色ポップアップの共通セットアップ（pullsDown + 空タイトル + 固定幅）
+    private func setupColorPopupAppearance(_ popup: NSPopUpButton) {
+        popup.translatesAutoresizingMaskIntoConstraints = false
+        popup.widthAnchor.constraint(equalToConstant: 18).isActive = true
+    }
+
     private func createForeColorPopup() -> NSPopUpButton {
-        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        let popup = NSPopUpButton(frame: .zero, pullsDown: true)
         popup.controlSize = .small
         popup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        // 先頭: 閉じた状態で表示されるタイトル項目（空）
+        popup.addItem(withTitle: "")
         for (name, color) in Self.foreColorEntries {
             let item = NSMenuItem()
             item.title = NSLocalizedString(name, comment: "Color name")
@@ -318,13 +372,16 @@ class StyleInfoPanelController: NSObject {
         popup.menu?.addItem(otherItem)
         popup.target = self
         popup.action = #selector(foreColorPopupChanged(_:))
+        setupColorPopupAppearance(popup)
         return popup
     }
 
     private func createBackColorPopup() -> NSPopUpButton {
-        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        let popup = NSPopUpButton(frame: .zero, pullsDown: true)
         popup.controlSize = .small
         popup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        // 先頭: 閉じた状態で表示されるタイトル項目（空）
+        popup.addItem(withTitle: "")
         for (index, (name, color)) in Self.backColorEntries.enumerated() {
             let item = NSMenuItem()
             item.title = NSLocalizedString(name, comment: "Color name")
@@ -343,6 +400,7 @@ class StyleInfoPanelController: NSObject {
         popup.menu?.addItem(otherItem)
         popup.target = self
         popup.action = #selector(backColorPopupChanged(_:))
+        setupColorPopupAppearance(popup)
         return popup
     }
 
@@ -358,11 +416,30 @@ class StyleInfoPanelController: NSObject {
         }
     }
 
+    /// 現在の色を表示する矩形インジケータを作成
+    private func createColorIndicator(color: NSColor? = nil) -> ColorIndicatorView {
+        let view = ColorIndicatorView()
+        view.translatesAutoresizingMaskIntoConstraints = false
+        view.color = color
+        NSLayoutConstraint.activate([
+            view.widthAnchor.constraint(equalToConstant: 24),
+            view.heightAnchor.constraint(equalToConstant: 16),
+        ])
+        return view
+    }
+
+    /// カラーインジケータの色を更新
+    private func updateColorIndicator(_ indicator: ColorIndicatorView, color: NSColor?) {
+        indicator.color = color
+    }
+
     /// 装飾色用ポップアップ（Clear + Foreground プリセット + Other Color…）
     private func createDecorationColorPopup(action: Selector) -> NSPopUpButton {
-        let popup = NSPopUpButton(frame: .zero, pullsDown: false)
+        let popup = NSPopUpButton(frame: .zero, pullsDown: true)
         popup.controlSize = .small
         popup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        // 先頭: 閉じた状態で表示されるタイトル項目（空）
+        popup.addItem(withTitle: "")
         // Not Assigned（色指定なし = テキスト色と同じ）
         let clearItem = NSMenuItem()
         clearItem.title = NSLocalizedString("Not Assigned", comment: "No specific color assigned, uses text color")
@@ -384,6 +461,7 @@ class StyleInfoPanelController: NSObject {
         popup.menu?.addItem(otherItem)
         popup.target = self
         popup.action = action
+        setupColorPopupAppearance(popup)
         return popup
     }
 
@@ -398,6 +476,8 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(styleRow)
 
         let colorRow = createLabeledRow("Color:")
+        underlineColorIndicator = createColorIndicator()
+        colorRow.addArrangedSubview(underlineColorIndicator)
         underlineColorPopup = createDecorationColorPopup(action: #selector(underlineColorPopupChanged(_:)))
         colorRow.addArrangedSubview(underlineColorPopup)
         stack.addArrangedSubview(colorRow)
@@ -420,6 +500,8 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(styleRow)
 
         let colorRow = createLabeledRow("Color:")
+        strikethroughColorIndicator = createColorIndicator()
+        colorRow.addArrangedSubview(strikethroughColorIndicator)
         strikethroughColorPopup = createDecorationColorPopup(action: #selector(strikethroughColorPopupChanged(_:)))
         colorRow.addArrangedSubview(strikethroughColorPopup)
         stack.addArrangedSubview(colorRow)
@@ -442,6 +524,8 @@ class StyleInfoPanelController: NSObject {
         row.addArrangedSubview(NSTextField(labelWithString: "pt."))
         row.addArrangedSubview(createSmallSpacer())
         row.addArrangedSubview(NSTextField(labelWithString: "Color:"))
+        strokeColorIndicator = createColorIndicator()
+        row.addArrangedSubview(strokeColorIndicator)
         strokeColorPopup = createDecorationColorPopup(action: #selector(strokeColorPopupChanged(_:)))
         row.addArrangedSubview(strokeColorPopup)
         stack.addArrangedSubview(row)
@@ -768,17 +852,22 @@ class StyleInfoPanelController: NSObject {
         // 編集対象をクリア（再入防止）
         editingColorTarget = nil
 
-        // 該当する属性を適用
+        // 該当する属性を適用し、インジケータを更新
         switch target {
         case .foreground:
+            updateColorIndicator(foreColorIndicator, color: color)
             applySimpleAttribute(.foregroundColor, value: color)
         case .background:
+            updateColorIndicator(backColorIndicator, color: color)
             applySimpleAttribute(.backgroundColor, value: color)
         case .underlineColor:
+            updateColorIndicator(underlineColorIndicator, color: color)
             applySimpleAttribute(.underlineColor, value: color)
         case .strikethroughColor:
+            updateColorIndicator(strikethroughColorIndicator, color: color)
             applySimpleAttribute(.strikethroughColor, value: color)
         case .strokeColor:
+            updateColorIndicator(strokeColorIndicator, color: color)
             applySimpleAttribute(.strokeColor, value: color)
             updateFromSelection()
         }
@@ -885,6 +974,7 @@ class StyleInfoPanelController: NSObject {
             stylePopup: underlineStylePopup,
             patternPopup: underlinePatternPopup,
             colorPopup: underlineColorPopup,
+            colorIndicator: underlineColorIndicator,
             styles: underlineStyles,
             colors: underlineColors
         )
@@ -894,13 +984,14 @@ class StyleInfoPanelController: NSObject {
             stylePopup: strikethroughStylePopup,
             patternPopup: strikethroughPatternPopup,
             colorPopup: strikethroughColorPopup,
+            colorIndicator: strikethroughColorIndicator,
             styles: strikethroughStyles,
             colors: strikethroughColors
         )
 
         // Outline
         updateNumberField(strokeWidthField, stepper: strokeWidthStepper, values: strokeWidths)
-        updateDecorationColorPopup(strokeColorPopup, colors: strokeColors)
+        updateDecorationColorPopup(strokeColorPopup, indicator: strokeColorIndicator, colors: strokeColors)
 
         // Baseline & Spacing
         updateNumberField(baselineOffsetField, stepper: baselineOffsetStepper, values: baselineOffsets)
@@ -932,7 +1023,7 @@ class StyleInfoPanelController: NSObject {
         // Underline
         let underline = (attrs[.underlineStyle] as? Int) ?? 0
         setLineDecorationPopups(underlineStylePopup, patternPopup: underlinePatternPopup, rawValue: underline)
-        updateDecorationColorPopup(underlineColorPopup, colors: [attrs[.underlineColor] as? NSColor])
+        updateDecorationColorPopup(underlineColorPopup, indicator: underlineColorIndicator, colors: [attrs[.underlineColor] as? NSColor])
         let underlineIsNone = (underline == 0)
         underlinePatternPopup.isEnabled = !underlineIsNone
         underlineColorPopup.isEnabled = !underlineIsNone
@@ -940,7 +1031,7 @@ class StyleInfoPanelController: NSObject {
         // Strikethrough
         let strikethrough = (attrs[.strikethroughStyle] as? Int) ?? 0
         setLineDecorationPopups(strikethroughStylePopup, patternPopup: strikethroughPatternPopup, rawValue: strikethrough)
-        updateDecorationColorPopup(strikethroughColorPopup, colors: [attrs[.strikethroughColor] as? NSColor])
+        updateDecorationColorPopup(strikethroughColorPopup, indicator: strikethroughColorIndicator, colors: [attrs[.strikethroughColor] as? NSColor])
         let strikethroughIsNone = (strikethrough == 0)
         strikethroughPatternPopup.isEnabled = !strikethroughIsNone
         strikethroughColorPopup.isEnabled = !strikethroughIsNone
@@ -949,7 +1040,7 @@ class StyleInfoPanelController: NSObject {
         let strokeWidth = (attrs[.strokeWidth] as? CGFloat) ?? 0
         strokeWidthField.doubleValue = Double(strokeWidth)
         strokeWidthStepper.doubleValue = Double(strokeWidth)
-        updateDecorationColorPopup(strokeColorPopup, colors: [attrs[.strokeColor] as? NSColor])
+        updateDecorationColorPopup(strokeColorPopup, indicator: strokeColorIndicator, colors: [attrs[.strokeColor] as? NSColor])
 
         // Baseline & Spacing
         let baseline = (attrs[.baselineOffset] as? CGFloat) ?? 0
@@ -970,8 +1061,11 @@ class StyleInfoPanelController: NSObject {
         fontFamilyField.stringValue = ""
         fontStyleField.stringValue = ""
         fontSizeField.stringValue = ""
-        foreColorPopup.selectItem(at: 0)  // Text Color
-        backColorPopup.selectItem(at: 0)  // Clear
+        updateColorIndicator(foreColorIndicator, color: .textColor)
+        updateColorIndicator(backColorIndicator, color: nil)
+        updateColorIndicator(underlineColorIndicator, color: nil)
+        updateColorIndicator(strikethroughColorIndicator, color: nil)
+        updateColorIndicator(strokeColorIndicator, color: nil)
         underlineStylePopup.selectItem(at: 0)
         underlinePatternPopup.selectItem(at: 0)
         strikethroughStylePopup.selectItem(at: 0)
@@ -1026,78 +1120,37 @@ class StyleInfoPanelController: NSObject {
         }
     }
 
-    /// 前景色ポップアップを更新（プリセットに一致すればそれを選択、なければ末尾に "Custom" 追加）
+    /// 前景色インジケータを更新
     private func updateForeColorPopup(colors: [NSColor]) {
         let unique = Set(colors.map { $0.description })
         if unique.count == 1, let color = colors.first {
-            // プリセットに一致するか確認
-            if let matchIndex = Self.foreColorEntries.firstIndex(where: { colorsMatch($0.1, color) }) {
-                foreColorPopup.selectItem(at: matchIndex)
-            } else {
-                selectOrAddCustomItem(in: foreColorPopup, color: color, presetCount: Self.foreColorEntries.count)
-            }
+            updateColorIndicator(foreColorIndicator, color: color)
         } else {
-            foreColorPopup.selectItem(at: -1)  // 混在: 未選択
+            updateColorIndicator(foreColorIndicator, color: nil)
         }
     }
 
-    /// 背景色ポップアップを更新
+    /// 背景色インジケータを更新
     private func updateBackColorPopup(colors: [NSColor?]) {
         let nonNil = colors.compactMap { $0 }
         if nonNil.isEmpty {
-            backColorPopup.selectItem(at: 0)  // Clear
+            updateColorIndicator(backColorIndicator, color: nil)
         } else if Set(colors.map { $0?.description ?? "nil" }).count == 1, let color = nonNil.first {
-            // プリセットに一致するか確認（index 0 = Clear, 1 = separator なのでオフセット注意）
-            if let matchIndex = Self.backColorEntries.firstIndex(where: { colorsMatch($0.1, color) }) {
-                // Clear (0) の後にセパレータがあるため、メニュー内のインデックスを補正
-                let menuIndex = matchIndex > 0 ? matchIndex + 1 : matchIndex
-                foreColorPopup.selectItem(at: 0) // reset
-                backColorPopup.selectItem(at: menuIndex)
-            } else {
-                selectOrAddCustomItem(in: backColorPopup, color: color,
-                                      presetCount: Self.backColorEntries.count + 1) // +1 for separator after Clear
-            }
+            updateColorIndicator(backColorIndicator, color: color)
         } else {
-            backColorPopup.selectItem(at: -1)  // 混在
+            updateColorIndicator(backColorIndicator, color: nil)
         }
     }
 
-    /// ポップアップにカスタムカラー項目を追加（または既存を更新）して選択
-    private func selectOrAddCustomItem(in popup: NSPopUpButton, color: NSColor, presetCount: Int) {
-        let customTag = 9999
-        // 既存の Custom 項目を探す
-        if let existing = popup.menu?.items.first(where: { $0.tag == customTag }) {
-            existing.image = createColorSwatchImage(color: color)
-            existing.representedObject = color
-            popup.select(existing)
-        } else {
-            // "Other Color…" の前に挿入
-            let item = NSMenuItem()
-            item.title = NSLocalizedString("Custom", comment: "Custom color label")
-            item.image = createColorSwatchImage(color: color)
-            item.representedObject = color
-            item.tag = customTag
-            // 最後から1つ前（"Other Color…" の前）に挿入
-            let insertIndex = max(0, popup.numberOfItems - 1)
-            popup.menu?.insertItem(item, at: insertIndex)
-            popup.select(item)
-        }
-    }
-
-    /// 装飾色ポップアップを更新（Clear + Foreground プリセット）
-    private func updateDecorationColorPopup(_ popup: NSPopUpButton, colors: [NSColor?]) {
+    /// 装飾色インジケータを更新
+    private func updateDecorationColorPopup(_ popup: NSPopUpButton, indicator: ColorIndicatorView?, colors: [NSColor?]) {
         let nonNil = colors.compactMap { $0 }
         if nonNil.isEmpty {
-            popup.selectItem(at: 0)  // Clear
+            indicator?.color = nil
         } else if Set(nonNil.map { $0.description }).count == 1, let color = nonNil.first {
-            // プリセットに一致するか（Clear の後にセパレータがあるので +2 オフセット）
-            if let matchIndex = Self.foreColorEntries.firstIndex(where: { colorsMatch($0.1, color) }) {
-                popup.selectItem(at: matchIndex + 2)  // +2: Clear + separator
-            } else {
-                selectOrAddCustomItem(in: popup, color: color, presetCount: Self.foreColorEntries.count + 2)
-            }
+            indicator?.color = color
         } else {
-            popup.selectItem(at: -1)  // 混在
+            indicator?.color = nil
         }
     }
 
@@ -1116,6 +1169,7 @@ class StyleInfoPanelController: NSObject {
         stylePopup: NSPopUpButton,
         patternPopup: NSPopUpButton,
         colorPopup: NSPopUpButton,
+        colorIndicator: ColorIndicatorView?,
         styles: [Int],
         colors: [NSColor?]
     ) {
@@ -1132,7 +1186,7 @@ class StyleInfoPanelController: NSObject {
         // None の時はパターンと色を disable
         patternPopup.isEnabled = !isNone
         colorPopup.isEnabled = !isNone
-        updateDecorationColorPopup(colorPopup, colors: colors)
+        updateDecorationColorPopup(colorPopup, indicator: colorIndicator, colors: colors)
     }
 
     private func setLineDecorationPopups(_ stylePopup: NSPopUpButton, patternPopup: NSPopUpButton, rawValue: Int) {
@@ -1336,6 +1390,7 @@ class StyleInfoPanelController: NSObject {
             editingColorTarget = .foreground
             openColorPanelForEditing(currentColor: currentForeColor())
         } else if let color = item.representedObject as? NSColor {
+            updateColorIndicator(foreColorIndicator, color: color)
             applySimpleAttribute(.foregroundColor, value: color)
         }
     }
@@ -1350,8 +1405,10 @@ class StyleInfoPanelController: NSObject {
         } else {
             // nil → Clear, NSColor → 背景色
             if let color = item.representedObject as? NSColor {
+                updateColorIndicator(backColorIndicator, color: color)
                 applySimpleAttribute(.backgroundColor, value: color)
             } else {
+                updateColorIndicator(backColorIndicator, color: nil)
                 removeSimpleAttribute(.backgroundColor)
             }
         }
@@ -1399,9 +1456,11 @@ class StyleInfoPanelController: NSObject {
             let current = currentAttributeColor(.underlineColor)
             openColorPanelForEditing(currentColor: current ?? .textColor)
         } else if let color = item.representedObject as? NSColor {
+            updateColorIndicator(underlineColorIndicator, color: color)
             applySimpleAttribute(.underlineColor, value: color)
         } else {
             // Clear
+            updateColorIndicator(underlineColorIndicator, color: nil)
             removeSimpleAttribute(.underlineColor)
         }
     }
@@ -1430,9 +1489,11 @@ class StyleInfoPanelController: NSObject {
             let current = currentAttributeColor(.strikethroughColor)
             openColorPanelForEditing(currentColor: current ?? .textColor)
         } else if let color = item.representedObject as? NSColor {
+            updateColorIndicator(strikethroughColorIndicator, color: color)
             applySimpleAttribute(.strikethroughColor, value: color)
         } else {
             // Clear
+            updateColorIndicator(strikethroughColorIndicator, color: nil)
             removeSimpleAttribute(.strikethroughColor)
         }
     }
@@ -1477,9 +1538,11 @@ class StyleInfoPanelController: NSObject {
             let current = currentAttributeColor(.strokeColor)
             openColorPanelForEditing(currentColor: current ?? .textColor)
         } else if let color = item.representedObject as? NSColor {
+            updateColorIndicator(strokeColorIndicator, color: color)
             applySimpleAttribute(.strokeColor, value: color)
         } else {
             // Not Assigned
+            updateColorIndicator(strokeColorIndicator, color: nil)
             removeSimpleAttribute(.strokeColor)
         }
     }

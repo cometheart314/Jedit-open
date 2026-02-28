@@ -2364,8 +2364,7 @@ class JeditTextView: NSTextView {
 
         // スタイルメニュー項目のバリデーション
         if action == #selector(applyTextStyle(_:)) {
-            if isPlainText { return false }
-            return selectedRange().length > 0
+            return !isPlainText
         }
 
         // Set paperclip image for Attach Files menu item
@@ -2455,7 +2454,13 @@ class JeditTextView: NSTextView {
               let textStorage = textStorage else { return }
 
         let range = selectedRange()
-        guard range.length > 0 else { return }
+
+        if range.length == 0 {
+            // 選択なし: typingAttributes を更新して、以降の入力に適用
+            let merged = style.mergedAttributes(with: typingAttributes)
+            typingAttributes = merged
+            return
+        }
 
         // shouldChangeText(replacementString: nil) で属性変更を通知し、Undo を自動登録
         if shouldChangeText(in: range, replacementString: nil) {

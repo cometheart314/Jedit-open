@@ -217,13 +217,6 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="uyl-h8-XO2"/>
-                            <menuItem title="Attach Files…" id="attach-files-001">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="attachFile:" target="-1" id="attach-files-act"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="shift-sep-001"/>
                             <menuItem title="Shift Right" image="arrow.right.to.line" catalog="system" keyEquivalent="]" id="shift-right-001">
                                 <connections>
                                     <action selector="shiftRight:" target="-1" id="shift-right-act"/>
@@ -235,6 +228,12 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="shift-sep-002"/>
+                            <menuItem title="Attach Files…" id="attach-files-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="attachFile:" target="-1" id="attach-files-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Insert" id="insert-submenu-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <menu key="submenu" title="Insert" id="insert-submenu-menu">
@@ -949,13 +948,30 @@
                                 </menu>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="txt-fmt-sep"/>
+                            <menuItem title="Link…" image="link" catalog="system" keyEquivalent="k" id="link-panel-001">
+                                <connections>
+                                    <action selector="showLinkPanel:" target="-1" id="link-panel-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="List…" id="list-panel-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="orderFrontListPanel:" target="-1" id="list-panel-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem title="Table…" id="table-panel-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="orderFrontTablePanel:" target="-1" id="table-panel-act"/>
+                                </connections>
+                            </menuItem>
+                            <menuItem isSeparatorItem="YES" id="list-table-sep"/>
                             <menuItem title="Make Rich Text" id="txt-fmt-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="toggleRichText:" target="-1" id="txt-fmt-act"/>
                                 </connections>
                             </menuItem>
-                            <menuItem isSeparatorItem="YES" id="lay-or-sep"/>
                             <menuItem title="Make Vertical Layout" id="lay-or-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
@@ -973,24 +989,6 @@
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
                                     <action selector="showWrappedLineIndentPanel:" target="-1" id="wrap-ind-act"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem isSeparatorItem="YES" id="list-table-sep"/>
-                            <menuItem title="Link…" image="link" catalog="system" keyEquivalent="k" id="link-panel-001">
-                                <connections>
-                                    <action selector="showLinkPanel:" target="-1" id="link-panel-act"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="List…" id="list-panel-001">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="orderFrontListPanel:" target="-1" id="list-panel-act"/>
-                                </connections>
-                            </menuItem>
-                            <menuItem title="Table…" id="table-panel-001">
-                                <modifierMask key="keyEquivalentModifierMask"/>
-                                <connections>
-                                    <action selector="orderFrontTablePanel:" target="-1" id="table-panel-act"/>
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="prevent-edit-sep"/>
