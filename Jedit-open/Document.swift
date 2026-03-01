@@ -494,6 +494,42 @@ class Document: NSDocument {
     /// Finder ロックファイルの処理済みフラグ（updateChangeCount での重複処理防止用）
     private var isLockedFileHandled: Bool = false
 
+    // MARK: - Cascade Window Position
+
+    /// カスケードオフセットのステップ幅（ピクセル）
+    private static let cascadeStep: CGFloat = 22
+
+    /// 現在のカスケードカウント（次に開く書類のオフセット番号）
+    private static var cascadeCount: Int = 0
+
+    /// 新規書類のウィンドウ位置にカスケードオフセットを適用する
+    /// プリセットの基準位置から cascadeCount に応じて右下にずらした位置を設定する
+    func applyCascadeOffsetToPresetData() {
+        guard var presetData = self.presetData else { return }
+        guard let screen = NSScreen.main else { return }
+
+        let visibleFrame = screen.visibleFrame
+        let offset = CGFloat(Document.cascadeCount) * Document.cascadeStep
+
+        let newX = presetData.view.windowX + offset
+        // macOS座標系: Y原点は画面下端。カスケードで下に移動 = Y値を減らす
+        let newY = presetData.view.windowY - offset
+
+        // 画面外に出るかチェック（右端または下端）
+        let windowRight = newX + presetData.view.windowWidth
+        if windowRight > visibleFrame.maxX || newY < visibleFrame.minY {
+            // 画面外に出る場合はカウントをリセット（プリセットの基準位置を使用）
+            Document.cascadeCount = 0
+        } else if Document.cascadeCount > 0 {
+            // オフセットがある場合のみ位置を変更
+            presetData.view.windowX = newX
+            presetData.view.windowY = newY
+            self.presetData = presetData
+        }
+
+        Document.cascadeCount += 1
+    }
+
     /// 印刷パネルアクセサリコントローラ（印刷操作中の保持用）
     private var printAccessoryController: PrintPanelAccessoryController?
 

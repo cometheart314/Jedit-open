@@ -822,6 +822,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 // プリセットデータを適用
                 document.applyPresetData(preset.data)
 
+                // 新規書類のウィンドウ位置をカスケード
+                document.applyCascadeOffsetToPresetData()
+
                 // ドキュメントをDocumentControllerに追加
                 NSDocumentController.shared.addDocument(document)
 
@@ -905,6 +908,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             if isRTFD {
                 document.documentType = .rtfd
             }
+
+            // 新規書類のウィンドウ位置をカスケード
+            document.applyCascadeOffsetToPresetData()
+
             NSDocumentController.shared.addDocument(document)
             document.makeWindowControllers()
             document.showWindows()
@@ -926,6 +933,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             guard let document = try NSDocumentController.shared.makeUntitledDocument(ofType: "public.plain-text") as? Document else { return }
 
             document.applyPresetData(NewDocData.plainText)
+
+            // 新規書類のウィンドウ位置をカスケード
+            document.applyCascadeOffsetToPresetData()
+
             NSDocumentController.shared.addDocument(document)
             document.makeWindowControllers()
             document.showWindows()
