@@ -10,6 +10,26 @@ import Cocoa
 /// ルーラーの右端にタイプラベルを表示するカスタムNSRulerView
 class LabeledRulerView: NSRulerView {
 
+    /// タブストップの種類
+    enum TabStopType: Int {
+        case left = 0
+        case center = 1
+        case right = 2
+        case decimal = 3
+
+        var alignment: NSTextAlignment {
+            switch self {
+            case .left: return .left
+            case .center: return .center
+            case .right: return .right
+            case .decimal: return .right
+            }
+        }
+    }
+
+    /// 選択されているタブストップの種類（全ルーラーで共有）
+    static var selectedTabStopType: TabStopType = .left
+
     /// ルーラータイプのラベルテキスト
     var typeLabel: String = "" {
         didSet {
@@ -30,6 +50,82 @@ class LabeledRulerView: NSRulerView {
 
     override var isFlipped: Bool {
         return true  // 上から下への座標系を使用
+    }
+
+    // MARK: - Context Menu (Tab Stop Type Selection)
+
+    override func menu(for event: NSEvent) -> NSMenu? {
+        let menu = NSMenu()
+
+        let items: [(String, TabStopType)] = [
+            (NSLocalizedString("Left Tab", comment: "Left-aligned tab stop"), .left),
+            (NSLocalizedString("Center Tab", comment: "Center-aligned tab stop"), .center),
+            (NSLocalizedString("Right Tab", comment: "Right-aligned tab stop"), .right),
+            (NSLocalizedString("Decimal Tab", comment: "Decimal tab stop"), .decimal),
+        ]
+
+        for (title, type) in items {
+            let item = NSMenuItem(title: title, action: #selector(selectTabStopType(_:)), keyEquivalent: "")
+            item.tag = type.rawValue
+            item.state = Self.selectedTabStopType == type ? .on : .off
+            item.target = self
+            item.image = Self.tabStopImage(for: type)
+            menu.addItem(item)
+        }
+
+        return menu
+    }
+
+    @objc private func selectTabStopType(_ sender: NSMenuItem) {
+        if let type = TabStopType(rawValue: sender.tag) {
+            Self.selectedTabStopType = type
+        }
+    }
+
+    /// タブストップ種類のアイコン画像を生成
+    private static func tabStopImage(for type: TabStopType) -> NSImage {
+        let size = NSSize(width: 12, height: 12)
+        let image = NSImage(size: size, flipped: false) { rect in
+            NSColor.labelColor.setFill()
+            NSColor.labelColor.setStroke()
+
+            switch type {
+            case .left:
+                // 右向き三角形（左寄せタブ）
+                let path = NSBezierPath()
+                path.move(to: NSPoint(x: 3, y: 2))
+                path.line(to: NSPoint(x: 10, y: 6))
+                path.line(to: NSPoint(x: 3, y: 10))
+                path.close()
+                path.fill()
+            case .center:
+                // ダイヤモンド（中央揃えタブ）
+                let path = NSBezierPath()
+                path.move(to: NSPoint(x: 6, y: 1))
+                path.line(to: NSPoint(x: 11, y: 6))
+                path.line(to: NSPoint(x: 6, y: 11))
+                path.line(to: NSPoint(x: 1, y: 6))
+                path.close()
+                path.fill()
+            case .right:
+                // 左向き三角形（右寄せタブ）
+                let path = NSBezierPath()
+                path.move(to: NSPoint(x: 9, y: 2))
+                path.line(to: NSPoint(x: 2, y: 6))
+                path.line(to: NSPoint(x: 9, y: 10))
+                path.close()
+                path.fill()
+            case .decimal:
+                // 円（位置揃えタブ）
+                let path = NSBezierPath(ovalIn: NSRect(x: 2, y: 2, width: 8, height: 8))
+                path.lineWidth = 1.5
+                path.stroke()
+            }
+
+            return true
+        }
+        image.isTemplate = true
+        return image
     }
 
     override func viewDidEndLiveResize() {
@@ -155,16 +251,16 @@ class LabeledRulerView: NSRulerView {
         let labelSize = typeLabel.size(withAttributes: attributes)
 
         // 縦ルーラー: 下端に縦書きで描画
-        let rulerBounds = self.bounds
+        let visibleRect = self.visibleRect
 
         // 回転後の描画位置を計算
         // 回転の中心点を設定し、-90度回転させて縦書きにする
         let rotatedWidth = labelSize.height
         let rotatedHeight = labelSize.width
 
-        // 左寄せ、上に少し余裕を持たせる
-        let x: CGFloat = 1
-        let y: CGFloat = rulerBounds.maxY - rotatedHeight - 16
+        // 右寄せ、目盛の下の線（ドキュメント側）に接する位置
+        let x: CGFloat = bounds.width - rotatedWidth
+        let y: CGFloat = visibleRect.maxY - rotatedHeight
 
         // グラフィックスコンテキストを保存
         NSGraphicsContext.current?.saveGraphicsState()
@@ -204,10 +300,10 @@ class LabeledRulerView: NSRulerView {
         // ルーラーの方向に応じて描画位置を決定
         let labelRect: NSRect
         if orientation == .horizontalRuler {
-            // 横ルーラー: 可視領域の右端、上付き位置に描画
+            // 横ルーラー: 可視領域の右端、目盛の下線に接する位置に描画
             let visibleRect = self.visibleRect
             let x = visibleRect.maxX - labelSize.width - 4
-            let y = visibleRect.minY + 2  // 上付き位置（flipped座標系）
+            let y = bounds.height - labelSize.height  // 目盛の下線に接する位置（flipped座標系）
             labelRect = NSRect(x: x, y: y, width: labelSize.width, height: labelSize.height)
         } else {
             // 縦ルーラー: 可視領域の下端に描画
