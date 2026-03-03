@@ -1,0 +1,35 @@
+/* Class = "NSMenuItem"; title = "Windows (CR+LF)"; ObjectID = "4Cz-PT-hWI"; */
+"4Cz-PT-hWI.title" = "Windows (CR+LF)";
+
+/* Class = "NSTableColumn"; headerCell.title = "Whole Doc."; ObjectID = "5tj-iE-WaZ"; */
+"5tj-iE-WaZ.headerCell.title" = "書類全体";
+
+/* Class = "NSTableColumn"; headerCell.title = "Item"; ObjectID = "7VB-1Q-O3h"; */
+"7VB-1Q-O3h.headerCell.title" = "項目";
+
+/* Class = "NSMenuItem"; title = "Mac Classic (CR)"; ObjectID = "EWR-wt-oWy"; */
+"EWR-wt-oWy.title" = "Mac Classic (CR)";
+
+/* Class = "NSTabViewItem"; label = "Document Info"; ObjectID = "Gci-Ya-bLj"; */
+"Gci-Ya-bLj.label" = "書類情報";
+
+/* Class = "NSTextFieldCell"; title = "Line Endings:"; ObjectID = "KXT-bT-Y2O"; */
+"KXT-bT-Y2O.title" = "改行コード:";
+
+/* Class = "NSTabViewItem"; label = "Location[Size]"; ObjectID = "eHT-lz-sIP"; */
+"eHT-lz-sIP.label" = "位置[サイズ]";
+
+/* Class = "NSMenuItem"; title = "macOS/Unix (LF)"; ObjectID = "fVn-Es-ky4"; */
+"fVn-Es-ky4.title" = "macOS/Unix (LF)";
+
+/* Class = "NSButtonCell"; title = "BOM"; ObjectID = "iqa-R6-JXj"; */
+"iqa-R6-JXj.title" = "BOM";
+
+/* Class = "NSTextFieldCell"; title = "Encoding:"; ObjectID = "kLl-fK-Qoo"; */
+"kLl-fK-Qoo.title" = "エンコーディング:";
+
+/* Class = "NSButtonCell"; title = "Visibles: Count as 0.5 char. for half-width characters."; ObjectID = "nOi-RP-5go"; */
+"nOi-RP-5go.title" = "表示文字数: 半角文字を0.5文字として数える";
+
+/* Class = "NSTextFieldCell"; title = "Document Type:"; ObjectID = "zVu-5U-5Vm"; */
+"zVu-5U-5Vm.title" = "書類タイプ:";

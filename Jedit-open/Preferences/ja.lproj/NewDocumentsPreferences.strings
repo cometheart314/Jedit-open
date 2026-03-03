@@ -1,0 +1,434 @@
+/* Class = "NSButtonCell"; title = "Get Current loc."; ObjectID = "0NB-50-Ybi"; */
+"0NB-50-Ybi.title" = "現在の位置を取得";
+
+/* Class = "NSTextFieldCell"; title = "Encoding"; ObjectID = "0Qf-bf-A6k"; */
+"0Qf-bf-A6k.title" = "エンコーディング";
+
+/* Class = "NSMenuItem"; title = "Current Date"; ObjectID = "1PH-V2-gac"; */
+"1PH-V2-gac.title" = "現在の日付";
+
+/* Class = "NSTextFieldCell"; title = "Tab Width"; ObjectID = "1Rn-fj-gcF"; */
+"1Rn-fj-gcF.title" = "タブ幅";
+
+/* Class = "NSMenuItem"; title = "Theme"; ObjectID = "1ZY-y9-zdJ"; */
+"1ZY-y9-zdJ.title" = "テーマ";
+
+/* Class = "NSMenuItem"; title = "Copyright"; ObjectID = "1af-lE-zDz"; */
+"1af-lE-zDz.title" = "著作権";
+
+/* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "1wa-4q-YBL"; */
+"1wa-4q-YBL.title" = "変更時刻";
+
+/* Class = "NSTextFieldCell"; title = "Footer"; ObjectID = "2Qb-jQ-Cp9"; */
+"2Qb-jQ-Cp9.title" = "フッタ";
+
+/* Class = "NSButtonCell"; title = "Change"; ObjectID = "2zP-Ah-zEi"; */
+"2zP-Ah-zEi.title" = "変更";
+
+/* Class = "NSBox"; title = "Show Invisibles"; ObjectID = "3qX-zp-sOi"; */
+"3qX-zp-sOi.title" = "不可視文字を表示";
+
+/* Class = "NSButtonCell"; title = "Show Tool Bar"; ObjectID = "4mC-fx-W5W"; */
+"4mC-fx-W5W.title" = "ツールバーを表示";
+
+/* Class = "NSMenuItem"; title = "Title"; ObjectID = "52W-8g-Q5Q"; */
+"52W-8g-Q5Q.title" = "タイトル";
+
+/* Class = "NSMenuItem"; title = "Title"; ObjectID = "56f-MJ-upe"; */
+"56f-MJ-upe.title" = "タイトル";
+
+/* Class = "NSSegmentedCell"; 56j-QM-chm.ibShadowedLabels[0] = "Portrait"; ObjectID = "56j-QM-chm"; */
+"56j-QM-chm.ibShadowedLabels[0]" = "縦";
+
+/* Class = "NSSegmentedCell"; 56j-QM-chm.ibShadowedLabels[1] = "Landscape"; ObjectID = "56j-QM-chm"; */
+"56j-QM-chm.ibShadowedLabels[1]" = "横";
+
+/* Class = "NSButtonCell"; title = "Ruler"; ObjectID = "6vt-zJ-pCN"; */
+"6vt-zJ-pCN.title" = "ルーラ";
+
+/* Class = "NSMenuItem"; title = "Row Number"; ObjectID = "7PE-KN-48y"; */
+"7PE-KN-48y.title" = "行番号";
+
+/* Class = "NSButtonCell"; title = "Wrap to Window"; ObjectID = "7iH-9W-tkm"; */
+"7iH-9W-tkm.title" = "ウインドウ幅に合わせる";
+
+/* Class = "NSMenuItem"; title = "Current Date"; ObjectID = "7x8-Ts-zCn"; */
+"7x8-Ts-zCn.title" = "現在の日付";
+
+/* Class = "NSTextFieldCell"; title = "Text Style"; ObjectID = "8sO-WW-nVV"; */
+"8sO-WW-nVV.title" = "テキストスタイル";
+
+/* Class = "NSMenuItem"; title = "Document Title"; ObjectID = "8wC-Sl-pSa"; */
+"8wC-Sl-pSa.title" = "書類タイトル";
+
+/* Class = "NSButtonCell"; title = "Page Break"; ObjectID = "9B7-9Q-FBb"; */
+"9B7-9Q-FBb.title" = "改ページ";
+
+/* Class = "NSTextFieldCell"; title = "Bottom"; ObjectID = "AL6-Rq-3JU"; */
+"AL6-Rq-3JU.title" = "下";
+
+/* Class = "NSMenuItem"; title = "Characters"; ObjectID = "AUH-5e-eeF"; */
+"AUH-5e-eeF.title" = "文字";
+
+/* Class = "NSTextFieldCell"; title = "space chars. will be insert by tab key."; ObjectID = "AkH-83-lI3"; */
+"AkH-83-lI3.title" = "個のスペースをTabキーで挿入";
+
+/* Class = "NSButtonCell"; title = "Vertical"; ObjectID = "Ar2-sN-nzk"; */
+"Ar2-sN-nzk.title" = "縦書き";
+
+/* Class = "NSTextFieldCell"; title = "Right"; ObjectID = "BBu-gk-BK4"; */
+"BBu-gk-BK4.title" = "右";
+
+/* Class = "NSTextFieldCell"; title = "Ext."; ObjectID = "BDt-Os-Rfm"; */
+"BDt-Os-Rfm.title" = "拡張子";
+
+/* Class = "NSButtonCell"; title = "Hide All"; ObjectID = "Bc1-FQ-V0b"; */
+"Bc1-FQ-V0b.title" = "すべてを隠す";
+
+/* Class = "NSTabViewItem"; label = "View"; ObjectID = "C1R-au-QDo"; */
+"C1R-au-QDo.label" = "表示";
+
+/* Class = "NSBox"; title = "Paper Margin"; ObjectID = "C3o-LR-P0w"; */
+"C3o-LR-P0w.title" = "用紙マージン";
+
+/* Class = "NSTabViewItem"; label = "Font/Color"; ObjectID = "CPK-Qp-ddy"; */
+"CPK-Qp-ddy.label" = "フォント／カラー";
+
+/* Class = "NSMenuItem"; title = "User Name"; ObjectID = "Cmy-FA-WXV"; */
+"Cmy-FA-WXV.title" = "ユーザ名";
+
+/* Class = "NSTextFieldCell"; title = "Caret"; ObjectID = "Cn1-O2-Cqb"; */
+"Cn1-O2-Cqb.title" = "キャレット";
+
+/* Class = "NSTextFieldCell"; title = "Paragraph Spacing (pt.)"; ObjectID = "D9Q-FS-ih7"; */
+"D9Q-FS-ih7.title" = "段落間隔 (pt.)";
+
+/* Class = "NSTextFieldCell"; title = "View Scale: "; ObjectID = "DaY-PT-n7L"; */
+"DaY-PT-n7L.title" = "表示倍率: ";
+
+/* Class = "NSButtonCell"; title = "Get Current size"; ObjectID = "Dgx-Sd-YRn"; */
+"Dgx-Sd-YRn.title" = "現在のサイズを取得";
+
+/* Class = "NSMenuItem"; title = "Current Time"; ObjectID = "Dou-ST-tyE"; */
+"Dou-ST-tyE.title" = "現在の時刻";
+
+/* Class = "NSMenuItem"; title = "Hide"; ObjectID = "Dzu-3u-hfL"; */
+"Dzu-3u-hfL.title" = "隠す";
+
+/* Class = "NSMenuItem"; title = "Japanese Custom Wordwrap"; ObjectID = "E5O-K0-gaK"; */
+"E5O-K0-gaK.title" = "日本語カスタム禁則処理";
+
+/* Class = "NSMenuItem"; title = "System Default"; ObjectID = "FkG-7j-amP"; */
+"FkG-7j-amP.title" = "システムデフォルト";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "Fnl-dr-q4O"; */
+"Fnl-dr-q4O.title" = "デフォルトに戻す";
+
+/* Class = "NSMenuItem"; title = "Insert Variables"; ObjectID = "FqF-hm-eFj"; */
+"FqF-hm-eFj.title" = "変数を挿入";
+
+/* Class = "NSTextFieldCell"; title = "Header"; ObjectID = "G66-6C-af8"; */
+"G66-6C-af8.title" = "ヘッダ";
+
+/* Class = "NSTextFieldCell"; title = "Line Number Background"; ObjectID = "GTD-I6-f5g"; */
+"GTD-I6-f5g.title" = "行番号背景";
+
+/* Class = "NSMenuItem"; title = "Keywords"; ObjectID = "H6L-cb-9EG"; */
+"H6L-cb-9EG.title" = "キーワード";
+
+/* Class = "NSMenuItem"; title = "Author"; ObjectID = "Hag-Q9-5jz"; */
+"Hag-Q9-5jz.title" = "作成者";
+
+/* Class = "NSButtonCell"; title = "Plain Text"; ObjectID = "Hj5-2U-yY3"; */
+"Hj5-2U-yY3.title" = "標準テキスト";
+
+/* Class = "NSMenuItem"; title = "Company"; ObjectID = "Hpe-Of-hvq"; */
+"Hpe-Of-hvq.title" = "会社名";
+
+/* Class = "NSTextFieldCell"; title = "Character"; ObjectID = "Huq-NE-tx0"; */
+"Huq-NE-tx0.title" = "文字";
+
+/* Class = "NSTextFieldCell"; title = "New Document Name"; ObjectID = "Iet-CF-djG"; */
+"Iet-CF-djG.title" = "新規書類名";
+
+/* Class = "NSTextFieldCell"; title = "Base Font"; ObjectID = "J7l-27-aDA"; */
+"J7l-27-aDA.title" = "ベースフォント";
+
+/* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "JPp-kl-JCt"; */
+"JPp-kl-JCt.title" = "変更時刻";
+
+/* Class = "NSTextFieldCell"; title = "Header"; ObjectID = "K6p-4e-R5u"; */
+"K6p-4e-R5u.title" = "ヘッダ";
+
+/* Class = "NSMenuItem"; title = "Hide"; ObjectID = "KU9-zq-f9G"; */
+"KU9-zq-f9G.title" = "隠す";
+
+/* Class = "NSMenuItem"; title = "Follows Window Width"; ObjectID = "KXz-MP-wkn"; */
+"KXz-MP-wkn.title" = "ウインドウ幅に合わせる";
+
+/* Class = "NSButtonCell"; title = "Wrap to Page"; ObjectID = "Kyf-S6-EtW"; */
+"Kyf-S6-EtW.title" = "用紙幅に合わせる";
+
+/* Class = "NSTextFieldCell"; title = "Company:"; ObjectID = "L7W-15-spu"; */
+"L7W-15-spu.title" = "会社名:";
+
+/* Class = "NSBox"; title = "New Window"; ObjectID = "Lad-nA-rcW"; */
+"Lad-nA-rcW.title" = "新規ウインドウ";
+
+/* Class = "NSButtonCell"; title = "Non-breaking Space"; ObjectID = "LjN-dC-kkO"; */
+"LjN-dC-kkO.title" = "ノーブレークスペース";
+
+/* Class = "NSTextFieldCell"; title = "Choose the menu \"File > Properties\" to change properties of \nindividual documents"; ObjectID = "Mgn-No-9Ab"; */
+"Mgn-No-9Ab.title" = "個別の書類のプロパティを変更するには\n「ファイル > プロパティ」メニューを使用してください";
+
+/* Class = "NSMenuItem"; title = "Keywords"; ObjectID = "N6I-2o-Uvw"; */
+"N6I-2o-Uvw.title" = "キーワード";
+
+/* Class = "NSMenuItem"; title = "Fixed Width Panel..."; ObjectID = "NaG-yy-GHh"; */
+"NaG-yy-GHh.title" = "固定幅パネル...";
+
+/* Class = "NSButtonCell"; title = "Space "; ObjectID = "Njb-DZ-Iwd"; */
+"Njb-DZ-Iwd.title" = "スペース";
+
+/* Class = "NSButtonCell"; title = "Show All"; ObjectID = "Nqj-Vf-rOR"; */
+"Nqj-Vf-rOR.title" = "すべてを表示";
+
+/* Class = "NSTextFieldCell"; title = "height:"; ObjectID = "O6H-y8-gGl"; */
+"O6H-y8-gGl.title" = "高さ:";
+
+/* Class = "NSButtonCell"; title = "Show Inspector Bar"; ObjectID = "OD9-Nc-jgO"; */
+"OD9-Nc-jgO.title" = "インスペクタバーを表示";
+
+/* Class = "NSButtonCell"; title = "Auto-indent new lines"; ObjectID = "PW5-hf-4MQ"; */
+"PW5-hf-4MQ.title" = "新しい行を自動インデント";
+
+/* Class = "NSTextFieldCell"; title = "before"; ObjectID = "Pb2-TZ-65Z"; */
+"Pb2-TZ-65Z.title" = "前";
+
+/* Class = "NSButtonCell"; title = "Tab"; ObjectID = "Rae-GO-uPa"; */
+"Rae-GO-uPa.title" = "タブ";
+
+/* Class = "NSMenuItem"; title = "Author"; ObjectID = "RhA-o4-5iY"; */
+"RhA-o4-5iY.title" = "作成者";
+
+/* Class = "NSTextFieldCell"; title = "Print Scale"; ObjectID = "SHQ-0g-I2N"; */
+"SHQ-0g-I2N.title" = "プリント倍率";
+
+/* Class = "NSTextFieldCell"; title = "Footer"; ObjectID = "TCA-Vj-yGc"; */
+"TCA-Vj-yGc.title" = "フッタ";
+
+/* Class = "NSMenuItem"; title = "Current Time"; ObjectID = "Tj1-jJ-dyh"; */
+"Tj1-jJ-dyh.title" = "現在の時刻";
+
+/* Class = "NSTextFieldCell"; title = "Orientation:"; ObjectID = "U9E-VZ-02P"; */
+"U9E-VZ-02P.title" = "方向:";
+
+/* Class = "NSMenuItem"; title = "Points"; ObjectID = "VHl-gK-bYl"; */
+"VHl-gK-bYl.title" = "ポイント";
+
+/* Class = "NSTextFieldCell"; title = "size width:"; ObjectID = "Vvr-lO-AID"; */
+"Vvr-lO-AID.title" = "サイズ 幅:";
+
+/* Class = "NSMenuItem"; title = "Page Total"; ObjectID = "W2L-7c-k20"; */
+"W2L-7c-k20.title" = "総ページ数";
+
+/* Class = "NSTextFieldCell"; title = "Highlight"; ObjectID = "WSQ-Wh-AKs"; */
+"WSQ-Wh-AKs.title" = "ハイライト";
+
+/* Class = "NSTextFieldCell"; title = "Author:"; ObjectID = "WZv-Hh-6yw"; */
+"WZv-Hh-6yw.title" = "作成者:";
+
+/* Class = "NSTextFieldCell"; title = "Page Size:"; ObjectID = "Wk3-c8-Yc3"; */
+"Wk3-c8-Yc3.title" = "用紙サイズ:";
+
+/* Class = "NSMenuItem"; title = "Do Not Wordwrap"; ObjectID = "Wll-hP-dh9"; */
+"Wll-hP-dh9.title" = "禁則処理をしない";
+
+/* Class = "NSMenuItem"; title = "Centimeters"; ObjectID = "XL3-mP-Zxz"; */
+"XL3-mP-Zxz.title" = "センチメートル";
+
+/* Class = "NSButtonCell"; title = "Indent wrapped lines of Plain Text by: "; ObjectID = "Zfk-ZN-REq"; */
+"Zfk-ZN-REq.title" = "標準テキストの折り返し行のインデント: ";
+
+/* Class = "NSTextFieldCell"; title = "Top"; ObjectID = "a2L-lc-tad"; */
+"a2L-lc-tad.title" = "上";
+
+/* Class = "NSMenuItem"; title = "Inches"; ObjectID = "a6Y-PF-Jfj"; */
+"a6Y-PF-Jfj.title" = "インチ";
+
+/* Class = "NSMenuItem"; title = "Untitled #"; ObjectID = "aiL-6X-GUM"; */
+"aiL-6X-GUM.title" = "名称未設定 #";
+
+/* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "bLQ-Ys-65L"; */
+"bLQ-Ys-65L.title" = "変更日";
+
+/* Class = "NSTextFieldCell"; title = "Line Number"; ObjectID = "c5J-ik-Kp6"; */
+"c5J-ik-Kp6.title" = "行番号";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "cHa-Lr-5Gj"; */
+"cHa-Lr-5Gj.title" = "デフォルトに戻す";
+
+/* Class = "NSMenuItem"; title = "Comment"; ObjectID = "cL3-BK-ASZ"; */
+"cL3-BK-ASZ.title" = "コメント";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "cN6-PQ-yGa"; */
+"cN6-PQ-yGa.title" = "デフォルトに戻す";
+
+/* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "cYp-xe-ucn"; */
+"cYp-xe-ucn.title" = "変更日";
+
+/* Class = "NSMenuItem"; title = "File Path"; ObjectID = "dME-zg-fRw"; */
+"dME-zg-fRw.title" = "ファイルパス";
+
+/* Class = "NSButtonCell"; title = "Line Separator"; ObjectID = "dsv-tV-WTp"; */
+"dsv-tV-WTp.title" = "行セパレータ";
+
+/* Class = "NSTabViewItem"; label = "Layout"; ObjectID = "eEO-bk-fAM"; */
+"eEO-bk-fAM.label" = "レイアウト";
+
+/* Class = "NSTextFieldCell"; title = "Editing Direction"; ObjectID = "fY5-xY-TuE"; */
+"fY5-xY-TuE.title" = "編集方向";
+
+/* Class = "NSMenuItem"; title = "Page Number"; ObjectID = "gHR-9h-wZs"; */
+"gHR-9h-wZs.title" = "ページ番号";
+
+/* Class = "NSTextFieldCell"; title = "Inter-line Spacing (pt.)"; ObjectID = "gic-xq-xOs"; */
+"gic-xq-xOs.title" = "行間 (pt.)";
+
+/* Class = "NSMenuItem"; title = "Subject"; ObjectID = "iR3-rQ-Fo0"; */
+"iR3-rQ-Fo0.title" = "サブジェクト";
+
+/* Class = "NSButtonCell"; title = "BOM"; ObjectID = "kPO-g1-RO0"; */
+"kPO-g1-RO0.title" = "BOM";
+
+/* Class = "NSMenuItem"; title = "Don't Wrap Line"; ObjectID = "ke4-9Y-XS5"; */
+"ke4-9Y-XS5.title" = "行を折り返さない";
+
+/* Class = "NSTabViewItem"; label = "Properties"; ObjectID = "kzN-FS-NL2"; */
+"kzN-FS-NL2.label" = "プロパティ";
+
+/* Class = "NSTextFieldCell"; title = "Window / Page:"; ObjectID = "l5X-dA-155"; */
+"l5X-dA-155.title" = "ウインドウ／ページ:";
+
+/* Class = "NSMenuItem"; title = "Insert Variables"; ObjectID = "lHE-Pn-G3Y"; */
+"lHE-Pn-G3Y.title" = "変数を挿入";
+
+/* Class = "NSButtonCell"; title = "Paragraph Break"; ObjectID = "lRH-ce-wbx"; */
+"lRH-ce-wbx.title" = "段落区切り";
+
+/* Class = "NSTabViewItem"; label = "Header/Footer"; ObjectID = "lUy-Ej-XxM"; */
+"lUy-Ej-XxM.label" = "ヘッダ／フッタ";
+
+/* Class = "NSMenuItem"; title = "User Name"; ObjectID = "lya-Zb-6LU"; */
+"lya-Zb-6LU.title" = "ユーザ名";
+
+/* Class = "NSButtonCell"; title = "Edit"; ObjectID = "mYf-q1-gRS"; */
+"mYf-q1-gRS.title" = "編集";
+
+/* Class = "NSTextFieldCell"; title = "after"; ObjectID = "mda-TA-gLP"; */
+"mda-TA-gLP.title" = "後";
+
+/* Class = "NSTabViewItem"; label = "Format"; ObjectID = "n3X-E2-RQS"; */
+"n3X-E2-RQS.label" = "フォーマット";
+
+/* Class = "NSMenuItem"; title = "Page Total"; ObjectID = "nJ7-l1-MNI"; */
+"nJ7-l1-MNI.title" = "総ページ数";
+
+/* Class = "NSTextFieldCell"; title = "Invisibles "; ObjectID = "ny7-jR-Pgf"; */
+"ny7-jR-Pgf.title" = "不可視文字";
+
+/* Class = "NSMenuItem"; title = "File Path"; ObjectID = "o0R-jT-IFM"; */
+"o0R-jT-IFM.title" = "ファイルパス";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "o9A-OD-nBU"; */
+"o9A-OD-nBU.title" = "デフォルトに戻す";
+
+/* Class = "NSButtonCell"; title = "Vertical Tab"; ObjectID = "oKc-ot-g2L"; */
+"oKc-ot-g2L.title" = "垂直タブ";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "pIS-la-ZK9"; */
+"pIS-la-ZK9.title" = "デフォルトに戻す";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "qCY-dj-AB3"; */
+"qCY-dj-AB3.title" = "デフォルトに戻す";
+
+/* Class = "NSTextFieldCell"; title = "Copyright:"; ObjectID = "qnr-f2-sR3"; */
+"qnr-f2-sR3.title" = "著作権:";
+
+/* Class = "NSMenuItem"; title = "Follows Paper Width"; ObjectID = "r0Q-v1-nic"; */
+"r0Q-v1-nic.title" = "用紙幅に合わせる";
+
+/* Class = "NSTextFieldCell"; title = "Wordwrapping method:"; ObjectID = "rGJ-gs-8uN"; */
+"rGJ-gs-8uN.title" = "禁則処理:";
+
+/* Class = "NSMenuItem"; title = "Copyright"; ObjectID = "rxp-yd-zB3"; */
+"rxp-yd-zB3.title" = "著作権";
+
+/* Class = "NSMenuItem"; title = "Paragraph Number"; ObjectID = "sC7-Kw-YNx"; */
+"sC7-Kw-YNx.title" = "段落番号";
+
+/* Class = "NSButtonCell"; title = "Kanji Space"; ObjectID = "sYy-4h-t8c"; */
+"sYy-4h-t8c.title" = "全角スペース";
+
+/* Class = "NSMenuItem"; title = "Subject"; ObjectID = "sbp-uz-6qX"; */
+"sbp-uz-6qX.title" = "サブジェクト";
+
+/* Class = "NSButtonCell"; title = "Ruler"; ObjectID = "sel-b3-gjW"; */
+"sel-b3-gjW.title" = "ルーラ";
+
+/* Class = "NSMenuItem"; title = "Document Title"; ObjectID = "sko-aV-vPK"; */
+"sko-aV-vPK.title" = "書類タイトル";
+
+/* Class = "NSTextFieldCell"; title = "Background "; ObjectID = "taV-VV-Hq0"; */
+"taV-VV-Hq0.title" = "背景";
+
+/* Class = "NSTextFieldCell"; title = "top:"; ObjectID = "tkc-4T-jRT"; */
+"tkc-4T-jRT.title" = "上:";
+
+/* Class = "NSMenuItem"; title = "Company"; ObjectID = "trz-c4-VnX"; */
+"trz-c4-VnX.title" = "会社名";
+
+/* Class = "NSTextFieldCell"; title = "Line Endings"; ObjectID = "uHg-t4-a7h"; */
+"uHg-t4-a7h.title" = "改行コード";
+
+/* Class = "NSTextFieldCell"; title = "Line Number : "; ObjectID = "vBA-Kc-3UX"; */
+"vBA-Kc-3UX.title" = "行番号: ";
+
+/* Class = "NSMenuItem"; title = "Comment"; ObjectID = "vph-P4-Crg"; */
+"vph-P4-Crg.title" = "コメント";
+
+/* Class = "NSTextFieldCell"; title = "location  left:"; ObjectID = "vxq-23-ZGY"; */
+"vxq-23-ZGY.title" = "位置  左:";
+
+/* Class = "NSTextFieldCell"; title = "Document Width:"; ObjectID = "wUd-1y-hBP"; */
+"wUd-1y-hBP.title" = "書類の幅:";
+
+/* Class = "NSMenuItem"; title = "Visible Characters"; ObjectID = "wg-item0"; */
+"wg-item0.title" = "表示文字数";
+
+/* Class = "NSMenuItem"; title = "Manuscript Pages (400 chars)"; ObjectID = "wg-item1"; */
+"wg-item1.title" = "原稿用紙（400字）";
+
+/* Class = "NSButtonCell"; title = "Horizontal "; ObjectID = "wy3-GD-Q3J"; */
+"wy3-GD-Q3J.title" = "横書き";
+
+/* Class = "NSMenuItem"; title = "Fixed Width ( xx chars.)"; ObjectID = "x6K-S7-Qap"; */
+"x6K-S7-Qap.title" = "固定幅（xx文字）";
+
+/* Class = "NSTextFieldCell"; title = "(0 = No goal)"; ObjectID = "yEz-jS-MJh"; */
+"yEz-jS-MJh.title" = "（0 = 目標なし）";
+
+/* Class = "NSButtonCell"; title = "Rich Text"; ObjectID = "yGz-uX-Q0q"; */
+"yGz-uX-Q0q.title" = "リッチテキスト";
+
+/* Class = "NSTextFieldCell"; title = "Ruler: "; ObjectID = "zKO-pV-hj8"; */
+"zKO-pV-hj8.title" = "ルーラ: ";
+
+/* Class = "NSTextFieldCell"; title = "Left"; ObjectID = "zh4-xp-LWG"; */
+"zh4-xp-LWG.title" = "左";
+
+/* Class = "NSTextFieldCell"; title = "Writing Goal"; ObjectID = "zp7-oZ-pU6"; */
+"zp7-oZ-pU6.title" = "執筆目標";
+
+/* Class = "NSMenuItem"; title = "Page Number"; ObjectID = "zuZ-OV-dQQ"; */
+"zuZ-OV-dQQ.title" = "ページ番号";

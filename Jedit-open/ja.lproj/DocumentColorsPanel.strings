@@ -1,0 +1,43 @@
+/* Japanese Localization for DocumentColorsPanel.xib */
+
+/* Class = "NSButtonCell"; title = "Cancel"; ObjectID = "btn-cancel-cell"; */
+"btn-cancel-cell.title" = "キャンセル";
+
+/* Class = "NSButtonCell"; title = "Set"; ObjectID = "btn-set-cell"; */
+"btn-set-cell.title" = "設定";
+
+/* Class = "NSTextFieldCell"; title = "Background"; ObjectID = "label-background-cell"; */
+"label-background-cell.title" = "背景";
+
+/* Class = "NSTextFieldCell"; title = "Caret"; ObjectID = "label-caret-cell"; */
+"label-caret-cell.title" = "キャレット";
+
+/* Class = "NSTextFieldCell"; title = "Character"; ObjectID = "label-character-cell"; */
+"label-character-cell.title" = "文字";
+
+/* Class = "NSTextFieldCell"; title = "Footer"; ObjectID = "label-footer-cell"; */
+"label-footer-cell.title" = "フッタ";
+
+/* Class = "NSTextFieldCell"; title = "Header"; ObjectID = "label-header-cell"; */
+"label-header-cell.title" = "ヘッダ";
+
+/* Class = "NSTextFieldCell"; title = "Highlight"; ObjectID = "label-highlight-cell"; */
+"label-highlight-cell.title" = "ハイライト";
+
+/* Class = "NSTextFieldCell"; title = "Invisibles"; ObjectID = "label-invisibles-cell"; */
+"label-invisibles-cell.title" = "不可視文字";
+
+/* Class = "NSTextFieldCell"; title = "Line Number"; ObjectID = "label-lineNumber-cell"; */
+"label-lineNumber-cell.title" = "行番号";
+
+/* Class = "NSTextFieldCell"; title = "Line Number Background"; ObjectID = "label-lineNumberBackground-cell"; */
+"label-lineNumberBackground-cell.title" = "行番号背景";
+
+/* Class = "NSTextFieldCell"; title = "Theme"; ObjectID = "label-theme-cell"; */
+"label-theme-cell.title" = "テーマ";
+
+/* Class = "NSWindow"; title = "Document Colors"; ObjectID = "panel-1"; */
+"panel-1.title" = "書類のカラー";
+
+/* Class = "NSMenuItem"; title = "Default (Light)"; ObjectID = "theme-item-1"; */
+"theme-item-1.title" = "デフォルト（ライト）";

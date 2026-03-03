@@ -1,0 +1,32 @@
+/* Class = "NSMenuItem"; title = "Same as Editing Window"; ObjectID = "color-item0"; */
+"color-item0.title" = "編集ウインドウと同じ";
+
+/* Class = "NSMenuItem"; title = "Don't Print Background Color"; ObjectID = "color-item1"; */
+"color-item1.title" = "背景色をプリントしない";
+
+/* Class = "NSMenuItem"; title = "Black Chars and White Back"; ObjectID = "color-item2"; */
+"color-item2.title" = "黒文字に白背景";
+
+/* Class = "NSTextFieldCell"; title = "Colors:"; ObjectID = "color-label-cell"; */
+"color-label-cell.title" = "カラー:";
+
+/* Class = "NSButtonCell"; title = "Print Footer"; ObjectID = "footer-check-cell"; */
+"footer-check-cell.title" = "フッタをプリント";
+
+/* Class = "NSButtonCell"; title = "Print Header"; ObjectID = "header-check-cell"; */
+"header-check-cell.title" = "ヘッダをプリント";
+
+/* Class = "NSButtonCell"; title = "Print Invisibles"; ObjectID = "invis-check-cell"; */
+"invis-check-cell.title" = "不可視文字をプリント";
+
+/* Class = "NSMenuItem"; title = "Same as Editing Window"; ObjectID = "lineNum-item0"; */
+"lineNum-item0.title" = "編集ウインドウと同じ";
+
+/* Class = "NSMenuItem"; title = "Print Line Numbers"; ObjectID = "lineNum-item1"; */
+"lineNum-item1.title" = "行番号をプリント";
+
+/* Class = "NSMenuItem"; title = "Don't Print Line Numbers"; ObjectID = "lineNum-item2"; */
+"lineNum-item2.title" = "行番号をプリントしない";
+
+/* Class = "NSTextFieldCell"; title = "Line Numbers:"; ObjectID = "lineNum-label-cell"; */
+"lineNum-label-cell.title" = "行番号:";

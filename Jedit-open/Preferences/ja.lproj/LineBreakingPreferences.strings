@@ -1,0 +1,35 @@
+/* Class = "NSMenuItem"; title = "Strict "; ObjectID = "6xb-0p-hdn"; */
+"6xb-0p-hdn.title" = "厳密";
+
+/* Class = "NSTextFieldCell"; title = "Characters disallowed to be breaked at line end"; ObjectID = "BKo-X3-c4a"; */
+"BKo-X3-c4a.title" = "行末での分割が禁止されている文字";
+
+/* Class = "NSMenuItem"; title = "Simple"; ObjectID = "Bkw-bP-q0I"; */
+"Bkw-bP-q0I.title" = "簡易";
+
+/* Class = "NSTextFieldCell"; title = "Characters disallowed at line end "; ObjectID = "Egy-YA-FqP"; */
+"Egy-YA-FqP.title" = "行末禁止文字";
+
+/* Class = "NSTextFieldCell"; title = "The changes will be applied for next opened documents."; ObjectID = "Gsf-L1-7Si"; */
+"Gsf-L1-7Si.title" = "変更は次に開く書類から適用されます。";
+
+/* Class = "NSMenuItem"; title = "Standard"; ObjectID = "JOo-v5-NbS"; */
+"JOo-v5-NbS.title" = "標準";
+
+/* Class = "NSTextFieldCell"; title = "Punctuations sticky for line end "; ObjectID = "OOL-k6-fuF"; */
+"OOL-k6-fuF.title" = "行末に連続する句読点";
+
+/* Class = "NSMenuItem"; title = "Sample Rules"; ObjectID = "ROs-48-H10"; */
+"ROs-48-H10.title" = "サンプルルール";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "b6x-Hz-gvu"; */
+"b6x-Hz-gvu.title" = "デフォルトに戻す";
+
+/* Class = "NSTextFieldCell"; title = "The settings below applies when Format > Text > Word Wrapping is set to \"Japanese Word Wrap.\""; ObjectID = "note-japanese-wrap-cell"; */
+"note-japanese-wrap-cell.title" = "以下の設定は、フォーマット > テキスト > 禁則処理 が「日本語の禁則処理」に設定されている場合に適用されます。";
+
+/* Class = "NSTextFieldCell"; title = "Characters disallowed at line top"; ObjectID = "qxa-Aa-RWV"; */
+"qxa-Aa-RWV.title" = "行頭禁止文字";
+
+/* Class = "NSTextFieldCell"; title = "Custom Wordwrapping for Japanese Language"; ObjectID = "wRG-Q9-maA"; */
+"wRG-Q9-maA.title" = "日本語カスタム禁則処理";

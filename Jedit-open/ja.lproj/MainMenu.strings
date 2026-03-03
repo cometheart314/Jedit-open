@@ -1,0 +1,271 @@
+/* Japanese Localization for MainMenu.xib */
+
+/* Main Menu */
+"AYu-sK-qS6.title" = "メインメニュー";
+
+/* Jedit App Menu */
+"1Xt-HY-uBw.title" = "Jedit";
+"uQy-DD-JDr.title" = "Jedit";
+"5kV-Vb-QxS.title" = "Jeditについて";
+"BOF-NM-1cW.title" = "設定…";
+"NMo-om-nkz.title" = "サービス";
+"hz9-B4-Xy5.title" = "サービス";
+"Olw-nP-bQN.title" = "Jeditを隠す";
+"Vdr-fp-XzO.title" = "ほかを隠す";
+"Kd2-mp-pUS.title" = "すべてを表示";
+"4sb-4s-VLi.title" = "Jeditを終了";
+
+/* File Menu */
+"dMs-cI-mzQ.title" = "ファイル";
+"bib-Uj-vzu.title" = "ファイル";
+"Was-JA-tGl.title" = "新規";
+"new-doc-submenu.title" = "新規";
+"new-default-001.title" = "デフォルト";
+"new-plain-001.title" = "標準テキスト";
+"new-rich-001.title" = "リッチテキスト";
+"IAo-SY-fd9.title" = "開く…";
+"tXI-mr-wws.title" = "最近使った項目を開く";
+"oas-Oc-fiZ.title" = "最近使った項目を開く";
+"vNY-rz-j42.title" = "メニューを消去";
+"DVo-aG-piG.title" = "閉じる";
+"pxx-59-PXV.title" = "保存…";
+"Bw7-FT-i3A.title" = "別名で保存…";
+"KaW-ft-85H.title" = "保存した状態に戻す";
+"export-menu-001.title" = "書き出し…";
+"prop-menu-item.title" = "プロパティ…";
+"page-layout-001.title" = "ページレイアウト…";
+"qIS-W8-SiK.title" = "ページ設定…";
+"aTl-1u-JFS.title" = "プリント…";
+
+/* Edit Menu */
+"5QF-Oa-p0T.title" = "編集";
+"W48-6f-4Dl.title" = "編集";
+"dRJ-4n-Yzg.title" = "取り消す";
+"6dh-zS-Vam.title" = "やり直す";
+"uRl-iY-unG.title" = "カット";
+"x3v-GG-iWU.title" = "コピー";
+"gVA-U4-sdL.title" = "ペースト";
+"WeT-3V-zwk.title" = "ペーストしてスタイルを合わせる";
+"pa3-QI-u2k.title" = "削除";
+"Ruw-6m-B2m.title" = "すべてを選択";
+"shift-left-001.title" = "左にシフト";
+"shift-right-001.title" = "右にシフト";
+"auto-ind-001.title" = "自動インデント";
+
+/* Edit > Insert */
+"insert-submenu-001.title" = "挿入";
+"insert-submenu-menu.title" = "挿入";
+"insert-line-break-001.title" = "改行";
+"insert-para-break-001.title" = "段落区切り";
+"insert-page-break-001.title" = "改ページ";
+"stamp-date-001.title" = "日付";
+"stamp-time-001.title" = "時刻";
+
+/* Edit > Attach Files */
+"attach-files-001.title" = "ファイルを添付…";
+
+/* Edit > Find */
+"4EN-yA-p0u.title" = "検索";
+"1b7-l0-nxx.title" = "検索";
+"Xz5-n4-O0W.title" = "検索…";
+"YEy-JH-Tfz.title" = "検索と置換…";
+"q09-fT-Sye.title" = "次を検索";
+"OwM-mh-QMV.title" = "前を検索";
+"buJ-ug-pKt.title" = "選択部分を検索に使用";
+"S0p-oC-mLd.title" = "選択部分へジャンプ";
+
+/* Edit > Spelling and Grammar */
+"Dv1-io-Yv7.title" = "スペルと文法";
+"3IN-sU-3Bg.title" = "スペル";
+"HFo-cy-zxI.title" = "スペルと文法を表示";
+"hz2-CU-CR7.title" = "書類のスペルをチェック";
+"rbD-Rh-wIN.title" = "入力中にスペルをチェック";
+"mK6-2p-4JG.title" = "スペルと一緒に文法もチェック";
+"78Y-hA-62v.title" = "スペルを自動的に修正";
+
+/* Edit > Substitutions */
+"9ic-FL-obx.title" = "自動置換";
+"FeM-D8-WVr.title" = "自動置換";
+"z6F-FW-3nz.title" = "自動置換を表示";
+"hQb-2v-fYv.title" = "スマート引用符";
+"rgM-f4-ycn.title" = "スマートダッシュ";
+"cwL-P1-jid.title" = "スマートリンク";
+"tRr-pd-1PS.title" = "データ検出";
+"HFQ-gK-NFA.title" = "テキストの置換";
+"9yt-4B-nSM.title" = "スマートコピー／ペースト";
+
+/* Edit > Transformations */
+"2oI-Rn-ZJC.title" = "変換";
+"c8a-y6-VQd.title" = "変換";
+"vmV-6d-7jI.title" = "大文字にする";
+"d9M-CD-aMd.title" = "小文字にする";
+"UEZ-Bs-lqG.title" = "先頭を大文字にする";
+
+/* Edit > Speech */
+"xrE-MZ-jX0.title" = "スピーチ";
+"3rS-ZA-NoH.title" = "スピーチ";
+"Ynk-f8-cLZ.title" = "読み上げを開始";
+"Oyz-dy-DGm.title" = "読み上げを停止";
+
+/* Edit > Smart Language Separation */
+"mnu-ej-001.title" = "言語の自動判別";
+
+/* Format Menu */
+"jxT-CU-nIS.title" = "フォーマット";
+"GEO-Iw-cKr.title" = "フォーマット";
+"txt-fmt-001.title" = "リッチテキストにする";
+
+/* Format > Font */
+"Gi5-1S-RQB.title" = "フォント";
+"aXa-aM-Jaq.title" = "フォント";
+"Q5e-8K-NDq.title" = "フォントパネルを表示";
+"GB9-OM-e27.title" = "ボールド";
+"Vjx-xi-njq.title" = "イタリック";
+"WRG-CD-K1S.title" = "アンダーライン";
+"Ptp-SP-VEL.title" = "大きく";
+"i1d-Er-qST.title" = "小さく";
+
+/* Format > Font > Kern */
+"jBQ-r6-VK2.title" = "カーニング";
+"tlD-Oa-oAM.title" = "カーニング";
+"3Om-Ey-2VK.title" = "デフォルトを使用";
+"0Xg-Af-udW.title" = "なし";
+"46P-cB-AYj.title" = "締める";
+"ogc-rX-tC1.title" = "緩める";
+
+/* Format > Font > Ligatures */
+"o6e-r0-MWq.title" = "合字";
+"w0m-vy-SC9.title" = "合字";
+"GUa-eO-cwY.title" = "デフォルトを使用";
+"J7y-lM-qPV.title" = "使用しない";
+"xQD-1f-W4t.title" = "すべてを使用";
+
+/* Format > Font > Baseline */
+"OaQ-X3-Vso.title" = "ベースライン";
+"ijk-EB-dga.title" = "ベースライン";
+"agt-UL-0e3.title" = "デフォルトを使用";
+"Rqc-34-cIF.title" = "上付き";
+"I0S-gh-46l.title" = "下付き";
+"2h7-ER-AoG.title" = "上げる";
+"1tx-W0-xDw.title" = "下げる";
+
+/* Format > Font > Copy/Paste Style */
+"5Vv-lz-BsD.title" = "スタイルをコピー";
+"vKC-jM-MkH.title" = "スタイルをペースト";
+
+/* Format > Text */
+"Fal-I4-PZk.title" = "テキスト";
+"d9c-me-L2H.title" = "テキスト";
+"ZM1-6Q-yy1.title" = "左揃え";
+"VIY-Ag-zcb.title" = "中央揃え";
+"J5U-5w-g23.title" = "均等割り付け";
+"wb2-vD-lq4.title" = "右揃え";
+
+/* Format > Text > Writing Direction */
+"H1b-Si-o9J.title" = "書字方向";
+"8mr-sm-Yjd.title" = "書字方向";
+"ZvO-Gk-QUH.title" = "段落";
+"Nop-cj-93Q.title" = "\tデフォルト";
+"Lbh-J2-qVU.title" = "\t左から右";
+"RB4-Sm-HuC.title" = "\t右から左";
+"cqv-fj-IhA.title" = "選択範囲";
+"YGs-j5-SAR.title" = "\tデフォルト";
+"BgM-ve-c93.title" = "\t左から右";
+"jFq-tB-4Kx.title" = "\t右から左";
+
+/* Format > Text > Show Ruler / Copy-Paste Ruler */
+"vLm-3I-IUL.title" = "ルーラを表示";
+"MkV-Pr-PK5.title" = "ルーラをコピー";
+"LVM-kO-fVI.title" = "ルーラをペースト";
+
+/* Format > Document Colors */
+"doc-col-001.title" = "書類のカラー…";
+
+/* Format > Link / List / Table */
+"link-panel-001.title" = "リンク…";
+"list-panel-001.title" = "リスト…";
+"table-panel-001.title" = "表…";
+
+/* Format > Line Spacing / Tab Width / Wrapped Line Indent */
+"line-spacing-menu.title" = "行間...";
+"tab-width-menu.title" = "タブ幅...";
+"wrap-ind-001.title" = "折り返し行のインデント...";
+
+/* View Menu */
+"H8h-7b-M4v.title" = "表示";
+"HyV-fh-RgO.title" = "表示";
+"snW-S8-Cw5.title" = "ツールバーを表示";
+"Insp-Bar-001.title" = "インスペクタバーを表示";
+"AMh-4W-66r.title" = "ページモードを切り替え";
+"lay-or-001.title" = "縦書きにする";
+"prevent-edit-001.title" = "編集を禁止";
+"writing-goal-001.title" = "執筆目標…";
+"doc-info-menu-001.title" = "書類情報を表示";
+"bkm-mi-001.title" = "選択範囲をブックマーク";
+"bkm-mi-002.title" = "ブックマークを表示";
+"Zr7-QL-VXd.title" = "拡大";
+"4Hx-T8-p0j.title" = "縮小";
+"8Gx-qZ-mNz.title" = "実際のサイズ";
+
+/* View > Document Width */
+"doc-wid-001.title" = "書類の幅";
+"doc-wid-sub.title" = "書類の幅";
+"wrap-no-001.title" = "行を折り返さない";
+"wrap-win-001.title" = "ウインドウ幅に合わせる";
+"wrap-pap-001.title" = "用紙幅に合わせる";
+"wrap-fix-001.title" = "固定幅...";
+
+/* View > Word Wrapping */
+"word-wrap-menu.title" = "禁則処理";
+"word-wrap-sub.title" = "禁則処理";
+"word-wrap-sys.title" = "システムデフォルト";
+"word-wrap-no.title" = "禁則処理をしない";
+"word-wrap-jp.title" = "日本語の禁則処理";
+
+/* View > Line Number */
+"Nlv-wI-OK1.title" = "行番号";
+"NUT-yc-BrG.title" = "行番号";
+"d9A-0O-r8c.title" = "行番号";
+"vA0-nC-ila.title" = "段落番号";
+
+/* View > Ruler */
+"lO1-BW-Z4B.title" = "ルーラ";
+"ruler-sub-menu.title" = "ルーラ";
+"ruler-hide-001.title" = "隠す";
+"ruler-char-001.title" = "文字";
+"ruler-cm-001.title" = "センチメートル";
+"ruler-in-001.title" = "インチ";
+"ruler-pts-001.title" = "ポイント";
+
+/* View > Show Invisibles */
+"inv-ch-001.title" = "不可視文字を表示";
+"inv-ch-sub.title" = "不可視文字を表示";
+"inv-all-001.title" = "すべてを表示";
+"inv-spc-001.title" = "· スペース";
+"inv-tab-001.title" = "▸ タブ";
+"inv-ret-001.title" = "↩ 改行";
+"inv-fws-001.title" = "◯ 全角スペース";
+"inv-nbs-001.title" = "° ノーブレークスペース";
+"inv-ls-001.title" = "↓ 行セパレータ";
+"inv-vt-001.title" = "⇣ 垂直タブ";
+"inv-pb-001.title" = "╍ 改ページ";
+
+/* View > Split View */
+"tSV-m1-9aM.title" = "分割表示";
+"spl-md-sub.title" = "分割表示";
+"spl-no-001.title" = "□ 分割なし";
+"spl-hz-001.title" = "⊟ 水平分割";
+"spl-vt-001.title" = "◫ 垂直分割";
+
+/* Window Menu */
+"aUF-d1-5bR.title" = "ウインドウ";
+"Td7-aD-5lo.title" = "ウインドウ";
+"OY7-WF-poV.title" = "しまう";
+"R4o-n2-Eq4.title" = "拡大／縮小";
+"4J7-dP-txa.title" = "フルスクリーンにする";
+"LE2-aR-0XJ.title" = "すべてを手前に移動";
+
+/* Help Menu */
+"wpr-3q-Mcd.title" = "ヘルプ";
+"F2S-fz-NVQ.title" = "ヘルプ";
+"FKE-Sm-Kum.title" = "Jeditヘルプ";

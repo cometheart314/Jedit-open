@@ -22,7 +22,7 @@ class PreferencesWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Settings"
+        window.title = "Settings".localized
         window.minSize = NSSize(width: 740, height: 480)
         window.center()
         
@@ -34,32 +34,32 @@ class PreferencesWindowController: NSWindowController {
     private func setupPreferenceItems() {
         preferenceItems = [
             PreferenceCategory(
-                title: "General",
+                title: "General".localized,
                 icon: NSImage(systemSymbolName: "gearshape", accessibilityDescription: nil)!,
                 identifier: "general"
             ),
             PreferenceCategory(
-                title: "NewDocuments",
+                title: "NewDocuments".localized,
                 icon: NSImage(systemSymbolName: "document.on.document", accessibilityDescription: nil)!,
                 identifier: "newDocuments"
             ),
             PreferenceCategory(
-                title: "Encodings",
+                title: "Encodings".localized,
                 icon: NSImage(named: "encodingIcon") ?? NSImage(systemSymbolName: "textformat", accessibilityDescription: nil)!,
                 identifier: "encodings"
             ),
             PreferenceCategory(
-                title: "Line Breaking",
+                title: "Line Breaking".localized,
                 icon: NSImage(systemSymbolName: "return", accessibilityDescription: nil)!,
                 identifier: "lineBreaking"
             ),
             PreferenceCategory(
-                title: "Styles",
+                title: "Styles".localized,
                 icon: NSImage(systemSymbolName: "jacket", accessibilityDescription: nil)!,
                 identifier: "styles"
             ),
             PreferenceCategory(
-                title: "Context Menu",
+                title: "Context Menu".localized,
                 icon: NSImage(systemSymbolName: "contextualmenu.and.cursorarrow", accessibilityDescription: nil)!,
                 identifier: "contextMenu"
             )
@@ -135,7 +135,7 @@ class PreferencesWindowController: NSWindowController {
         currentViewController = viewController
         
         // Update window title
-        window?.title = "Settings - \(item.title)"
+        window?.title = "Settings".localized + " - " + item.title
     }
     
     private func createViewController(for identifier: String) -> NSViewController {

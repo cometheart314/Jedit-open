@@ -1,0 +1,59 @@
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Choose the default text encoding to use when opening plain text files. To let Jedit Ω select the best encoding, choose Automatic."; ObjectID = "3Ce-DQ-lzq"; */
+"3Ce-DQ-lzq.ibShadowedToolTip" = "標準テキストファイルを開く際に使用するデフォルトのエンコーディングを選択します。Jedit Ωに最適なエンコーディングを選択させるには「自動」を選んでください。";
+
+/* Class = "NSMenuItem"; title = "Mac Classic (CR)"; ObjectID = "3XU-hU-39C"; */
+"3XU-hU-39C.title" = "Mac Classic (CR)";
+
+/* Class = "NSTextFieldCell"; title = "Line Endings for saving:"; ObjectID = "Fuk-M4-6Ew"; */
+"Fuk-M4-6Ew.title" = "保存時の改行コード:";
+
+/* Class = "NSMenuItem"; title = "Attach BOM"; ObjectID = "GH6-S5-0Pu"; */
+"GH6-S5-0Pu.title" = "BOMを付加";
+
+/* Class = "NSTextFieldCell"; title = "Saving files:"; ObjectID = "JRH-cG-89t"; */
+"JRH-cG-89t.title" = "ファイルの保存:";
+
+/* Class = "NSMenuItem"; title = "Automatic"; ObjectID = "KyK-8k-239"; */
+"KyK-8k-239.title" = "自動";
+
+/* Class = "NSTextFieldCell"; title = "Plain Text File Encoding"; ObjectID = "MWR-wQ-Vya"; */
+"MWR-wQ-Vya.title" = "標準テキストファイルのエンコーディング";
+
+/* Class = "NSMenuItem"; title = "macOS/Unix (LF)"; ObjectID = "QIZ-Z4-vW4"; */
+"QIZ-Z4-vW4.title" = "macOS/Unix (LF)";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Choose the default text encoding to use when saving plain text files. To retain the encoding used when opened, choose Automatic."; ObjectID = "SQ7-05-blb"; */
+"SQ7-05-blb.ibShadowedToolTip" = "標準テキストファイルを保存する際に使用するデフォルトのエンコーディングを選択します。開いたときのエンコーディングを維持するには「自動」を選んでください。";
+
+/* Class = "NSMenuItem"; title = "Automatic"; ObjectID = "XNM-dm-WEA"; */
+"XNM-dm-WEA.title" = "自動";
+
+/* Class = "NSMenuItem"; title = "Don't Attach BOM"; ObjectID = "XZV-XA-gFO"; */
+"XZV-XA-gFO.title" = "BOMを付加しない";
+
+/* Class = "NSButtonCell"; title = "Convert  '¥' (0x5c) to Back Slash '\\' (U+005C) when Shift_JIS encoding group."; ObjectID = "bGf-gt-pgB"; */
+"bGf-gt-pgB.title" = "Shift_JISエンコーディンググループの時、'¥' (0x5c) をバックスラッシュ '\\' (U+005C) に変換";
+
+/* Class = "NSMenuItem"; title = "Automatic"; ObjectID = "d9z-Q5-Taa"; */
+"d9z-Q5-Taa.title" = "自動";
+
+/* Class = "NSMenuItem"; title = "Windows (CR+LF)"; ObjectID = "otj-MO-woY"; */
+"otj-MO-woY.title" = "Windows (CR+LF)";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "revertBtnCell"; */
+"revertBtnCell.title" = "デフォルトに戻す";
+
+/* Class = "NSButtonCell"; title = "Convert  FULLWIDTH TILDE  '〜' (U+FF5E) to WAVE DASH '〜' (U+301C)."; ObjectID = "tjE-uI-ywr"; */
+"tjE-uI-ywr.title" = "全角チルダ '〜' (U+FF5E) を波ダッシュ '〜' (U+301C) に変換";
+
+/* Class = "NSButtonCell"; title = "Convert  '¯' (0x7e) to Tilde '~' (U+007E) when Shift_JIS encoding group."; ObjectID = "tti-iL-xXo"; */
+"tti-iL-xXo.title" = "Shift_JISエンコーディンググループの時、'¯' (0x7e) をチルダ '~' (U+007E) に変換";
+
+/* Class = "NSMenuItem"; title = "Automatic"; ObjectID = "vLW-ji-syV"; */
+"vLW-ji-syV.title" = "自動";
+
+/* Class = "NSTextFieldCell"; title = "Opening files:"; ObjectID = "vb8-ts-XeO"; */
+"vb8-ts-XeO.title" = "ファイルを開く:";
+
+/* Class = "NSTextFieldCell"; title = "BOM for saving:"; ObjectID = "vi4-X6-WgN"; */
+"vi4-X6-WgN.title" = "保存時のBOM:";

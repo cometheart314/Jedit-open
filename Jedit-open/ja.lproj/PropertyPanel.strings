@@ -1,0 +1,29 @@
+/* Class = "NSWindow"; title = "Properties"; ObjectID = "QvC-M9-y7g"; */
+"QvC-M9-y7g.title" = "プロパティ";
+
+/* Class = "NSButtonCell"; title = "Cancel"; ObjectID = "btn-cancel-cell"; */
+"btn-cancel-cell.title" = "キャンセル";
+
+/* Class = "NSButtonCell"; title = "Set"; ObjectID = "btn-set-cell"; */
+"btn-set-cell.title" = "設定";
+
+/* Class = "NSTextFieldCell"; title = "Author:"; ObjectID = "lbl-author-cell"; */
+"lbl-author-cell.title" = "作成者:";
+
+/* Class = "NSTextFieldCell"; title = "Comment:"; ObjectID = "lbl-comment-cell"; */
+"lbl-comment-cell.title" = "コメント:";
+
+/* Class = "NSTextFieldCell"; title = "Company:"; ObjectID = "lbl-company-cell"; */
+"lbl-company-cell.title" = "会社名:";
+
+/* Class = "NSTextFieldCell"; title = "Copyright:"; ObjectID = "lbl-copyright-cell"; */
+"lbl-copyright-cell.title" = "著作権:";
+
+/* Class = "NSTextFieldCell"; title = "Keywords:"; ObjectID = "lbl-keywords-cell"; */
+"lbl-keywords-cell.title" = "キーワード:";
+
+/* Class = "NSTextFieldCell"; title = "Subject:"; ObjectID = "lbl-subject-cell"; */
+"lbl-subject-cell.title" = "サブジェクト:";
+
+/* Class = "NSTextFieldCell"; title = "Title:"; ObjectID = "lbl-title-cell"; */
+"lbl-title-cell.title" = "タイトル:";

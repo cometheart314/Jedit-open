@@ -1,0 +1,50 @@
+/* Class = "NSMenuItem"; title = "Rich Text Format (.rtf)"; ObjectID = "2Kq-9B-atu"; */
+"2Kq-9B-atu.title" = "リッチテキストフォーマット (.rtf)";
+
+/* Class = "NSMenuItem"; title = "Word 2007 Format (.docx)"; ObjectID = "4tn-d6-5rK"; */
+"4tn-d6-5rK.title" = "Word 2007フォーマット (.docx)";
+
+/* Class = "NSMenuItem"; title = "CR"; ObjectID = "5NS-6e-icD"; */
+"5NS-6e-icD.title" = "CR";
+
+/* Class = "NSMenuItem"; title = "LF"; ObjectID = "6Hk-b1-9JZ"; */
+"6Hk-b1-9JZ.title" = "LF";
+
+/* Class = "NSMenuItem"; title = "DO NOT LOCALIZE"; ObjectID = "935-vq-qfa"; */
+"935-vq-qfa.title" = "DO NOT LOCALIZE";
+
+/* Class = "NSMenuItem"; title = "Plain Text Document"; ObjectID = "9kR-Wh-1Zv"; */
+"9kR-Wh-1Zv.title" = "標準テキスト書類";
+
+/* Class = "NSTextFieldCell"; title = "Encoding:"; ObjectID = "Nc8-IX-Hcr"; */
+"Nc8-IX-Hcr.title" = "エンコーディング:";
+
+/* Class = "NSMenuItem"; title = "Word 97 Format (.doc)"; ObjectID = "XYP-Hz-5iW"; */
+"XYP-Hz-5iW.title" = "Word 97フォーマット (.doc)";
+
+/* Class = "NSMenuItem"; title = "CR+LF"; ObjectID = "kYD-he-SUK"; */
+"kYD-he-SUK.title" = "CR+LF";
+
+/* Class = "NSMenuItem"; title = "Markdown (.md)"; ObjectID = "mKd-Rw-3Xp"; */
+"mKd-Rw-3Xp.title" = "Markdown (.md)";
+
+/* Class = "NSMenuItem"; title = "Rich Text Formant with Attachments (.rtfd)"; ObjectID = "mOZ-ss-cIY"; */
+"mOZ-ss-cIY.title" = "添付ファイル付きリッチテキストフォーマット (.rtfd)";
+
+/* Class = "NSButtonCell"; title = "BOM"; ObjectID = "ncs-op-03M"; */
+"ncs-op-03M.title" = "BOM";
+
+/* Class = "NSButtonCell"; title = "Export Only Selection"; ObjectID = "sjn-a3-x1g"; */
+"sjn-a3-x1g.title" = "選択範囲のみ書き出し";
+
+/* Class = "NSMenuItem"; title = "Word 2003 XML Format  (.xml)"; ObjectID = "tUz-u8-BpH"; */
+"tUz-u8-BpH.title" = "Word 2003 XMLフォーマット (.xml)";
+
+/* Class = "NSMenuItem"; title = "OpenDocument Text (.odt)"; ObjectID = "vd1-lh-pqo"; */
+"vd1-lh-pqo.title" = "OpenDocumentテキスト (.odt)";
+
+/* Class = "NSPopUpButton"; ibShadowedToolTip = "Encoding to use if there is no encoding specified with the file."; ObjectID = "xYd-Gv-DfH"; */
+"xYd-Gv-DfH.ibShadowedToolTip" = "ファイルにエンコーディングが指定されていない場合に使用するエンコーディング。";
+
+/* Class = "NSTextFieldCell"; title = "File Format:"; ObjectID = "z3D-Af-trm"; */
+"z3D-Af-trm.title" = "ファイルフォーマット:";

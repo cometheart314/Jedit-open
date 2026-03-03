@@ -1,0 +1,146 @@
+/* Class = "NSTextFieldCell"; title = "Left"; ObjectID = "1sF-Yj-P07"; */
+"1sF-Yj-P07.title" = "左";
+
+/* Class = "NSMenuItem"; title = "cm"; ObjectID = "3IZ-C9-Glf"; */
+"3IZ-C9-Glf.title" = "cm";
+
+/* Class = "NSMenuItem"; title = "Subject"; ObjectID = "3af-qm-Mdq"; */
+"3af-qm-Mdq.title" = "サブジェクト";
+
+/* Class = "NSMenuItem"; title = "Keywords"; ObjectID = "4lW-de-oMg"; */
+"4lW-de-oMg.title" = "キーワード";
+
+/* Class = "NSMenuItem"; title = "Current Date"; ObjectID = "4tb-oS-iEA"; */
+"4tb-oS-iEA.title" = "現在の日付";
+
+/* Class = "NSMenuItem"; title = "Company"; ObjectID = "5wM-Nb-mFb"; */
+"5wM-Nb-mFb.title" = "会社名";
+
+/* Class = "NSMenuItem"; title = "Insert Variables"; ObjectID = "7Jn-X2-Zox"; */
+"7Jn-X2-Zox.title" = "変数を挿入";
+
+/* Class = "NSMenuItem"; title = "Copyright"; ObjectID = "7Vc-wC-8J5"; */
+"7Vc-wC-8J5.title" = "著作権";
+
+/* Class = "NSMenuItem"; title = "Comment"; ObjectID = "7uF-bG-vA9"; */
+"7uF-bG-vA9.title" = "コメント";
+
+/* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "C8k-MG-7nc"; */
+"C8k-MG-7nc.title" = "変更日";
+
+/* Class = "NSMenuItem"; title = "Comment"; ObjectID = "FmF-WM-bxB"; */
+"FmF-WM-bxB.title" = "コメント";
+
+/* Class = "NSMenuItem"; title = "Document Title"; ObjectID = "GJD-aT-Jy9"; */
+"GJD-aT-Jy9.title" = "書類タイトル";
+
+/* Class = "NSMenuItem"; title = "inches"; ObjectID = "Gml-ke-SLh"; */
+"Gml-ke-SLh.title" = "inches";
+
+/* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "H7F-de-j3K"; */
+"H7F-de-j3K.title" = "変更時刻";
+
+/* Class = "NSMenuItem"; title = "Copyright"; ObjectID = "Ivx-O4-biA"; */
+"Ivx-O4-biA.title" = "著作権";
+
+/* Class = "NSTextFieldCell"; title = "Header"; ObjectID = "Klz-gu-Rb4"; */
+"Klz-gu-Rb4.title" = "ヘッダ";
+
+/* Class = "NSMenuItem"; title = "Page Number"; ObjectID = "LOF-pO-vYp"; */
+"LOF-pO-vYp.title" = "ページ番号";
+
+/* Class = "NSMenuItem"; title = "File Path"; ObjectID = "OSb-A3-Uj3"; */
+"OSb-A3-Uj3.title" = "ファイルパス";
+
+/* Class = "NSTextFieldCell"; title = "Right"; ObjectID = "Q76-tm-foh"; */
+"Q76-tm-foh.title" = "右";
+
+/* Class = "NSButtonCell"; title = "Ruler"; ObjectID = "QHC-lR-3s7"; */
+"QHC-lR-3s7.title" = "ルーラ";
+
+/* Class = "NSWindow"; title = "Page Layout"; ObjectID = "QvC-M9-y7g"; */
+"QvC-M9-y7g.title" = "ページレイアウト";
+
+/* Class = "NSMenuItem"; title = "Subject"; ObjectID = "RYo-eP-euz"; */
+"RYo-eP-euz.title" = "サブジェクト";
+
+/* Class = "NSMenuItem"; title = "Current Time"; ObjectID = "UGJ-UA-bfo"; */
+"UGJ-UA-bfo.title" = "現在の時刻";
+
+/* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "UGY-m2-yw5"; */
+"UGY-m2-yw5.title" = "変更時刻";
+
+/* Class = "NSButtonCell"; title = "Ruler"; ObjectID = "W3I-Dp-cpF"; */
+"W3I-Dp-cpF.title" = "ルーラ";
+
+/* Class = "NSMenuItem"; title = "Document Title"; ObjectID = "WWy-6r-XTr"; */
+"WWy-6r-XTr.title" = "書類タイトル";
+
+/* Class = "NSMenuItem"; title = "Page Number"; ObjectID = "Wai-gb-8cR"; */
+"Wai-gb-8cR.title" = "ページ番号";
+
+/* Class = "NSButtonCell"; title = "Set"; ObjectID = "Xge-aL-7rz"; */
+"Xge-aL-7rz.title" = "設定";
+
+/* Class = "NSMenuItem"; title = "Company"; ObjectID = "aap-u1-PDV"; */
+"aap-u1-PDV.title" = "会社名";
+
+/* Class = "NSMenuItem"; title = "Title"; ObjectID = "cVY-o4-NON"; */
+"cVY-o4-NON.title" = "タイトル";
+
+/* Class = "NSMenuItem"; title = "points"; ObjectID = "dtC-sn-VqC"; */
+"dtC-sn-VqC.title" = "points";
+
+/* Class = "NSTextFieldCell"; title = "Top"; ObjectID = "eJs-K7-39o"; */
+"eJs-K7-39o.title" = "上";
+
+/* Class = "NSMenuItem"; title = "Current Time"; ObjectID = "gGe-Y2-67h"; */
+"gGe-Y2-67h.title" = "現在の時刻";
+
+/* Class = "NSTextFieldCell"; title = "Bottom"; ObjectID = "gvn-Mi-EqC"; */
+"gvn-Mi-EqC.title" = "下";
+
+/* Class = "NSMenuItem"; title = "Author"; ObjectID = "hDU-n4-w1P"; */
+"hDU-n4-w1P.title" = "作成者";
+
+/* Class = "NSMenuItem"; title = "File Path"; ObjectID = "haJ-cM-yHn"; */
+"haJ-cM-yHn.title" = "ファイルパス";
+
+/* Class = "NSMenuItem"; title = "Keywords"; ObjectID = "hpQ-jj-QEI"; */
+"hpQ-jj-QEI.title" = "キーワード";
+
+/* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "jOJ-fd-cXa"; */
+"jOJ-fd-cXa.title" = "変更日";
+
+/* Class = "NSMenuItem"; title = "Page Total"; ObjectID = "jhO-pk-328"; */
+"jhO-pk-328.title" = "総ページ数";
+
+/* Class = "NSMenuItem"; title = "Insert Variables"; ObjectID = "k2J-1k-nTZ"; */
+"k2J-1k-nTZ.title" = "変数を挿入";
+
+/* Class = "NSMenuItem"; title = "Title"; ObjectID = "kTB-kd-uGr"; */
+"kTB-kd-uGr.title" = "タイトル";
+
+/* Class = "NSMenuItem"; title = "Author"; ObjectID = "q5W-1o-srv"; */
+"q5W-1o-srv.title" = "作成者";
+
+/* Class = "NSMenuItem"; title = "User Name"; ObjectID = "qUP-dy-laN"; */
+"qUP-dy-laN.title" = "ユーザ名";
+
+/* Class = "NSMenuItem"; title = "Page Total"; ObjectID = "sko-9R-xz4"; */
+"sko-9R-xz4.title" = "総ページ数";
+
+/* Class = "NSMenuItem"; title = "User Name"; ObjectID = "soH-EI-xKA"; */
+"soH-EI-xKA.title" = "ユーザ名";
+
+/* Class = "NSTextFieldCell"; title = "Footer"; ObjectID = "tRY-s8-HeA"; */
+"tRY-s8-HeA.title" = "フッタ";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "vfB-3q-ODm"; */
+"vfB-3q-ODm.title" = "デフォルトに戻す";
+
+/* Class = "NSBox"; title = "Paper Margin"; ObjectID = "xnJ-a8-X1d"; */
+"xnJ-a8-X1d.title" = "用紙マージン";
+
+/* Class = "NSMenuItem"; title = "Current Date"; ObjectID = "yfG-ez-1PQ"; */
+"yfG-ez-1PQ.title" = "現在の日付";

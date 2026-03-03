@@ -334,3 +334,12 @@
 
 /* Fixed Width Menu */
 "Fixed Width (%dchars.)..." = "固定幅（%d文字）...";
+
+/* Preferences Window */
+"Settings" = "設定";
+"General" = "一般";
+"NewDocuments" = "新規書類";
+"Encodings" = "エンコーディング";
+"Line Breaking" = "禁則処理";
+"Styles" = "スタイル";
+"Context Menu" = "コンテキストメニュー";

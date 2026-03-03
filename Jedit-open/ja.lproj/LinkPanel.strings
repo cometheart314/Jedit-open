@@ -1,0 +1,20 @@
+/* Class = "NSButtonCell"; title = "Delete"; ObjectID = "lnk-del-btn-cell"; */
+"lnk-del-btn-cell.title" = "削除";
+
+/* Class = "NSTextFieldCell"; placeholderString = "Display text"; ObjectID = "lnk-display-field-cell"; */
+"lnk-display-field-cell.placeholderString" = "表示テキスト";
+
+/* Class = "NSTextFieldCell"; title = "Text:"; ObjectID = "lnk-display-label-cell"; */
+"lnk-display-label-cell.title" = "テキスト:";
+
+/* Class = "NSWindow"; title = "Link"; ObjectID = "lnk-panel-001"; */
+"lnk-panel-001.title" = "リンク";
+
+/* Class = "NSButtonCell"; title = "Set Link"; ObjectID = "lnk-set-btn-cell"; */
+"lnk-set-btn-cell.title" = "リンクを設定";
+
+/* Class = "NSTextFieldCell"; placeholderString = "URL or JEDITANCHOR:..."; ObjectID = "lnk-url-field-cell"; */
+"lnk-url-field-cell.placeholderString" = "URL または JEDITANCHOR:...";
+
+/* Class = "NSTextFieldCell"; title = "URL:"; ObjectID = "lnk-url-label-cell"; */
+"lnk-url-label-cell.title" = "URL:";

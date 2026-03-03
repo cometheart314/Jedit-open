@@ -8,6 +8,7 @@
         <customObject id="-2" userLabel="File's Owner" customClass="DocumentInfoPanelController" customModule="Jedit" customModuleProvider="target">
             <connections>
                 <outlet property="bomCheckBox" destination="N5F-86-311" id="fo-bom-001"/>
+                <outlet property="chkboxCountHalfAs05" destination="8s6-Uy-ftl" id="fo-chk-001"/>
                 <outlet property="docTypeName" destination="GqN-3r-xm8" id="fo-dtn-001"/>
                 <outlet property="documentInfoPanel" destination="QvC-M9-y7g" id="6v0-HT-nO9"/>
                 <outlet property="dotLine1" destination="qJO-Ot-If7" id="fo-dl1-001"/>
@@ -17,7 +18,6 @@
                 <outlet property="infoTableView" destination="aNx-oV-1x1" id="fo-itv-001"/>
                 <outlet property="lineEndingPopUpButton" destination="ZEg-cT-dbM" id="fo-lep-001"/>
                 <outlet property="pathTextView" destination="8tO-Mn-uVU" id="fo-ptv-001"/>
-                <outlet property="chkboxCountHalfAs05" destination="8s6-Uy-ftl" id="fo-chk-001"/>
                 <outlet property="tabView" destination="wSH-S8-oSQ" id="fo-tab-001"/>
             </connections>
         </customObject>
@@ -99,7 +99,7 @@
                                                 </subviews>
                                             </clipView>
                                             <scroller key="horizontalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="YES" id="lkZ-5p-fWt">
-                                                <rect key="frame" x="1" y="253" width="346" height="17"/>
+                                                <rect key="frame" x="1" y="234" width="346" height="17"/>
                                                 <autoresizingMask key="autoresizingMask"/>
                                             </scroller>
                                             <scroller key="verticalScroller" hidden="YES" verticalHuggingPriority="750" horizontal="NO" id="GCM-FW-kpW">

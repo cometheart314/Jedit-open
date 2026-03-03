@@ -1,0 +1,89 @@
+/* Class = "NSMenuItem"; title = "Light"; ObjectID = "BL1-ma-le8"; */
+"BL1-ma-le8.title" = "ライト";
+
+/* Class = "NSMenuItem"; title = "Open New Document"; ObjectID = "GOs-1A-FQf"; */
+"GOs-1A-FQf.title" = "新規書類を開く";
+
+/* Class = "NSTextFieldCell"; title = "Date Format"; ObjectID = "JQf-JN-U9K"; */
+"JQf-JN-U9K.title" = "日付フォーマット";
+
+/* Class = "NSMenuItem"; title = "Do Nothing"; ObjectID = "PXL-lX-2Zd"; */
+"PXL-lX-2Zd.title" = "何もしない";
+
+/* Class = "NSTextFieldCell"; title = "Startup Option"; ObjectID = "SIU-Mz-ZjY"; */
+"SIU-Mz-ZjY.title" = "起動時のオプション";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "SZ2-ed-H23"; */
+"SZ2-ed-H23.title" = "デフォルトに戻す";
+
+/* Class = "NSMenuItem"; title = "Show Open Panel"; ObjectID = "ZER-St-rWn"; */
+"ZER-St-rWn.title" = "「開く」パネルを表示";
+
+/* Class = "NSButtonCell"; title = "Smart copy/paste"; ObjectID = "cel-copy-001"; */
+"cel-copy-001.title" = "スマートコピー／ペースト";
+
+/* Class = "NSButtonCell"; title = "Correct spelling automatically"; ObjectID = "cel-corr-001"; */
+"cel-corr-001.title" = "スペルを自動的に修正";
+
+/* Class = "NSButtonCell"; title = "Smart dashes"; ObjectID = "cel-dash-001"; */
+"cel-dash-001.title" = "スマートダッシュ";
+
+/* Class = "NSButtonCell"; title = "Data detectors"; ObjectID = "cel-data-001"; */
+"cel-data-001.title" = "データ検出";
+
+/* Class = "NSButtonCell"; title = "Check grammar with spelling"; ObjectID = "cel-gram-001"; */
+"cel-gram-001.title" = "スペルと一緒に文法もチェック";
+
+/* Class = "NSButtonCell"; title = "Smart links"; ObjectID = "cel-link-001"; */
+"cel-link-001.title" = "スマートリンク";
+
+/* Class = "NSButtonCell"; title = "Open Markdown files as plain text"; ObjectID = "cel-md-plain-001"; */
+"cel-md-plain-001.title" = "Markdownファイルを標準テキストとして開く";
+
+/* Class = "NSButtonCell"; title = "Smart quotes"; ObjectID = "cel-quot-001"; */
+"cel-quot-001.title" = "スマート引用符";
+
+/* Class = "NSButtonCell"; title = "Text replacements"; ObjectID = "cel-repl-001"; */
+"cel-repl-001.title" = "テキストの置換";
+
+/* Class = "NSButtonCell"; title = "Following Substitutions Enabled Only in Rich Text"; ObjectID = "cel-rich-001"; */
+"cel-rich-001.title" = "以下の自動置換はリッチテキストでのみ有効";
+
+/* Class = "NSButtonCell"; title = "Always display rich text in Light mode"; ObjectID = "cel-rtlm-001"; */
+"cel-rtlm-001.title" = "リッチテキストを常にライトモードで表示";
+
+/* Class = "NSButtonCell"; title = "Smart separation between English and Japanese"; ObjectID = "cel-sep-001"; */
+"cel-sep-001.title" = "英語と日本語の間を自動的に分離";
+
+/* Class = "NSButtonCell"; title = "Check spelling as you type"; ObjectID = "cel-spell-001"; */
+"cel-spell-001.title" = "入力中にスペルをチェック";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "goO-rC-gEl"; */
+"goO-rC-gEl.title" = "デフォルトに戻す";
+
+/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "le4-JR-wPb"; */
+"le4-JR-wPb.title" = "デフォルトに戻す";
+
+/* Class = "NSTextFieldCell"; title = "Auto Start at Login"; ObjectID = "mKV-F1-JbX"; */
+"mKV-F1-JbX.title" = "ログイン時に自動起動";
+
+/* Class = "NSTabViewItem"; label = "Advanced"; ObjectID = "tab-advanced-001"; */
+"tab-advanced-001.label" = "詳細";
+
+/* Class = "NSTabViewItem"; label = "Edit"; ObjectID = "tab-edit-001"; */
+"tab-edit-001.label" = "編集";
+
+/* Class = "NSTabViewItem"; label = "View"; ObjectID = "tab-view-001"; */
+"tab-view-001.label" = "表示";
+
+/* Class = "NSMenuItem"; title = "System"; ObjectID = "teb-Gd-0Cd"; */
+"teb-Gd-0Cd.title" = "システム";
+
+/* Class = "NSTextFieldCell"; title = "Time Format"; ObjectID = "tul-rc-mPa"; */
+"tul-rc-mPa.title" = "時刻フォーマット";
+
+/* Class = "NSMenuItem"; title = "Dark"; ObjectID = "wQP-Mf-pdW"; */
+"wQP-Mf-pdW.title" = "ダーク";
+
+/* Class = "NSTextFieldCell"; title = "Appearance"; ObjectID = "y8s-KY-4tH"; */
+"y8s-KY-4tH.title" = "外観";
