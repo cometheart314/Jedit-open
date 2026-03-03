@@ -440,6 +440,35 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
     }
 
+    // MARK: - Dock Menu
+
+    func applicationDockMenu(_ sender: NSApplication) -> NSMenu? {
+        let menu = NSMenu()
+
+        // New サブメニュー
+        let newItem = NSMenuItem(title: NSLocalizedString("New", comment: "Dock menu New"), action: nil, keyEquivalent: "")
+        let newSubmenu = NSMenu()
+        let presets = DocumentPresetManager.shared.presets
+        for (index, preset) in presets.enumerated() {
+            let item = NSMenuItem(title: preset.name, action: #selector(dockMenuNewWithPreset(_:)), keyEquivalent: "")
+            item.tag = index
+            item.target = self
+            newSubmenu.addItem(item)
+        }
+        newSubmenu.addItem(NSMenuItem.separator())
+        let clipboardItem = NSMenuItem(title: NSLocalizedString("Clipboard", comment: "Dock menu New from Clipboard"), action: #selector(newDocumentFromClipboard(_:)), keyEquivalent: "")
+        clipboardItem.target = self
+        newSubmenu.addItem(clipboardItem)
+        newItem.submenu = newSubmenu
+        menu.addItem(newItem)
+
+        return menu
+    }
+
+    @objc private func dockMenuNewWithPreset(_ sender: NSMenuItem) {
+        newDocumentWithPreset(sender)
+    }
+
     // MARK: - Document Info Panel
 
     @IBAction func showDocumentInfo(_ sender: Any?) {
