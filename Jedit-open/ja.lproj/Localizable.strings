@@ -1,0 +1,336 @@
+/* Japanese Localization for Jedit */
+
+/* Common Buttons */
+"OK" = "OK";
+"Cancel" = "キャンセル";
+"Delete" = "削除";
+"Remove" = "削除";
+"Add" = "追加";
+"Save" = "保存";
+"Open" = "開く";
+"Done" = "完了";
+"Set" = "設定";
+"Change" = "変更";
+"Convert" = "変換";
+"Continue" = "続ける";
+"Skip" = "スキップ";
+"Revert" = "元に戻す";
+"Export" = "書き出し";
+"Attach" = "添付";
+"Search" = "検索";
+"Find" = "検索";
+"Replace" = "置換";
+"Close" = "閉じる";
+"Duplicate" = "複製";
+
+/* Dock Menu / File Menu */
+"New" = "新規";
+"New Document" = "新規書類";
+"Clipboard" = "クリップボード";
+
+/* Document Controller */
+"Show Hidden Files" = "不可視ファイルを表示";
+
+/* Document Types */
+"Make Plain Text" = "標準テキストにする";
+"Make Rich Text" = "リッチテキストにする";
+"Convert this document to plain text?" = "この書類を標準テキストに変換しますか？";
+"Making a rich text document plain will lose all text styles (such as fonts and colors), and images." = "リッチテキストを標準テキストにすると、フォントやカラーなどのテキストスタイル、および画像がすべて失われます。";
+"Convert this document to RTFD format?" = "この書類をRTFDフォーマットに変換しますか？";
+"This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?" = "この書類にはグラフィックスまたは添付ファイルが含まれているため、RTFD（グラフィックス付きRTF）フォーマットで保存されます。RTFD書類は一部のアプリケーションと互換性がない場合があります。変換しますか？";
+"This document was imported from a format with limited compatibility. Some formatting may not be fully preserved when saved." = "この書類は互換性が限定的なフォーマットから読み込まれました。保存時に一部のフォーマットが完全に保持されない場合があります。";
+
+/* Encoding */
+"Encoding" = "エンコーディング";
+"Text Encoding" = "テキストエンコーディング";
+"Encoding Conversion Failed" = "エンコーディング変換に失敗";
+"Encoding Warning" = "エンコーディングの警告";
+"The text could not be converted to %@. The file will be saved as UTF-8 instead." = "テキストを %@ に変換できませんでした。代わりにUTF-8で保存します。";
+"The text encoding could not be determined with high confidence. Please select the correct encoding:" = "テキストエンコーディングを高い信頼度で判定できませんでした。正しいエンコーディングを選択してください：";
+"The document contains characters that cannot be represented in %@." = "書類に %@ では表現できない文字が含まれています。";
+"Converting to %@ may result in data loss. Do you want to continue?" = "%@ への変換でデータが失われる可能性があります。続けますか？";
+"Cannot Convert" = "変換できません";
+"Could not decode text file. No valid encoding found." = "テキストファイルをデコードできませんでした。有効なエンコーディングが見つかりません。";
+"Could not decode text file." = "テキストファイルをデコードできませんでした。";
+"Could not read Markdown document." = "Markdown書類を読み込めませんでした。";
+"Could not read %@ document." = "%@ 書類を読み込めませんでした。";
+"Customize Encoding List" = "エンコーディングリストをカスタマイズ";
+"Customize Encoding List..." = "エンコーディングリストをカスタマイズ...";
+"Customize Encodings List..." = "エンコーディングリストをカスタマイズ...";
+"Select the encodings to display in the Text Encoding menu." = "テキストエンコーディングメニューに表示するエンコーディングを選択してください。";
+"List Not Available" = "リストを利用できません";
+"Select All" = "すべてを選択";
+"Deselect All" = "すべての選択を解除";
+"Revert to Default..." = "デフォルトに戻す...";
+"Reset Structure" = "構造をリセット";
+"Document text encoding" = "テキストエンコーディング";
+
+/* Find Bar */
+"Show Find Bar" = "検索バーを表示";
+"Find Next (Enter)" = "次を検索（Enter）";
+"Find Previous (Shift+Enter)" = "前を検索（Shift+Enter）";
+"Hide Replace" = "置換を隠す";
+"Replace All" = "すべてを置換";
+"Match Case" = "大文字/小文字を区別";
+"Whole Word" = "単語単位";
+"Regular Expression" = "正規表現";
+"No matches" = "一致なし";
+"Count:" = "件数：";
+"Invalid regex" = "無効な正規表現";
+
+/* Regex Patterns */
+"Regex Patterns" = "正規表現パターン";
+"Save Current Pattern…" = "現在のパターンを保存…";
+"Save Search Pattern" = "検索パターンを保存";
+"Enter a name for this pattern:" = "パターンの名前を入力してください：";
+"Pattern name" = "パターン名";
+"Regular Expression Help" = "正規表現ヘルプ";
+"Insert Pattern" = "パターンを挿入";
+"No Recent Searches" = "最近の検索はありません";
+"Clear Recent Searches" = "最近の検索を消去";
+
+/* Fixed Width */
+"Fixed Width" = "固定幅";
+"Fixed Width Panel..." = "固定幅パネル...";
+"Enter the document width in characters:" = "書類の幅を文字数で入力してください：";
+"Fixed Width (%dchars.)..." = "固定幅（%d文字）...";
+"Fixed Width ( %d chars.)" = "固定幅（ %d 文字）";
+"chars." = "文字";
+"Specify a width between 10 and 9999 characters." = "10〜9999文字の間で幅を指定してください。";
+"Invalid Width" = "無効な幅";
+"Document Width:" = "書類の幅：";
+
+/* Line Wrapping */
+"Don't Wrap Line" = "行を折り返さない";
+"Follows Window Width" = "ウインドウ幅に合わせる";
+"Follows Paper Width" = "用紙幅に合わせる";
+
+/* Font */
+"Basic Font" = "基本フォント";
+"Basic Font..." = "基本フォント...";
+"Change Font" = "フォントの変更";
+"Change Font..." = "フォントの変更...";
+"Font: %@\nSize: %.1f pt\nBasic Character Width: %.2f pt" = "フォント：%@\nサイズ：%.1f pt\n基本文字幅：%.2f pt";
+"The Basic Character Width is used for the character ruler scale and fixed-width document layout." = "基本文字幅は文字ルーラーの目盛と固定幅書類のレイアウトに使用されます。";
+
+/* Colors */
+"Character Fore Color" = "文字カラー";
+"Character Back Color" = "文字の背景カラー";
+"Other Color..." = "その他のカラー...";
+"Other Color…" = "その他のカラー…";
+"Color Change Not Allowed" = "カラーの変更ができません";
+"Character colors cannot be changed in plain text documents. To change colors, convert the document to Rich Text format." = "標準テキスト書類では文字カラーを変更できません。カラーを変更するには、書類をリッチテキストフォーマットに変換してください。";
+
+/* Color Names - Fore */
+"Text Color" = "テキストカラー";
+"Red" = "レッド";
+"Orange" = "オレンジ";
+"Yellow" = "イエロー";
+"Green" = "グリーン";
+"Mint" = "ミント";
+"Teal" = "ティール";
+"Cyan" = "シアン";
+"Blue" = "ブルー";
+"Indigo" = "インディゴ";
+"Purple" = "パープル";
+"Pink" = "ピンク";
+"Brown" = "ブラウン";
+"Gray" = "グレイ";
+
+/* Color Names - Back */
+"Clear" = "クリア";
+"Salmon" = "サーモン";
+"Carnation" = "カーネーション";
+"Lavender" = "ラベンダー";
+"Ice" = "アイス";
+"Flora" = "フローラ";
+"Banana" = "バナナ";
+"Not Assigned" = "未設定";
+
+/* Appearance */
+"Light" = "ライト";
+"Dark" = "ダーク";
+"Automatic" = "自動";
+"Dynamic" = "ダイナミック";
+
+/* Bookmarks */
+"Bookmarks" = "ブックマーク";
+"Clear All Bookmarks?" = "すべてのブックマークを消去しますか？";
+"This will remove all bookmarks and their anchors from the document." = "書類からすべてのブックマークとそのアンカーが削除されます。";
+"Clear All" = "すべてを消去";
+"Another bookmark already exists in the range." = "この範囲にはすでに別のブックマークがあります。";
+"If you make new bookmark, The range of old bookmark may be broken." = "新しいブックマークを作成すると、古いブックマークの範囲が壊れる可能性があります。";
+"Sort by Name" = "名前で並べ替え";
+"Sort by Location" = "位置で並べ替え";
+"Collapse All" = "すべてを折りたたむ";
+"Expand All" = "すべてを展開";
+
+/* Document Info */
+"Show Document Info" = "書類情報を表示";
+"Document type" = "書類の種類";
+"Document text encoding" = "テキストエンコーディング";
+"Document line ending format" = "改行コード";
+"Document scale" = "表示倍率";
+
+/* Scale */
+"Add Other Scale..." = "その他の倍率を追加...";
+"New Scale:" = "新しい倍率：";
+"Specify a scale between 25% and 999%." = "25%〜999%の間で倍率を指定してください。";
+"Invalid Scale" = "無効な倍率";
+"Same scale already exists in the menu." = "同じ倍率がすでにメニューにあります。";
+"Duplicate Scale" = "倍率の重複";
+"Add a new scale" = "新しい倍率を追加";
+"If you want to remove an existing menu item, choose it with pressing Option key." = "既存のメニュー項目を削除するには、Optionキーを押しながら選択してください。";
+
+/* Tab Width */
+"Tab Width" = "タブ幅";
+"Tab Width:" = "タブ幅：";
+"Specify a width between 1 and 999." = "1〜999の間で幅を指定してください。";
+"Invalid Value" = "無効な値";
+
+/* Line Spacing */
+"Line Spacing" = "行間";
+"Inter-line spacing" = "行間隔";
+"Line height multiple" = "行の高さの倍数";
+"Line height" = "行の高さ";
+"Paragraph spacing" = "段落間隔";
+"before" = "前";
+"after" = "後";
+"points" = "ポイント";
+"times" = "倍";
+
+/* Wrapped Line Indent */
+"Wrapped Line Indent" = "折り返し行のインデント";
+"Indent Wrapped Lines by:" = "折り返し行のインデント：";
+"spaces" = "スペース";
+"pt." = "pt.";
+
+/* Line Ending */
+"Line Ending" = "改行コード";
+
+/* Ruler */
+"Left Tab" = "左揃えタブ";
+"Center Tab" = "中央揃えタブ";
+"Right Tab" = "右揃えタブ";
+"Decimal Tab" = "小数点タブ";
+
+/* Writing Progress */
+"Writing Progress" = "執筆の進捗";
+"Writing Progress - %d%%" = "執筆の進捗 - %d%%";
+"Writing Progress - Click to set goal" = "執筆の進捗 - クリックして目標を設定";
+"Writing Progress - No goal set" = "執筆の進捗 - 目標未設定";
+"Click to cycle through statistics" = "クリックして統計を切り替え";
+"Visible Characters" = "表示文字数";
+"Manuscript Pages (400 chars)" = "原稿用紙（400字）";
+"Paragraph Number" = "段落数";
+"Row Number" = "行数";
+
+/* Writing Goal */
+"Writing Goal" = "執筆目標";
+"(0 = No goal)" = "（0 = 目標なし）";
+"Target:" = "目標：";
+"pages" = "枚";
+"visible chars" = "表示文字";
+
+/* Editing Lock */
+"Allow Editing" = "編集を許可";
+"Allow Editing?" = "編集を許可しますか？";
+"Prevent Editing" = "編集を禁止";
+"Make the current document read-only." = "現在の書類を読み取り専用にする。";
+"Toggle editing lock" = "編集ロックを切り替え";
+
+/* Plain Text Warnings */
+"Text Alignment" = "テキストの配置";
+"In plain text documents, alignment changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、配置の変更が書類全体に適用されます。続けますか？";
+"In plain text documents, color changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、カラーの変更が書類全体に適用されます。続けますか？";
+"In plain text documents, font changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、フォントの変更が書類全体に適用されます。続けますか？";
+"In plain text documents, kerning changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、カーニングの変更が書類全体に適用されます。続けますか？";
+"In plain text documents, ligature changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、合字の変更が書類全体に適用されます。続けますか？";
+"In plain text documents, underline changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、下線の変更が書類全体に適用されます。続けますか？";
+"Are you sure?" = "よろしいですか？";
+
+/* Kern / Ligatures / Underline */
+"Kern" = "カーニング";
+"Ligatures" = "合字";
+"Underline" = "下線";
+
+/* Lists */
+"Lists cannot be used in plain text documents. To use lists, convert the document to Rich Text format." = "標準テキスト書類ではリストを使用できません。リストを使用するには、書類をリッチテキストフォーマットに変換してください。";
+
+/* Special Characters */
+"Special Characters" = "特殊文字";
+
+/* Split View */
+"Split view horizontally." = "水平方向に分割する。";
+"Split view vertically." = "垂直方向に分割する。";
+"Collapse to single view." = "単一ビューに戻す。";
+
+/* Image */
+"Change Image Size..." = "画像サイズを変更...";
+
+/* Line Number */
+"." = ".";
+"?" = "?";
+
+/* Presets */
+"New Preset" = "新規プリセット";
+"Enter a name for the new preset:" = "新しいプリセット名を入力してください：";
+"Delete Preset" = "プリセットを削除";
+"Are you sure you want to delete \"%@\"?" = "\"%@\" を削除してもよろしいですか？";
+"Revert to Default" = "デフォルトに戻す";
+"Are you sure you want to revert \"%@\" to its default settings?" = "\"%@\" をデフォルトの設定に戻してもよろしいですか？";
+"Rename Preset" = "プリセット名の変更";
+"Enter a new name for the preset:" = "プリセットの新しい名前を入力してください：";
+
+/* Theme */
+"Theme" = "テーマ";
+"Add Theme" = "テーマを追加";
+"Add Theme..." = "テーマを追加...";
+"New Theme" = "新規テーマ";
+"Enter a name for the new theme:" = "新しいテーマ名を入力してください：";
+"Remove Theme" = "テーマを削除";
+"Are you sure you want to remove \"%@\"?" = "\"%@\" を削除してもよろしいですか？";
+
+/* Styles */
+"Edit Styles…" = "スタイルを編集…";
+
+/* Scripts */
+"Install Sample Scripts" = "サンプルスクリプトをインストール";
+"Jedit includes sample AppleScripts. To install them, you need to grant access to the Scripts folder.\n\nIn the next dialog, please select the displayed folder and click \"Open\"." = "Jeditにはサンプルスクリプトが含まれています。インストールするにはスクリプトフォルダへのアクセスを許可する必要があります。\n\n次のダイアログで表示されたフォルダを選択して「開く」をクリックしてください。";
+"Select the Scripts folder to install sample scripts.\nPlease select the folder shown below and click \"Open\"." = "サンプルスクリプトをインストールするスクリプトフォルダを選択してください。\n以下に表示されたフォルダを選択して「開く」をクリックしてください。";
+"No Scripts" = "スクリプトなし";
+"Open Scripts Folder" = "スクリプトフォルダを開く";
+"Open Script Editor" = "スクリプトエディタを開く";
+"Open Script Dictionaries" = "スクリプト用語説明を開く";
+"Script Error" = "スクリプトエラー";
+
+/* Print */
+"Cannot print: No text view available" = "印刷できません：テキストビューがありません";
+
+/* Calendar Date Patterns */
+"System Short Date Format" = "システム短い日付形式";
+"System Medium Date Format" = "システム普通の日付形式";
+"System Long Date Format" = "システム長い日付形式";
+"System Full Date Format" = "システムすべての日付形式";
+"System Short Time Format" = "システム短い時刻形式";
+"System Medium Time Format" = "システム普通の時刻形式";
+"System Long Time Format" = "システム長い時刻形式";
+"System Full Time Format" = "システムすべての時刻形式";
+"System Short Date&Time Format" = "システム短い日付と時刻形式";
+"System Medium Date&Time Format" = "システム普通の日付と時刻形式";
+"System Long Date&Time Format" = "システム長い日付と時刻形式";
+"System Full Date&Time Format" = "システムすべての日付と時刻形式";
+
+/* Help */
+"Search Help" = "ヘルプを検索";
+"Provide Feedback to Apple…" = "Appleにフィードバックを送信…";
+
+/* Document Info Labels */
+"None" = "なし";
+"All" = "すべて";
+
+/* Link Panel */
+"." = ".";
+
+/* Fixed Width Menu */
+"Fixed Width (%dchars.)..." = "固定幅（%d文字）...";
