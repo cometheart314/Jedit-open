@@ -169,15 +169,11 @@ extension Document {
 
             if existingAnchorCount > 0 {
                 let alert = NSAlert()
-                alert.messageText = NSLocalizedString(
-                    "Another bookmark already exists in the range.",
-                    comment: "Bookmark exists alert title")
-                alert.informativeText = NSLocalizedString(
-                    "If you make new bookmark, The range of old bookmark may be broken.",
-                    comment: "Bookmark exists alert message")
+                alert.messageText = "Another bookmark already exists in the range.".localized
+                alert.informativeText = "If you make new bookmark, The range of old bookmark may be broken.".localized
                 alert.alertStyle = .informational
-                alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
-                alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+                alert.addButton(withTitle: "OK".localized)
+                alert.addButton(withTitle: "Cancel".localized)
 
                 let response = alert.runModal()
                 if response != .alertFirstButtonReturn {

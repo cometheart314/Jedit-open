@@ -288,7 +288,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         let menu = NSMenu()
 
         // --- 特殊文字セクション ---
-        let specialHeader = NSMenuItem(title: NSLocalizedString("Special Characters", comment: ""), action: nil, keyEquivalent: "")
+        let specialHeader = NSMenuItem(title: "Special Characters".localized, action: nil, keyEquivalent: "")
         specialHeader.isEnabled = false
         menu.addItem(specialHeader)
 
@@ -311,7 +311,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         menu.addItem(.separator())
 
         // --- 正規表現パターンセクション ---
-        let regexHeader = NSMenuItem(title: NSLocalizedString("Regex Patterns", comment: ""), action: nil, keyEquivalent: "")
+        let regexHeader = NSMenuItem(title: "Regex Patterns".localized, action: nil, keyEquivalent: "")
         regexHeader.isEnabled = false
         menu.addItem(regexHeader)
 
@@ -457,7 +457,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             backing: .buffered,
             defer: true
         )
-        panel.title = NSLocalizedString("Regular Expression Help", comment: "")
+        panel.title = "Regular Expression Help".localized
         panel.isFloatingPanel = true
         panel.becomesKeyOnlyIfNeeded = true
         panel.isReleasedWhenClosed = false
@@ -507,13 +507,13 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
     @objc private func saveCurrentPattern(_ sender: Any?) {
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Save Search Pattern", comment: "")
-        alert.informativeText = NSLocalizedString("Enter a name for this pattern:", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("Save", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "Save Search Pattern".localized
+        alert.informativeText = "Enter a name for this pattern:".localized
+        alert.addButton(withTitle: "Save".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         let nameField = NSTextField(frame: NSRect(x: 0, y: 0, width: 250, height: 24))
-        nameField.placeholderString = NSLocalizedString("Pattern name", comment: "")
+        nameField.placeholderString = "Pattern name".localized
         alert.accessoryView = nameField
 
         guard let window = view.window else { return }
@@ -771,7 +771,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         if findEngine.options.useRegex && !findEngine.validateRegex() {
             highlightManager.clearAllHighlights()
             currentResult = .empty
-            matchCountLabel.stringValue = NSLocalizedString("Invalid regex", comment: "")
+            matchCountLabel.stringValue = "Invalid regex".localized
             matchCountLabel.textColor = .systemRed
             return
         }
@@ -841,7 +841,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         if searchField.stringValue.isEmpty {
             matchCountLabel.stringValue = ""
         } else if currentResult.isEmpty {
-            matchCountLabel.stringValue = NSLocalizedString("No matches", comment: "")
+            matchCountLabel.stringValue = "No matches".localized
             matchCountLabel.textColor = .systemRed
         } else {
             let current = currentResult.currentIndex + 1
@@ -975,7 +975,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         // Search Field
         searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchField.placeholderString = NSLocalizedString("Search", comment: "")
+        searchField.placeholderString = "Search".localized
         searchField.delegate = self
         searchField.sendsSearchStringImmediately = true
         searchField.sendsWholeSearchString = false
@@ -995,16 +995,16 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         insertPatternButton.controlSize = .small
         insertPatternButton.target = self
         insertPatternButton.action = #selector(showInsertPatternMenu(_:))
-        insertPatternButton.toolTip = NSLocalizedString("Insert Pattern", comment: "")
+        insertPatternButton.toolTip = "Insert Pattern".localized
         insertPatternButton.setContentHuggingPriority(.required, for: .horizontal)
         findRow.addSubview(insertPatternButton)
 
         // Previous Button
-        configureButton(previousButton, image: NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "Previous")!, action: #selector(findPrevious(_:)), toolTip: NSLocalizedString("Find Previous (Shift+Enter)", comment: ""))
+        configureButton(previousButton, image: NSImage(systemSymbolName: "chevron.left", accessibilityDescription: "Previous")!, action: #selector(findPrevious(_:)), toolTip: "Find Previous (Shift+Enter)".localized)
         findRow.addSubview(previousButton)
 
         // Next Button
-        configureButton(nextButton, image: NSImage(systemSymbolName: "chevron.right", accessibilityDescription: "Next")!, action: #selector(findNext(_:)), toolTip: NSLocalizedString("Find Next (Enter)", comment: ""))
+        configureButton(nextButton, image: NSImage(systemSymbolName: "chevron.right", accessibilityDescription: "Next")!, action: #selector(findNext(_:)), toolTip: "Find Next (Enter)".localized)
         findRow.addSubview(nextButton)
 
         // Match Count Label
@@ -1017,15 +1017,15 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         findRow.addSubview(matchCountLabel)
 
         // Case Sensitive Toggle
-        configureToggle(caseSensitiveToggle, title: "Aa", action: #selector(toggleCaseSensitive(_:)), toolTip: NSLocalizedString("Match Case", comment: ""))
+        configureToggle(caseSensitiveToggle, title: "Aa", action: #selector(toggleCaseSensitive(_:)), toolTip: "Match Case".localized)
         findRow.addSubview(caseSensitiveToggle)
 
         // Whole Word Toggle（正規表現の左隣）
-        configureToggle(wholeWordToggle, title: "W", action: #selector(toggleWholeWord(_:)), toolTip: NSLocalizedString("Whole Word", comment: ""))
+        configureToggle(wholeWordToggle, title: "W", action: #selector(toggleWholeWord(_:)), toolTip: "Whole Word".localized)
         findRow.addSubview(wholeWordToggle)
 
         // Regex Toggle
-        configureToggle(regexToggle, title: ".*", action: #selector(toggleRegex(_:)), toolTip: NSLocalizedString("Regular Expression", comment: ""))
+        configureToggle(regexToggle, title: ".*", action: #selector(toggleRegex(_:)), toolTip: "Regular Expression".localized)
         findRow.addSubview(regexToggle)
 
         // Regex Help Button
@@ -1034,12 +1034,12 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         regexHelpButton.controlSize = .small
         regexHelpButton.target = self
         regexHelpButton.action = #selector(showRegexHelp(_:))
-        regexHelpButton.toolTip = NSLocalizedString("Regular Expression Help", comment: "")
+        regexHelpButton.toolTip = "Regular Expression Help".localized
         regexHelpButton.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         findRow.addSubview(regexHelpButton)
 
         // Done Button
-        configureButton(doneButton, title: NSLocalizedString("Done", comment: ""), action: #selector(closeFindBar(_:)), toolTip: nil)
+        configureButton(doneButton, title: "Done".localized, action: #selector(closeFindBar(_:)), toolTip: nil)
         doneButton.setContentHuggingPriority(.required, for: .horizontal)
         findRow.addSubview(doneButton)
     }
@@ -1051,18 +1051,18 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         // Replace Field
         replaceField.translatesAutoresizingMaskIntoConstraints = false
-        replaceField.placeholderString = NSLocalizedString("Replace", comment: "")
+        replaceField.placeholderString = "Replace".localized
         replaceField.delegate = self
         replaceField.font = NSFont.systemFont(ofSize: 12)
         replaceField.controlSize = .small
         replaceRow.addSubview(replaceField)
 
         // Replace Button
-        configureButton(replaceButton, title: NSLocalizedString("Replace", comment: ""), action: #selector(replaceOne(_:)), toolTip: nil)
+        configureButton(replaceButton, title: "Replace".localized, action: #selector(replaceOne(_:)), toolTip: nil)
         replaceRow.addSubview(replaceButton)
 
         // Replace All Button
-        configureButton(replaceAllButton, title: NSLocalizedString("All", comment: ""), action: #selector(replaceAll(_:)), toolTip: NSLocalizedString("Replace All", comment: ""))
+        configureButton(replaceAllButton, title: "All".localized, action: #selector(replaceAll(_:)), toolTip: "Replace All".localized)
         replaceRow.addSubview(replaceAllButton)
     }
 
@@ -1177,8 +1177,8 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         // Replace Mode toggle (top item)
         let replaceTitle = isReplaceMode
-            ? NSLocalizedString("Hide Replace", comment: "")
-            : NSLocalizedString("Replace", comment: "")
+            ? "Hide Replace".localized
+            : "Replace".localized
         let replaceItem = NSMenuItem(title: replaceTitle, action: #selector(toggleReplaceMode(_:)), keyEquivalent: "")
         replaceItem.image = NSImage(systemSymbolName: "arrow.right.square", accessibilityDescription: "Replace")
         replaceItem.target = self
@@ -1189,7 +1189,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         // Recent Searches section (custom: find/replace pairs)
         let recentEntries = historyManager.recentSearchEntries
         if recentEntries.isEmpty {
-            let noRecentsItem = NSMenuItem(title: NSLocalizedString("No Recent Searches", comment: ""), action: nil, keyEquivalent: "")
+            let noRecentsItem = NSMenuItem(title: "No Recent Searches".localized, action: nil, keyEquivalent: "")
             noRecentsItem.isEnabled = false
             menu.addItem(noRecentsItem)
         } else {
@@ -1203,7 +1203,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             }
 
             menu.addItem(.separator())
-            let clearItem = NSMenuItem(title: NSLocalizedString("Clear Recent Searches", comment: ""), action: #selector(clearRecentSearchEntries(_:)), keyEquivalent: "")
+            let clearItem = NSMenuItem(title: "Clear Recent Searches".localized, action: #selector(clearRecentSearchEntries(_:)), keyEquivalent: "")
             clearItem.image = NSImage(systemSymbolName: "trash", accessibilityDescription: "Clear")
             clearItem.target = self
             menu.addItem(clearItem)
@@ -1238,7 +1238,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         // Save Current Pattern
         menu.addItem(.separator())
-        let saveItem = NSMenuItem(title: NSLocalizedString("Save Current Pattern…", comment: ""), action: #selector(saveCurrentPattern(_:)), keyEquivalent: "")
+        let saveItem = NSMenuItem(title: "Save Current Pattern…".localized, action: #selector(saveCurrentPattern(_:)), keyEquivalent: "")
         saveItem.image = NSImage(systemSymbolName: "square.and.arrow.down", accessibilityDescription: "Save")
         saveItem.target = self
         menu.addItem(saveItem)

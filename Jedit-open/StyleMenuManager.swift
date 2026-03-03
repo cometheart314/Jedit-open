@@ -112,7 +112,7 @@ class StyleMenuManager: NSObject {
 
         // Edit Styles... 項目
         let editItem = NSMenuItem(
-            title: NSLocalizedString("Edit Styles…", comment: "Menu item to open Styles preferences"),
+            title: "Edit Styles…".localized,
             action: #selector(AppDelegate.showStylesPreferences(_:)),
             keyEquivalent: ""
         )

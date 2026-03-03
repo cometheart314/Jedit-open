@@ -66,7 +66,7 @@ class DocumentColorsPanel: NSPanel {
         themePopup.removeAllItems()
 
         // 最初に"Theme"タイトルを追加（未選択状態を示す）
-        themePopup.addItem(withTitle: NSLocalizedString("Theme", comment: "Theme popup title"))
+        themePopup.addItem(withTitle: "Theme".localized)
 
         let manager = ThemeColorManager.shared
 

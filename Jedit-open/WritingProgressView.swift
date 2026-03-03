@@ -60,7 +60,7 @@ class WritingProgressView: NSView {
     }
 
     private func setupView() {
-        toolTip = NSLocalizedString("Writing Progress - Click to set goal", comment: "")
+        toolTip = "Writing Progress - Click to set goal".localized
     }
 
     // MARK: - Drawing
@@ -190,24 +190,24 @@ class WritingProgressView: NSView {
 
     override func accessibilityLabel() -> String? {
         if !isGoalSet {
-            return NSLocalizedString("Writing Progress - No goal set", comment: "")
+            return "Writing Progress - No goal set".localized
         }
         let percent = Int(progress * 100)
-        return String(format: NSLocalizedString("Writing Progress - %d%%", comment: ""), percent)
+        return String(format: "Writing Progress - %d%%".localized, percent)
     }
 
     // MARK: - Private
 
     private func updateToolTip() {
         if !isGoalSet {
-            toolTip = NSLocalizedString("Writing Progress - Click to set goal", comment: "")
+            toolTip = "Writing Progress - Click to set goal".localized
             return
         }
 
         let percent = Int(progress * 100)
         let countLabel = countMethod == 1
-            ? NSLocalizedString("pages", comment: "Manuscript pages")
-            : NSLocalizedString("visible chars", comment: "Visible characters")
+            ? "pages".localized
+            : "visible chars".localized
 
         toolTip = String(format: "%@ / %@ %@ (%d%%)",
                          DocumentStatistics.formatted(currentCount),

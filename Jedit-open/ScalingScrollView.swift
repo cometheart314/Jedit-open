@@ -145,7 +145,7 @@ class ScalingScrollView: NSScrollView {
         noneButton.target = nil
         noneButton.action = #selector(EditorWindowController.collapseViews(_:))
         noneButton.refusesFirstResponder = true
-        noneButton.toolTip = NSLocalizedString("Collapse to single view.", comment: "Split button tooltip")
+        noneButton.toolTip = "Collapse to single view.".localized
         addSubview(noneButton)
         splitNoneButton = noneButton
 
@@ -161,7 +161,7 @@ class ScalingScrollView: NSScrollView {
         horiButton.target = nil
         horiButton.action = #selector(EditorWindowController.splitHorizontally(_:))
         horiButton.refusesFirstResponder = true
-        horiButton.toolTip = NSLocalizedString("Split view horizontally.", comment: "Split button tooltip")
+        horiButton.toolTip = "Split view horizontally.".localized
         addSubview(horiButton)
         splitHoriButton = horiButton
 
@@ -177,7 +177,7 @@ class ScalingScrollView: NSScrollView {
         vertButton.target = nil
         vertButton.action = #selector(EditorWindowController.splitVertically(_:))
         vertButton.refusesFirstResponder = true
-        vertButton.toolTip = NSLocalizedString("Split view vertically.", comment: "Split button tooltip")
+        vertButton.toolTip = "Split view vertically.".localized
         addSubview(vertButton)
         splitVertButton = vertButton
     }
@@ -199,7 +199,7 @@ class ScalingScrollView: NSScrollView {
         button.target = nil
         button.action = #selector(EditorWindowController.togglePreventEditing(_:))
         button.refusesFirstResponder = true
-        button.toolTip = NSLocalizedString("Toggle editing lock", comment: "Edit lock button tooltip")
+        button.toolTip = "Toggle editing lock".localized
         addSubview(button)
         editLockButton = button
     }
@@ -215,7 +215,7 @@ class ScalingScrollView: NSScrollView {
         button.target = nil
         button.action = #selector(EditorWindowController.toggleRichText(_:))
         button.refusesFirstResponder = true
-        button.toolTip = NSLocalizedString("Document type", comment: "Text type button tooltip")
+        button.toolTip = "Document type".localized
         addSubview(button)
         textTypeButton = button
     }
@@ -238,7 +238,7 @@ class ScalingScrollView: NSScrollView {
         button.target = self
         button.action = #selector(scaleButtonClicked(_:))
         button.refusesFirstResponder = true
-        button.toolTip = NSLocalizedString("Document scale", comment: "Scale button tooltip")
+        button.toolTip = "Document scale".localized
 
         addSubview(button)
         scaleButton = button
@@ -265,7 +265,7 @@ class ScalingScrollView: NSScrollView {
         button.target = self
         button.action = #selector(infoFieldClicked(_:))
         button.refusesFirstResponder = true
-        button.toolTip = NSLocalizedString("Click to cycle through statistics", comment: "Info field tooltip")
+        button.toolTip = "Click to cycle through statistics".localized
 
         addSubview(button)
         infoField = button
@@ -297,7 +297,7 @@ class ScalingScrollView: NSScrollView {
         button.target = nil
         button.action = #selector(AppDelegate.showDocumentInfo(_:))
         button.refusesFirstResponder = true
-        button.toolTip = NSLocalizedString("Show Document Info", comment: "Info panel button tooltip")
+        button.toolTip = "Show Document Info".localized
 
         addSubview(button)
         infoPanelButton = button
@@ -450,8 +450,8 @@ class ScalingScrollView: NSScrollView {
             button.image = image.withSymbolConfiguration(config)
         }
         button.toolTip = isEditable
-            ? NSLocalizedString("Prevent Editing", comment: "Edit lock button tooltip - editable")
-            : NSLocalizedString("Allow Editing", comment: "Edit lock button tooltip - locked")
+            ? "Prevent Editing".localized
+            : "Allow Editing".localized
     }
 
     // MARK: - Live Resize

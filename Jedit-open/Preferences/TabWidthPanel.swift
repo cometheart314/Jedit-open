@@ -28,7 +28,7 @@ class TabWidthPanel: NSPanel {
             defer: true
         )
 
-        self.title = NSLocalizedString("Tab Width", comment: "")
+        self.title = "Tab Width".localized
         self.isReleasedWhenClosed = false
 
         setupUI()
@@ -44,7 +44,7 @@ class TabWidthPanel: NSPanel {
         guard let contentView = self.contentView else { return }
 
         // Tab Width: ラベル
-        let label = NSTextField(labelWithString: NSLocalizedString("Tab Width:", comment: ""))
+        let label = NSTextField(labelWithString: "Tab Width:".localized)
         label.frame = NSRect(x: 20, y: 80, width: 80, height: 17)
         contentView.addSubview(label)
 
@@ -77,8 +77,8 @@ class TabWidthPanel: NSPanel {
 
         // 単位ポップアップ（Points / Spaces）
         unitPopup = NSPopUpButton(frame: NSRect(x: 195, y: 75, width: 85, height: 25), pullsDown: false)
-        unitPopup.addItem(withTitle: NSLocalizedString("points", comment: ""))
-        unitPopup.addItem(withTitle: NSLocalizedString("spaces", comment: ""))
+        unitPopup.addItem(withTitle: "points".localized)
+        unitPopup.addItem(withTitle: "spaces".localized)
         unitPopup.item(at: 0)?.tag = 0  // points
         unitPopup.item(at: 1)?.tag = 1  // spaces
         unitPopup.target = self
@@ -86,14 +86,14 @@ class TabWidthPanel: NSPanel {
         contentView.addSubview(unitPopup)
 
         // Cancel ボタン
-        let cancelButton = NSButton(title: NSLocalizedString("Cancel", comment: ""), target: self, action: #selector(cancelClicked(_:)))
+        let cancelButton = NSButton(title: "Cancel".localized, target: self, action: #selector(cancelClicked(_:)))
         cancelButton.frame = NSRect(x: 110, y: 13, width: 82, height: 32)
         cancelButton.bezelStyle = .rounded
         cancelButton.keyEquivalent = "\u{1b}" // Escape
         contentView.addSubview(cancelButton)
 
         // Change ボタン
-        let changeButton = NSButton(title: NSLocalizedString("Change", comment: ""), target: self, action: #selector(changeClicked(_:)))
+        let changeButton = NSButton(title: "Change".localized, target: self, action: #selector(changeClicked(_:)))
         changeButton.frame = NSRect(x: 197, y: 13, width: 82, height: 32)
         changeButton.bezelStyle = .rounded
         changeButton.keyEquivalent = "\r" // Return
@@ -157,10 +157,10 @@ class TabWidthPanel: NSPanel {
         // 範囲チェック
         if value < 1 || value > 999 {
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Invalid Width", comment: "")
-            alert.informativeText = NSLocalizedString("Specify a width between 1 and 999.", comment: "")
+            alert.messageText = "Invalid Width".localized
+            alert.informativeText = "Specify a width between 1 and 999.".localized
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+            alert.addButton(withTitle: "OK".localized)
             alert.beginSheetModal(for: self, completionHandler: nil)
             return
         }

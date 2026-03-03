@@ -360,14 +360,14 @@ class StyleInfoPanelController: NSObject {
         popup.addItem(withTitle: "")
         for (name, color) in Self.foreColorEntries {
             let item = NSMenuItem()
-            item.title = NSLocalizedString(name, comment: "Color name")
+            item.title = name.localized
             item.image = createColorSwatchImage(color: color)
             item.representedObject = color
             popup.menu?.addItem(item)
         }
         popup.menu?.addItem(NSMenuItem.separator())
         let otherItem = NSMenuItem()
-        otherItem.title = NSLocalizedString("Other Color…", comment: "")
+        otherItem.title = "Other Color…".localized
         otherItem.representedObject = "other" as NSString  // センチネル
         popup.menu?.addItem(otherItem)
         popup.target = self
@@ -384,7 +384,7 @@ class StyleInfoPanelController: NSObject {
         popup.addItem(withTitle: "")
         for (index, (name, color)) in Self.backColorEntries.enumerated() {
             let item = NSMenuItem()
-            item.title = NSLocalizedString(name, comment: "Color name")
+            item.title = name.localized
             item.image = createColorSwatchImage(color: color ?? .white)
             item.representedObject = color  // nil for Clear
             item.tag = index
@@ -395,7 +395,7 @@ class StyleInfoPanelController: NSObject {
         }
         popup.menu?.addItem(NSMenuItem.separator())
         let otherItem = NSMenuItem()
-        otherItem.title = NSLocalizedString("Other Color…", comment: "")
+        otherItem.title = "Other Color…".localized
         otherItem.representedObject = "other" as NSString
         popup.menu?.addItem(otherItem)
         popup.target = self
@@ -442,21 +442,21 @@ class StyleInfoPanelController: NSObject {
         popup.addItem(withTitle: "")
         // Not Assigned（色指定なし = テキスト色と同じ）
         let clearItem = NSMenuItem()
-        clearItem.title = NSLocalizedString("Not Assigned", comment: "No specific color assigned, uses text color")
+        clearItem.title = "Not Assigned".localized
         clearItem.representedObject = nil
         popup.menu?.addItem(clearItem)
         popup.menu?.addItem(NSMenuItem.separator())
         // Foreground と同じプリセット
         for (name, color) in Self.foreColorEntries {
             let item = NSMenuItem()
-            item.title = NSLocalizedString(name, comment: "Color name")
+            item.title = name.localized
             item.image = createColorSwatchImage(color: color)
             item.representedObject = color
             popup.menu?.addItem(item)
         }
         popup.menu?.addItem(NSMenuItem.separator())
         let otherItem = NSMenuItem()
-        otherItem.title = NSLocalizedString("Other Color…", comment: "")
+        otherItem.title = "Other Color…".localized
         otherItem.representedObject = "other" as NSString
         popup.menu?.addItem(otherItem)
         popup.target = self

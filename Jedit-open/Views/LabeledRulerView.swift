@@ -58,10 +58,10 @@ class LabeledRulerView: NSRulerView {
         let menu = NSMenu()
 
         let items: [(String, TabStopType)] = [
-            (NSLocalizedString("Left Tab", comment: "Left-aligned tab stop"), .left),
-            (NSLocalizedString("Center Tab", comment: "Center-aligned tab stop"), .center),
-            (NSLocalizedString("Right Tab", comment: "Right-aligned tab stop"), .right),
-            (NSLocalizedString("Decimal Tab", comment: "Decimal tab stop"), .decimal),
+            ("Left Tab".localized, .left),
+            ("Center Tab".localized, .center),
+            ("Right Tab".localized, .right),
+            ("Decimal Tab".localized, .decimal),
         ]
 
         for (title, type) in items {

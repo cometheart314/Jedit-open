@@ -2149,10 +2149,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     @IBAction func setLineWrapFixedWidth(_ sender: Any?) {
         // 固定幅を文字数で入力するダイアログを表示
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Fixed Width", comment: "")
-        alert.informativeText = NSLocalizedString("Enter the document width in characters:", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "Fixed Width".localized
+        alert.informativeText = "Enter the document width in characters:".localized
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         // アクセサリビュー（テキストフィールド + ラベル）
         let containerView = NSView(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
@@ -2169,7 +2169,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         textField.formatter = formatter
         containerView.addSubview(textField)
 
-        let label = NSTextField(labelWithString: NSLocalizedString("chars.", comment: ""))
+        let label = NSTextField(labelWithString: "chars.".localized)
         label.frame = NSRect(x: 85, y: 4, width: 50, height: 17)
         containerView.addSubview(label)
 
@@ -2948,10 +2948,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // Rich → Plain で情報が失われる場合はアラートを表示
         if isRich && toggleRichWillLoseInformation() {
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Convert this document to plain text?", comment: "Title of alert confirming Make Plain Text")
-            alert.informativeText = NSLocalizedString("Making a rich text document plain will lose all text styles (such as fonts and colors), and images.", comment: "Subtitle of alert confirming Make Plain Text")
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK"))
-            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel"))
+            alert.messageText = "Convert this document to plain text?".localized
+            alert.informativeText = "Making a rich text document plain will lose all text styles (such as fonts and colors), and images.".localized
+            alert.addButton(withTitle: "OK".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             alert.beginSheetModal(for: self.window!) { response in
                 if response == .alertFirstButtonReturn {
                     self.performToggleRichText(newFileType: nil)
@@ -3055,9 +3055,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let actionName: String
         if undoManager.isUndoing != isRich {
             // Undo中なら逆のアクション名
-            actionName = NSLocalizedString("Make Plain Text", comment: "Undo action name for making a document plain text")
+            actionName = "Make Plain Text".localized
         } else {
-            actionName = NSLocalizedString("Make Rich Text", comment: "Undo action name for making a document rich text")
+            actionName = "Make Rich Text".localized
         }
         undoManager.setActionName(actionName)
 
@@ -3994,7 +3994,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if menuItem.action == #selector(setLineWrapFixedWidth(_:)) {
             menuItem.state = lineWrapMode == .fixedWidth ? .on : .off
             // メニュータイトルに現在の文字数を表示
-            menuItem.title = String(format: NSLocalizedString("Fixed Width (%dchars.)...", comment: ""), fixedWrapWidthInChars)
+            menuItem.title = String(format: "Fixed Width (%dchars.)...".localized, fixedWrapWidthInChars)
         }
 
         // Auto Indent menu item validation
@@ -4714,7 +4714,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Line Spacing", comment: "Undo action name"))
+            undoManager.setActionName("Line Spacing".localized)
         }
 
         // 新しい行間設定を適用
@@ -4768,7 +4768,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         if !undoManager.isUndoing && !undoManager.isRedoing {
-            undoManager.setActionName(NSLocalizedString("Line Spacing", comment: "Undo action name"))
+            undoManager.setActionName("Line Spacing".localized)
         }
 
         // 古い属性を復元
@@ -5011,10 +5011,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // 編集可能 → 読み取り専用にする場合は確認アラートを表示
             guard let window = self.window else { return }
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Are you sure?", comment: "Prevent editing confirmation title")
-            alert.informativeText = NSLocalizedString("Make the current document read-only.", comment: "Prevent editing confirmation message")
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+            alert.messageText = "Are you sure?".localized
+            alert.informativeText = "Make the current document read-only.".localized
+            alert.addButton(withTitle: "OK".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             alert.beginSheetModal(for: window) { [weak self] response in
                 if response == .alertFirstButtonReturn {
                     self?.performSetPreventEditing(editable: false)
@@ -5026,10 +5026,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // Word/ODTからインポートした書類の場合は互換性に関する警告を表示
                 guard let window = self.window else { return }
                 let alert = NSAlert()
-                alert.messageText = NSLocalizedString("Allow Editing?", comment: "Imported document unlock confirmation title")
-                alert.informativeText = NSLocalizedString("This document was imported from a format with limited compatibility. Some formatting may not be fully preserved when saved.", comment: "Imported document unlock warning message")
-                alert.addButton(withTitle: NSLocalizedString("Allow Editing", comment: "Imported document unlock button"))
-                alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+                alert.messageText = "Allow Editing?".localized
+                alert.informativeText = "This document was imported from a format with limited compatibility. Some formatting may not be fully preserved when saved.".localized
+                alert.addButton(withTitle: "Allow Editing".localized)
+                alert.addButton(withTitle: "Cancel".localized)
                 alert.beginSheetModal(for: window) { [weak self] response in
                     if response == .alertFirstButtonReturn {
                         self?.performSetPreventEditing(editable: true)
@@ -5391,9 +5391,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // ツールバーアイテム作成
         let item = NSToolbarItem(itemIdentifier: Self.encodingToolbarItemIdentifier)
-        item.label = NSLocalizedString("Encoding", comment: "Toolbar item label")
-        item.paletteLabel = NSLocalizedString("Text Encoding", comment: "Toolbar item palette label")
-        item.toolTip = NSLocalizedString("Document text encoding", comment: "Toolbar item tooltip")
+        item.label = "Encoding".localized
+        item.paletteLabel = "Text Encoding".localized
+        item.toolTip = "Document text encoding".localized
         item.view = popupButton
 
         self.encodingToolbarItem = item
@@ -5523,10 +5523,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard let data = currentText.data(using: newEncoding) else {
             // 変換できない場合はアラートをシートとして表示
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Cannot Convert", comment: "Alert title")
-            alert.informativeText = String(format: NSLocalizedString("The document contains characters that cannot be represented in %@.", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.messageText = "Cannot Convert".localized
+            alert.informativeText = String(format: "The document contains characters that cannot be represented in %@.".localized, String.localizedName(of: newEncoding))
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: "Button"))
+            alert.addButton(withTitle: "OK".localized)
             alert.beginSheetModal(for: window) { [weak self] _ in
                 // ポップアップを元に戻す
                 self?.updateEncodingToolbarItem()
@@ -5539,11 +5539,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if reconverted != currentText {
             // ラウンドトリップできない場合はアラートをシートとして表示
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Encoding Warning", comment: "Alert title")
-            alert.informativeText = String(format: NSLocalizedString("Converting to %@ may result in data loss. Do you want to continue?", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.messageText = "Encoding Warning".localized
+            alert.informativeText = String(format: "Converting to %@ may result in data loss. Do you want to continue?".localized, String.localizedName(of: newEncoding))
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Button"))
-            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Button"))
+            alert.addButton(withTitle: "Convert".localized)
+            alert.addButton(withTitle: "Cancel".localized)
 
             alert.beginSheetModal(for: window) { [weak self] response in
                 if response == .alertFirstButtonReturn {
@@ -5597,9 +5597,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // ツールバーアイテム作成
         let item = NSToolbarItem(itemIdentifier: Self.lineEndingToolbarItemIdentifier)
-        item.label = NSLocalizedString("Line Ending", comment: "Toolbar item label")
-        item.paletteLabel = NSLocalizedString("Line Ending", comment: "Toolbar item palette label")
-        item.toolTip = NSLocalizedString("Document line ending format", comment: "Toolbar item tooltip")
+        item.label = "Line Ending".localized
+        item.paletteLabel = "Line Ending".localized
+        item.toolTip = "Document line ending format".localized
         item.view = popupButton
 
         self.lineEndingToolbarItem = item
@@ -5698,9 +5698,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         ])
 
         let item = NSToolbarItem(itemIdentifier: Self.writingProgressToolbarItemIdentifier)
-        item.label = NSLocalizedString("Writing Progress", comment: "Toolbar item label")
-        item.paletteLabel = NSLocalizedString("Writing Progress", comment: "Toolbar item palette label")
-        item.toolTip = NSLocalizedString("Writing Progress - Click to set goal", comment: "Toolbar item tooltip")
+        item.label = "Writing Progress".localized
+        item.paletteLabel = "Writing Progress".localized
+        item.toolTip = "Writing Progress - Click to set goal".localized
         item.view = progressView
 
         self.writingProgressToolbarItem = item
@@ -5788,9 +5788,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// 検索ツールバーアイテムを作成
     private func createFindToolbarItem() -> NSToolbarItem {
         let item = NSToolbarItem(itemIdentifier: Self.findToolbarItemIdentifier)
-        item.label = NSLocalizedString("Find", comment: "Toolbar item label")
-        item.paletteLabel = NSLocalizedString("Find", comment: "Toolbar item palette label")
-        item.toolTip = NSLocalizedString("Show Find Bar", comment: "Toolbar item tooltip")
+        item.label = "Find".localized
+        item.paletteLabel = "Find".localized
+        item.toolTip = "Show Find Bar".localized
         item.image = NSImage(systemSymbolName: "magnifyingglass", accessibilityDescription: "Find")
         item.target = nil  // レスポンダチェーンを通じて送信
         item.action = #selector(showFindBar(_:))

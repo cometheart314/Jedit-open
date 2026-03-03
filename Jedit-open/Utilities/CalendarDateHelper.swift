@@ -26,21 +26,21 @@ class CalendarDateHelper {
         var localizedName: String {
             switch self {
             case .systemShort:
-                return NSLocalizedString("System Short Date Format", comment: "")
+                return "System Short Date Format".localized
             case .systemMedium:
-                return NSLocalizedString("System Medium Date Format", comment: "")
+                return "System Medium Date Format".localized
             case .systemLong:
-                return NSLocalizedString("System Long Date Format", comment: "")
+                return "System Long Date Format".localized
             case .systemFull:
-                return NSLocalizedString("System Full Date Format", comment: "")
+                return "System Full Date Format".localized
             case .systemShortDateTime:
-                return NSLocalizedString("System Short Date&Time Format", comment: "")
+                return "System Short Date&Time Format".localized
             case .systemMediumDateTime:
-                return NSLocalizedString("System Medium Date&Time Format", comment: "")
+                return "System Medium Date&Time Format".localized
             case .systemLongDateTime:
-                return NSLocalizedString("System Long Date&Time Format", comment: "")
+                return "System Long Date&Time Format".localized
             case .systemFullDateTime:
-                return NSLocalizedString("System Full Date&Time Format", comment: "")
+                return "System Full Date&Time Format".localized
             case .custom:
                 let format = UserDefaults.standard.string(forKey: UserDefaults.Keys.customDateFormat) ?? "yyyy-MM-dd"
                 return "Custom (\(format))"
@@ -87,13 +87,13 @@ class CalendarDateHelper {
         var localizedName: String {
             switch self {
             case .systemShort:
-                return NSLocalizedString("System Short Time Format", comment: "")
+                return "System Short Time Format".localized
             case .systemMedium:
-                return NSLocalizedString("System Medium Time Format", comment: "")
+                return "System Medium Time Format".localized
             case .systemLong:
-                return NSLocalizedString("System Long Time Format", comment: "")
+                return "System Long Time Format".localized
             case .systemFull:
-                return NSLocalizedString("System Full Time Format", comment: "")
+                return "System Full Time Format".localized
             case .custom:
                 let format = UserDefaults.standard.string(forKey: UserDefaults.Keys.customTimeFormat) ?? "HH:mm:ss"
                 return "Custom (\(format))"

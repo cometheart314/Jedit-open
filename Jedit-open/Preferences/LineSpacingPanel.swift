@@ -60,7 +60,7 @@ class LineSpacingPanel: NSPanel {
             defer: true
         )
 
-        self.title = NSLocalizedString("Line Spacing", comment: "")
+        self.title = "Line Spacing".localized
         self.isReleasedWhenClosed = false
 
         setupUI()
@@ -84,7 +84,7 @@ class LineSpacingPanel: NSPanel {
         var currentY: CGFloat = 190
 
         // Row 1: Line height multiple
-        let multipleLabel = NSTextField(labelWithString: NSLocalizedString("Line height multiple", comment: ""))
+        let multipleLabel = NSTextField(labelWithString: "Line height multiple".localized)
         multipleLabel.frame = NSRect(x: leftMargin, y: currentY, width: labelWidth, height: 17)
         contentView.addSubview(multipleLabel)
 
@@ -106,14 +106,14 @@ class LineSpacingPanel: NSPanel {
         lineHeightMultipleStepper.action = #selector(lineHeightMultipleStepperChanged(_:))
         contentView.addSubview(lineHeightMultipleStepper)
 
-        let timesLabel = NSTextField(labelWithString: NSLocalizedString("times", comment: ""))
+        let timesLabel = NSTextField(labelWithString: "times".localized)
         timesLabel.frame = NSRect(x: leftMargin + labelWidth + 5 + fieldWidth + 5 + stepperWidth + 5, y: currentY, width: unitLabelWidth, height: 17)
         contentView.addSubview(timesLabel)
 
         currentY -= rowHeight
 
         // Row 2: Line height (min/max)
-        let lineHeightLabel = NSTextField(labelWithString: NSLocalizedString("Line height", comment: ""))
+        let lineHeightLabel = NSTextField(labelWithString: "Line height".localized)
         lineHeightLabel.frame = NSRect(x: leftMargin, y: currentY - 10, width: 80, height: 17)
         contentView.addSubview(lineHeightLabel)
 
@@ -141,7 +141,7 @@ class LineSpacingPanel: NSPanel {
         lineHeightMinStepper.action = #selector(lineHeightMinStepperChanged(_:))
         contentView.addSubview(lineHeightMinStepper)
 
-        let minPointsLabel = NSTextField(labelWithString: NSLocalizedString("points", comment: ""))
+        let minPointsLabel = NSTextField(labelWithString: "points".localized)
         minPointsLabel.frame = NSRect(x: leftMargin + 105 + fieldWidth - 5 + 3 + stepperWidth + 3, y: currentY, width: unitLabelWidth, height: 17)
         contentView.addSubview(minPointsLabel)
 
@@ -171,14 +171,14 @@ class LineSpacingPanel: NSPanel {
         lineHeightMaxStepper.action = #selector(lineHeightMaxStepperChanged(_:))
         contentView.addSubview(lineHeightMaxStepper)
 
-        let maxPointsLabel = NSTextField(labelWithString: NSLocalizedString("points", comment: ""))
+        let maxPointsLabel = NSTextField(labelWithString: "points".localized)
         maxPointsLabel.frame = NSRect(x: leftMargin + 105 + fieldWidth - 5 + 3 + stepperWidth + 3, y: currentY, width: unitLabelWidth, height: 17)
         contentView.addSubview(maxPointsLabel)
 
         currentY -= rowHeight
 
         // Row 4: Inter-line spacing
-        let interLineLabel = NSTextField(labelWithString: NSLocalizedString("Inter-line spacing", comment: ""))
+        let interLineLabel = NSTextField(labelWithString: "Inter-line spacing".localized)
         interLineLabel.frame = NSRect(x: leftMargin, y: currentY, width: labelWidth, height: 17)
         contentView.addSubview(interLineLabel)
 
@@ -200,18 +200,18 @@ class LineSpacingPanel: NSPanel {
         interLineSpacingStepper.action = #selector(interLineSpacingStepperChanged(_:))
         contentView.addSubview(interLineSpacingStepper)
 
-        let interLinePointsLabel = NSTextField(labelWithString: NSLocalizedString("points", comment: ""))
+        let interLinePointsLabel = NSTextField(labelWithString: "points".localized)
         interLinePointsLabel.frame = NSRect(x: leftMargin + labelWidth + 5 + fieldWidth + 5 + stepperWidth + 5, y: currentY, width: unitLabelWidth, height: 17)
         contentView.addSubview(interLinePointsLabel)
 
         currentY -= rowHeight
 
         // Row 5: Paragraph spacing (before)
-        let paragraphLabel = NSTextField(labelWithString: NSLocalizedString("Paragraph spacing", comment: ""))
+        let paragraphLabel = NSTextField(labelWithString: "Paragraph spacing".localized)
         paragraphLabel.frame = NSRect(x: leftMargin, y: currentY - 10, width: labelWidth - 15, height: 17)
         contentView.addSubview(paragraphLabel)
 
-        let beforeLabel = NSTextField(labelWithString: NSLocalizedString("before", comment: ""))
+        let beforeLabel = NSTextField(labelWithString: "before".localized)
         beforeLabel.alignment = .right
         beforeLabel.frame = NSRect(x: leftMargin + labelWidth - 55, y: currentY, width: 55, height: 17)
         contentView.addSubview(beforeLabel)
@@ -234,14 +234,14 @@ class LineSpacingPanel: NSPanel {
         paragraphSpacingBeforeStepper.action = #selector(paragraphSpacingBeforeStepperChanged(_:))
         contentView.addSubview(paragraphSpacingBeforeStepper)
 
-        let beforePointsLabel = NSTextField(labelWithString: NSLocalizedString("points", comment: ""))
+        let beforePointsLabel = NSTextField(labelWithString: "points".localized)
         beforePointsLabel.frame = NSRect(x: leftMargin + labelWidth + 5 + fieldWidth + 5 + stepperWidth + 5, y: currentY, width: unitLabelWidth, height: 17)
         contentView.addSubview(beforePointsLabel)
 
         currentY -= rowHeight
 
         // Row 6: Paragraph spacing (after)
-        let afterLabel = NSTextField(labelWithString: NSLocalizedString("after", comment: ""))
+        let afterLabel = NSTextField(labelWithString: "after".localized)
         afterLabel.alignment = .right
         afterLabel.frame = NSRect(x: leftMargin + labelWidth - 55, y: currentY, width: 55, height: 17)
         contentView.addSubview(afterLabel)
@@ -264,18 +264,18 @@ class LineSpacingPanel: NSPanel {
         paragraphSpacingAfterStepper.action = #selector(paragraphSpacingAfterStepperChanged(_:))
         contentView.addSubview(paragraphSpacingAfterStepper)
 
-        let afterPointsLabel = NSTextField(labelWithString: NSLocalizedString("points", comment: ""))
+        let afterPointsLabel = NSTextField(labelWithString: "points".localized)
         afterPointsLabel.frame = NSRect(x: leftMargin + labelWidth + 5 + fieldWidth + 5 + stepperWidth + 5, y: currentY, width: unitLabelWidth, height: 17)
         contentView.addSubview(afterPointsLabel)
 
         // Buttons
-        let cancelButton = NSButton(title: NSLocalizedString("Cancel", comment: ""), target: self, action: #selector(cancelClicked(_:)))
+        let cancelButton = NSButton(title: "Cancel".localized, target: self, action: #selector(cancelClicked(_:)))
         cancelButton.frame = NSRect(x: 140, y: 13, width: 82, height: 32)
         cancelButton.bezelStyle = .rounded
         cancelButton.keyEquivalent = "\u{1b}" // Escape
         contentView.addSubview(cancelButton)
 
-        let okButton = NSButton(title: NSLocalizedString("OK", comment: ""), target: self, action: #selector(okClicked(_:)))
+        let okButton = NSButton(title: "OK".localized, target: self, action: #selector(okClicked(_:)))
         okButton.frame = NSRect(x: 225, y: 13, width: 82, height: 32)
         okButton.bezelStyle = .rounded
         okButton.keyEquivalent = "\r" // Return

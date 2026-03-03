@@ -42,7 +42,7 @@ class FixedDocWidthMenu: NSMenu, NSMenuDelegate {
 
         // Follows Paper Width (tag=0)
         let paperWidthItem = menu.addItem(
-            withTitle: NSLocalizedString("Follows Paper Width", comment: ""),
+            withTitle: "Follows Paper Width".localized,
             action: #selector(docWidthSelected(_:)),
             keyEquivalent: ""
         )
@@ -51,7 +51,7 @@ class FixedDocWidthMenu: NSMenu, NSMenuDelegate {
 
         // Follows Window Width (tag=1)
         let windowWidthItem = menu.addItem(
-            withTitle: NSLocalizedString("Follows Window Width", comment: ""),
+            withTitle: "Follows Window Width".localized,
             action: #selector(docWidthSelected(_:)),
             keyEquivalent: ""
         )
@@ -60,7 +60,7 @@ class FixedDocWidthMenu: NSMenu, NSMenuDelegate {
 
         // Don't Wrap Line (tag=2)
         let noWrapItem = menu.addItem(
-            withTitle: NSLocalizedString("Don't Wrap Line", comment: ""),
+            withTitle: "Don't Wrap Line".localized,
             action: #selector(docWidthSelected(_:)),
             keyEquivalent: ""
         )
@@ -69,7 +69,7 @@ class FixedDocWidthMenu: NSMenu, NSMenuDelegate {
 
         // Fixed Width ( xx chars.) (tag=3)
         let currentWidth = fixedDocWidthMenuDelegate?.fixedDocWidthMenuGetCurrentFixedWidth() ?? 80
-        let fixedWidthTitle = String(format: NSLocalizedString("Fixed Width ( %d chars.)", comment: ""), currentWidth)
+        let fixedWidthTitle = String(format: "Fixed Width ( %d chars.)".localized, currentWidth)
         let fixedWidthItem = menu.addItem(
             withTitle: fixedWidthTitle,
             action: #selector(docWidthSelected(_:)),
@@ -83,7 +83,7 @@ class FixedDocWidthMenu: NSMenu, NSMenuDelegate {
 
         // Fixed Width Panel... (tag=9)
         let panelItem = menu.addItem(
-            withTitle: NSLocalizedString("Fixed Width Panel...", comment: ""),
+            withTitle: "Fixed Width Panel...".localized,
             action: #selector(showFixedDocWidthPanel(_:)),
             keyEquivalent: ""
         )

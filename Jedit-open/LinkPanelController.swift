@@ -263,7 +263,7 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
         }
 
         // 先頭にタイトル項目（pullDown モードではボタンに常に表示される）
-        popup.addItem(withTitle: NSLocalizedString("Bookmarks", comment: "Link panel bookmark popup label"))
+        popup.addItem(withTitle: "Bookmarks".localized)
 
         guard let document = currentDocument() else { return }
 

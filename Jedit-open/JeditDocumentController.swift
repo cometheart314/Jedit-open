@@ -112,7 +112,7 @@ class JeditDocumentController: NSDocumentController {
         populatePopupButton(popupButton)
 
         // Show Hidden Files チェックボックス
-        let checkbox = NSButton(checkboxWithTitle: NSLocalizedString("Show Hidden Files", comment: "Show hidden files checkbox in open panel"), target: self, action: #selector(showHiddenFilesToggled(_:)))
+        let checkbox = NSButton(checkboxWithTitle: "Show Hidden Files".localized, target: self, action: #selector(showHiddenFilesToggled(_:)))
         checkbox.translatesAutoresizingMaskIntoConstraints = false
 
         // コンテナビュー
@@ -136,7 +136,7 @@ class JeditDocumentController: NSDocumentController {
         popupButton.removeAllItems()
 
         // pull-down ボタンの先頭項目はボタンタイトルとして表示される
-        popupButton.addItem(withTitle: NSLocalizedString("New Document", comment: "New document pull-down button title in open panel"))
+        popupButton.addItem(withTitle: "New Document".localized)
 
         // プリセット項目を追加（個別に target/action を設定）
         let presets = DocumentPresetManager.shared.presets
@@ -151,7 +151,7 @@ class JeditDocumentController: NSDocumentController {
         // セパレータと Clipboard 項目
         popupButton.menu?.addItem(NSMenuItem.separator())
         let clipboardItem = NSMenuItem(
-            title: NSLocalizedString("Clipboard", comment: "New document from clipboard in open panel"),
+            title: "Clipboard".localized,
             action: #selector(openPanelNewDocumentSelected(_:)),
             keyEquivalent: ""
         )

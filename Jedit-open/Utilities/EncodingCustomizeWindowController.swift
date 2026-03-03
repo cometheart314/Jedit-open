@@ -62,7 +62,7 @@ class EncodingCustomizeWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = NSLocalizedString("Customize Encoding List", comment: "Window title for encoding customization")
+        window.title = "Customize Encoding List".localized
         window.minSize = NSSize(width: 300, height: 300)
         window.center()
 
@@ -76,7 +76,7 @@ class EncodingCustomizeWindowController: NSWindowController {
         guard let contentView = window?.contentView else { return }
 
         // 説明ラベル
-        let descriptionLabel = NSTextField(wrappingLabelWithString: NSLocalizedString("Select the encodings to display in the Text Encoding menu.", comment: "Description for encoding customization"))
+        let descriptionLabel = NSTextField(wrappingLabelWithString: "Select the encodings to display in the Text Encoding menu.".localized)
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         contentView.addSubview(descriptionLabel)
 
@@ -101,17 +101,17 @@ class EncodingCustomizeWindowController: NSWindowController {
         scrollView.documentView = tableView
 
         // ボタン
-        selectAllButton = NSButton(title: NSLocalizedString("Select All", comment: "Button to select all encodings"), target: self, action: #selector(selectAllClicked(_:)))
+        selectAllButton = NSButton(title: "Select All".localized, target: self, action: #selector(selectAllClicked(_:)))
         selectAllButton.translatesAutoresizingMaskIntoConstraints = false
         selectAllButton.bezelStyle = .rounded
         contentView.addSubview(selectAllButton)
 
-        deselectAllButton = NSButton(title: NSLocalizedString("Deselect All", comment: "Button to deselect all encodings"), target: self, action: #selector(deselectAllClicked(_:)))
+        deselectAllButton = NSButton(title: "Deselect All".localized, target: self, action: #selector(deselectAllClicked(_:)))
         deselectAllButton.translatesAutoresizingMaskIntoConstraints = false
         deselectAllButton.bezelStyle = .rounded
         contentView.addSubview(deselectAllButton)
 
-        revertButton = NSButton(title: NSLocalizedString("Revert to Default", comment: "Button to revert to default encodings"), target: self, action: #selector(revertToDefaultClicked(_:)))
+        revertButton = NSButton(title: "Revert to Default".localized, target: self, action: #selector(revertToDefaultClicked(_:)))
         revertButton.translatesAutoresizingMaskIntoConstraints = false
         revertButton.bezelStyle = .rounded
         contentView.addSubview(revertButton)

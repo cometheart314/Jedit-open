@@ -446,7 +446,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         let menu = NSMenu()
 
         // New サブメニュー
-        let newItem = NSMenuItem(title: NSLocalizedString("New", comment: "Dock menu New"), action: nil, keyEquivalent: "")
+        let newItem = NSMenuItem(title: "New".localized, action: nil, keyEquivalent: "")
         let newSubmenu = NSMenu()
         let presets = DocumentPresetManager.shared.presets
         for (index, preset) in presets.enumerated() {
@@ -456,7 +456,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             newSubmenu.addItem(item)
         }
         newSubmenu.addItem(NSMenuItem.separator())
-        let clipboardItem = NSMenuItem(title: NSLocalizedString("Clipboard", comment: "Dock menu New from Clipboard"), action: #selector(newDocumentFromClipboard(_:)), keyEquivalent: "")
+        let clipboardItem = NSMenuItem(title: "Clipboard".localized, action: #selector(newDocumentFromClipboard(_:)), keyEquivalent: "")
         clipboardItem.target = self
         newSubmenu.addItem(clipboardItem)
         newItem.submenu = newSubmenu
@@ -579,7 +579,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Basic Font... メニュー項目を追加
         let basicFontItem = NSMenuItem(
-            title: NSLocalizedString("Basic Font...", comment: "Menu item for Basic Font"),
+            title: "Basic Font...".localized,
             action: #selector(EditorWindowController.showBasicFont(_:)),
             keyEquivalent: ""
         )
@@ -640,7 +640,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Character Fore Color サブメニューを追加
         let foreColorItem = NSMenuItem(
-            title: NSLocalizedString("Character Fore Color", comment: "Menu item for character foreground color"),
+            title: "Character Fore Color".localized,
             action: nil,
             keyEquivalent: ""
         )
@@ -651,7 +651,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Character Back Color サブメニューを追加
         let backColorItem = NSMenuItem(
-            title: NSLocalizedString("Character Back Color", comment: "Menu item for character background color"),
+            title: "Character Back Color".localized,
             action: nil,
             keyEquivalent: ""
         )
@@ -691,7 +691,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             item.image = createColorSwatchImage(color: color)
 
             // attributedTitle でシステムカラーを使ってタイトルを表示
-            let localizedName = NSLocalizedString(name, comment: "Color name")
+            let localizedName = name.localized
             let attrTitle = NSAttributedString(
                 string: localizedName,
                 attributes: [.foregroundColor: color]
@@ -703,7 +703,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         menu.addItem(NSMenuItem.separator())
 
         let otherItem = NSMenuItem(
-            title: NSLocalizedString("Other Color...", comment: "Other color menu item"),
+            title: "Other Color...".localized,
             action: #selector(JeditTextView.orderFrontForeColorPanel(_:)),
             keyEquivalent: ""
         )
@@ -726,7 +726,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         for (index, name) in colorNames.enumerated() {
             let item = NSMenuItem(
-                title: NSLocalizedString(name, comment: "Color name"),
+                title: name.localized,
                 action: #selector(JeditTextView.changeBackColor(_:)),
                 keyEquivalent: ""
             )
@@ -747,7 +747,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         menu.addItem(NSMenuItem.separator())
 
         let otherItem = NSMenuItem(
-            title: NSLocalizedString("Other Color...", comment: "Other color menu item"),
+            title: "Other Color...".localized,
             action: #selector(JeditTextView.orderFrontBackColorPanel(_:)),
             keyEquivalent: ""
         )
@@ -1070,7 +1070,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
 
         let searchField = NSSearchField(frame: NSRect(x: 0, y: 0, width: 220, height: 22))
-        searchField.placeholderString = NSLocalizedString("Search Help", comment: "")
+        searchField.placeholderString = "Search Help".localized
         searchField.sendsSearchStringImmediately = false
         searchField.sendsWholeSearchString = true
         searchField.target = self
@@ -1092,7 +1092,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // システムが提供していた「Appleにフィードバックを送信...」を追加
         helpMenu.addItem(NSMenuItem.separator())
         let feedbackItem = NSMenuItem(
-            title: NSLocalizedString("Provide Feedback to Apple…", comment: ""),
+            title: "Provide Feedback to Apple…".localized,
             action: #selector(openAppleFeedback(_:)),
             keyEquivalent: ""
         )

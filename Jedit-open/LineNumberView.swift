@@ -690,7 +690,7 @@ class LineNumberView: NSView {
 
         // None
         let noneItem = NSMenuItem(
-            title: NSLocalizedString("None", comment: "Line number mode: none"),
+            title: "None".localized,
             action: #selector(setLineNumberModeNone(_:)),
             keyEquivalent: ""
         )
@@ -700,7 +700,7 @@ class LineNumberView: NSView {
 
         // Paragraph Number
         let paragraphItem = NSMenuItem(
-            title: NSLocalizedString("Paragraph Number", comment: "Line number mode: paragraph"),
+            title: "Paragraph Number".localized,
             action: #selector(setLineNumberModeParagraph(_:)),
             keyEquivalent: ""
         )
@@ -710,7 +710,7 @@ class LineNumberView: NSView {
 
         // Row Number
         let rowItem = NSMenuItem(
-            title: NSLocalizedString("Row Number", comment: "Line number mode: row"),
+            title: "Row Number".localized,
             action: #selector(setLineNumberModeRow(_:)),
             keyEquivalent: ""
         )

@@ -39,7 +39,7 @@ struct ThemeColorData: Codable {
     /// Dynamicテーマ（システムカラーを使用、ライト/ダークモードに自動対応）
     static var dynamic: ThemeColorData {
         ThemeColorData(
-            themeName: NSLocalizedString("Dynamic", comment: ""),
+            themeName: "Dynamic".localized,
             removable: false,
             characterColor: CodableColor(NSColor.textColor),
             backgroundColor: CodableColor(NSColor.textBackgroundColor),
@@ -56,7 +56,7 @@ struct ThemeColorData: Codable {
     /// Lightテーマ（固定の明るい色）
     static var light: ThemeColorData {
         ThemeColorData(
-            themeName: NSLocalizedString("Light", comment: ""),
+            themeName: "Light".localized,
             removable: false,
             characterColor: CodableColor(NSColor.black),
             backgroundColor: CodableColor(NSColor.white),
@@ -73,7 +73,7 @@ struct ThemeColorData: Codable {
     /// Darkテーマ（固定の暗い色）
     static var dark: ThemeColorData {
         ThemeColorData(
-            themeName: NSLocalizedString("Dark", comment: ""),
+            themeName: "Dark".localized,
             removable: false,
             characterColor: CodableColor(NSColor.white),
             backgroundColor: CodableColor(NSColor(white: 0.15, alpha: 1.0)),
@@ -202,13 +202,13 @@ class JOThemeColorPopupButton: NSPopUpButton, NSMenuDelegate {
         menu.addItem(NSMenuItem.separator())
 
         // テーマ追加メニュー
-        let addItem = NSMenuItem(title: NSLocalizedString("Add Theme...", comment: ""), action: #selector(addTheme(_:)), keyEquivalent: "")
+        let addItem = NSMenuItem(title: "Add Theme...".localized, action: #selector(addTheme(_:)), keyEquivalent: "")
         addItem.target = self.target
         menu.addItem(addItem)
 
         // テーマ削除サブメニュー
         if !manager.userThemes.isEmpty {
-            let removeItem = NSMenuItem(title: NSLocalizedString("Remove Theme", comment: ""), action: nil, keyEquivalent: "")
+            let removeItem = NSMenuItem(title: "Remove Theme".localized, action: nil, keyEquivalent: "")
             let removeSubmenu = NSMenu()
 
             for (index, theme) in manager.userThemes.enumerated() {
@@ -241,10 +241,10 @@ class JOThemeColorPopupButton: NSPopUpButton, NSMenuDelegate {
         let themeName = manager.userThemes[index].themeName
 
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Remove Theme", comment: "")
-        alert.informativeText = String(format: NSLocalizedString("Are you sure you want to remove \"%@\"?", comment: ""), themeName)
-        alert.addButton(withTitle: NSLocalizedString("Remove", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "Remove Theme".localized
+        alert.informativeText = String(format: "Are you sure you want to remove \"%@\"?".localized, themeName)
+        alert.addButton(withTitle: "Remove".localized)
+        alert.addButton(withTitle: "Cancel".localized)
         alert.alertStyle = .warning
 
         if let window = self.window {

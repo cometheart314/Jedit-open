@@ -1316,10 +1316,10 @@ class Document: NSDocument {
     /// エンコーディング変換失敗時のアラートを表示（同期的に表示）
     private func showEncodingFailureAlert(encoding: String.Encoding) {
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Encoding Conversion Failed", comment: "")
-        alert.informativeText = String(format: NSLocalizedString("The text could not be converted to %@. The file will be saved as UTF-8 instead.", comment: ""), String.localizedName(of: encoding))
+        alert.messageText = "Encoding Conversion Failed".localized
+        alert.informativeText = String(format: "The text could not be converted to %@. The file will be saved as UTF-8 instead.".localized, String.localizedName(of: encoding))
         alert.alertStyle = .warning
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.addButton(withTitle: "OK".localized)
 
         // 常にモーダルで表示（保存処理をブロックしてユーザーの確認を待つ）
         alert.runModal()
@@ -1436,7 +1436,7 @@ class Document: NSDocument {
                 guard let selectedEncoding = selectedResult,
                       let string = EncodingDetector.shared.decodeData(data, with: selectedEncoding) else {
                     throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
-                        NSLocalizedDescriptionKey: NSLocalizedString("Could not decode text file. No valid encoding found.", comment: "")
+                        NSLocalizedDescriptionKey: "Could not decode text file. No valid encoding found.".localized
                     ])
                 }
 
@@ -1523,7 +1523,7 @@ class Document: NSDocument {
                 guard let selectedEncoding = selectedResult,
                       let string = EncodingDetector.shared.decodeData(data, with: selectedEncoding) else {
                     throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
-                        NSLocalizedDescriptionKey: NSLocalizedString("Could not decode text file. No valid encoding found.", comment: "")
+                        NSLocalizedDescriptionKey: "Could not decode text file. No valid encoding found.".localized
                     ])
                 }
 
@@ -1552,7 +1552,7 @@ class Document: NSDocument {
                 #endif
 
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
-                    NSLocalizedDescriptionKey: NSLocalizedString("Could not decode text file.", comment: "")
+                    NSLocalizedDescriptionKey: "Could not decode text file.".localized
                 ])
             }
         } else {
@@ -1650,8 +1650,8 @@ class Document: NSDocument {
         guard !candidates.isEmpty else { return nil }
 
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Text Encoding", comment: "")
-        alert.informativeText = NSLocalizedString("The text encoding could not be determined with high confidence. Please select the correct encoding:", comment: "")
+        alert.messageText = "Text Encoding".localized
+        alert.informativeText = "The text encoding could not be determined with high confidence. Please select the correct encoding:".localized
         alert.alertStyle = .warning
 
         // ポップアップボタンを作成
@@ -1663,8 +1663,8 @@ class Document: NSDocument {
         }
         alert.accessoryView = popupButton
 
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         // モーダルで表示
         let response = alert.runModal()
@@ -2194,7 +2194,7 @@ class Document: NSDocument {
                 formatName = typeName
             }
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
-                NSLocalizedDescriptionKey: String(format: NSLocalizedString("Could not read %@ document.", comment: "Error message when Word/ODT file cannot be read"), formatName)
+                NSLocalizedDescriptionKey: String(format: "Could not read %@ document.".localized, formatName)
             ])
         }
 
@@ -2239,10 +2239,7 @@ class Document: NSDocument {
         guard let markdownText = String(data: data, encoding: .utf8)
                 ?? String(data: data, encoding: .ascii) else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
-                NSLocalizedDescriptionKey: NSLocalizedString(
-                    "Could not read Markdown document.",
-                    comment: "Error when Markdown file cannot be decoded"
-                )
+                NSLocalizedDescriptionKey: "Could not read Markdown document.".localized
             ])
         }
 
@@ -2707,7 +2704,7 @@ class Document: NSDocument {
         guard let windowController = windowControllers.first as? EditorWindowController,
               let config = windowController.printPageViewConfiguration() else {
             throw NSError(domain: NSCocoaErrorDomain, code: NSFileNoSuchFileError, userInfo: [
-                NSLocalizedDescriptionKey: NSLocalizedString("Cannot print: No text view available", comment: "Print error")
+                NSLocalizedDescriptionKey: "Cannot print: No text view available".localized
             ])
         }
 
@@ -3184,7 +3181,7 @@ class Document: NSDocument {
         savePanel.accessoryView = accessoryView
         savePanel.isExtensionHidden = false
         savePanel.canSelectHiddenExtension = true
-        savePanel.title = NSLocalizedString("Export", comment: "Export panel title")
+        savePanel.title = "Export".localized
 
         // ファイル名を提案
         if let url = fileURL {

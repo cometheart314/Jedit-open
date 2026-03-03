@@ -105,11 +105,11 @@ class JeditTextView: NSTextView {
 
         let alert = NSAlert()
         alert.alertStyle = .warning
-        alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
-        alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
-        alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
-        alert.addButton(withTitle: NSLocalizedString("Duplicate", comment: "Duplicate button"))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+        alert.messageText = "Convert this document to RTFD format?".localized
+        alert.informativeText = "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?".localized
+        alert.addButton(withTitle: "Convert".localized)
+        alert.addButton(withTitle: "Duplicate".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         guard let parentWindow = window else {
             completion(false)
@@ -410,10 +410,10 @@ class JeditTextView: NSTextView {
                 if document.documentType == .rtf {
                     let alert = NSAlert()
                     alert.alertStyle = .warning
-                    alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
-                    alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
-                    alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
-                    alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+                    alert.messageText = "Convert this document to RTFD format?".localized
+                    alert.informativeText = "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?".localized
+                    alert.addButton(withTitle: "Convert".localized)
+                    alert.addButton(withTitle: "Cancel".localized)
 
                     let response = alert.runModal()
 
@@ -483,10 +483,10 @@ class JeditTextView: NSTextView {
                        document.documentType != .rtfd {
                         let alert = NSAlert()
                         alert.alertStyle = .warning
-                        alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
-                        alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
-                        alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
-                        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+                        alert.messageText = "Convert this document to RTFD format?".localized
+                        alert.informativeText = "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?".localized
+                        alert.addButton(withTitle: "Convert".localized)
+                        alert.addButton(withTitle: "Cancel".localized)
 
                         let response = alert.runModal()
                         if response == .alertFirstButtonReturn {
@@ -571,10 +571,10 @@ class JeditTextView: NSTextView {
                     if document.documentType != .rtfd {
                         let alert = NSAlert()
                         alert.alertStyle = .warning
-                        alert.messageText = NSLocalizedString("Convert this document to RTFD format?", comment: "RTFD conversion alert message")
-                        alert.informativeText = NSLocalizedString("This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?", comment: "RTFD conversion alert informative text")
-                        alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Convert button"))
-                        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Cancel button"))
+                        alert.messageText = "Convert this document to RTFD format?".localized
+                        alert.informativeText = "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?".localized
+                        alert.addButton(withTitle: "Convert".localized)
+                        alert.addButton(withTitle: "Cancel".localized)
 
                         let response = alert.runModal()
                         if response == .alertFirstButtonReturn {
@@ -617,7 +617,7 @@ class JeditTextView: NSTextView {
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = true
-        openPanel.prompt = NSLocalizedString("Attach", comment: "Attach button in open panel")
+        openPanel.prompt = "Attach".localized
 
         guard let parentWindow = window else { return }
 
@@ -930,7 +930,7 @@ class JeditTextView: NSTextView {
                controller.getImageAttachment(in: self, at: charIndex) != nil {
                 contextMenuImageCharIndex = charIndex
                 let changeImageSizeItem = NSMenuItem(
-                    title: NSLocalizedString("Change Image Size...", comment: "Context menu item for changing image size"),
+                    title: "Change Image Size...".localized,
                     action: #selector(changeImageSize(_:)),
                     keyEquivalent: ""
                 )
@@ -1098,8 +1098,8 @@ class JeditTextView: NSTextView {
             let newFont = fontManager.convert(currentFont)
 
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Change Font", comment: "Alert title for font change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, font changes apply to the entire document. Do you want to continue?", comment: "Alert message for font change in plain text")
+                message: "Change Font".localized,
+                informativeText: "In plain text documents, font changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyFontToEntireDocument(newFont)
             }
@@ -1126,10 +1126,10 @@ class JeditTextView: NSTextView {
     /// プレーンテキストで色変更が許可されていないことを警告
     private func showPlainTextColorChangeNotAllowedAlert() {
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Color Change Not Allowed", comment: "Alert title for color change not allowed in plain text")
-        alert.informativeText = NSLocalizedString("Character colors cannot be changed in plain text documents. To change colors, convert the document to Rich Text format.", comment: "Alert message for color change not allowed in plain text")
+        alert.messageText = "Color Change Not Allowed".localized
+        alert.informativeText = "Character colors cannot be changed in plain text documents. To change colors, convert the document to Rich Text format.".localized
         alert.alertStyle = .informational
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+        alert.addButton(withTitle: "OK".localized)
 
         if let window = self.window {
             alert.beginSheetModal(for: window, completionHandler: nil)
@@ -1143,8 +1143,8 @@ class JeditTextView: NSTextView {
         // プレーンテキストの場合、アラートを表示して確認
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Underline", comment: "Alert title for underline change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, underline changes apply to the entire document. Do you want to continue?", comment: "Alert message for underline change in plain text")
+                message: "Underline".localized,
+                informativeText: "In plain text documents, underline changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyUnderlineToEntireDocument()
             }
@@ -1161,8 +1161,8 @@ class JeditTextView: NSTextView {
     @IBAction override func useStandardKerning(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+                message: "Kern".localized,
+                informativeText: "In plain text documents, kerning changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyKernToEntireDocument(value: 0) // 0 = standard kerning
             }
@@ -1175,8 +1175,8 @@ class JeditTextView: NSTextView {
     @IBAction override func turnOffKerning(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+                message: "Kern".localized,
+                informativeText: "In plain text documents, kerning changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyKernToEntireDocument(value: nil) // nil = turn off
             }
@@ -1189,8 +1189,8 @@ class JeditTextView: NSTextView {
     @IBAction override func tightenKerning(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+                message: "Kern".localized,
+                informativeText: "In plain text documents, kerning changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.adjustKernToEntireDocument(delta: -1.0)
             }
@@ -1203,8 +1203,8 @@ class JeditTextView: NSTextView {
     @IBAction override func loosenKerning(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Kern", comment: "Alert title for kern change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, kerning changes apply to the entire document. Do you want to continue?", comment: "Alert message for kern change in plain text")
+                message: "Kern".localized,
+                informativeText: "In plain text documents, kerning changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.adjustKernToEntireDocument(delta: 1.0)
             }
@@ -1219,8 +1219,8 @@ class JeditTextView: NSTextView {
     @IBAction override func useStandardLigatures(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Ligatures", comment: "Alert title for ligature change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, ligature changes apply to the entire document. Do you want to continue?", comment: "Alert message for ligature change in plain text")
+                message: "Ligatures".localized,
+                informativeText: "In plain text documents, ligature changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyLigatureToEntireDocument(value: 1) // 1 = standard ligatures
             }
@@ -1233,8 +1233,8 @@ class JeditTextView: NSTextView {
     @IBAction override func turnOffLigatures(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Ligatures", comment: "Alert title for ligature change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, ligature changes apply to the entire document. Do you want to continue?", comment: "Alert message for ligature change in plain text")
+                message: "Ligatures".localized,
+                informativeText: "In plain text documents, ligature changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyLigatureToEntireDocument(value: 0) // 0 = no ligatures
             }
@@ -1247,8 +1247,8 @@ class JeditTextView: NSTextView {
     @IBAction override func useAllLigatures(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Ligatures", comment: "Alert title for ligature change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, ligature changes apply to the entire document. Do you want to continue?", comment: "Alert message for ligature change in plain text")
+                message: "Ligatures".localized,
+                informativeText: "In plain text documents, ligature changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyLigatureToEntireDocument(value: 2) // 2 = all ligatures
             }
@@ -1263,8 +1263,8 @@ class JeditTextView: NSTextView {
     @IBAction override func alignLeft(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+                message: "Text Alignment".localized,
+                informativeText: "In plain text documents, alignment changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyAlignmentToEntireDocument(.left)
             }
@@ -1277,8 +1277,8 @@ class JeditTextView: NSTextView {
     @IBAction override func alignCenter(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+                message: "Text Alignment".localized,
+                informativeText: "In plain text documents, alignment changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyAlignmentToEntireDocument(.center)
             }
@@ -1291,8 +1291,8 @@ class JeditTextView: NSTextView {
     @IBAction override func alignRight(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+                message: "Text Alignment".localized,
+                informativeText: "In plain text documents, alignment changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyAlignmentToEntireDocument(.right)
             }
@@ -1305,8 +1305,8 @@ class JeditTextView: NSTextView {
     @IBAction override func alignJustified(_ sender: Any?) {
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Text Alignment", comment: "Alert title for text alignment change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, alignment changes apply to the entire document. Do you want to continue?", comment: "Alert message for alignment change in plain text")
+                message: "Text Alignment".localized,
+                informativeText: "In plain text documents, alignment changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyAlignmentToEntireDocument(.justified)
             }
@@ -1425,10 +1425,10 @@ class JeditTextView: NSTextView {
     /// プレーンテキストでリスト変更が許可されていないことを警告
     private func showPlainTextListChangeNotAllowedAlert() {
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("List Not Available", comment: "Alert title for list not available in plain text")
-        alert.informativeText = NSLocalizedString("Lists cannot be used in plain text documents. To use lists, convert the document to Rich Text format.", comment: "Alert message for list not available in plain text")
+        alert.messageText = "List Not Available".localized
+        alert.informativeText = "Lists cannot be used in plain text documents. To use lists, convert the document to Rich Text format.".localized
         alert.alertStyle = .informational
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: "OK button"))
+        alert.addButton(withTitle: "OK".localized)
 
         if let window = self.window {
             alert.beginSheetModal(for: window, completionHandler: nil)
@@ -1482,8 +1482,8 @@ class JeditTextView: NSTextView {
         // プレーンテキストの場合、アラートを表示して確認
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Character Fore Color", comment: "Alert title for fore color change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+                message: "Character Fore Color".localized,
+                informativeText: "In plain text documents, color changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyForeColorToEntireDocument(color)
             }
@@ -1499,8 +1499,8 @@ class JeditTextView: NSTextView {
         // プレーンテキストの場合、アラートを表示して確認
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Character Fore Color", comment: "Alert title for fore color change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+                message: "Character Fore Color".localized,
+                informativeText: "In plain text documents, color changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.showForeColorPanel()
             }
@@ -1520,8 +1520,8 @@ class JeditTextView: NSTextView {
         // プレーンテキストの場合、アラートを表示して確認
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Character Back Color", comment: "Alert title for back color change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+                message: "Character Back Color".localized,
+                informativeText: "In plain text documents, color changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.applyBackColorToEntireDocument(color)
             }
@@ -1537,8 +1537,8 @@ class JeditTextView: NSTextView {
         // プレーンテキストの場合、アラートを表示して確認
         if isPlainText {
             showPlainTextAttributeChangeAlert(
-                message: NSLocalizedString("Character Back Color", comment: "Alert title for back color change in plain text"),
-                informativeText: NSLocalizedString("In plain text documents, color changes apply to the entire document. Do you want to continue?", comment: "Alert message for color change in plain text")
+                message: "Character Back Color".localized,
+                informativeText: "In plain text documents, color changes apply to the entire document. Do you want to continue?".localized
             ) { [weak self] in
                 self?.showBackColorPanel()
             }
@@ -1670,8 +1670,8 @@ class JeditTextView: NSTextView {
         let alert = NSAlert()
         alert.messageText = message
         alert.informativeText = informativeText
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         alert.beginSheetModal(for: window) { response in
             if response == .alertFirstButtonReturn {

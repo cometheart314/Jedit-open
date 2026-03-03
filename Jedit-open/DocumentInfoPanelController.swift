@@ -326,10 +326,10 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
         guard let data = currentText.data(using: newEncoding) else {
             // 変換できない場合はアラートを表示し、選択を元に戻す
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Cannot Convert", comment: "Alert title")
-            alert.informativeText = String(format: NSLocalizedString("The document contains characters that cannot be represented in %@.", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.messageText = "Cannot Convert".localized
+            alert.informativeText = String(format: "The document contains characters that cannot be represented in %@.".localized, String.localizedName(of: newEncoding))
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: "Button"))
+            alert.addButton(withTitle: "OK".localized)
             if let panel = documentInfoPanel {
                 alert.beginSheetModal(for: panel) { [weak self] _ in
                     self?.updateDocumentInfoTab(for: document)
@@ -343,11 +343,11 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
         if reconverted != currentText {
             // ラウンドトリップできない場合は確認アラートを表示
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Encoding Warning", comment: "Alert title")
-            alert.informativeText = String(format: NSLocalizedString("Converting to %@ may result in data loss. Do you want to continue?", comment: "Alert message"), String.localizedName(of: newEncoding))
+            alert.messageText = "Encoding Warning".localized
+            alert.informativeText = String(format: "Converting to %@ may result in data loss. Do you want to continue?".localized, String.localizedName(of: newEncoding))
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("Convert", comment: "Button"))
-            alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Button"))
+            alert.addButton(withTitle: "Convert".localized)
+            alert.addButton(withTitle: "Cancel".localized)
             if let panel = documentInfoPanel {
                 alert.beginSheetModal(for: panel) { [weak self] response in
                     if response == .alertFirstButtonReturn {

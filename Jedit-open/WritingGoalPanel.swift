@@ -29,7 +29,7 @@ class WritingGoalPanel: NSPanel {
             defer: true
         )
 
-        self.title = NSLocalizedString("Writing Goal", comment: "Panel title")
+        self.title = "Writing Goal".localized
         self.isReleasedWhenClosed = false
 
         setupUI()
@@ -45,7 +45,7 @@ class WritingGoalPanel: NSPanel {
         guard let contentView = self.contentView else { return }
 
         // Target: ラベル
-        let targetLabel = NSTextField(labelWithString: NSLocalizedString("Target:", comment: ""))
+        let targetLabel = NSTextField(labelWithString: "Target:".localized)
         targetLabel.frame = NSRect(x: 20, y: 98, width: 60, height: 17)
         contentView.addSubview(targetLabel)
 
@@ -75,21 +75,21 @@ class WritingGoalPanel: NSPanel {
         contentView.addSubview(goalStepper)
 
         // 0 = 無効 のヒントラベル
-        let hintLabel = NSTextField(labelWithString: NSLocalizedString("(0 = No goal)", comment: ""))
+        let hintLabel = NSTextField(labelWithString: "(0 = No goal)".localized)
         hintLabel.frame = NSRect(x: 195, y: 98, width: 150, height: 17)
         hintLabel.font = NSFont.systemFont(ofSize: 11)
         hintLabel.textColor = .secondaryLabelColor
         contentView.addSubview(hintLabel)
 
         // Count Method: ラベル
-        let methodLabel = NSTextField(labelWithString: NSLocalizedString("Count:", comment: ""))
+        let methodLabel = NSTextField(labelWithString: "Count:".localized)
         methodLabel.frame = NSRect(x: 20, y: 63, width: 60, height: 17)
         contentView.addSubview(methodLabel)
 
         // カウント方法ポップアップ
         methodPopup = NSPopUpButton(frame: NSRect(x: 85, y: 59, width: 250, height: 25), pullsDown: false)
-        methodPopup.addItem(withTitle: NSLocalizedString("Visible Characters", comment: "Count method"))
-        methodPopup.addItem(withTitle: NSLocalizedString("Manuscript Pages (400 chars)", comment: "Count method"))
+        methodPopup.addItem(withTitle: "Visible Characters".localized)
+        methodPopup.addItem(withTitle: "Manuscript Pages (400 chars)".localized)
         methodPopup.target = self
         methodPopup.action = #selector(countMethodChanged(_:))
         contentView.addSubview(methodPopup)
@@ -97,7 +97,7 @@ class WritingGoalPanel: NSPanel {
         // Cancel ボタン
         let cancelButton = NSButton(frame: NSRect(x: 175, y: 15, width: 80, height: 32))
         cancelButton.bezelStyle = .rounded
-        cancelButton.title = NSLocalizedString("Cancel", comment: "")
+        cancelButton.title = "Cancel".localized
         cancelButton.keyEquivalent = "\u{1b}"  // Escape
         cancelButton.target = self
         cancelButton.action = #selector(cancelAction(_:))
@@ -106,7 +106,7 @@ class WritingGoalPanel: NSPanel {
         // Set ボタン
         let setButton = NSButton(frame: NSRect(x: 260, y: 15, width: 80, height: 32))
         setButton.bezelStyle = .rounded
-        setButton.title = NSLocalizedString("Set", comment: "")
+        setButton.title = "Set".localized
         setButton.keyEquivalent = "\r"  // Return
         setButton.target = self
         setButton.action = #selector(setAction(_:))

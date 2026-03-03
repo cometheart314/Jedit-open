@@ -321,31 +321,31 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         // メニュー項目を追加
         let menu = popup.menu!
 
-        let expandAllItem = NSMenuItem(title: NSLocalizedString("Expand All", comment: "Bookmark action"), action: #selector(expandAll(_:)), keyEquivalent: "")
+        let expandAllItem = NSMenuItem(title: "Expand All".localized, action: #selector(expandAll(_:)), keyEquivalent: "")
         expandAllItem.target = self
         menu.addItem(expandAllItem)
 
-        let collapseAllItem = NSMenuItem(title: NSLocalizedString("Collapse All", comment: "Bookmark action"), action: #selector(collapseAll(_:)), keyEquivalent: "")
+        let collapseAllItem = NSMenuItem(title: "Collapse All".localized, action: #selector(collapseAll(_:)), keyEquivalent: "")
         collapseAllItem.target = self
         menu.addItem(collapseAllItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let sortByNameItem = NSMenuItem(title: NSLocalizedString("Sort by Name", comment: "Bookmark action"), action: #selector(sortByName(_:)), keyEquivalent: "")
+        let sortByNameItem = NSMenuItem(title: "Sort by Name".localized, action: #selector(sortByName(_:)), keyEquivalent: "")
         sortByNameItem.target = self
         menu.addItem(sortByNameItem)
 
-        let sortByLocationItem = NSMenuItem(title: NSLocalizedString("Sort by Location", comment: "Bookmark action"), action: #selector(sortByLocation(_:)), keyEquivalent: "")
+        let sortByLocationItem = NSMenuItem(title: "Sort by Location".localized, action: #selector(sortByLocation(_:)), keyEquivalent: "")
         sortByLocationItem.target = self
         menu.addItem(sortByLocationItem)
 
         menu.addItem(NSMenuItem.separator())
 
-        let resetStructureItem = NSMenuItem(title: NSLocalizedString("Reset Structure", comment: "Bookmark action"), action: #selector(resetStructure(_:)), keyEquivalent: "")
+        let resetStructureItem = NSMenuItem(title: "Reset Structure".localized, action: #selector(resetStructure(_:)), keyEquivalent: "")
         resetStructureItem.target = self
         menu.addItem(resetStructureItem)
 
-        let clearAllItem = NSMenuItem(title: NSLocalizedString("Clear All", comment: "Bookmark action"), action: #selector(clearAll(_:)), keyEquivalent: "")
+        let clearAllItem = NSMenuItem(title: "Clear All".localized, action: #selector(clearAll(_:)), keyEquivalent: "")
         clearAllItem.target = self
         menu.addItem(clearAllItem)
     }
@@ -403,13 +403,11 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
         // 確認アラート
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Clear All Bookmarks?", comment: "Alert title")
-        alert.informativeText = NSLocalizedString(
-            "This will remove all bookmarks and their anchors from the document.",
-            comment: "Alert message")
+        alert.messageText = "Clear All Bookmarks?".localized
+        alert.informativeText = "This will remove all bookmarks and their anchors from the document.".localized
         alert.alertStyle = .warning
-        alert.addButton(withTitle: NSLocalizedString("Clear All", comment: "Button"))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: "Button"))
+        alert.addButton(withTitle: "Clear All".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }

@@ -90,7 +90,7 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
                 menu.addItem(item)
             }
         } else {
-            let noScriptsItem = NSMenuItem(title: NSLocalizedString("No Scripts", comment: ""), action: nil, keyEquivalent: "")
+            let noScriptsItem = NSMenuItem(title: "No Scripts".localized, action: nil, keyEquivalent: "")
             noScriptsItem.isEnabled = false
             menu.addItem(noScriptsItem)
         }
@@ -100,7 +100,7 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
         // Open Scripts Folder
         let openFolderItem = NSMenuItem(
-            title: NSLocalizedString("Open Scripts Folder", comment: "Script menu item"),
+            title: "Open Scripts Folder".localized,
             action: #selector(openScriptsFolder(_:)),
             keyEquivalent: ""
         )
@@ -109,7 +109,7 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
         // Open Script Editor
         let openEditorItem = NSMenuItem(
-            title: NSLocalizedString("Open Script Editor", comment: "Script menu item"),
+            title: "Open Script Editor".localized,
             action: #selector(openScriptEditor(_:)),
             keyEquivalent: ""
         )
@@ -118,7 +118,7 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
         // Open Script Dictionaries サブメニュー
         let dictItem = NSMenuItem(
-            title: NSLocalizedString("Open Script Dictionaries", comment: "Script menu item"),
+            title: "Open Script Dictionaries".localized,
             action: nil,
             keyEquivalent: ""
         )
@@ -160,7 +160,7 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
                 let submenu = NSMenu(title: url.lastPathComponent)
                 let subItems = buildScriptItems(for: url)
                 if subItems.isEmpty {
-                    let emptyItem = NSMenuItem(title: NSLocalizedString("No Scripts", comment: ""), action: nil, keyEquivalent: "")
+                    let emptyItem = NSMenuItem(title: "No Scripts".localized, action: nil, keyEquivalent: "")
                     emptyItem.isEnabled = false
                     submenu.addItem(emptyItem)
                 } else {
@@ -207,13 +207,10 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
         // 確認アラートを表示
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Install Sample Scripts", comment: "Alert title")
-        alert.informativeText = NSLocalizedString(
-            "Jedit includes sample AppleScripts. To install them, you need to grant access to the Scripts folder.\n\nIn the next dialog, please select the displayed folder and click \"Open\".",
-            comment: "Sample scripts install confirmation"
-        )
-        alert.addButton(withTitle: NSLocalizedString("Continue", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Skip", comment: ""))
+        alert.messageText = "Install Sample Scripts".localized
+        alert.informativeText = "Jedit includes sample AppleScripts. To install them, you need to grant access to the Scripts folder.\n\nIn the next dialog, please select the displayed folder and click \"Open\".".localized
+        alert.addButton(withTitle: "Continue".localized)
+        alert.addButton(withTitle: "Skip".localized)
         alert.alertStyle = .informational
 
         let response = alert.runModal()
@@ -221,11 +218,8 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
         // NSOpenPanel でスクリプトフォルダへのアクセス許可を求める
         let panel = NSOpenPanel()
-        panel.message = NSLocalizedString(
-            "Select the Scripts folder to install sample scripts.\nPlease select the folder shown below and click \"Open\".",
-            comment: "Scripts folder access request"
-        )
-        panel.prompt = NSLocalizedString("Open", comment: "")
+        panel.message = "Select the Scripts folder to install sample scripts.\nPlease select the folder shown below and click \"Open\".".localized
+        panel.prompt = "Open".localized
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
         panel.canCreateDirectories = false
@@ -449,10 +443,10 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
     /// スクリプト実行エラーを表示
     private func showScriptError(fileName: String, error: Error) {
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Script Error", comment: "Alert title")
+        alert.messageText = "Script Error".localized
         alert.informativeText = "\(fileName):\n\(error.localizedDescription)"
         alert.alertStyle = .warning
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.addButton(withTitle: "OK".localized)
         alert.runModal()
     }
 

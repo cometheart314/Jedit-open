@@ -26,7 +26,7 @@ class OtherScalePanel: NSPanel {
             defer: true
         )
 
-        self.title = NSLocalizedString("Add a new scale", comment: "")
+        self.title = "Add a new scale".localized
         self.isReleasedWhenClosed = false
 
         setupUI()
@@ -42,7 +42,7 @@ class OtherScalePanel: NSPanel {
         guard let contentView = self.contentView else { return }
 
         // New Scale: ラベル
-        let label = NSTextField(labelWithString: NSLocalizedString("New Scale:", comment: ""))
+        let label = NSTextField(labelWithString: "New Scale:".localized)
         label.frame = NSRect(x: 17, y: 94, width: 76, height: 17)
         contentView.addSubview(label)
 
@@ -67,23 +67,20 @@ class OtherScalePanel: NSPanel {
         contentView.addSubview(percentLabel)
 
         // 説明テキスト
-        let descLabel = NSTextField(wrappingLabelWithString: NSLocalizedString(
-            "If you want to remove an existing menu item, choose it with pressing Option key.",
-            comment: ""
-        ))
+        let descLabel = NSTextField(wrappingLabelWithString: "If you want to remove an existing menu item, choose it with pressing Option key.".localized)
         descLabel.frame = NSRect(x: 17, y: 43, width: 300, height: 40)
         descLabel.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         contentView.addSubview(descLabel)
 
         // Cancel ボタン
-        let cancelButton = NSButton(title: NSLocalizedString("Cancel", comment: ""), target: self, action: #selector(cancelClicked(_:)))
+        let cancelButton = NSButton(title: "Cancel".localized, target: self, action: #selector(cancelClicked(_:)))
         cancelButton.frame = NSRect(x: 172, y: 13, width: 82, height: 32)
         cancelButton.bezelStyle = .rounded
         cancelButton.keyEquivalent = "\u{1b}" // Escape
         contentView.addSubview(cancelButton)
 
         // Add ボタン
-        let addButton = NSButton(title: NSLocalizedString("Add", comment: ""), target: self, action: #selector(addClicked(_:)))
+        let addButton = NSButton(title: "Add".localized, target: self, action: #selector(addClicked(_:)))
         addButton.frame = NSRect(x: 254, y: 13, width: 66, height: 32)
         addButton.bezelStyle = .rounded
         addButton.keyEquivalent = "\r" // Return
@@ -113,10 +110,10 @@ class OtherScalePanel: NSPanel {
         // 範囲チェック
         if newScale < 25 || newScale > 999 {
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Invalid Scale", comment: "")
-            alert.informativeText = NSLocalizedString("Specify a scale between 25% and 999%.", comment: "")
+            alert.messageText = "Invalid Scale".localized
+            alert.informativeText = "Specify a scale between 25% and 999%.".localized
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+            alert.addButton(withTitle: "OK".localized)
             alert.beginSheetModal(for: self, completionHandler: nil)
             return
         }
@@ -127,10 +124,10 @@ class OtherScalePanel: NSPanel {
 
         if scalesArray.contains(newScale) {
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Duplicate Scale", comment: "")
-            alert.informativeText = NSLocalizedString("Same scale already exists in the menu.", comment: "")
+            alert.messageText = "Duplicate Scale".localized
+            alert.informativeText = "Same scale already exists in the menu.".localized
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+            alert.addButton(withTitle: "OK".localized)
             alert.beginSheetModal(for: self, completionHandler: nil)
             return
         }

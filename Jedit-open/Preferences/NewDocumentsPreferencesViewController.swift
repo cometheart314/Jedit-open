@@ -600,13 +600,13 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
 
     @IBAction func addPresetClicked(_ sender: Any) {
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("New Preset", comment: "")
-        alert.informativeText = NSLocalizedString("Enter a name for the new preset:", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "New Preset".localized
+        alert.informativeText = "Enter a name for the new preset:".localized
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        inputField.stringValue = NSLocalizedString("New Preset", comment: "")
+        inputField.stringValue = "New Preset".localized
         alert.accessoryView = inputField
 
         alert.beginSheetModal(for: view.window!) { response in
@@ -633,10 +633,10 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
               !preset.isBuiltIn else { return }
 
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Delete Preset", comment: "")
-        alert.informativeText = String(format: NSLocalizedString("Are you sure you want to delete \"%@\"?", comment: ""), preset.name)
-        alert.addButton(withTitle: NSLocalizedString("Delete", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "Delete Preset".localized
+        alert.informativeText = String(format: "Are you sure you want to delete \"%@\"?".localized, preset.name)
+        alert.addButton(withTitle: "Delete".localized)
+        alert.addButton(withTitle: "Cancel".localized)
         alert.alertStyle = .warning
 
         alert.beginSheetModal(for: view.window!) { response in
@@ -658,10 +658,10 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
               preset.isBuiltIn else { return }
 
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Revert to Default", comment: "")
-        alert.informativeText = String(format: NSLocalizedString("Are you sure you want to revert \"%@\" to its default settings?", comment: ""), preset.name)
-        alert.addButton(withTitle: NSLocalizedString("Revert", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "Revert to Default".localized
+        alert.informativeText = String(format: "Are you sure you want to revert \"%@\" to its default settings?".localized, preset.name)
+        alert.addButton(withTitle: "Revert".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         alert.beginSheetModal(for: view.window!) { response in
             if response == .alertFirstButtonReturn {
@@ -834,10 +834,10 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
 
         // プリセット名の編集
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Rename Preset", comment: "")
-        alert.informativeText = NSLocalizedString("Enter a new name for the preset:", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "Rename Preset".localized
+        alert.informativeText = "Enter a new name for the preset:".localized
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
         inputField.stringValue = preset.name
@@ -1294,13 +1294,13 @@ extension NewDocumentsPreferencesViewController {
         guard let window = view.window else { return }
 
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Add Theme", comment: "")
-        alert.informativeText = NSLocalizedString("Enter a name for the new theme:", comment: "")
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+        alert.messageText = "Add Theme".localized
+        alert.informativeText = "Enter a name for the new theme:".localized
+        alert.addButton(withTitle: "OK".localized)
+        alert.addButton(withTitle: "Cancel".localized)
 
         let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        inputField.stringValue = NSLocalizedString("New Theme", comment: "")
+        inputField.stringValue = "New Theme".localized
         alert.accessoryView = inputField
 
         alert.beginSheetModal(for: window) { response in

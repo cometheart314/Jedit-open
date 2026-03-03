@@ -136,24 +136,18 @@ class BasicFontPanelController: NSObject {
         let charWidth = basicCharWidth(from: displayFont)
 
         let alert = NSAlert()
-        alert.messageText = NSLocalizedString("Basic Font", comment: "")
+        alert.messageText = "Basic Font".localized
 
         let fontName = displayFont.displayName ?? displayFont.fontName
         let fontSize = displayFont.pointSize
 
         // フォント情報
-        let infoText = String(format: NSLocalizedString(
-            "Font: %@\nSize: %.1f pt\nBasic Character Width: %.2f pt",
-            comment: "Basic font info format"
-        ), fontName, fontSize, charWidth)
+        let infoText = String(format: "Font: %@\nSize: %.1f pt\nBasic Character Width: %.2f pt".localized, fontName, fontSize, charWidth)
 
         alert.informativeText = infoText
 
         // 説明文を小さいフォントで表示するアクセサリビュー
-        let descriptionLabel = NSTextField(labelWithString: NSLocalizedString(
-            "The Basic Character Width is used for the character ruler scale and fixed-width document layout.",
-            comment: "Basic font description"
-        ))
+        let descriptionLabel = NSTextField(labelWithString: "The Basic Character Width is used for the character ruler scale and fixed-width document layout.".localized)
         descriptionLabel.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
         descriptionLabel.textColor = .secondaryLabelColor
         descriptionLabel.alignment = .left
@@ -166,8 +160,8 @@ class BasicFontPanelController: NSObject {
         descriptionLabel.frame = NSRect(x: 0, y: 0, width: 300, height: size.height)
 
         alert.accessoryView = descriptionLabel
-        alert.addButton(withTitle: NSLocalizedString("Change Font...", comment: ""))
-        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        alert.addButton(withTitle: "Change Font...".localized)
+        alert.addButton(withTitle: "OK".localized)
 
         if let window = windowController.window {
             alert.beginSheetModal(for: window) { [weak self] response in

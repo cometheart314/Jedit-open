@@ -167,7 +167,7 @@ class EncodingManager: NSObject {
 
         // Add "Automatic" item if requested
         if includeDefaultItem {
-            popup.addItem(withTitle: NSLocalizedString("Automatic", comment: "Encoding popup entry indicating automatic choice of encoding"))
+            popup.addItem(withTitle: "Automatic".localized)
             if let item = popup.item(at: 0) {
                 item.representedObject = NSNumber(value: NoStringEncoding)
                 item.tag = WantsAutomaticTag
@@ -201,7 +201,7 @@ class EncodingManager: NSObject {
         if popup.numberOfItems > 0 {
             popup.menu?.addItem(NSMenuItem.separator())
         }
-        popup.addItem(withTitle: NSLocalizedString("Customize Encodings List...", comment: "Encoding popup entry for bringing up the Customize Encodings List panel"))
+        popup.addItem(withTitle: "Customize Encodings List...".localized)
         if let lastItem = popup.lastItem {
             lastItem.action = #selector(showPanel(_:))
             lastItem.target = self
@@ -226,7 +226,7 @@ class EncodingManager: NSObject {
 
         // 「自動」項目を追加
         if includeDefaultItem {
-            popup.addItem(withTitle: NSLocalizedString("Automatic", comment: "Automatic encoding selection"))
+            popup.addItem(withTitle: "Automatic".localized)
             popup.lastItem?.tag = Self.wantsAutomaticTag
             popup.lastItem?.representedObject = Self.noStringEncoding
         }
@@ -256,7 +256,7 @@ class EncodingManager: NSObject {
         // 「カスタマイズ...」項目を追加
         if includeCustomizeItem {
             popup.menu?.addItem(NSMenuItem.separator())
-            let customizeTitle = NSLocalizedString("Customize Encoding List...", comment: "Menu item to customize encoding list")
+            let customizeTitle = "Customize Encoding List...".localized
             popup.addItem(withTitle: customizeTitle)
             popup.lastItem?.tag = Self.customizeEncodingsTag
             popup.lastItem?.target = target
@@ -274,7 +274,7 @@ class EncodingManager: NSObject {
 
         // 「自動」項目を追加
         if includeDefaultItem {
-            let item = NSMenuItem(title: NSLocalizedString("Automatic", comment: "Automatic encoding selection"), action: nil, keyEquivalent: "")
+            let item = NSMenuItem(title: "Automatic".localized, action: nil, keyEquivalent: "")
             item.tag = Self.wantsAutomaticTag
             item.representedObject = Self.noStringEncoding
             menu.addItem(item)

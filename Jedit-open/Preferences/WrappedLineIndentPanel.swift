@@ -28,7 +28,7 @@ class WrappedLineIndentPanel: NSPanel {
             defer: true
         )
 
-        self.title = NSLocalizedString("Wrapped Line Indent", comment: "")
+        self.title = "Wrapped Line Indent".localized
         self.isReleasedWhenClosed = false
 
         setupUI()
@@ -44,7 +44,7 @@ class WrappedLineIndentPanel: NSPanel {
         guard let contentView = self.contentView else { return }
 
         // Indent Wrapped Lines by: チェックボックス付きラベル
-        enableCheckbox = NSButton(checkboxWithTitle: NSLocalizedString("Indent Wrapped Lines by:", comment: ""), target: self, action: #selector(checkboxChanged(_:)))
+        enableCheckbox = NSButton(checkboxWithTitle: "Indent Wrapped Lines by:".localized, target: self, action: #selector(checkboxChanged(_:)))
         enableCheckbox.frame = NSRect(x: 20, y: 58, width: 175, height: 18)
         contentView.addSubview(enableCheckbox)
 
@@ -65,19 +65,19 @@ class WrappedLineIndentPanel: NSPanel {
         contentView.addSubview(indentField)
 
         // pt. ラベル
-        unitLabel = NSTextField(labelWithString: NSLocalizedString("pt.", comment: ""))
+        unitLabel = NSTextField(labelWithString: "pt.".localized)
         unitLabel.frame = NSRect(x: 248, y: 58, width: 25, height: 17)
         contentView.addSubview(unitLabel)
 
         // Cancel ボタン
-        let cancelButton = NSButton(title: NSLocalizedString("Cancel", comment: ""), target: self, action: #selector(cancelClicked(_:)))
+        let cancelButton = NSButton(title: "Cancel".localized, target: self, action: #selector(cancelClicked(_:)))
         cancelButton.frame = NSRect(x: 95, y: 13, width: 82, height: 32)
         cancelButton.bezelStyle = .rounded
         cancelButton.keyEquivalent = "\u{1b}" // Escape
         contentView.addSubview(cancelButton)
 
         // Set ボタン
-        let setButton = NSButton(title: NSLocalizedString("Set", comment: ""), target: self, action: #selector(setClicked(_:)))
+        let setButton = NSButton(title: "Set".localized, target: self, action: #selector(setClicked(_:)))
         setButton.frame = NSRect(x: 182, y: 13, width: 82, height: 32)
         setButton.bezelStyle = .rounded
         setButton.keyEquivalent = "\r" // Return
@@ -127,10 +127,10 @@ class WrappedLineIndentPanel: NSPanel {
         // 範囲チェック
         if value < 0 || value > 999 {
             let alert = NSAlert()
-            alert.messageText = NSLocalizedString("Invalid Value", comment: "")
-            alert.informativeText = NSLocalizedString("Specify a value between 0 and 999.", comment: "")
+            alert.messageText = "Invalid Value".localized
+            alert.informativeText = "Specify a value between 0 and 999.".localized
             alert.alertStyle = .warning
-            alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+            alert.addButton(withTitle: "OK".localized)
             alert.beginSheetModal(for: self, completionHandler: nil)
             return
         }

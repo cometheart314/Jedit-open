@@ -57,7 +57,7 @@ class ScaleMenu: NSMenu, NSMenuDelegate {
 
         // "Add Other Scale..." メニュー項目
         let addOtherItem = menu.addItem(
-            withTitle: NSLocalizedString("Add Other Scale...", comment: ""),
+            withTitle: "Add Other Scale...".localized,
             action: #selector(addOtherScaleSelected(_:)),
             keyEquivalent: ""
         )
@@ -65,7 +65,7 @@ class ScaleMenu: NSMenu, NSMenuDelegate {
 
         // "Revert to Default..." メニュー項目
         let revertItem = menu.addItem(
-            withTitle: NSLocalizedString("Revert to Default...", comment: ""),
+            withTitle: "Revert to Default...".localized,
             action: #selector(revertScaleMenu(_:)),
             keyEquivalent: ""
         )
