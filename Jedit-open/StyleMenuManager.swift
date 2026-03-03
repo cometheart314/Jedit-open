@@ -40,14 +40,14 @@ class StyleMenuManager: NSObject {
     /// Format メニューの Text サブメニューの後に Styles サブメニューを挿入
     func setupStylesMenu() {
         guard let mainMenu = NSApp.mainMenu,
-              let formatMenu = mainMenu.item(withTitle: "Format")?.submenu else {
+              let formatMenu = (mainMenu.item(withTitle: "Format") ?? mainMenu.item(withTitle: "フォーマット"))?.submenu else {
             return
         }
 
         // "Text" サブメニューの位置を見つける
         var insertIndex = -1
         for (index, item) in formatMenu.items.enumerated() {
-            if item.title == "Text" {
+            if item.title == "Text" || item.title == "テキスト" {
                 insertIndex = index + 1
                 break
             }
@@ -56,7 +56,7 @@ class StyleMenuManager: NSObject {
         // "Text" が見つからない場合は "Font" の後に挿入
         if insertIndex < 0 {
             for (index, item) in formatMenu.items.enumerated() {
-                if item.title == "Font" {
+                if item.title == "Font" || item.title == "フォント" {
                     insertIndex = index + 1
                     break
                 }
@@ -66,9 +66,9 @@ class StyleMenuManager: NSObject {
         guard insertIndex >= 0 else { return }
 
         // Styles サブメニューを作成
-        let stylesItem = NSMenuItem(title: "Styles", action: nil, keyEquivalent: "")
+        let stylesItem = NSMenuItem(title: "Styles".localized, action: nil, keyEquivalent: "")
         stylesItem.image = NSImage(systemSymbolName: "jacket", accessibilityDescription: nil)
-        let stylesMenu = NSMenu(title: "Styles")
+        let stylesMenu = NSMenu(title: "Styles".localized)
         stylesMenu.delegate = self
         stylesItem.submenu = stylesMenu
 
@@ -80,7 +80,7 @@ class StyleMenuManager: NSObject {
 
         // Styles の直後に Style Info… メニュー項目を挿入
         let styleInfoItem = NSMenuItem(
-            title: "Style Info…",
+            title: "Style Info…".localized,
             action: #selector(AppDelegate.showStyleInfoPanel(_:)),
             keyEquivalent: ""
         )
@@ -97,7 +97,7 @@ class StyleMenuManager: NSObject {
         let styles = StyleManager.shared.styles
         for style in styles {
             let item = NSMenuItem(
-                title: style.name,
+                title: style.displayName,
                 action: #selector(JeditTextView.applyTextStyle(_:)),
                 keyEquivalent: style.keyEquivalent ?? ""
             )
@@ -121,9 +121,9 @@ class StyleMenuManager: NSObject {
 
     /// コンテキストメニュー用の Styles サブメニューを作成して返す
     func createContextStylesMenuItem() -> NSMenuItem {
-        let stylesItem = NSMenuItem(title: "Styles", action: nil, keyEquivalent: "")
+        let stylesItem = NSMenuItem(title: "Styles".localized, action: nil, keyEquivalent: "")
         stylesItem.image = NSImage(systemSymbolName: "jacket", accessibilityDescription: nil)
-        let stylesMenu = NSMenu(title: "Styles")
+        let stylesMenu = NSMenu(title: "Styles".localized)
         buildStyleMenuItems(in: stylesMenu)
         stylesItem.submenu = stylesMenu
         return stylesItem

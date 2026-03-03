@@ -76,7 +76,7 @@ class PreferencesWindowController: NSWindowController {
         splitView.autoresizingMask = [.width, .height]
         
         // Left Sidebar
-        let sidebarContainer = NSScrollView(frame: NSRect(x: 0, y: 0, width: 140, height: 500))
+        let sidebarContainer = NSScrollView(frame: NSRect(x: 0, y: 0, width: 180, height: 500))
         sidebarContainer.hasVerticalScroller = true
         sidebarContainer.autohidesScrollers = true
         sidebarContainer.borderType = .noBorder
@@ -88,7 +88,7 @@ class PreferencesWindowController: NSWindowController {
         outlineView.style = .sourceList
         
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("PreferenceColumn"))
-        column.width = 200
+        column.width = 240
         outlineView.addTableColumn(column)
         outlineView.outlineTableColumn = column
         
@@ -109,7 +109,7 @@ class PreferencesWindowController: NSWindowController {
         window.contentView = splitView
         
         // Set sidebar width
-        splitView.setPosition(200, ofDividerAt: 0)
+        splitView.setPosition(240, ofDividerAt: 0)
         
         // Select first item
         DispatchQueue.main.async {
@@ -192,7 +192,7 @@ extension PreferencesWindowController: NSOutlineViewDelegate {
         var cellView = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
         
         if cellView == nil {
-            cellView = NSTableCellView(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
+            cellView = NSTableCellView(frame: NSRect(x: 0, y: 0, width: 240, height: 24))
             cellView?.identifier = cellIdentifier
             
             let imageView = NSImageView(frame: NSRect(x: 8, y: 2, width: 20, height: 20))
@@ -201,7 +201,7 @@ extension PreferencesWindowController: NSOutlineViewDelegate {
             cellView?.imageView = imageView
             
             let textField = NSTextField(labelWithString: "")
-            textField.frame = NSRect(x: 36, y: 4, width: 160, height: 16)
+            textField.frame = NSRect(x: 36, y: 4, width: 200, height: 16)
             textField.font = .systemFont(ofSize: 13)
             cellView?.addSubview(textField)
             cellView?.textField = textField

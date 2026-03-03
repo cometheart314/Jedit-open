@@ -22,6 +22,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // macOS が "Help" タイトルのメニューにシステム検索フィールドを追加するのを防ぐ。
         // nib ロード直後（メニューバーの構築前）にダミーを設定する。
         NSApp.helpMenu = NSMenu(title: "DummyHelp")
+
+        // アプリがアクティブになった時点で suppressOpenPanel を確実に解除するバックアップ
+        // applicationDidFinishLaunching の 2 秒タイマーが何らかの理由で実行されなかった場合の安全策
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            guard self != nil else { return }
+            (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
+        }
     }
 
     func applicationDidFinishLaunching(_ aNotification: Notification) {
@@ -147,7 +158,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                     menuItem.tag = 0
                     self.newDocumentWithPreset(menuItem)
                 } else if startupResult == .openPanel {
-                    // ユーザーが startupOption で Open Panel を指定した場合は
                     // suppressOpenPanel を解除してから開く
                     (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
                     NSDocumentController.shared.openDocument(nil)
@@ -568,8 +578,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// Format > Font メニューに Basic Font... 項目を追加
     private func setupBasicFontMenuItem() {
         guard let mainMenu = NSApp.mainMenu,
-              let formatMenu = mainMenu.item(withTitle: "Format")?.submenu,
-              let fontMenuItem = formatMenu.item(withTitle: "Font"),
+              let formatMenu = (mainMenu.item(withTitle: "Format") ?? mainMenu.item(withTitle: "フォーマット"))?.submenu,
+              let fontMenuItem = formatMenu.item(withTitle: "Font") ?? formatMenu.item(withTitle: "フォント"),
               let fontSubmenu = fontMenuItem.submenu else {
             return
         }
@@ -591,7 +601,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// Edit > Import from iPhone or iPad メニュー項目をコードから追加
     private func setupImportFromDeviceMenuItem() {
         guard let mainMenu = NSApp.mainMenu,
-              let editMenu = mainMenu.item(withTitle: "Edit")?.submenu else {
+              let editMenu = (mainMenu.item(withTitle: "Edit") ?? mainMenu.item(withTitle: "編集"))?.submenu else {
             return
         }
 
@@ -602,7 +612,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             let item = editMenu.items[i]
             if item.isSeparatorItem,
                i > 0,
-               editMenu.items[i - 1].title == "Insert" {
+               (editMenu.items[i - 1].title == "Insert" || editMenu.items[i - 1].title == "挿入") {
                 insertIndex = i
                 break
             }
@@ -629,8 +639,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// Format > Font メニューに Character Fore Color / Back Color サブメニューを追加
     private func setupCharacterColorMenus() {
         guard let mainMenu = NSApp.mainMenu,
-              let formatMenu = mainMenu.item(withTitle: "Format")?.submenu,
-              let fontMenuItem = formatMenu.item(withTitle: "Font"),
+              let formatMenu = (mainMenu.item(withTitle: "Format") ?? mainMenu.item(withTitle: "フォーマット"))?.submenu,
+              let fontMenuItem = formatMenu.item(withTitle: "Font") ?? formatMenu.item(withTitle: "フォント"),
               let fontSubmenu = fontMenuItem.submenu else {
             return
         }
@@ -783,8 +793,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// File > New サブメニューを再構築（カスタムプリセットを動的に追加）
     func rebuildNewDocumentSubmenu() {
         guard let mainMenu = NSApp.mainMenu,
-              let fileMenu = mainMenu.item(withTitle: "File")?.submenu,
-              let newMenuItem = fileMenu.item(withTitle: "New"),
+              let fileMenu = (mainMenu.item(withTitle: "File") ?? mainMenu.item(withTitle: "ファイル"))?.submenu,
+              let newMenuItem = fileMenu.item(withTitle: "New") ?? fileMenu.item(withTitle: "新規"),
               let newSubmenu = newMenuItem.submenu else {
             return
         }
@@ -1057,15 +1067,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     /// Help メニューに検索フィールドを追加する
     private func setupHelpSearchField() {
-        guard let helpMenu = NSApp.mainMenu?.item(withTitle: "Help")?.submenu else { return }
+        guard let helpMenu = (NSApp.mainMenu?.item(withTitle: "Help") ?? NSApp.mainMenu?.item(withTitle: "ヘルプ"))?.submenu else { return }
 
         // macOS はタイトル "Help" のメニューを自動検出してシステム検索フィールドを追加する。
         // ダミーメニューを helpMenu に設定し、実際の Help メニューへのシステム干渉を防ぐ。
         NSApp.helpMenu = NSMenu(title: "DummyHelp")
 
         // システムが既に追加した項目（検索フィールド、セパレータ）があれば削除
+        // ローカライズされたタイトルにも対応（日本語: "Jeditヘルプ"）
         while let firstItem = helpMenu.item(at: 0),
-              firstItem.title != "Jedit Help" {
+              firstItem.title != "Jedit Help",
+              firstItem.title != "Jeditヘルプ" {
             helpMenu.removeItem(at: 0)
         }
 

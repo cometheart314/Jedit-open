@@ -36,15 +36,15 @@ enum FontWeight: String, Codable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .ultraLight: return "Ultra Light"
-        case .thin: return "Thin"
-        case .light: return "Light"
-        case .regular: return "Regular"
-        case .medium: return "Medium"
-        case .semibold: return "Semibold"
-        case .bold: return "Bold"
-        case .heavy: return "Heavy"
-        case .black: return "Black"
+        case .ultraLight: return "Ultra Light".localized
+        case .thin: return "Thin".localized
+        case .light: return "Light".localized
+        case .regular: return "Regular".localized
+        case .medium: return "Medium".localized
+        case .semibold: return "Semibold".localized
+        case .bold: return "Bold".localized
+        case .heavy: return "Heavy".localized
+        case .black: return "Black".localized
         }
     }
 }
@@ -68,10 +68,10 @@ enum UnderlineStyle: Int, Codable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .none: return "None"
-        case .single: return "Single"
-        case .thick: return "Thick"
-        case .double: return "Double"
+        case .none: return "None".localized
+        case .single: return "Single".localized
+        case .thick: return "Thick".localized
+        case .double: return "Double".localized
         }
     }
 }
@@ -97,11 +97,11 @@ enum TextAlignment: String, Codable, CaseIterable {
 
     var displayName: String {
         switch self {
-        case .left: return "Left"
-        case .center: return "Center"
-        case .right: return "Right"
-        case .justified: return "Justified"
-        case .natural: return "Natural"
+        case .left: return "Left".localized
+        case .center: return "Center".localized
+        case .right: return "Right".localized
+        case .justified: return "Justified".localized
+        case .natural: return "Natural".localized
         }
     }
 }
@@ -114,6 +114,11 @@ struct TextStyle: Codable, Identifiable, Equatable {
     var keyEquivalent: String?          // ショートカットキー（オプション）
     var keyEquivalentModifierRawValue: UInt?  // 修飾キーマスク（NSEvent.ModifierFlags.rawValue）
     var isBuiltIn: Bool
+
+    /// ビルトインスタイルはローカライズされた名前を返す
+    var displayName: String {
+        return isBuiltIn ? name.localized : name
+    }
 
     /// 修飾キーの取得・設定（Codable非対応のNSEvent.ModifierFlagsをラップ）
     var keyEquivalentModifierMask: NSEvent.ModifierFlags {

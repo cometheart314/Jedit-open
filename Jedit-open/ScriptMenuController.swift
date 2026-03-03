@@ -60,7 +60,10 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
         // Help の左隣に挿入
         // メニュー順: Jedit(0), File(1), Edit(2), View(3), Format(4), Window, [Script], Help
-        let helpMenuIndex = mainMenu.indexOfItem(withTitle: "Help")
+        var helpMenuIndex = mainMenu.indexOfItem(withTitle: "Help")
+        if helpMenuIndex < 0 {
+            helpMenuIndex = mainMenu.indexOfItem(withTitle: "ヘルプ")
+        }
         if helpMenuIndex >= 0 {
             mainMenu.insertItem(scriptMenuItem, at: helpMenuIndex)
         } else {

@@ -1206,9 +1206,9 @@ extension NewDocumentsPreferencesViewController {
     func updateTabWidthDescriptionLabel(for unit: NewDocData.FormatData.TabWidthUnit) {
         switch unit {
         case .points:
-            tabWidthDescriptionLabel?.stringValue = "tab code will be inserted by tab key."
+            tabWidthDescriptionLabel?.stringValue = "tab code will be inserted by tab key.".localized
         case .spaces:
-            tabWidthDescriptionLabel?.stringValue = "space chars. will be inserted by tab key."
+            tabWidthDescriptionLabel?.stringValue = "space chars. will be inserted by tab key.".localized
         }
     }
 }

@@ -176,7 +176,7 @@
 "Lad-nA-rcW.title" = "新規ウインドウ";
 
 /* Class = "NSButtonCell"; title = "Non-breaking Space"; ObjectID = "LjN-dC-kkO"; */
-"LjN-dC-kkO.title" = "ノーブレークスペース";
+"LjN-dC-kkO.title" = "非改行スペース";
 
 /* Class = "NSTextFieldCell"; title = "Choose the menu \"File > Properties\" to change properties of \nindividual documents"; ObjectID = "Mgn-No-9Ab"; */
 "Mgn-No-9Ab.title" = "個別の書類のプロパティを変更するには\n「ファイル > プロパティ」メニューを使用してください";

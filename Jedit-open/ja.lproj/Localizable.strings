@@ -293,6 +293,110 @@
 
 /* Styles */
 "Edit Styles…" = "スタイルを編集…";
+"Style Info…" = "スタイル情報…";
+"Style Info" = "スタイル情報";
+
+/* Style Info Panel */
+"Font" = "フォント";
+"Family:" = "ファミリー:";
+"Change…" = "変更…";
+"Style:" = "スタイル:";
+"Size:" = "サイズ:";
+"Colors" = "カラー";
+"Foreground:" = "文字色:";
+"Background:" = "背景色:";
+"Underline" = "下線";
+"Color:" = "カラー:";
+"Strikethrough" = "取り消し線";
+"Outline" = "アウトライン";
+"Width:" = "幅:";
+"Baseline & Spacing" = "ベースラインと間隔";
+"Baseline Offset:" = "ベースラインオフセット:";
+"Kerning:" = "カーニング:";
+"Ligatures:" = "合字:";
+"Default" = "デフォルト";
+"Alignment" = "配置";
+"Line Height" = "行の高さ";
+"Multiple:" = "倍数:";
+"Min:" = "最小:";
+"Max:" = "最大:";
+"Indents" = "インデント";
+"First Line:" = "最初の行:";
+"Head:" = "先頭:";
+"Tail:" = "末尾:";
+"Paragraph Spacing" = "段落間隔";
+"Line Space:" = "行間隔:";
+"Before:" = "前:";
+"After:" = "後:";
+"Solid" = "実線";
+"Dot" = "点線";
+"Dash" = "破線";
+"Dash Dot" = "一点鎖線";
+"Dash Dot Dot" = "二点鎖線";
+
+/* Styles Preferences */
+"Style Name" = "スタイル名";
+"Shortcut:" = "ショートカット:";
+"Preview" = "プレビュー";
+"Character Attributes" = "文字属性";
+"Paragraph Attributes" = "段落属性";
+"Font Family" = "フォントファミリー";
+"Font Size" = "フォントサイズ";
+"Font Weight" = "フォントウェイト";
+"Italic" = "イタリック";
+"Text Color" = "文字カラー";
+"Background Color" = "背景カラー";
+"Underline Color" = "下線カラー";
+"Strikethrough" = "取り消し線";
+"Strikethrough Color" = "取り消し線カラー";
+"Baseline Offset" = "ベースラインオフセット";
+"Kerning" = "カーニング";
+"Superscript" = "上付き文字";
+"Subscript" = "下付き文字";
+"No Ligature" = "合字なし";
+"Ligature" = "合字";
+"Default Ligature" = "デフォルト合字";
+"Alignment" = "配置";
+"Paragraph Spacing" = "段落間隔";
+"Spacing Before" = "前間隔";
+"Head Indent" = "先頭インデント";
+"Tail Indent" = "末尾インデント";
+"First Line Indent" = "最初の行のインデント";
+"Line Height Multiple" = "行の高さの倍数";
+"Hyphenation" = "ハイフネーション";
+"Duplicate" = "複製";
+"Revert" = "元に戻す";
+"New Style" = "新規スタイル";
+" Copy" = " コピー";
+
+/* Built-in Style Names */
+"Heading 1" = "見出し 1";
+"Heading 2" = "見出し 2";
+"Heading 3" = "見出し 3";
+"Emphasis" = "強調";
+"Strong" = "太字";
+"Code" = "コード";
+
+/* Font Weight */
+"Ultra Light" = "ウルトラライト";
+"Thin" = "シン";
+"Regular" = "レギュラー";
+"Semibold" = "セミボールド";
+"Bold" = "ボールド";
+"Heavy" = "ヘビー";
+"Black" = "ブラック";
+
+/* Underline Style */
+"Single" = "シングル";
+"Thick" = "太い";
+"Double" = "ダブル";
+
+/* Text Alignment */
+"Left" = "左揃え";
+"Center" = "中央揃え";
+"Right" = "右揃え";
+"Justified" = "両端揃え";
+"Natural" = "自然";
 
 /* Scripts */
 "Install Sample Scripts" = "サンプルスクリプトをインストール";
@@ -343,3 +447,7 @@
 "Line Breaking" = "禁則処理";
 "Styles" = "スタイル";
 "Context Menu" = "コンテキストメニュー";
+
+/* Preferences - Tab Width Description */
+"tab code will be inserted by tab key." = "タブコードがTabキーで挿入されます。";
+"space chars. will be inserted by tab key." = "個のスペースがTabキーで挿入されます。";

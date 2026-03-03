@@ -194,13 +194,13 @@ class StylesPreferencesViewController: NSViewController {
         removeButton.isBordered = true
         buttonBar.addSubview(removeButton)
 
-        duplicateButton = NSButton(title: "Duplicate", target: self, action: #selector(duplicateStyle(_:)))
+        duplicateButton = NSButton(title: "Duplicate".localized, target: self, action: #selector(duplicateStyle(_:)))
         duplicateButton.bezelStyle = .smallSquare
         duplicateButton.frame = NSRect(x: 52, y: 0, width: 72, height: 24)
         duplicateButton.font = .systemFont(ofSize: 11)
         buttonBar.addSubview(duplicateButton)
 
-        revertButton = NSButton(title: "Revert", target: self, action: #selector(revertStyle(_:)))
+        revertButton = NSButton(title: "Revert".localized, target: self, action: #selector(revertStyle(_:)))
         revertButton.bezelStyle = .smallSquare
         revertButton.frame = NSRect(x: 124, y: 0, width: 60, height: 24)
         revertButton.font = .systemFont(ofSize: 11)
@@ -226,41 +226,44 @@ class StylesPreferencesViewController: NSViewController {
         var y: CGFloat = 880
 
         // スタイル名
-        y = addSectionHeader("Style Name", at: y)
+        y = addSectionHeader("Style Name".localized, at: y)
         nameField = NSTextField(frame: NSRect(x: 20, y: y - 22, width: 340, height: 22))
-        nameField.placeholderString = "Style Name"
+        nameField.placeholderString = "Style Name".localized
         nameField.target = self
         nameField.action = #selector(nameFieldChanged(_:))
         editorContentView.addSubview(nameField)
         y -= 32
 
         // ショートカット
-        let shortcutLabel = NSTextField(labelWithString: "Shortcut:")
-        shortcutLabel.frame = NSRect(x: 20, y: y - 22, width: 64, height: 22)
+        let shortcutLabel = NSTextField(labelWithString: "Shortcut:".localized)
+        shortcutLabel.sizeToFit()
+        shortcutLabel.frame = NSRect(x: 20, y: y - 22, width: shortcutLabel.frame.width + 4, height: 22)
         shortcutLabel.font = .systemFont(ofSize: 12)
         editorContentView.addSubview(shortcutLabel)
 
+        let scX = shortcutLabel.frame.maxX + 4  // ショートカットラベルの右端から開始
+
         modifierControlCheckBox = NSButton(checkboxWithTitle: "⌃", target: self, action: #selector(modifierChanged(_:)))
-        modifierControlCheckBox.frame = NSRect(x: 86, y: y - 22, width: 36, height: 22)
+        modifierControlCheckBox.frame = NSRect(x: scX, y: y - 22, width: 36, height: 22)
         modifierControlCheckBox.font = .systemFont(ofSize: 12)
         editorContentView.addSubview(modifierControlCheckBox)
 
         modifierOptionCheckBox = NSButton(checkboxWithTitle: "⌥", target: self, action: #selector(modifierChanged(_:)))
-        modifierOptionCheckBox.frame = NSRect(x: 122, y: y - 22, width: 36, height: 22)
+        modifierOptionCheckBox.frame = NSRect(x: scX + 36, y: y - 22, width: 36, height: 22)
         modifierOptionCheckBox.font = .systemFont(ofSize: 12)
         editorContentView.addSubview(modifierOptionCheckBox)
 
         modifierShiftCheckBox = NSButton(checkboxWithTitle: "⇧", target: self, action: #selector(modifierChanged(_:)))
-        modifierShiftCheckBox.frame = NSRect(x: 158, y: y - 22, width: 36, height: 22)
+        modifierShiftCheckBox.frame = NSRect(x: scX + 72, y: y - 22, width: 36, height: 22)
         modifierShiftCheckBox.font = .systemFont(ofSize: 12)
         editorContentView.addSubview(modifierShiftCheckBox)
 
         modifierCommandCheckBox = NSButton(checkboxWithTitle: "⌘", target: self, action: #selector(modifierChanged(_:)))
-        modifierCommandCheckBox.frame = NSRect(x: 194, y: y - 22, width: 36, height: 22)
+        modifierCommandCheckBox.frame = NSRect(x: scX + 108, y: y - 22, width: 36, height: 22)
         modifierCommandCheckBox.font = .systemFont(ofSize: 12)
         editorContentView.addSubview(modifierCommandCheckBox)
 
-        keyEquivalentField = NSTextField(frame: NSRect(x: 236, y: y - 22, width: 40, height: 22))
+        keyEquivalentField = NSTextField(frame: NSRect(x: scX + 150, y: y - 22, width: 40, height: 22))
         keyEquivalentField.placeholderString = ""
         keyEquivalentField.alignment = .center
         keyEquivalentField.target = self
@@ -269,7 +272,7 @@ class StylesPreferencesViewController: NSViewController {
         y -= 32
 
         // プレビュー
-        y = addSectionHeader("Preview", at: y)
+        y = addSectionHeader("Preview".localized, at: y)
         let previewScroll = NSScrollView(frame: NSRect(x: 20, y: y - 60, width: 340, height: 60))
         previewScroll.hasVerticalScroller = false
         previewScroll.borderType = .bezelBorder
@@ -282,17 +285,17 @@ class StylesPreferencesViewController: NSViewController {
         y -= 80
 
         // ── 文字属性 ──
-        y = addSectionHeader("Character Attributes", at: y)
+        y = addSectionHeader("Character Attributes".localized, at: y)
 
         // Font Family
         (fontFamilyCheckBox, fontFamilyPopUp, y) = addPopUpRow(
-            "Font Family", at: y, tag: 100
+            "Font Family".localized, at: y, tag: 100
         )
         populateFontFamilyPopUp()
 
         // Font Size
         let sizeRow: NSView
-        (fontSizeCheckBox, sizeRow, y) = addCheckBoxWithCustomView("Font Size", at: y, tag: 101)
+        (fontSizeCheckBox, sizeRow, y) = addCheckBoxWithCustomView("Font Size".localized, at: y, tag: 101)
         fontSizeField = NSTextField(frame: NSRect(x: 0, y: 0, width: 60, height: 22))
         fontSizeField.formatter = createNumberFormatter(min: 1, max: 999, decimals: 1)
         fontSizeField.tag = 101
@@ -315,7 +318,7 @@ class StylesPreferencesViewController: NSViewController {
 
         // Font Weight
         (fontWeightCheckBox, fontWeightPopUp, y) = addPopUpRow(
-            "Font Weight", at: y, tag: 102
+            "Font Weight".localized, at: y, tag: 102
         )
         for weight in FontWeight.allCases {
             fontWeightPopUp.addItem(withTitle: weight.displayName)
@@ -323,25 +326,25 @@ class StylesPreferencesViewController: NSViewController {
         }
 
         // Italic
-        (isItalicCheckBox, _, y) = addSimpleCheckBoxRow("Italic", at: y, tag: 103)
+        (isItalicCheckBox, _, y) = addSimpleCheckBoxRow("Italic".localized, at: y, tag: 103)
 
         y -= 10
 
         // Foreground Color
         (foregroundColorCheckBox, foregroundColorWell, y) = addColorRow(
-            "Text Color", at: y, tag: 110
+            "Text Color".localized, at: y, tag: 110
         )
 
         // Background Color
         (backgroundColorCheckBox, backgroundColorWell, y) = addColorRow(
-            "Background Color", at: y, tag: 111
+            "Background Color".localized, at: y, tag: 111
         )
 
         y -= 10
 
         // Underline Style
         (underlineStyleCheckBox, underlineStylePopUp, y) = addPopUpRow(
-            "Underline", at: y, tag: 120
+            "Underline".localized, at: y, tag: 120
         )
         for style in UnderlineStyle.allCases {
             underlineStylePopUp.addItem(withTitle: style.displayName)
@@ -350,12 +353,12 @@ class StylesPreferencesViewController: NSViewController {
 
         // Underline Color
         (underlineColorCheckBox, underlineColorWell, y) = addColorRow(
-            "Underline Color", at: y, tag: 121
+            "Underline Color".localized, at: y, tag: 121
         )
 
         // Strikethrough Style
         (strikethroughStyleCheckBox, strikethroughStylePopUp, y) = addPopUpRow(
-            "Strikethrough", at: y, tag: 122
+            "Strikethrough".localized, at: y, tag: 122
         )
         for style in UnderlineStyle.allCases {
             strikethroughStylePopUp.addItem(withTitle: style.displayName)
@@ -364,51 +367,51 @@ class StylesPreferencesViewController: NSViewController {
 
         // Strikethrough Color
         (strikethroughColorCheckBox, strikethroughColorWell, y) = addColorRow(
-            "Strikethrough Color", at: y, tag: 123
+            "Strikethrough Color".localized, at: y, tag: 123
         )
 
         y -= 10
 
         // Baseline Offset
         (baselineOffsetCheckBox, baselineOffsetField, y) = addTextFieldRow(
-            "Baseline Offset", at: y, tag: 130,
+            "Baseline Offset".localized, at: y, tag: 130,
             formatter: createNumberFormatter(min: -100, max: 100, decimals: 1),
             unit: "pt"
         )
 
         // Kern
         (kernCheckBox, kernField, y) = addTextFieldRow(
-            "Kerning", at: y, tag: 131,
+            "Kerning".localized, at: y, tag: 131,
             formatter: createNumberFormatter(min: -100, max: 100, decimals: 1),
             unit: "pt"
         )
 
         // Superscript
         (superscriptCheckBox, superscriptPopUp, y) = addPopUpRow(
-            "Superscript", at: y, tag: 132
+            "Superscript".localized, at: y, tag: 132
         )
-        superscriptPopUp.addItem(withTitle: "Superscript")
+        superscriptPopUp.addItem(withTitle: "Superscript".localized)
         superscriptPopUp.lastItem?.tag = 1
-        superscriptPopUp.addItem(withTitle: "Subscript")
+        superscriptPopUp.addItem(withTitle: "Subscript".localized)
         superscriptPopUp.lastItem?.tag = -1
 
         // Ligature
         (ligatureCheckBox, ligaturePopUp, y) = addPopUpRow(
-            "Ligature", at: y, tag: 133
+            "Ligature".localized, at: y, tag: 133
         )
-        ligaturePopUp.addItem(withTitle: "No Ligature")
+        ligaturePopUp.addItem(withTitle: "No Ligature".localized)
         ligaturePopUp.lastItem?.tag = 0
-        ligaturePopUp.addItem(withTitle: "Default Ligature")
+        ligaturePopUp.addItem(withTitle: "Default Ligature".localized)
         ligaturePopUp.lastItem?.tag = 1
 
         y -= 16
 
         // ── 段落属性 ──
-        y = addSectionHeader("Paragraph Attributes", at: y)
+        y = addSectionHeader("Paragraph Attributes".localized, at: y)
 
         // Alignment
         (alignmentCheckBox, alignmentPopUp, y) = addPopUpRow(
-            "Alignment", at: y, tag: 200
+            "Alignment".localized, at: y, tag: 200
         )
         for alignment in TextAlignment.allCases {
             alignmentPopUp.addItem(withTitle: alignment.displayName)
@@ -417,56 +420,56 @@ class StylesPreferencesViewController: NSViewController {
 
         // Line Spacing
         (lineSpacingCheckBox, lineSpacingField, y) = addTextFieldRow(
-            "Line Spacing", at: y, tag: 201,
+            "Line Spacing".localized, at: y, tag: 201,
             formatter: createNumberFormatter(min: 0, max: 999, decimals: 1),
             unit: "pt"
         )
 
         // Paragraph Spacing
         (paragraphSpacingCheckBox, paragraphSpacingField, y) = addTextFieldRow(
-            "Paragraph Spacing", at: y, tag: 202,
+            "Paragraph Spacing".localized, at: y, tag: 202,
             formatter: createNumberFormatter(min: 0, max: 999, decimals: 1),
             unit: "pt"
         )
 
         // Paragraph Spacing Before
         (paragraphSpacingBeforeCheckBox, paragraphSpacingBeforeField, y) = addTextFieldRow(
-            "Spacing Before", at: y, tag: 203,
+            "Spacing Before".localized, at: y, tag: 203,
             formatter: createNumberFormatter(min: 0, max: 999, decimals: 1),
             unit: "pt"
         )
 
         // Head Indent
         (headIndentCheckBox, headIndentField, y) = addTextFieldRow(
-            "Head Indent", at: y, tag: 204,
+            "Head Indent".localized, at: y, tag: 204,
             formatter: createNumberFormatter(min: 0, max: 999, decimals: 1),
             unit: "pt"
         )
 
         // Tail Indent
         (tailIndentCheckBox, tailIndentField, y) = addTextFieldRow(
-            "Tail Indent", at: y, tag: 205,
+            "Tail Indent".localized, at: y, tag: 205,
             formatter: createNumberFormatter(min: -999, max: 999, decimals: 1),
             unit: "pt"
         )
 
         // First Line Head Indent
         (firstLineHeadIndentCheckBox, firstLineHeadIndentField, y) = addTextFieldRow(
-            "First Line Indent", at: y, tag: 206,
+            "First Line Indent".localized, at: y, tag: 206,
             formatter: createNumberFormatter(min: 0, max: 999, decimals: 1),
             unit: "pt"
         )
 
         // Line Height Multiple
         (lineHeightMultipleCheckBox, lineHeightMultipleComboBox, y) = addComboBoxRow(
-            "Line Height Multiple", at: y, tag: 207,
+            "Line Height Multiple".localized, at: y, tag: 207,
             items: ["0.8", "0.9", "1.0", "1.1", "1.2", "1.3", "1.4", "1.5", "1.6", "1.8", "2.0", "2.5", "3.0"],
             unit: "×"
         )
 
         // Hyphenation Factor
         (hyphenationFactorCheckBox, hyphenationFactorField, y) = addTextFieldRow(
-            "Hyphenation", at: y, tag: 208,
+            "Hyphenation".localized, at: y, tag: 208,
             formatter: createNumberFormatter(min: 0, max: 1, decimals: 2)
         )
 
@@ -675,7 +678,7 @@ class StylesPreferencesViewController: NSViewController {
 
         setEditorEnabled(true)
 
-        nameField.stringValue = style.name
+        nameField.stringValue = style.displayName
         keyEquivalentField.stringValue = style.keyEquivalent ?? ""
 
         // 修飾キーチェックボックスを更新
@@ -866,7 +869,7 @@ class StylesPreferencesViewController: NSViewController {
     // MARK: - Actions
 
     @objc private func addStyle(_ sender: Any) {
-        let _ = styleManager.addStyle(name: "New Style")
+        let _ = styleManager.addStyle(name: "New Style".localized)
         tableView.reloadData()
         selectStyle(at: styleManager.styles.count - 1)
     }
@@ -885,7 +888,7 @@ class StylesPreferencesViewController: NSViewController {
 
     @objc private func duplicateStyle(_ sender: Any) {
         guard let style = selectedStyle else { return }
-        let _ = styleManager.addStyle(name: "\(style.name) Copy", basedOn: style)
+        let _ = styleManager.addStyle(name: "\(style.displayName)" + " Copy".localized, basedOn: style)
         tableView.reloadData()
         selectStyle(at: styleManager.styles.count - 1)
     }
@@ -1214,7 +1217,7 @@ extension StylesPreferencesViewController: NSTableViewDelegate {
         }
 
         let style = styleManager.styles[row]
-        cellView?.textField?.stringValue = style.name
+        cellView?.textField?.stringValue = style.displayName
         cellView?.textField?.textColor = style.isBuiltIn ? .secondaryLabelColor : .labelColor
 
         return cellView

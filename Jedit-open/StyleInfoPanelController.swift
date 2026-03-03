@@ -4,6 +4,7 @@
 // スタイル情報パネル — 選択範囲のテキスト属性を表示・編集するフローティングパネル
 
 import Cocoa
+import CoreText
 
 /// 現在の色を表示する矩形ビュー（nil の場合は白背景に赤いスラッシュ）
 private class ColorIndicatorView: NSView {
@@ -200,7 +201,7 @@ class StyleInfoPanelController: NSObject {
             backing: .buffered,
             defer: true
         )
-        panel.title = "Style Info"
+        panel.title = "Style Info".localized
         panel.isReleasedWhenClosed = false
         panel.becomesKeyOnlyIfNeeded = true
         panel.level = .floating
@@ -259,16 +260,16 @@ class StyleInfoPanelController: NSObject {
     // MARK: - Section Builders
 
     private func addFontSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Font"))
+        stack.addArrangedSubview(createSectionHeader("Font".localized))
 
         // Family
-        let familyRow = createLabeledRow("Family:")
+        let familyRow = createLabeledRow("Family:".localized)
         fontFamilyField = NSTextField(labelWithString: "")
         fontFamilyField.lineBreakMode = .byTruncatingTail
         fontFamilyField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         familyRow.addArrangedSubview(fontFamilyField)
 
-        let fontsButton = NSButton(title: "Change…", target: self, action: #selector(showFontPanel(_:)))
+        let fontsButton = NSButton(title: "Change…".localized, target: self, action: #selector(showFontPanel(_:)))
         fontsButton.controlSize = .small
         fontsButton.bezelStyle = .rounded
         fontsButton.setContentHuggingPriority(.required, for: .horizontal)
@@ -276,7 +277,7 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(familyRow)
 
         // Style (weight + italic)
-        let styleRow = createLabeledRow("Style:")
+        let styleRow = createLabeledRow("Style:".localized)
         fontStyleField = NSTextField(labelWithString: "")
         fontStyleField.lineBreakMode = .byTruncatingTail
         fontStyleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
@@ -284,7 +285,7 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(styleRow)
 
         // Size
-        let sizeRow = createLabeledRow("Size:")
+        let sizeRow = createLabeledRow("Size:".localized)
         fontSizeField = createNumberField(action: #selector(fontSizeFieldChanged(_:)))
         fontSizeStepper = createStepper(minValue: 1, maxValue: 999, increment: 1, action: #selector(fontSizeStepperChanged(_:)))
         sizeRow.addArrangedSubview(fontSizeField)
@@ -296,10 +297,10 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addColorSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Colors"))
+        stack.addArrangedSubview(createSectionHeader("Colors".localized))
 
         // 文字色: インジケータ + ポップアップ
-        let foreRow = createLabeledRow("Foreground:")
+        let foreRow = createLabeledRow("Foreground:".localized)
         foreColorIndicator = createColorIndicator(color: .textColor)
         foreRow.addArrangedSubview(foreColorIndicator)
         foreColorPopup = createForeColorPopup()
@@ -307,7 +308,7 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(foreRow)
 
         // 背景色: インジケータ + ポップアップ
-        let backRow = createLabeledRow("Background:")
+        let backRow = createLabeledRow("Background:".localized)
         backColorIndicator = createColorIndicator(color: .clear)
         backRow.addArrangedSubview(backColorIndicator)
         backColorPopup = createBackColorPopup()
@@ -466,16 +467,16 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addUnderlineSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Underline"))
+        stack.addArrangedSubview(createSectionHeader("Underline".localized))
 
-        let styleRow = createLabeledRow("Style:")
+        let styleRow = createLabeledRow("Style:".localized)
         underlineStylePopup = createLineStylePopup(action: #selector(underlineChanged(_:)))
         styleRow.addArrangedSubview(underlineStylePopup)
         underlinePatternPopup = createLinePatternPopup(action: #selector(underlineChanged(_:)))
         styleRow.addArrangedSubview(underlinePatternPopup)
         stack.addArrangedSubview(styleRow)
 
-        let colorRow = createLabeledRow("Color:")
+        let colorRow = createLabeledRow("Color:".localized)
         underlineColorIndicator = createColorIndicator()
         colorRow.addArrangedSubview(underlineColorIndicator)
         underlineColorPopup = createDecorationColorPopup(action: #selector(underlineColorPopupChanged(_:)))
@@ -490,16 +491,16 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addStrikethroughSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Strikethrough"))
+        stack.addArrangedSubview(createSectionHeader("Strikethrough".localized))
 
-        let styleRow = createLabeledRow("Style:")
+        let styleRow = createLabeledRow("Style:".localized)
         strikethroughStylePopup = createLineStylePopup(action: #selector(strikethroughChanged(_:)))
         styleRow.addArrangedSubview(strikethroughStylePopup)
         strikethroughPatternPopup = createLinePatternPopup(action: #selector(strikethroughChanged(_:)))
         styleRow.addArrangedSubview(strikethroughPatternPopup)
         stack.addArrangedSubview(styleRow)
 
-        let colorRow = createLabeledRow("Color:")
+        let colorRow = createLabeledRow("Color:".localized)
         strikethroughColorIndicator = createColorIndicator()
         colorRow.addArrangedSubview(strikethroughColorIndicator)
         strikethroughColorPopup = createDecorationColorPopup(action: #selector(strikethroughColorPopupChanged(_:)))
@@ -514,16 +515,16 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addOutlineSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Outline"))
+        stack.addArrangedSubview(createSectionHeader("Outline".localized))
 
-        let row = createLabeledRow("Width:")
+        let row = createLabeledRow("Width:".localized)
         strokeWidthField = createNumberField(action: #selector(strokeWidthFieldChanged(_:)))
         strokeWidthStepper = createStepper(minValue: -10, maxValue: 10, increment: 0.5, action: #selector(strokeWidthStepperChanged(_:)))
         row.addArrangedSubview(strokeWidthField)
         row.addArrangedSubview(strokeWidthStepper)
         row.addArrangedSubview(NSTextField(labelWithString: "pt."))
         row.addArrangedSubview(createSmallSpacer())
-        row.addArrangedSubview(NSTextField(labelWithString: "Color:"))
+        row.addArrangedSubview(NSTextField(labelWithString: "Color:".localized))
         strokeColorIndicator = createColorIndicator()
         row.addArrangedSubview(strokeColorIndicator)
         strokeColorPopup = createDecorationColorPopup(action: #selector(strokeColorPopupChanged(_:)))
@@ -534,10 +535,10 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addBaselineKerningSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Baseline & Spacing"))
+        stack.addArrangedSubview(createSectionHeader("Baseline & Spacing".localized))
 
         // Baseline Offset
-        let baselineRow = createLabeledRow("Baseline Offset:")
+        let baselineRow = createLabeledRow("Baseline Offset:".localized)
         baselineOffsetField = createNumberField(action: #selector(baselineOffsetFieldChanged(_:)))
         baselineOffsetStepper = createStepper(minValue: -100, maxValue: 100, increment: 1, action: #selector(baselineOffsetStepperChanged(_:)))
         baselineRow.addArrangedSubview(baselineOffsetField)
@@ -546,7 +547,7 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(baselineRow)
 
         // Kerning
-        let kernRow = createLabeledRow("Kerning:")
+        let kernRow = createLabeledRow("Kerning:".localized)
         kernField = createNumberField(action: #selector(kernFieldChanged(_:)))
         kernStepper = createStepper(minValue: -100, maxValue: 100, increment: 0.5, action: #selector(kernStepperChanged(_:)))
         kernRow.addArrangedSubview(kernField)
@@ -555,11 +556,11 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(kernRow)
 
         // Ligatures
-        let ligatureRow = createLabeledRow("Ligatures:")
+        let ligatureRow = createLabeledRow("Ligatures:".localized)
         ligaturePopup = NSPopUpButton(frame: .zero, pullsDown: false)
         ligaturePopup.controlSize = .small
         ligaturePopup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-        ligaturePopup.addItems(withTitles: ["Default", "None", "All"])
+        ligaturePopup.addItems(withTitles: ["Default".localized, "None".localized, "All".localized])
         ligaturePopup.target = self
         ligaturePopup.action = #selector(ligatureChanged(_:))
         ligatureRow.addArrangedSubview(ligaturePopup)
@@ -569,7 +570,7 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addAlignmentSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Alignment"))
+        stack.addArrangedSubview(createSectionHeader("Alignment".localized))
 
         let row = NSStackView()
         row.orientation = .horizontal
@@ -594,19 +595,19 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addLineHeightSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Line Height"))
+        stack.addArrangedSubview(createSectionHeader("Line Height".localized))
 
         // Multiple
-        let multipleRow = createLabeledRow("Multiple:")
+        let multipleRow = createLabeledRow("Multiple:".localized)
         lineHeightMultipleField = createNumberField(action: #selector(lineHeightMultipleFieldChanged(_:)))
         lineHeightMultipleStepper = createStepper(minValue: 0, maxValue: 10, increment: 0.1, action: #selector(lineHeightMultipleStepperChanged(_:)))
         multipleRow.addArrangedSubview(lineHeightMultipleField)
         multipleRow.addArrangedSubview(lineHeightMultipleStepper)
-        multipleRow.addArrangedSubview(NSTextField(labelWithString: "times"))
+        multipleRow.addArrangedSubview(NSTextField(labelWithString: "times".localized))
         stack.addArrangedSubview(multipleRow)
 
         // Min
-        let minRow = createLabeledRow("Min:")
+        let minRow = createLabeledRow("Min:".localized)
         lineHeightMinField = createNumberField(action: #selector(lineHeightMinFieldChanged(_:)))
         lineHeightMinStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(lineHeightMinStepperChanged(_:)))
         minRow.addArrangedSubview(lineHeightMinField)
@@ -615,7 +616,7 @@ class StyleInfoPanelController: NSObject {
         stack.addArrangedSubview(minRow)
 
         // Max
-        let maxRow = createLabeledRow("Max:")
+        let maxRow = createLabeledRow("Max:".localized)
         lineHeightMaxField = createNumberField(action: #selector(lineHeightMaxFieldChanged(_:)))
         lineHeightMaxStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(lineHeightMaxStepperChanged(_:)))
         maxRow.addArrangedSubview(lineHeightMaxField)
@@ -627,9 +628,9 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addIndentSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Indents"))
+        stack.addArrangedSubview(createSectionHeader("Indents".localized))
 
-        let firstRow = createLabeledRow("First Line:")
+        let firstRow = createLabeledRow("First Line:".localized)
         firstLineHeadIndentField = createNumberField(action: #selector(firstLineHeadIndentFieldChanged(_:)))
         firstLineHeadIndentStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(firstLineHeadIndentStepperChanged(_:)))
         firstRow.addArrangedSubview(firstLineHeadIndentField)
@@ -637,7 +638,7 @@ class StyleInfoPanelController: NSObject {
         firstRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(firstRow)
 
-        let headRow = createLabeledRow("Head:")
+        let headRow = createLabeledRow("Head:".localized)
         headIndentField = createNumberField(action: #selector(headIndentFieldChanged(_:)))
         headIndentStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(headIndentStepperChanged(_:)))
         headRow.addArrangedSubview(headIndentField)
@@ -645,7 +646,7 @@ class StyleInfoPanelController: NSObject {
         headRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(headRow)
 
-        let tailRow = createLabeledRow("Tail:")
+        let tailRow = createLabeledRow("Tail:".localized)
         tailIndentField = createNumberField(action: #selector(tailIndentFieldChanged(_:)))
         tailIndentStepper = createStepper(minValue: -999, maxValue: 999, increment: 1, action: #selector(tailIndentStepperChanged(_:)))
         tailRow.addArrangedSubview(tailIndentField)
@@ -657,9 +658,9 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func addParagraphSpacingSection(to stack: NSStackView) {
-        stack.addArrangedSubview(createSectionHeader("Paragraph Spacing"))
+        stack.addArrangedSubview(createSectionHeader("Paragraph Spacing".localized))
 
-        let lineSpaceRow = createLabeledRow("Line Space:")
+        let lineSpaceRow = createLabeledRow("Line Space:".localized)
         lineSpacingField = createNumberField(action: #selector(lineSpacingFieldChanged(_:)))
         lineSpacingStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(lineSpacingStepperChanged(_:)))
         lineSpaceRow.addArrangedSubview(lineSpacingField)
@@ -667,7 +668,7 @@ class StyleInfoPanelController: NSObject {
         lineSpaceRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(lineSpaceRow)
 
-        let beforeRow = createLabeledRow("Before:")
+        let beforeRow = createLabeledRow("Before:".localized)
         paragraphSpacingBeforeField = createNumberField(action: #selector(paragraphSpacingBeforeFieldChanged(_:)))
         paragraphSpacingBeforeStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(paragraphSpacingBeforeStepperChanged(_:)))
         beforeRow.addArrangedSubview(paragraphSpacingBeforeField)
@@ -675,7 +676,7 @@ class StyleInfoPanelController: NSObject {
         beforeRow.addArrangedSubview(NSTextField(labelWithString: "pt."))
         stack.addArrangedSubview(beforeRow)
 
-        let afterRow = createLabeledRow("After:")
+        let afterRow = createLabeledRow("After:".localized)
         paragraphSpacingAfterField = createNumberField(action: #selector(paragraphSpacingAfterFieldChanged(_:)))
         paragraphSpacingAfterStepper = createStepper(minValue: 0, maxValue: 999, increment: 1, action: #selector(paragraphSpacingAfterStepperChanged(_:)))
         afterRow.addArrangedSubview(paragraphSpacingAfterField)
@@ -755,7 +756,7 @@ class StyleInfoPanelController: NSObject {
         let popup = NSPopUpButton(frame: .zero, pullsDown: false)
         popup.controlSize = .small
         popup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-        popup.addItems(withTitles: ["None", "Single", "Thick", "Double"])
+        popup.addItems(withTitles: ["None".localized, "Single".localized, "Thick".localized, "Double".localized])
         popup.target = self
         popup.action = action
         return popup
@@ -765,7 +766,7 @@ class StyleInfoPanelController: NSObject {
         let popup = NSPopUpButton(frame: .zero, pullsDown: false)
         popup.controlSize = .small
         popup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
-        popup.addItems(withTitles: ["Solid", "Dot", "Dash", "Dash Dot", "Dash Dot Dot"])
+        popup.addItems(withTitles: ["Solid".localized, "Dot".localized, "Dash".localized, "Dash Dot".localized, "Dash Dot Dot".localized])
         popup.target = self
         popup.action = action
         return popup
@@ -1006,8 +1007,8 @@ class StyleInfoPanelController: NSObject {
     private func updateUIFromSingleAttributes(_ attrs: [NSAttributedString.Key: Any]) {
         // Font
         if let font = attrs[.font] as? NSFont {
-            fontFamilyField.stringValue = font.familyName ?? font.fontName
-            fontStyleField.stringValue = font.fontDescriptor.object(forKey: .face) as? String ?? ""
+            fontFamilyField.stringValue = localizedFamilyName(for: font)
+            fontStyleField.stringValue = localizedFaceName(for: font)
             fontSizeField.doubleValue = Double(font.pointSize)
             fontSizeStepper.doubleValue = Double(font.pointSize)
         } else {
@@ -1089,10 +1090,24 @@ class StyleInfoPanelController: NSObject {
         paragraphSpacingAfterField.stringValue = "0"
     }
 
+    // MARK: - Localized Font Name Helpers
+
+    /// ローカライズされたフォントファミリ名を返す
+    private func localizedFamilyName(for font: NSFont) -> String {
+        let ctFont = font as CTFont
+        return CTFontCopyLocalizedName(ctFont, kCTFontFamilyNameKey, nil) as String? ?? font.familyName ?? font.fontName
+    }
+
+    /// ローカライズされたフォントスタイル（face）名を返す
+    private func localizedFaceName(for font: NSFont) -> String {
+        let ctFont = font as CTFont
+        return CTFontCopyLocalizedName(ctFont, kCTFontStyleNameKey, nil) as String? ?? font.fontDescriptor.object(forKey: .face) as? String ?? ""
+    }
+
     // MARK: - Section Update Helpers
 
     private func updateFontSection(fonts: [NSFont]) {
-        let families = Set(fonts.map { $0.familyName ?? $0.fontName })
+        let families = Set(fonts.map { self.localizedFamilyName(for: $0) })
         if families.count == 1, let family = families.first {
             fontFamilyField.stringValue = family
         } else if families.isEmpty {
@@ -1101,7 +1116,7 @@ class StyleInfoPanelController: NSObject {
             fontFamilyField.stringValue = Self.mixedPlaceholder
         }
 
-        let faces = Set(fonts.compactMap { $0.fontDescriptor.object(forKey: .face) as? String })
+        let faces = Set(fonts.map { self.localizedFaceName(for: $0) })
         if faces.count == 1, let face = faces.first {
             fontStyleField.stringValue = face
         } else if faces.isEmpty {
