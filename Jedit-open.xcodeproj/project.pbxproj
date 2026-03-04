@@ -292,7 +292,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Jedit-open/Jedit-open.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 260228.1;
+				CURRENT_PROJECT_VERSION = 260304.0;
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -318,6 +318,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-open";
 				PRODUCT_NAME = Jedit;
@@ -341,7 +342,7 @@
 				CODE_SIGN_ENTITLEMENTS = "Jedit-open/Jedit-open.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 260228.1;
+				CURRENT_PROJECT_VERSION = 260304.0;
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -367,6 +368,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
+				MACOSX_DEPLOYMENT_TARGET = 15.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = "jp.co.artman21.Jedit-open";
 				PRODUCT_NAME = Jedit;
