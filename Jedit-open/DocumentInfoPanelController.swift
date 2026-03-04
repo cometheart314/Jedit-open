@@ -483,7 +483,7 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
 
         switch columnIdentifier {
         case "NAME":
-            text = Self.rowNames[row]
+            text = Self.rowNames[row].localized
             cellView?.textField?.alignment = .right
             cellView?.textField?.font = NSFont.systemFont(ofSize: 11)
         case "SELECTION":

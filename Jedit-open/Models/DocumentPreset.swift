@@ -29,6 +29,15 @@ struct DocumentPreset: Codable, Equatable, Identifiable {
         self.isBuiltIn = isBuiltIn
     }
 
+    /// 表示用のローカライズ済み名前
+    /// ビルトインプリセットは翻訳を返し、ユーザー作成プリセットはそのまま返す
+    var displayName: String {
+        if isBuiltIn {
+            return name.localized
+        }
+        return name
+    }
+
     // MARK: - Built-in Presets
 
     static var builtInDefault: DocumentPreset {

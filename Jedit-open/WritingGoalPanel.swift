@@ -47,6 +47,7 @@ class WritingGoalPanel: NSPanel {
         // Target: ラベル
         let targetLabel = NSTextField(labelWithString: "Target:".localized)
         targetLabel.frame = NSRect(x: 20, y: 98, width: 60, height: 17)
+        targetLabel.alignment = .right
         contentView.addSubview(targetLabel)
 
         // 目標文字数入力フィールド
@@ -84,6 +85,7 @@ class WritingGoalPanel: NSPanel {
         // Count Method: ラベル
         let methodLabel = NSTextField(labelWithString: "Count:".localized)
         methodLabel.frame = NSRect(x: 20, y: 63, width: 60, height: 17)
+        methodLabel.alignment = .right
         contentView.addSubview(methodLabel)
 
         // カウント方法ポップアップ

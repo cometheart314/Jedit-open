@@ -22,29 +22,29 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
 
     /// デフォルトメニュー項目（super.menu(for:) が提供するシステム標準項目）
     private static let defaultMenuItems: [KnownMenuItem] = [
-        KnownMenuItem(displayTitle: "Look Up",               identifier: "action:define",                 isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Translate",             identifier: "action:translate",              isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Search with Google",    identifier: "action:searchWithGoogle",       isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Cut",                   identifier: "cut:",                          isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Copy",                  identifier: "copy:",                         isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Paste",                 identifier: "paste:",                        isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Paste and Match Style", identifier: "pasteAsPlainText:",             isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Font",                  identifier: "submenu:font",                  isSubmenu: true,  submenuDetectionAction: "orderFrontFontPanel:"),
-        KnownMenuItem(displayTitle: "Show Writing Tools",    identifier: "action:showWritingTools",       isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Proofread",             identifier: "action:proofread",              isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Rewrite",               identifier: "action:rewrite",                isSubmenu: false, submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Spelling and Grammar",  identifier: "submenu:spellingAndGrammar",    isSubmenu: true,  submenuDetectionAction: "showGuessPanel:"),
-        KnownMenuItem(displayTitle: "Substitutions",         identifier: "submenu:substitutions",         isSubmenu: true,  submenuDetectionAction: "toggleAutomaticQuoteSubstitution:"),
-        KnownMenuItem(displayTitle: "Transformations",       identifier: "submenu:transformations",       isSubmenu: true,  submenuDetectionAction: "uppercaseWord:"),
-        KnownMenuItem(displayTitle: "Speech",                identifier: "submenu:speech",                isSubmenu: true,  submenuDetectionAction: "startSpeaking:"),
-        KnownMenuItem(displayTitle: "Share",                 identifier: "submenu:share",                 isSubmenu: true,  submenuDetectionAction: nil),
-        KnownMenuItem(displayTitle: "Layout Orientation",    identifier: "submenu:layoutOrientation",     isSubmenu: true,  submenuDetectionAction: "changeLayoutOrientation:"),
+        KnownMenuItem(displayTitle: "Look Up".localized,               identifier: "action:define",                 isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Translate".localized,             identifier: "action:translate",              isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Search with Google".localized,    identifier: "action:searchWithGoogle",       isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Cut".localized,                   identifier: "cut:",                          isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Copy".localized,                  identifier: "copy:",                         isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Paste".localized,                 identifier: "paste:",                        isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Paste and Match Style".localized, identifier: "pasteAsPlainText:",             isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Font".localized,                  identifier: "submenu:font",                  isSubmenu: true,  submenuDetectionAction: "orderFrontFontPanel:"),
+        KnownMenuItem(displayTitle: "Show Writing Tools".localized,    identifier: "action:showWritingTools",       isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Proofread".localized,             identifier: "action:proofread",              isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Rewrite".localized,               identifier: "action:rewrite",                isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Spelling and Grammar".localized,  identifier: "submenu:spellingAndGrammar",    isSubmenu: true,  submenuDetectionAction: "showGuessPanel:"),
+        KnownMenuItem(displayTitle: "Substitutions".localized,         identifier: "submenu:substitutions",         isSubmenu: true,  submenuDetectionAction: "toggleAutomaticQuoteSubstitution:"),
+        KnownMenuItem(displayTitle: "Transformations".localized,       identifier: "submenu:transformations",       isSubmenu: true,  submenuDetectionAction: "uppercaseWord:"),
+        KnownMenuItem(displayTitle: "Speech".localized,                identifier: "submenu:speech",                isSubmenu: true,  submenuDetectionAction: "startSpeaking:"),
+        KnownMenuItem(displayTitle: "Share".localized,                 identifier: "submenu:share",                 isSubmenu: true,  submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Layout Orientation".localized,    identifier: "submenu:layoutOrientation",     isSubmenu: true,  submenuDetectionAction: "changeLayoutOrientation:"),
     ]
 
     /// Jedit カスタムメニュー項目
     private static let jeditMenuItems: [KnownMenuItem] = [
-        KnownMenuItem(displayTitle: "Styles",                identifier: "submenu:styles",                isSubmenu: true,  submenuDetectionAction: "applyTextStyle:"),
-        KnownMenuItem(displayTitle: "Change Image Size…",    identifier: "changeImageSize:",              isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Styles".localized,                identifier: "submenu:styles",                isSubmenu: true,  submenuDetectionAction: "applyTextStyle:"),
+        KnownMenuItem(displayTitle: "Change Image Size…".localized,    identifier: "changeImageSize:",              isSubmenu: false, submenuDetectionAction: nil),
     ]
 
     /// 全既知項目（identifierForMenuItem で使用）
@@ -66,7 +66,7 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         // 日本語
         "フォント":               "submenu:font",
         "スペルと文法":            "submenu:spellingAndGrammar",
-        "置換":                   "submenu:substitutions",
+        "自動置換":                "submenu:substitutions",
         "変換":                   "submenu:transformations",
         "スピーチ":               "submenu:speech",
         "共有":                   "submenu:share",
@@ -83,9 +83,9 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         "Proofread":            "action:proofread",
         "Rewrite":              "action:rewrite",
         // 日本語
-        "ライティングツールを表示": "action:showWritingTools",
+        "作文ツールを表示":         "action:showWritingTools",
         "校正":                  "action:proofread",
-        "書き直す":               "action:rewrite",
+        "書き直し":               "action:rewrite",
     ]
 
     /// 動的タイトル（選択テキストを含む等）から安定した識別子を返す
@@ -202,7 +202,7 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
 
     private func setupUI() {
         // マスタートグル: デフォルトメニュー項目の表示
-        showDefaultCheckbox = NSButton(checkboxWithTitle: "Show Default Menu Items", target: self, action: #selector(showDefaultToggled(_:)))
+        showDefaultCheckbox = NSButton(checkboxWithTitle: "Show Default Menu Items".localized, target: self, action: #selector(showDefaultToggled(_:)))
         showDefaultCheckbox.state = showDefaultMenu ? .on : .off
         showDefaultCheckbox.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         showDefaultCheckbox.translatesAutoresizingMaskIntoConstraints = false
@@ -235,7 +235,7 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         view.addSubview(scrollView)
 
         // Jedit メニュー項目セクション
-        let jeditLabel = NSTextField(labelWithString: "Jedit Menu Items:")
+        let jeditLabel = NSTextField(labelWithString: "Jedit Menu Items:".localized)
         jeditLabel.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize, weight: .medium)
         jeditLabel.textColor = .secondaryLabelColor
         jeditLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -243,20 +243,20 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
 
         let hiddenActions = Set(UserDefaults.standard.stringArray(forKey: UserDefaults.Keys.hiddenContextMenuActions) ?? [])
 
-        stylesCheckbox = NSButton(checkboxWithTitle: "Styles  \u{25B8}", target: self, action: #selector(jeditItemToggled(_:)))
+        stylesCheckbox = NSButton(checkboxWithTitle: "Styles".localized + "  \u{25B8}", target: self, action: #selector(jeditItemToggled(_:)))
         stylesCheckbox.state = hiddenActions.contains("submenu:styles") ? .off : .on
         stylesCheckbox.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         stylesCheckbox.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stylesCheckbox)
 
-        changeImageSizeCheckbox = NSButton(checkboxWithTitle: "Change Image Size…", target: self, action: #selector(jeditItemToggled(_:)))
+        changeImageSizeCheckbox = NSButton(checkboxWithTitle: "Change Image Size…".localized, target: self, action: #selector(jeditItemToggled(_:)))
         changeImageSizeCheckbox.state = hiddenActions.contains("changeImageSize:") ? .off : .on
         changeImageSizeCheckbox.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
         changeImageSizeCheckbox.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(changeImageSizeCheckbox)
 
         // Revert to Default ボタン
-        let revertButton = NSButton(title: "Revert to Default", target: self, action: #selector(revertToDefault(_:)))
+        let revertButton = NSButton(title: "Revert to Default".localized, target: self, action: #selector(revertToDefault(_:)))
         revertButton.controlSize = .regular
         revertButton.bezelStyle = .rounded
         revertButton.translatesAutoresizingMaskIntoConstraints = false

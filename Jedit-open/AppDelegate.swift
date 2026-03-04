@@ -460,7 +460,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         let newSubmenu = NSMenu()
         let presets = DocumentPresetManager.shared.presets
         for (index, preset) in presets.enumerated() {
-            let item = NSMenuItem(title: preset.name, action: #selector(dockMenuNewWithPreset(_:)), keyEquivalent: "")
+            let item = NSMenuItem(title: preset.displayName, action: #selector(dockMenuNewWithPreset(_:)), keyEquivalent: "")
             item.tag = index
             item.target = self
             newSubmenu.addItem(item)
@@ -807,7 +807,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         for index in 0..<builtInCount {
             if index < presets.count,
                let menuItem = newSubmenu.item(withTag: index) {
-                menuItem.title = presets[index].name
+                menuItem.title = presets[index].displayName
             }
         }
 
@@ -820,7 +820,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         for index in builtInCount..<presets.count {
             let preset = presets[index]
             let menuItem = NSMenuItem(
-                title: preset.name,
+                title: preset.displayName,
                 action: #selector(newDocumentWithPreset(_:)),
                 keyEquivalent: ""
             )

@@ -172,6 +172,16 @@
 "Document line ending format" = "改行コード";
 "Document scale" = "表示倍率";
 
+/* Document Info Panel - Row Names */
+"Location" = "位置";
+"Characters" = "文字数";
+"Visible Chars" = "表示文字数";
+"Words" = "単語数";
+"Rows" = "行数";
+"Paragraphs" = "段落数";
+"Pages" = "ページ数";
+"Char. Code" = "文字コード";
+
 /* Scale */
 "Add Other Scale..." = "その他の倍率を追加...";
 "New Scale:" = "新しい倍率：";
@@ -264,6 +274,22 @@
 "Split view horizontally." = "水平方向に分割する。";
 "Split view vertically." = "垂直方向に分割する。";
 "Collapse to single view." = "単一ビューに戻す。";
+
+/* Menu - Dynamic Titles */
+"Hide Inspector Bar" = "インスペクタバーを隠す";
+"Show Inspector Bar" = "インスペクタバーを表示";
+"Wrap to Page" = "ページサイズで表示";
+"Wrap to Window" = "ウインドウサイズで表示";
+"Collapse Views" = "分割を解除";
+"Split View" = "分割表示";
+"Hide Ruler" = "ルーラを隠す";
+"Show Ruler" = "ルーラを表示";
+"Make Plain Text" = "プレーンテキストにする";
+"Make Rich Text" = "リッチテキストにする";
+"Make Vertical Layout" = "縦書きにする";
+"Make Horizontal Layout" = "横書きにする";
+"Prevent Editing" = "編集を禁止";
+"Allow Editing" = "編集を許可";
 
 /* Image */
 "Change Image Size..." = "画像サイズを変更...";
@@ -447,6 +473,32 @@
 "Line Breaking" = "禁則処理";
 "Styles" = "スタイル";
 "Context Menu" = "コンテキストメニュー";
+
+/* Context Menu Preferences */
+"Show Default Menu Items" = "デフォルトメニュー項目を表示";
+"Jedit Menu Items:" = "Jedit メニュー項目:";
+"Look Up" = "調べる";
+"Translate" = "翻訳";
+"Search with Google" = "Googleで検索";
+"Cut" = "カット";
+"Copy" = "コピー";
+"Paste" = "ペースト";
+"Paste and Match Style" = "ペーストしてスタイルを合わせる";
+"Show Writing Tools" = "作文ツールを表示";
+"Proofread" = "校正";
+"Rewrite" = "書き直し";
+"Spelling and Grammar" = "スペルと文法";
+"Substitutions" = "自動置換";
+"Transformations" = "変換";
+"Speech" = "スピーチ";
+"Share" = "共有";
+"Layout Orientation" = "レイアウトの方向";
+"Change Image Size…" = "画像サイズを変更…";
+
+/* Document Preset Names */
+"Default" = "デフォルト";
+"Plain Text" = "プレーンテキスト";
+"Rich Text" = "リッチテキスト";
 
 /* Preferences - Tab Width Description */
 "tab code will be inserted by tab key." = "タブコードがTabキーで挿入されます。";

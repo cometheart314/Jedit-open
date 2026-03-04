@@ -42,7 +42,7 @@
                     </textFieldCell>
                 </textField>
                 <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="v3B-Kr-BIM">
-                    <rect key="frame" x="27" y="383" width="136" height="14"/>
+                    <rect key="frame" x="27" y="383" width="274" height="14"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="left" title="Plain Text File Encoding" id="MWR-wQ-Vya">
                         <font key="font" metaFont="smallSystemBold"/>
@@ -182,7 +182,7 @@
                     </connections>
                 </button>
                 <button imageHugsTitle="YES" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="eXr-d2-igI">
-                    <rect key="frame" x="29" y="224" width="444" height="23"/>
+                    <rect key="frame" x="29" y="224" width="505" height="23"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Convert  '¥' (0x5c) to Back Slash '\' (U+005C) when Shift_JIS encoding group." bezelStyle="regularSquare" imagePosition="left" alignment="left" inset="2" id="bGf-gt-pgB">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>

@@ -173,7 +173,7 @@
                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                             <clipView key="contentView" drawsBackground="NO" id="01A-mS-I4V">
                                                 <rect key="frame" x="1" y="1" width="311" height="192"/>
-                                                <autoresizingMask key="autoresizingMask"/>
+                                                <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                 <subviews>
                                                     <textView editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" findStyle="panel" continuousSpellChecking="YES" allowsNonContiguousLayout="YES" quoteSubstitution="YES" dashSubstitution="YES" spellingCorrection="YES" smartInsertDelete="YES" id="8tO-Mn-uVU">
                                                         <rect key="frame" x="0.0" y="0.0" width="311" height="192"/>
@@ -232,7 +232,7 @@
                                             </connections>
                                         </popUpButton>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="uAy-hM-Ska">
-                                            <rect key="frame" x="29" y="221" width="85" height="14"/>
+                                            <rect key="frame" x="11" y="221" width="103" height="14"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Line Endings:" id="KXT-bT-Y2O">
                                                 <font key="font" metaFont="smallSystem"/>
@@ -241,7 +241,7 @@
                                             </textFieldCell>
                                         </textField>
                                         <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="6p5-3Z-jA6">
-                                            <rect key="frame" x="49" y="245" width="65" height="14"/>
+                                            <rect key="frame" x="15" y="245" width="99" height="14"/>
                                             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                             <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Encoding:" id="kLl-fK-Qoo">
                                                 <font key="font" metaFont="smallSystem"/>

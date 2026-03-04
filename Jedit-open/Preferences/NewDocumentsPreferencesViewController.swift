@@ -634,7 +634,7 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
 
         let alert = NSAlert()
         alert.messageText = "Delete Preset".localized
-        alert.informativeText = String(format: "Are you sure you want to delete \"%@\"?".localized, preset.name)
+        alert.informativeText = String(format: "Are you sure you want to delete \"%@\"?".localized, preset.displayName)
         alert.addButton(withTitle: "Delete".localized)
         alert.addButton(withTitle: "Cancel".localized)
         alert.alertStyle = .warning
@@ -659,7 +659,7 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
 
         let alert = NSAlert()
         alert.messageText = "Revert to Default".localized
-        alert.informativeText = String(format: "Are you sure you want to revert \"%@\" to its default settings?".localized, preset.name)
+        alert.informativeText = String(format: "Are you sure you want to revert \"%@\" to its default settings?".localized, preset.displayName)
         alert.addButton(withTitle: "Revert".localized)
         alert.addButton(withTitle: "Cancel".localized)
 
@@ -840,7 +840,7 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         alert.addButton(withTitle: "Cancel".localized)
 
         let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        inputField.stringValue = preset.name
+        inputField.stringValue = preset.displayName
         alert.accessoryView = inputField
 
         alert.beginSheetModal(for: view.window!) { response in
@@ -1080,7 +1080,7 @@ extension NewDocumentsPreferencesViewController: NSTableViewDelegate {
             ])
         }
 
-        cellView?.textField?.stringValue = preset.name
+        cellView?.textField?.stringValue = preset.displayName
 
         return cellView
     }

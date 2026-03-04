@@ -3886,13 +3886,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     @objc func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         if menuItem.action == #selector(toggleInspectorBar(_:)) {
-            menuItem.title = isInspectorBarVisible ? "Hide Inspector Bar" : "Show Inspector Bar"
+            menuItem.title = isInspectorBarVisible ? "Hide Inspector Bar".localized : "Show Inspector Bar".localized
         }
         if menuItem.action == #selector(toggleDisplayMode(_:)) {
-            menuItem.title = displayMode == .continuous ? "Wrap to Page" : "Wrap to Window"
+            menuItem.title = displayMode == .continuous ? "Wrap to Page".localized : "Wrap to Window".localized
         }
         if menuItem.action == #selector(toggleSplitView(_:)) {
-            menuItem.title = splitMode != .none ? "Collapse Views" : "Split View"
+            menuItem.title = splitMode != .none ? "Collapse Views".localized : "Split View".localized
         }
 
         // Split mode menu items validation
@@ -3920,7 +3920,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             menuItem.title = lineNumberMode == .none ? "Show Line Numbers" : "Hide Line Numbers"
         }
         if menuItem.action == #selector(showHideTextRuler(_:)) {
-            menuItem.title = isRulerVisible ? "Hide Ruler" : "Show Ruler"
+            menuItem.title = isRulerVisible ? "Hide Ruler".localized : "Show Ruler".localized
             menuItem.state = .off
         }
 
@@ -3973,12 +3973,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // Plain/Rich text toggle menu item validation
         if menuItem.action == #selector(toggleRichText(_:)) {
             let isPlainText = textDocument?.documentType == .plain
-            menuItem.title = isPlainText ? "Make Rich Text" : "Make Plain Text"
+            menuItem.title = isPlainText ? "Make Rich Text".localized : "Make Plain Text".localized
         }
 
         // Layout orientation menu item validation
         if menuItem.action == #selector(toggleLayoutOrientation(_:)) {
-            menuItem.title = isVerticalLayout ? "Make Horizontal Layout" : "Make Vertical Layout"
+            menuItem.title = isVerticalLayout ? "Make Horizontal Layout".localized : "Make Vertical Layout".localized
         }
 
         // Line wrap mode menu items validation
@@ -4032,7 +4032,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // Prevent Editing menu item validation
         if menuItem.action == #selector(togglePreventEditing(_:)) {
             let isEditable = currentTextView()?.isEditable ?? true
-            menuItem.title = isEditable ? "Prevent Editing" : "Allow Editing"
+            menuItem.title = isEditable ? "Prevent Editing".localized : "Allow Editing".localized
         }
 
         // Wrapped Line Indent menu item validation (Plain Text only)
@@ -5777,6 +5777,23 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // presetData に保存
             self.textDocument?.presetData?.writingGoal = goalData
             self.textDocument?.presetDataEdited = true
+
+            // 目標が設定された場合、ツールバーを表示し執筆進捗アイテムを追加
+            if goalData.targetCount > 0, let toolbar = self.window?.toolbar {
+                // ツールバーが非表示なら表示する
+                if !toolbar.isVisible {
+                    toolbar.isVisible = true
+                    self.textDocument?.presetData?.view.showToolBar = true
+                }
+                // 執筆進捗アイテムがツールバーにない場合は追加
+                let hasWritingProgress = toolbar.items.contains {
+                    $0.itemIdentifier == Self.writingProgressToolbarItemIdentifier
+                }
+                if !hasWritingProgress {
+                    toolbar.insertItem(withItemIdentifier: Self.writingProgressToolbarItemIdentifier,
+                                       at: toolbar.items.count)
+                }
+            }
 
             // 表示を更新
             self.updateWritingProgressDisplay()

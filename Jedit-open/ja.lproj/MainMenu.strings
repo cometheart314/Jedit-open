@@ -128,22 +128,25 @@
 /* Format > Font > Kern */
 "jBQ-r6-VK2.title" = "カーニング";
 "tlD-Oa-oAM.title" = "カーニング";
-"3Om-Ey-2VK.title" = "デフォルトを使用";
-"0Xg-Af-udW.title" = "なし";
+"GUa-eO-cwY.title" = "デフォルトを使用";
+"cDB-IK-hbR.title" = "使用しない";
 "46P-cB-AYj.title" = "締める";
 "ogc-rX-tC1.title" = "緩める";
+
+/* View > Line Number > None */
+"0Xg-Af-udW.title" = "なし";
 
 /* Format > Font > Ligatures */
 "o6e-r0-MWq.title" = "合字";
 "w0m-vy-SC9.title" = "合字";
-"GUa-eO-cwY.title" = "デフォルトを使用";
+"agt-UL-0e3.title" = "デフォルトを使用";
 "J7y-lM-qPV.title" = "使用しない";
 "xQD-1f-W4t.title" = "すべてを使用";
 
 /* Format > Font > Baseline */
 "OaQ-X3-Vso.title" = "ベースライン";
 "ijk-EB-dga.title" = "ベースライン";
-"agt-UL-0e3.title" = "デフォルトを使用";
+"3Om-Ey-2VK.title" = "デフォルトを使用";
 "Rqc-34-cIF.title" = "上付き";
 "I0S-gh-46l.title" = "下付き";
 "2h7-ER-AoG.title" = "上げる";
@@ -208,8 +211,8 @@
 "8Gx-qZ-mNz.title" = "実際のサイズ";
 
 /* View > Document Width */
-"doc-wid-001.title" = "書類の幅";
-"doc-wid-sub.title" = "書類の幅";
+"doc-wid-001.title" = "行の折り返し";
+"doc-wid-sub.title" = "行の折り返し";
 "wrap-no-001.title" = "行を折り返さない";
 "wrap-win-001.title" = "ウインドウ幅に合わせる";
 "wrap-pap-001.title" = "用紙幅に合わせる";
@@ -226,7 +229,7 @@
 "Nlv-wI-OK1.title" = "行番号";
 "NUT-yc-BrG.title" = "行番号";
 "d9A-0O-r8c.title" = "行番号";
-"vA0-nC-ila.title" = "段落番号";
+"vA0-nC-ila.title" = "パラグラフ番号";
 
 /* View > Ruler */
 "lO1-BW-Z4B.title" = "ルーラ";

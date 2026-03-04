@@ -141,7 +141,7 @@ class JeditDocumentController: NSDocumentController {
         // プリセット項目を追加（個別に target/action を設定）
         let presets = DocumentPresetManager.shared.presets
         for (index, preset) in presets.enumerated() {
-            let item = NSMenuItem(title: preset.name, action: #selector(openPanelNewDocumentSelected(_:)), keyEquivalent: "")
+            let item = NSMenuItem(title: preset.displayName, action: #selector(openPanelNewDocumentSelected(_:)), keyEquivalent: "")
             item.tag = index
             item.target = self
             item.isEnabled = true

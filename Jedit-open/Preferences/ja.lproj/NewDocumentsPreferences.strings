@@ -365,7 +365,7 @@
 "rxp-yd-zB3.title" = "著作権";
 
 /* Class = "NSMenuItem"; title = "Paragraph Number"; ObjectID = "sC7-Kw-YNx"; */
-"sC7-Kw-YNx.title" = "段落番号";
+"sC7-Kw-YNx.title" = "パラグラフ番号";
 
 /* Class = "NSButtonCell"; title = "Kanji Space"; ObjectID = "sYy-4h-t8c"; */
 "sYy-4h-t8c.title" = "全角スペース";

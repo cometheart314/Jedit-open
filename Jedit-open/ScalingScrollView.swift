@@ -323,7 +323,7 @@ class ScalingScrollView: NSScrollView {
     func updateInfoField() {
         guard let button = infoField else { return }
         let row = infoFieldRow
-        let rowName = Self.infoRowNames[row]
+        let rowName = Self.infoRowNames[row].localized
         let stats = currentStatistics ?? DocumentStatistics()
 
         let selText = infoSelectionText(for: row, stats: stats)

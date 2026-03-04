@@ -1,5 +1,5 @@
 /* Class = "NSPopUpButton"; ibShadowedToolTip = "Choose the default text encoding to use when opening plain text files. To let Jedit Ω select the best encoding, choose Automatic."; ObjectID = "3Ce-DQ-lzq"; */
-"3Ce-DQ-lzq.ibShadowedToolTip" = "標準テキストファイルを開く際に使用するデフォルトのエンコーディングを選択します。Jedit Ωに最適なエンコーディングを選択させるには「自動」を選んでください。";
+"3Ce-DQ-lzq.ibShadowedToolTip" = "プレーンテキストファイルを開く際に使用するデフォルトのエンコーディングを選択します。Jeditに最適なエンコーディングを選択させるには「自動」を選んでください。";
 
 /* Class = "NSMenuItem"; title = "Mac Classic (CR)"; ObjectID = "3XU-hU-39C"; */
 "3XU-hU-39C.title" = "Mac Classic (CR)";
@@ -17,13 +17,13 @@
 "KyK-8k-239.title" = "自動";
 
 /* Class = "NSTextFieldCell"; title = "Plain Text File Encoding"; ObjectID = "MWR-wQ-Vya"; */
-"MWR-wQ-Vya.title" = "標準テキストファイルのエンコーディング";
+"MWR-wQ-Vya.title" = "プレーンテキストファイルのエンコーディング";
 
 /* Class = "NSMenuItem"; title = "macOS/Unix (LF)"; ObjectID = "QIZ-Z4-vW4"; */
 "QIZ-Z4-vW4.title" = "macOS/Unix (LF)";
 
 /* Class = "NSPopUpButton"; ibShadowedToolTip = "Choose the default text encoding to use when saving plain text files. To retain the encoding used when opened, choose Automatic."; ObjectID = "SQ7-05-blb"; */
-"SQ7-05-blb.ibShadowedToolTip" = "標準テキストファイルを保存する際に使用するデフォルトのエンコーディングを選択します。開いたときのエンコーディングを維持するには「自動」を選んでください。";
+"SQ7-05-blb.ibShadowedToolTip" = "プレーンテキストファイルを保存する際に使用するデフォルトのエンコーディングを選択します。開いたときのエンコーディングを維持するには「自動」を選んでください。";
 
 /* Class = "NSMenuItem"; title = "Automatic"; ObjectID = "XNM-dm-WEA"; */
 "XNM-dm-WEA.title" = "自動";
