@@ -1579,6 +1579,12 @@ class Document: NSDocument {
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
             } catch {
+                // RTF/RTFDとしてパースできなかった場合、プレーンテキストとしてフォールバック
+                // （拡張子が .rtf でも中身がプレーンテキストのファイルに対応）
+                if docType == .rtf && !Self.dataIsRTF(data) {
+                    try self.read(from: data, ofType: "public.plain-text")
+                    return
+                }
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
                     NSLocalizedDescriptionKey: "Could not read \(docType == .rtf ? "RTF" : "RTFD") document: \(error.localizedDescription)"
                 ])

@@ -17,6 +17,7 @@
 				<string>public.text</string>
 				<string>public.rtf</string>
 				<string>com.apple.rtfd</string>
+				<string>public.data</string>
 			</array>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).Document</string>
