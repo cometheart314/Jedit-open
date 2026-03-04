@@ -2414,8 +2414,8 @@ class JeditTextView: NSTextView {
         // Baseline submenu actions, Character colors, and Attach Files are disabled for plain text
         // (These attributes are not meaningful in plain text documents)
         if isPlainText {
-            // Note: subscript is a Swift keyword, so we use Selector directly
-            let subscriptSelector = Selector(("subscript:"))
+            // Note: subscript is a Swift keyword, so we use NSSelectorFromString
+            let subscriptSelector = NSSelectorFromString("subscript:")
             switch action {
             case #selector(raiseBaseline(_:)),
                  #selector(lowerBaseline(_:)),

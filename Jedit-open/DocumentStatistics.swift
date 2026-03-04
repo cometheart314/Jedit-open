@@ -50,7 +50,7 @@ struct DocumentStatistics {
     // MARK: - Formatting Helpers
 
     /// 数値をカンマ区切り文字列に変換
-    static let numberFormatter: NumberFormatter = {
+    nonisolated static let numberFormatter: NumberFormatter = {
         let formatter = NumberFormatter()
         formatter.numberStyle = .decimal
         formatter.groupingSeparator = ","
@@ -58,12 +58,12 @@ struct DocumentStatistics {
     }()
 
     /// 整数をカンマ区切り文字列に変換
-    static func formatted(_ value: Int) -> String {
+    nonisolated static func formatted(_ value: Int) -> String {
         return numberFormatter.string(from: NSNumber(value: value)) ?? "\(value)"
     }
 
     /// 小数値をカンマ区切り文字列に変換（0.5刻みに対応）
-    static func formatted(_ value: Double) -> String {
+    nonisolated static func formatted(_ value: Double) -> String {
         if value == value.rounded(.down) {
             // 整数の場合は小数点なし
             return numberFormatter.string(from: NSNumber(value: Int(value))) ?? "\(Int(value))"

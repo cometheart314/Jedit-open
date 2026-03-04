@@ -16,77 +16,77 @@ class JeditOmegaSettingImporter {
     // MARK: - Constants
 
     /// JeditΩ の拡張属性キー
-    static let xattrKey = "jp.co.artman21.omega.settingData"
+    nonisolated static let xattrKey = "jp.co.artman21.omega.settingData"
 
     /// 外部 plist のキー
-    private static let newDocSettingDicKey = "newDocSettingDic"
+    private nonisolated static let newDocSettingDicKey = "newDocSettingDic"
 
     // MARK: - JO Key Constants
 
     // View
-    private static let kWindowWidth       = "JOWindowWidth"
-    private static let kWindowHeight      = "JOWindowHeight"
-    private static let kWindowLocX        = "JOWindowLocX"
-    private static let kWindowLocY        = "JOWindowLocY"
-    private static let kViewScaleValue    = "JOViewSacleValue"   // JeditΩ 側のタイプミス
-    private static let kLineNumberStyle   = "JOLineNumberStyle"
-    private static let kRulerType         = "JORulerType"
-    private static let kShowInspectorBar  = "JOShowInspectorBar"
-    private static let kShowToolbar       = "JOShowToolbar"
-    private static let kPageStyle         = "JOPageStyle"
-    private static let kDocWidthStyle     = "JODocWidthStyle"
-    private static let kFixedDocWidth     = "JOFixedDocWidth"
-    private static let kReadOnly          = "JOReadOnly"
+    private nonisolated static let kWindowWidth       = "JOWindowWidth"
+    private nonisolated static let kWindowHeight      = "JOWindowHeight"
+    private nonisolated static let kWindowLocX        = "JOWindowLocX"
+    private nonisolated static let kWindowLocY        = "JOWindowLocY"
+    private nonisolated static let kViewScaleValue    = "JOViewSacleValue"   // JeditΩ 側のタイプミス
+    private nonisolated static let kLineNumberStyle   = "JOLineNumberStyle"
+    private nonisolated static let kRulerType         = "JORulerType"
+    private nonisolated static let kShowInspectorBar  = "JOShowInspectorBar"
+    private nonisolated static let kShowToolbar       = "JOShowToolbar"
+    private nonisolated static let kPageStyle         = "JOPageStyle"
+    private nonisolated static let kDocWidthStyle     = "JODocWidthStyle"
+    private nonisolated static let kFixedDocWidth     = "JOFixedDocWidth"
+    private nonisolated static let kReadOnly          = "JOReadOnly"
 
     // Format
-    private static let kEditingDirection     = "JOEditingDirection"
-    private static let kTabWidth             = "JOTabWidth"
-    private static let kInterLineSpace       = "JOInterLineSapce"     // JeditΩ 側のタイプミス
-    private static let kParaBeforeSpace      = "JOParaBeforeSapce"    // JeditΩ 側のタイプミス
-    private static let kParaAfterSpace       = "JOParaAfterSapce"     // JeditΩ 側のタイプミス
-    private static let kAutoIndentForNewLine = "JOAutoIndentForNewLine"
-    private static let kWrappedLineIndent    = "JOWrappedLineIndent"
-    private static let kWordWrappedMethod    = "JOWordWrappedMethod"
-    private static let kNewDocEncoding       = "JONewDocEncoding"
-    private static let kNewDocLineEnding     = "JONewDocLineEnding"
-    private static let kNewDocBom            = "JONewDocBom"
-    private static let kTextStyle            = "JOTextStyle"
+    private nonisolated static let kEditingDirection     = "JOEditingDirection"
+    private nonisolated static let kTabWidth             = "JOTabWidth"
+    private nonisolated static let kInterLineSpace       = "JOInterLineSapce"     // JeditΩ 側のタイプミス
+    private nonisolated static let kParaBeforeSpace      = "JOParaBeforeSapce"    // JeditΩ 側のタイプミス
+    private nonisolated static let kParaAfterSpace       = "JOParaAfterSapce"     // JeditΩ 側のタイプミス
+    private nonisolated static let kAutoIndentForNewLine = "JOAutoIndentForNewLine"
+    private nonisolated static let kWrappedLineIndent    = "JOWrappedLineIndent"
+    private nonisolated static let kWordWrappedMethod    = "JOWordWrappedMethod"
+    private nonisolated static let kNewDocEncoding       = "JONewDocEncoding"
+    private nonisolated static let kNewDocLineEnding     = "JONewDocLineEnding"
+    private nonisolated static let kNewDocBom            = "JONewDocBom"
+    private nonisolated static let kTextStyle            = "JOTextStyle"
 
     // Font
-    private static let kBaseFontName = "JOBaseFontName"
-    private static let kBaseFontSize = "JOBaseFontSize"
+    private nonisolated static let kBaseFontName = "JOBaseFontName"
+    private nonisolated static let kBaseFontSize = "JOBaseFontSize"
 
     // Colors
-    private static let kCharacterColor       = "JOCharacterColor"
-    private static let kBackgroundColor      = "JOBackgroundColor"
-    private static let kInvisibleColor       = "JOInvisibleColor"
-    private static let kCaretColor           = "JOCaretColor"
-    private static let kHighlightColor       = "JOHighlightColor"
-    private static let kLineNumColor         = "JOLineNumColor"
-    private static let kLineNumBackColor     = "JOLineNumBackColor"
-    private static let kHeaderColor          = "JOHeaderColor"
-    private static let kFooterColor          = "JOFooterColor"
+    private nonisolated static let kCharacterColor       = "JOCharacterColor"
+    private nonisolated static let kBackgroundColor      = "JOBackgroundColor"
+    private nonisolated static let kInvisibleColor       = "JOInvisibleColor"
+    private nonisolated static let kCaretColor           = "JOCaretColor"
+    private nonisolated static let kHighlightColor       = "JOHighlightColor"
+    private nonisolated static let kLineNumColor         = "JOLineNumColor"
+    private nonisolated static let kLineNumBackColor     = "JOLineNumBackColor"
+    private nonisolated static let kHeaderColor          = "JOHeaderColor"
+    private nonisolated static let kFooterColor          = "JOFooterColor"
 
     // Page Layout
-    private static let kPrintScale       = "JOPrintScale"
-    private static let kPrintOrientation = "JOPrintOrientation"
-    private static let kTopMargin        = "JOTopMargin"
-    private static let kLeftMargin       = "JOLeftMargin"
-    private static let kRightMargin      = "JORightMarin"    // JeditΩ 側のタイプミス
-    private static let kBottomMargin     = "JOBottomMargin"
+    private nonisolated static let kPrintScale       = "JOPrintScale"
+    private nonisolated static let kPrintOrientation = "JOPrintOrientation"
+    private nonisolated static let kTopMargin        = "JOTopMargin"
+    private nonisolated static let kLeftMargin       = "JOLeftMargin"
+    private nonisolated static let kRightMargin      = "JORightMarin"    // JeditΩ 側のタイプミス
+    private nonisolated static let kBottomMargin     = "JOBottomMargin"
 
     // Header/Footer
-    private static let kHeaderString = "JOHeaderString"
-    private static let kFooterString = "JOFooterString"
+    private nonisolated static let kHeaderString = "JOHeaderString"
+    private nonisolated static let kFooterString = "JOFooterString"
 
     // Properties
-    private static let kAuthorProperty    = "JOAuthorProperty"
-    private static let kCompanyProperty   = "JOCompanyProperty"
-    private static let kCopyrightProperty = "JOCopyrightProperty"
-    private static let kTitleProperty     = "JOTitleProperty"
-    private static let kSubjectProperty   = "JOSubjectProperty"
-    private static let kCommentProperty   = "JOCommentProperty"
-    private static let kKeywordsProperty  = "JOKeywordsProperty"
+    private nonisolated static let kAuthorProperty    = "JOAuthorProperty"
+    private nonisolated static let kCompanyProperty   = "JOCompanyProperty"
+    private nonisolated static let kCopyrightProperty = "JOCopyrightProperty"
+    private nonisolated static let kTitleProperty     = "JOTitleProperty"
+    private nonisolated static let kSubjectProperty   = "JOSubjectProperty"
+    private nonisolated static let kCommentProperty   = "JOCommentProperty"
+    private nonisolated static let kKeywordsProperty  = "JOKeywordsProperty"
 
     // MARK: - Public Interface
 
@@ -185,7 +185,7 @@ class JeditOmegaSettingImporter {
     }
 
     /// NSArchiver でアーカイブされた NSColor をデコード
-    private static func unarchiveColor(from data: Data) -> NSColor? {
+    private nonisolated static func unarchiveColor(from data: Data) -> NSColor? {
         return NSUnarchiver.unarchiveObject(with: data) as? NSColor
     }
 
@@ -228,7 +228,7 @@ class JeditOmegaSettingImporter {
 
     // MARK: - Private: Sub-mapping
 
-    private static func mapViewData(from dict: NSDictionary) -> NewDocData.ViewData {
+    private nonisolated static func mapViewData(from dict: NSDictionary) -> NewDocData.ViewData {
         var view = NewDocData.ViewData.default
 
         if let v = floatValue(dict, kWindowWidth)  { view.windowWidth = v }
@@ -259,7 +259,7 @@ class JeditOmegaSettingImporter {
         return view
     }
 
-    private static func mapFormatData(from dict: NSDictionary) -> NewDocData.FormatData {
+    private nonisolated static func mapFormatData(from dict: NSDictionary) -> NewDocData.FormatData {
         var format = NewDocData.FormatData.default
 
         if let v = intValue(dict, kEditingDirection),
@@ -299,7 +299,7 @@ class JeditOmegaSettingImporter {
         return format
     }
 
-    private static func mapFontAndColorsData(from dict: NSDictionary) -> NewDocData.FontAndColorsData {
+    private nonisolated static func mapFontAndColorsData(from dict: NSDictionary) -> NewDocData.FontAndColorsData {
         var fac = NewDocData.FontAndColorsData.default
 
         if let name = stringValue(dict, kBaseFontName) { fac.baseFontName = name }
@@ -318,7 +318,7 @@ class JeditOmegaSettingImporter {
         return fac
     }
 
-    private static func mapPageLayoutData(from dict: NSDictionary) -> NewDocData.PageLayoutData {
+    private nonisolated static func mapPageLayoutData(from dict: NSDictionary) -> NewDocData.PageLayoutData {
         var layout = NewDocData.PageLayoutData.default
 
         if let v = floatValue(dict, kPrintScale)   { layout.printScale = v }
@@ -330,7 +330,7 @@ class JeditOmegaSettingImporter {
         return layout
     }
 
-    private static func mapHeaderFooterData(from dict: NSDictionary) -> NewDocData.HeaderFooterData {
+    private nonisolated static func mapHeaderFooterData(from dict: NSDictionary) -> NewDocData.HeaderFooterData {
         var hf = NewDocData.HeaderFooterData.default
 
         // JeditΩ はヘッダー/フッターをプレーン文字列で保存
@@ -353,7 +353,7 @@ class JeditOmegaSettingImporter {
         return hf
     }
 
-    private static func mapPropertiesData(from dict: NSDictionary) -> NewDocData.PropertiesData {
+    private nonisolated static func mapPropertiesData(from dict: NSDictionary) -> NewDocData.PropertiesData {
         var props = NewDocData.PropertiesData.default
 
         if let v = stringValue(dict, kAuthorProperty)    { props.author = v }
@@ -369,27 +369,27 @@ class JeditOmegaSettingImporter {
 
     // MARK: - Private: Value Extractors
 
-    private static func floatValue(_ dict: NSDictionary, _ key: String) -> CGFloat? {
+    private nonisolated static func floatValue(_ dict: NSDictionary, _ key: String) -> CGFloat? {
         guard let num = dict[key] as? NSNumber else { return nil }
         return CGFloat(num.doubleValue)
     }
 
-    private static func intValue(_ dict: NSDictionary, _ key: String) -> Int? {
+    private nonisolated static func intValue(_ dict: NSDictionary, _ key: String) -> Int? {
         guard let num = dict[key] as? NSNumber else { return nil }
         return num.intValue
     }
 
-    private static func boolValue(_ dict: NSDictionary, _ key: String) -> Bool? {
+    private nonisolated static func boolValue(_ dict: NSDictionary, _ key: String) -> Bool? {
         guard let num = dict[key] as? NSNumber else { return nil }
         return num.boolValue
     }
 
-    private static func stringValue(_ dict: NSDictionary, _ key: String) -> String? {
+    private nonisolated static func stringValue(_ dict: NSDictionary, _ key: String) -> String? {
         return dict[key] as? String
     }
 
     /// NSArchiver でアーカイブされた NSColor データを CodableColor に変換
-    private static func codableColor(_ dict: NSDictionary, _ key: String) -> CodableColor? {
+    private nonisolated static func codableColor(_ dict: NSDictionary, _ key: String) -> CodableColor? {
         guard let colorData = dict[key] as? Data else { return nil }
         guard let color = unarchiveColor(from: colorData) else {
             #if DEBUG

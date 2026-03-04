@@ -260,7 +260,7 @@ class PageLayoutPanel: NSWindow {
 
     @objc private func revertToDefaults(_ sender: NSButton) {
         // UIをデフォルト値に戻す（Documentには反映しない）
-        let defaultPrintInfo = NSPrintInfo.shared
+        _ = NSPrintInfo.shared
         let unit = marginUnitPopup?.indexOfSelectedItem ?? 0
 
         // デフォルトのマージン値をUIに設定

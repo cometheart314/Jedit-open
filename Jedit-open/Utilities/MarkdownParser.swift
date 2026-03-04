@@ -1352,7 +1352,6 @@ enum MarkdownParser {
         var currentIndex = 0
         var inCodeBlock = false
         var inTable = false
-        var inTableHeader = false
 
         while currentIndex < nsText.length {
             // 次の改行を探す
@@ -1375,7 +1374,6 @@ enum MarkdownParser {
                 }
                 if inTable {
                     inTable = false
-                    inTableHeader = false
                 }
                 paragraphs.append("")
                 currentIndex = lineEnd + 1
@@ -1390,7 +1388,7 @@ enum MarkdownParser {
             let isCode = blockType == MarkdownBlockValue.codeBlock || (blockType == nil && isCodeBlockLine(lineAttr))
 
             if isCode {
-                if inTable { inTable = false; inTableHeader = false }
+                if inTable { inTable = false }
                 if !inCodeBlock {
                     paragraphs.append("```")
                     inCodeBlock = true
@@ -1413,7 +1411,6 @@ enum MarkdownParser {
                 // テーブルヘッダーの後にセパレーターを挿入
                 if blockType == MarkdownBlockValue.tableHeader {
                     inTable = true
-                    inTableHeader = true
                     paragraphs.append(markdownLine)
                     // セパレーター行を生成
                     let cells = parseTableCellsFromRendered(lineAttr.string)
@@ -1422,7 +1419,7 @@ enum MarkdownParser {
                 } else if blockType == MarkdownBlockValue.tableRow {
                     paragraphs.append(markdownLine)
                 } else {
-                    if inTable { inTable = false; inTableHeader = false }
+                    if inTable { inTable = false }
                     if !markdownLine.isEmpty {
                         paragraphs.append(markdownLine)
                     }
@@ -1637,7 +1634,7 @@ enum MarkdownParser {
             } else if ch.isASCII && ch.isNumber {
                 // 番号付き: ASCII 数字 + ドット（ドットが必須）
                 // isNumber は漢数字にも true を返すため、isASCII を併用する
-                let numStart = i
+                _ = i  // numStart (unused)
                 while i < text.endIndex && text[i].isASCII && text[i].isNumber {
                     i = text.index(after: i)
                 }

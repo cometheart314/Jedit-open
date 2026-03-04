@@ -152,7 +152,7 @@ class EncodingsPreferencesViewController: NSViewController {
         }
 
         // Try to find item with matching tag (encoding rawValue)
-        if popUp.selectItem(withTag: encodingInt) != nil {
+        if popUp.selectItem(withTag: encodingInt) {
             return
         }
 

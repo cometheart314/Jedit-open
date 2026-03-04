@@ -108,7 +108,11 @@ class PrintPageView: NSView {
         let lm = InvisibleCharacterLayoutManager()
         // 印刷用：背景レイアウトを無効化し、画面フォントを使わない
         lm.backgroundLayoutEnabled = false
-        lm.usesScreenFonts = false
+        if #available(macOS 10.11, *) {
+            // usesScreenFonts is deprecated; screen fonts are not used in modern macOS
+        } else {
+            lm.usesScreenFonts = false
+        }
         // 不可視文字オプションは直接設定（invalidateDisplayを避けるため内部値を使用）
         lm.invisibleCharacterOptions = configuration.invisibleCharacterOptions
         // 印刷時はグレーで出力（画面表示色だとダークモード時に見えない場合がある）

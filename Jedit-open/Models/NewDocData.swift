@@ -81,7 +81,7 @@ struct NewDocData: Codable, Equatable {
             var verticalTab: Bool
 
             /// メンバーワイズイニシャライザ
-            init(space: Bool, nonBreakingSpace: Bool, kanjiSpace: Bool, tab: Bool,
+            nonisolated init(space: Bool, nonBreakingSpace: Bool, kanjiSpace: Bool, tab: Bool,
                  lineSeparator: Bool, paragraphBreak: Bool, pageBreak: Bool, verticalTab: Bool) {
                 self.space = space
                 self.nonBreakingSpace = nonBreakingSpace
@@ -93,7 +93,7 @@ struct NewDocData: Codable, Equatable {
                 self.verticalTab = verticalTab
             }
 
-            static var `default`: ShowInvisibles {
+            nonisolated static var `default`: ShowInvisibles {
                 ShowInvisibles(
                     space: false,
                     nonBreakingSpace: false,
@@ -161,7 +161,7 @@ struct NewDocData: Codable, Equatable {
             }
         }
 
-        static var `default`: ViewData {
+        nonisolated static var `default`: ViewData {
             ViewData(
                 windowWidth: 800,
                 windowHeight: 600,
@@ -293,7 +293,7 @@ struct NewDocData: Codable, Equatable {
 
         // MARK: - Memberwise Initializer
 
-        init(
+        nonisolated init(
             newDocNameType: NewDocNameType,
             richText: Bool,
             fileExtension: String,
@@ -341,7 +341,7 @@ struct NewDocData: Codable, Equatable {
             self.maxTargetSize = maxTargetSize
         }
 
-        static var `default`: FormatData {
+        nonisolated static var `default`: FormatData {
             FormatData(
                 newDocNameType: .untitled,
                 richText: true,
@@ -394,7 +394,7 @@ struct NewDocData: Codable, Equatable {
             var header: CodableColor
             var footer: CodableColor
 
-            static var `default`: Colors {
+            nonisolated static var `default`: Colors {
                 Colors(
                     character: CodableColor(.textColor),
                     background: CodableColor(.textBackgroundColor),
@@ -409,7 +409,7 @@ struct NewDocData: Codable, Equatable {
             }
         }
 
-        static var `default`: FontAndColorsData {
+        nonisolated static var `default`: FontAndColorsData {
             FontAndColorsData(
                 baseFontSize: 14.0,
                 baseFontName: NSFont.systemFont(ofSize: 14).fontName,
@@ -463,7 +463,7 @@ struct NewDocData: Codable, Equatable {
             }
         }
 
-        static var `default`: PageLayoutData {
+        nonisolated static var `default`: PageLayoutData {
             PageLayoutData(
                 topMarginPoints: 90.0,      // 上下マージン 90pt
                 leftMarginPoints: 72.0,     // 左右マージン 72pt
@@ -482,7 +482,7 @@ struct NewDocData: Codable, Equatable {
         /// フッターのRTFデータ（attributedStringを保存）
         var footerRTFData: Data?
 
-        static var `default`: HeaderFooterData {
+        nonisolated static var `default`: HeaderFooterData {
             HeaderFooterData(
                 headerRTFData: defaultHeaderRTFData(),
                 footerRTFData: defaultFooterRTFData()
@@ -490,7 +490,7 @@ struct NewDocData: Codable, Equatable {
         }
 
         /// デフォルトのヘッダー: "%name" 左寄せ
-        private static func defaultHeaderRTFData() -> Data? {
+        private nonisolated static func defaultHeaderRTFData() -> Data? {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .left
             let attributes: [NSAttributedString.Key: Any] = [
@@ -502,7 +502,7 @@ struct NewDocData: Codable, Equatable {
         }
 
         /// デフォルトのフッター: "%page/%total" 中央寄せ
-        private static func defaultFooterRTFData() -> Data? {
+        private nonisolated static func defaultFooterRTFData() -> Data? {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.alignment = .center
             let attributes: [NSAttributedString.Key: Any] = [
@@ -514,7 +514,7 @@ struct NewDocData: Codable, Equatable {
         }
 
         /// NSAttributedStringからRTFDataを作成
-        static func rtfData(from attributedString: NSAttributedString) -> Data? {
+        nonisolated static func rtfData(from attributedString: NSAttributedString) -> Data? {
             let range = NSRange(location: 0, length: attributedString.length)
             return try? attributedString.data(
                 from: range,
@@ -546,7 +546,7 @@ struct NewDocData: Codable, Equatable {
         var keywords: String
         var comment: String
 
-        static var `default`: PropertiesData {
+        nonisolated static var `default`: PropertiesData {
             PropertiesData(
                 author: "",
                 company: "",
@@ -589,7 +589,7 @@ struct NewDocData: Codable, Equatable {
         var printerName: String?
 
         /// NSPrintInfo から PrintInfoData を作成
-        init(from printInfo: NSPrintInfo) {
+        nonisolated init(from printInfo: NSPrintInfo) {
             self.paperWidth = printInfo.paperSize.width
             self.paperHeight = printInfo.paperSize.height
             self.orientation = printInfo.orientation.rawValue
@@ -653,7 +653,7 @@ struct NewDocData: Codable, Equatable {
             // （プリンターが存在しない場合にエラーになる可能性がある）
         }
 
-        static var `default`: PrintInfoData {
+        nonisolated static var `default`: PrintInfoData {
             // システムのデフォルト PrintInfo から作成
             PrintInfoData(from: NSPrintInfo.shared)
         }
@@ -674,7 +674,7 @@ struct NewDocData: Codable, Equatable {
         /// 不可視文字を印刷する
         var printInvisibles: Bool
 
-        static var `default`: PrintOptionsData {
+        nonisolated static var `default`: PrintOptionsData {
             PrintOptionsData(
                 lineNumberOption: 0,
                 colorOption: 0,
@@ -694,14 +694,14 @@ struct NewDocData: Codable, Equatable {
         /// カウント方法（0: Unicode文字数, 1: 原稿用紙換算（400字詰め））
         var countMethod: Int
 
-        static var `default`: WritingGoalData {
+        nonisolated static var `default`: WritingGoalData {
             WritingGoalData(targetCount: 0, countMethod: 0)
         }
     }
 
     // MARK: - Default Instances
 
-    static var `default`: NewDocData {
+    nonisolated static var `default`: NewDocData {
         NewDocData(
             view: .default,
             format: .default,
@@ -741,7 +741,7 @@ struct CodableColor: Codable, Equatable {
     var systemColorName: String?
 
     /// サポートするシステムカラーのマッピング
-    private static let systemColors: [String: NSColor] = [
+    private nonisolated static let systemColors: [String: NSColor] = [
         "textColor": .textColor,
         "textBackgroundColor": .textBackgroundColor,
         "labelColor": .labelColor,
@@ -753,7 +753,7 @@ struct CodableColor: Codable, Equatable {
         "windowBackgroundColor": .windowBackgroundColor
     ]
 
-    init(_ color: NSColor) {
+    nonisolated init(_ color: NSColor) {
         // システムカラーかどうかチェック
         self.systemColorName = Self.systemColors.first { $0.value == color }?.key
 

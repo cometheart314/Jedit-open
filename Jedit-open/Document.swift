@@ -2136,7 +2136,7 @@ class Document: NSDocument {
     // MARK: - Word / OpenDocument Support
 
     /// XML ファイルが Word 2003 XML (WordML) 形式かどうかをファイル先頭の内容で判定
-    private static func isWordMLFile(url: URL) -> Bool {
+    private nonisolated static func isWordMLFile(url: URL) -> Bool {
         guard let fileHandle = try? FileHandle(forReadingFrom: url) else { return false }
         defer { fileHandle.closeFile() }
         guard let headerData = try? fileHandle.read(upToCount: 1024),
@@ -3514,7 +3514,7 @@ class Document: NSDocument {
 
     /// データの先頭が RTF シグネチャ "{\rtf" で始まるかチェックする
     /// autosave 復元時に .txt 拡張子のファイルが実際には RTF データかどうかを判定するために使用
-    private static func dataIsRTF(_ data: Data) -> Bool {
+    private nonisolated static func dataIsRTF(_ data: Data) -> Bool {
         let rtfSignature: [UInt8] = [0x7B, 0x5C, 0x72, 0x74, 0x66]  // "{\rtf"
         guard data.count >= rtfSignature.count else { return false }
         return data.prefix(rtfSignature.count).elementsEqual(rtfSignature)

@@ -134,7 +134,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         let range = currentResult.ranges[currentResult.currentIndex]
 
         // テキストレイアウトを強制してスクロール位置を確定させる
-        if let layoutManager = textView.layoutManager, let textContainer = textView.textContainer {
+        if let layoutManager = textView.layoutManager, let _ = textView.textContainer {
             let glyphRange = layoutManager.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
             layoutManager.ensureLayout(forGlyphRange: glyphRange)
         }

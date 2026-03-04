@@ -712,8 +712,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// ペンディング中のスクロール位置を適用する
     private func applyPendingScrollPosition() {
         guard let scrollPosition = pendingScrollPosition else { return }
-        guard let scrollView = self.scrollView1,
-              let clipView = scrollView.contentView as? NSClipView else { return }
+        guard let scrollView = self.scrollView1 else { return }
+        let clipView = scrollView.contentView
 
         pendingScrollPosition = nil
         clipView.scroll(to: scrollPosition)
@@ -2287,12 +2287,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 横書きのwindowWidthモードのみScalingScrollViewにコンテナサイズ調整を任せる
         // 縦書きでは常にfalse（textViewの幅が縮小されるのを防ぐため）
         let autoAdjust = !isVerticalLayout && (lineWrapMode == .windowWidth)
-        if let scalingScrollView = scrollView1 as? ScalingScrollView {
-            scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
-        }
-        if let scalingScrollView = scrollView2 as? ScalingScrollView {
-            scalingScrollView.autoAdjustsContainerSizeOnFrameChange = autoAdjust
-        }
+        scrollView1?.autoAdjustsContainerSizeOnFrameChange = autoAdjust
+        scrollView2?.autoAdjustsContainerSizeOnFrameChange = autoAdjust
 
         if let scrollView = scrollView1 {
             updateTextViewSize(for: scrollView)
@@ -4079,9 +4075,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         // スクロール位置を保存
-        if let scrollView = scrollView1,
-           let clipView = scrollView.contentView as? NSClipView {
-            let scrollPosition = clipView.bounds.origin
+        if let scrollView = scrollView1 {
+            let scrollPosition = scrollView.contentView.bounds.origin
             document.presetData?.view.scrollPositionX = scrollPosition.x
             document.presetData?.view.scrollPositionY = scrollPosition.y
         }
@@ -4164,7 +4159,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // レイアウトマネージャのコンテナを直接使用（キャッシュ配列との同期ずれを防ぐ）
             let lmContainers = layoutManager.textContainers
             let isLastContainerInLM = lmContainers.last === textContainer
-            let containerIndexInLM = lmContainers.firstIndex(of: textContainer) ?? -1
 
             // 最後のコンテナでレイアウトが完了していない場合、新しいページを追加
             if isLastContainerInLM && !layoutFinishedFlag {
@@ -5287,7 +5281,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let toolbar = NSToolbar(identifier: toolbarIdentifier)
         toolbar.delegate = self
         toolbar.displayMode = .iconAndLabel
-        toolbar.showsBaselineSeparator = false
+        // showsBaselineSeparator is deprecated in macOS 11+; NSWindow.titlebarSeparatorStyle is used instead
+        if #available(macOS 11.0, *) {
+            // titlebarSeparatorStyle is set on the window, not toolbar
+        } else {
+            toolbar.showsBaselineSeparator = false
+        }
         toolbar.autosavesConfiguration = false  // 書類ごとに保存するため無効化
         toolbar.allowsUserCustomization = true
 
@@ -5885,7 +5884,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let fullText = document.textStorage.string
         let textLength = document.textStorage.length
         let selectedRange: NSRange
-        if let firstRange = textView.selectedRanges.first as? NSValue {
+        if let firstRange = textView.selectedRanges.first {
             selectedRange = firstRange.rangeValue
         } else {
             selectedRange = NSRange(location: 0, length: 0)
