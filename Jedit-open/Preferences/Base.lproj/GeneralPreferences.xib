@@ -193,7 +193,7 @@
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="GO0-DF-RdK">
-                                        <rect key="frame" x="57" y="404" width="77" height="16"/>
+                                        <rect key="frame" x="27" y="404" width="107" height="16"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Appearance" id="y8s-KY-4tH">
                                             <font key="font" metaFont="system"/>
@@ -231,7 +231,7 @@
                                         </connections>
                                     </button>
                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="iJn-ya-eaT">
-                                        <rect key="frame" x="45" y="350" width="89" height="17"/>
+                                        <rect key="frame" x="15" y="350" width="119" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Date Format" id="JQf-JN-U9K">
                                             <font key="font" metaFont="system"/>
@@ -270,7 +270,7 @@
                                         </connections>
                                     </textField>
                                     <textField focusRingType="none" verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" fixedFrame="YES" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="H4G-ci-5EJ">
-                                        <rect key="frame" x="45" y="300" width="89" height="18"/>
+                                        <rect key="frame" x="15" y="300" width="119" height="18"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Time Format" id="tul-rc-mPa">
                                             <font key="font" metaFont="system"/>
@@ -422,7 +422,7 @@
                 <constraint firstAttribute="trailing" secondItem="tab-main-001" secondAttribute="trailing" constant="20" symbolic="YES" id="jFt-hK-kjM"/>
                 <constraint firstItem="tab-main-001" firstAttribute="top" secondItem="c22-O7-iKe" secondAttribute="top" constant="13" id="zp1-ST-B7I"/>
             </constraints>
-            <point key="canvasLocation" x="-440" y="-644"/>
+            <point key="canvasLocation" x="-440.5" y="-644"/>
         </customView>
     </objects>
 </document>
