@@ -24,6 +24,7 @@ class JeditDocumentController: NSDocumentController {
 
     override func openDocument(_ sender: Any?) {
         if suppressOpenPanel { return }
+        if currentOpenPanel != nil { return }
 
         let openPanel = NSOpenPanel()
         openPanel.allowsMultipleSelection = true
