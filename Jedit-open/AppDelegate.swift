@@ -1178,7 +1178,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     /// Help > Jedit Help メニューアクション
     /// Application Support 内のヘルプファイルを開く
     @IBAction func openJeditHelp(_ sender: Any?) {
-        openHelpFile()
+        openHelpFile { _ in
+            let bpc = BookmarkPanelController.shared
+            if !bpc.isPanelVisible {
+                bpc.showPanel()
+            }
+        }
     }
 
     // MARK: - NSMenuItemValidation
