@@ -14,7 +14,7 @@ private let bookmarkDragType = NSPasteboard.PasteboardType("jp.co.artman21.Jedit
 
 /// ブックマークパネルのコントローラー。
 /// シングルトンとして管理され、最前面ドキュメントのブックマークツリーを表示する。
-class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate {
+class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewDelegate, NSTextFieldDelegate {
 
     // MARK: - Singleton
 
@@ -82,6 +82,7 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         // アウトラインビュー設定
         bookmarkOutlineView.dataSource = self
         bookmarkOutlineView.delegate = self
+        bookmarkOutlineView.doubleAction = nil
 
         // ドラッグ＆ドロップの設定
         bookmarkOutlineView.registerForDraggedTypes([bookmarkDragType, .string])
@@ -552,6 +553,8 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         let cellIdentifier = NSUserInterfaceItemIdentifier("AutomaticTableColumnIdentifier.0")
         let cellView = outlineView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
         cellView?.textField?.stringValue = bookmark.displayName
+        cellView?.textField?.isEditable = true
+        cellView?.textField?.delegate = self
         return cellView
     }
 
@@ -564,6 +567,32 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         document.selectAnchor(identifier: bookmark.uuid)
         // selectAnchor が書類ウィンドウにフォーカスを移すため、パネルのキー状態を復元
         bookmarkPanel?.makeKey()
+    }
+
+    // MARK: - インライン編集（NSTextFieldDelegate）
+
+    /// テキストフィールドの編集完了時にブックマークの displayName を更新する
+    func controlTextDidEndEditing(_ notification: Notification) {
+        guard let textField = notification.object as? NSTextField,
+              let outlineView = bookmarkOutlineView else { return }
+
+        let row = outlineView.row(for: textField)
+        guard row >= 0,
+              let bookmark = outlineView.item(atRow: row) as? Bookmark else { return }
+
+        let newName = textField.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !newName.isEmpty, newName != bookmark.displayName else {
+            // 空文字の場合は元に戻す
+            textField.stringValue = bookmark.displayName
+            return
+        }
+
+        bookmark.displayName = newName
+
+        // ドキュメントの変更を記録
+        if let document = currentDocument() {
+            document.updateChangeCount(.changeDone)
+        }
     }
 
     // MARK: - Drag & Drop (NSOutlineViewDataSource)

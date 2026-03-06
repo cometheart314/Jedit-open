@@ -78,7 +78,13 @@ class JeditDocumentController: NSDocumentController {
             completionHandler(nil, false, nil)
             return
         }
-        super.openDocument(withContentsOf: url, display: displayDocument, completionHandler: completionHandler)
+        super.openDocument(withContentsOf: url, display: displayDocument) { [weak self] document, alreadyOpen, error in
+            // Open Recent から書類を開いた時、表示中のオープンパネルを閉じる
+            if document != nil {
+                self?.currentOpenPanel?.cancel(nil)
+            }
+            completionHandler(document, alreadyOpen, error)
+        }
     }
 
     /// 指定 URL を Recent Documents から削除

@@ -295,14 +295,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             guard let doc = document as? Document,
                   var url = doc.fileURL else { return nil }
 
-            // バンドル内ヘルプファイルまたは旧形式の場合は Application Support の rtfd URL に変換して保存
+            // 旧形式のヘルプファイルパスを Application Support の rtfd URL に変換して保存
             if let appSupportHelpURL = self.helpFileURL {
-                if let bundleHelpURL = Bundle.main.url(forResource: "JeditHelp", withExtension: "rtfd"),
-                   url.path == bundleHelpURL.path {
-                    url = appSupportHelpURL
-                } else if url.lastPathComponent == "JeditHelp.rtf",
-                          url.path != appSupportHelpURL.path {
-                    // 旧形式 (.rtf) のバンドルURL or Application Support URL を新形式に変換
+                if url.lastPathComponent == "JeditHelp.rtf",
+                   url.path != appSupportHelpURL.path {
                     url = appSupportHelpURL
                 }
             }
@@ -336,11 +332,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return false
         }
 
-        // バンドル内ヘルプ URL → Application Support URL への変換用
-        let bundleHelpPath = Bundle.main.url(forResource: "JeditHelp", withExtension: "rtfd")?.path
-        // 旧形式（.rtf）のバンドルパスも変換対象
+        // 旧形式ヘルプパスの変換用
         let oldBundleHelpPath = Bundle.main.bundleURL.appendingPathComponent("Contents/Resources/JeditHelp.rtf").path
-        // 旧形式の Application Support パスも変換対象
         let oldAppSupportHelpPath: String? = {
             guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
             return appSupport.appendingPathComponent("Jedit/Help/JeditHelp.rtf").path
@@ -352,11 +345,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
                 var isStale = false
                 if var url = try? URL(resolvingBookmarkData: bookmarkData, options: [.withSecurityScope], relativeTo: nil, bookmarkDataIsStale: &isStale) {
                     _ = url.startAccessingSecurityScopedResource()
-                    // バンドル内ヘルプ URL を Application Support に変換
+                    // 旧形式ヘルプ URL を Application Support に変換
                     if let appSupportURL = self.helpFileURL {
-                        if let bhPath = bundleHelpPath, url.path == bhPath {
-                            url = appSupportURL
-                        } else if url.path == oldBundleHelpPath {
+                        if url.path == oldBundleHelpPath {
                             url = appSupportURL
                         } else if let oldPath = oldAppSupportHelpPath, url.path == oldPath {
                             url = appSupportURL
@@ -369,11 +360,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
             // ブックマーク復元に失敗した場合はパスとして扱う
             var url = URL(fileURLWithPath: savedURL)
-            // ヘルプパスを Application Support の rtfd に変換
+            // 旧形式ヘルプパスを Application Support の rtfd に変換
             if let appSupportURL = self.helpFileURL {
-                if let bhPath = bundleHelpPath, savedURL == bhPath {
-                    url = appSupportURL
-                } else if savedURL == oldBundleHelpPath {
+                if savedURL == oldBundleHelpPath {
                     url = appSupportURL
                 } else if let oldPath = oldAppSupportHelpPath, savedURL == oldPath {
                     url = appSupportURL
@@ -1029,16 +1018,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         return appSupport.appendingPathComponent("Jedit/Help/JeditHelp.rtfd")
     }
 
-    /// バンドル内のヘルプファイルを Application Support にコピー/更新する
-    /// バンドル内の方が新しい場合、または Application Support にまだない場合にコピーする
+    /// バンドル内の JeditHelp.rtfd.zip を Application Support にコピー・展開する
+    /// バンドル内の zip の方が新しい場合、または Application Support にまだない場合に実行する。
+    /// zip から展開することで、拡張属性（xattr）を含むオリジナルの状態を再現する。
     private func updateHelpFileIfNeeded() {
-        guard let bundleURL = Bundle.main.url(forResource: "JeditHelp", withExtension: "rtfd"),
-              let destURL = helpFileURL else { return }
+        guard let bundleZipURL = Bundle.main.url(forResource: "JeditHelp.rtfd", withExtension: "zip"),
+              let destRtfdURL = helpFileURL else { return }
 
         let fm = FileManager.default
+        let destDir = destRtfdURL.deletingLastPathComponent()
+        let destZipURL = destDir.appendingPathComponent("JeditHelp.rtfd.zip")
 
         // ディレクトリを作成
-        let destDir = destURL.deletingLastPathComponent()
         try? fm.createDirectory(at: destDir, withIntermediateDirectories: true)
 
         // 旧形式の .rtf ファイルが残っていれば削除
@@ -1047,22 +1038,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             try? fm.removeItem(at: oldRTFURL)
         }
 
-        if fm.fileExists(atPath: destURL.path) {
-            // 既にコピー済みの場合は修正日付を比較
-            guard let bundleAttrs = try? fm.attributesOfItem(atPath: bundleURL.path),
-                  let destAttrs = try? fm.attributesOfItem(atPath: destURL.path),
-                  let bundleDate = bundleAttrs[.modificationDate] as? Date,
-                  let destDate = destAttrs[.modificationDate] as? Date else { return }
-
-            if bundleDate > destDate {
-                // バンドルの方が新しい場合は上書きコピー
-                try? fm.removeItem(at: destURL)
-                try? fm.copyItem(at: bundleURL, to: destURL)
+        // バンドルの zip とコピー先の zip の修正日付を比較
+        var needsUpdate = false
+        if fm.fileExists(atPath: destZipURL.path) {
+            if let bundleAttrs = try? fm.attributesOfItem(atPath: bundleZipURL.path),
+               let destAttrs = try? fm.attributesOfItem(atPath: destZipURL.path),
+               let bundleDate = bundleAttrs[.modificationDate] as? Date,
+               let destDate = destAttrs[.modificationDate] as? Date,
+               bundleDate > destDate {
+                needsUpdate = true
             }
         } else {
-            // まだコピーされていない場合は初回コピー
-            try? fm.copyItem(at: bundleURL, to: destURL)
+            needsUpdate = true
         }
+
+        guard needsUpdate else { return }
+
+        // zip をコピー先にコピー
+        try? fm.removeItem(at: destZipURL)
+        do {
+            try fm.copyItem(at: bundleZipURL, to: destZipURL)
+        } catch {
+            return
+        }
+
+        // 既存の rtfd を削除して zip を展開（ditto で拡張属性を保持）
+        try? fm.removeItem(at: destRtfdURL)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        process.arguments = ["-x", "-k", destZipURL.path, destDir.path]
+        try? process.run()
+        process.waitUntilExit()
     }
 
     /// Help メニューに検索フィールドを追加する
