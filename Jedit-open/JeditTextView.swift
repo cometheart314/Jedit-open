@@ -434,6 +434,31 @@ class JeditTextView: NSTextView {
             }
         }
 
+        // ブックマークのドロップ: 選択範囲内へのドロップはリンクのみ付与（文字列は挿入しない）
+        let bookmarkPboardType = NSPasteboard.PasteboardType("jp.co.artman21.Jedit-open.bookmark")
+        if pboard.availableType(from: [bookmarkPboardType]) != nil,
+           !isPlainText {
+            let selRange = selectedRange()
+            if selRange.length > 0,
+               let dropIndex = characterIndex(for: sender),
+               dropIndex >= selRange.location,
+               dropIndex <= selRange.location + selRange.length {
+                // ドロップ位置が選択範囲内: 選択テキストにリンクのみ付与
+                if let rtfData = pboard.data(forType: .rtf),
+                   let attrString = NSAttributedString(rtf: rtfData, documentAttributes: nil),
+                   attrString.length > 0,
+                   let linkValue = attrString.attribute(.link, at: 0, effectiveRange: nil),
+                   let textStorage = textStorage {
+                    if shouldChangeText(in: selRange, replacementString: nil) {
+                        textStorage.addAttribute(.link, value: linkValue, range: selRange)
+                        didChangeText()
+                    }
+                    return true
+                }
+            }
+            // 選択範囲外へのドロップ or カーソルの場合は通常の挿入処理（superへ）
+        }
+
         return super.performDragOperation(sender)
     }
 

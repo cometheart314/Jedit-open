@@ -7,7 +7,6 @@
     <objects>
         <customObject id="-2" userLabel="File's Owner" customClass="LinkPanelController" customModule="Jedit" customModuleProvider="target">
             <connections>
-                <outlet property="bookmarkPopUpButton" destination="lnk-bkm-popup" id="lnk-conn-004"/>
                 <outlet property="deleteLinkButton" destination="lnk-del-btn" id="lnk-conn-006"/>
                 <outlet property="displayTextField" destination="lnk-display-field" id="lnk-conn-003"/>
                 <outlet property="linkPanel" destination="lnk-panel-001" id="lnk-conn-001"/>
@@ -28,33 +27,23 @@
                 <subviews>
                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-url-label">
                         <rect key="frame" x="18" y="92" width="34" height="16"/>
-                        <textFieldCell key="cell" lineBreakMode="clipping" title="URL:" id="lnk-url-label-cell">
+                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="URL:" id="lnk-url-label-cell">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
                     <textField focusRingType="none" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-url-field" customClass="DroppableTextField" customModule="Jedit" customModuleProvider="target">
-                        <rect key="frame" x="52" y="92" width="374" height="16"/>
-                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" placeholderString="URL or JEDITANCHOR:..." id="lnk-url-field-cell">
+                        <rect key="frame" x="52" y="92" width="398" height="16"/>
+                        <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" selectable="YES" editable="YES" sendsActionOnEndEditing="YES" placeholderString="URL or JEDITANCHOR:..." id="lnk-url-field-cell" customClass="DroppableTextFieldCell" customModule="Jedit" customModuleProvider="target">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                         </textFieldCell>
                     </textField>
-                    <popUpButton verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-bkm-popup">
-                        <rect key="frame" x="423" y="100" width="25" height="0.0"/>
-                        <popUpButtonCell key="cell" type="bevel" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" autoenablesItems="NO" id="lnk-bkm-popup-cell">
-                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
-                            <font key="font" metaFont="message"/>
-                        </popUpButtonCell>
-                        <connections>
-                            <action selector="bookmarkPopUpChanged:" target="-2" id="lnk-act-popup"/>
-                        </connections>
-                    </popUpButton>
                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="lnk-display-label">
                         <rect key="frame" x="18" y="68" width="34" height="16"/>
-                        <textFieldCell key="cell" lineBreakMode="clipping" title="Text:" id="lnk-display-label-cell">
+                        <textFieldCell key="cell" lineBreakMode="clipping" alignment="right" title="Text:" id="lnk-display-label-cell">
                             <font key="font" metaFont="system"/>
                             <color key="textColor" name="labelColor" catalog="System" colorSpace="catalog"/>
                             <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
@@ -94,9 +83,7 @@
                     <constraint firstItem="lnk-url-label" firstAttribute="centerY" secondItem="lnk-url-field" secondAttribute="centerY" id="c002"/>
                     <constraint firstItem="lnk-url-field" firstAttribute="leading" secondItem="lnk-url-label" secondAttribute="trailing" constant="4" id="c003"/>
                     <constraint firstItem="lnk-url-field" firstAttribute="top" secondItem="lnk-content-view" secondAttribute="top" constant="12" id="c004"/>
-                    <constraint firstItem="lnk-bkm-popup" firstAttribute="leading" secondItem="lnk-url-field" secondAttribute="trailing" constant="4" id="c005"/>
-                    <constraint firstItem="lnk-bkm-popup" firstAttribute="centerY" secondItem="lnk-url-field" secondAttribute="centerY" id="c006"/>
-                    <constraint firstAttribute="trailing" secondItem="lnk-bkm-popup" secondAttribute="trailing" constant="12" id="c007"/>
+                    <constraint firstAttribute="trailing" secondItem="lnk-url-field" secondAttribute="trailing" constant="12" id="c007"/>
                     <constraint firstItem="lnk-display-label" firstAttribute="leading" secondItem="lnk-content-view" secondAttribute="leading" constant="20" id="c008"/>
                     <constraint firstItem="lnk-display-label" firstAttribute="centerY" secondItem="lnk-display-field" secondAttribute="centerY" id="c009"/>
                     <constraint firstItem="lnk-display-field" firstAttribute="leading" secondItem="lnk-url-field" secondAttribute="leading" id="c010"/>

@@ -4,8 +4,7 @@
 //
 //  カスタムリンクパネルのコントローラー。
 //  テキスト選択範囲にリンク属性を設定/削除する。
-//  ブックマークパネルからのドラッグ＆ドロップや、
-//  ブックマーク一覧ポップアップからの選択でアンカーリンクを設定可能。
+//  ブックマークパネルからのドラッグ＆ドロップでアンカーリンクを設定可能。
 //
 
 import Cocoa
@@ -15,7 +14,7 @@ private let bookmarkDragType = NSPasteboard.PasteboardType("jp.co.artman21.Jedit
 
 /// カスタムリンクパネルのコントローラー。
 /// シングルトンとして管理され、テキスト選択範囲にリンク属性を設定する。
-class LinkPanelController: NSObject, NSTextFieldDelegate {
+class LinkPanelController: NSObject, NSTextFieldDelegate, NSWindowDelegate {
 
     // MARK: - Singleton
 
@@ -32,9 +31,6 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
     /// 表示テキストフィールド
     @IBOutlet var displayTextField: NSTextField!
 
-    /// ブックマーク一覧ポップアップボタン
-    @IBOutlet var bookmarkPopUpButton: NSPopUpButton!
-
     /// 「Set Link」ボタン
     @IBOutlet var setLinkButton: NSButton!
 
@@ -45,6 +41,16 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
 
     /// パネルがロード済みかどうか
     private var isLoaded = false
+
+    /// URL フィールドのクリアボタン
+    private var urlClearButton: NSButton?
+
+    /// ブックマークドロップ対応のカスタムフィールドエディタ
+    private lazy var bookmarkFieldEditor: BookmarkDropFieldEditor = {
+        let editor = BookmarkDropFieldEditor()
+        editor.isFieldEditor = true
+        return editor
+    }()
 
     // MARK: - Initialization
 
@@ -70,6 +76,7 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
         linkPanel.becomesKeyOnlyIfNeeded = false
         linkPanel.level = .floating
         linkPanel.isReleasedWhenClosed = false
+        linkPanel.delegate = self
 
         // パネルの背景色を設定（テキストフィールドとのコントラスト確保）
         if let contentView = linkPanel.contentView {
@@ -86,26 +93,65 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
             field.backgroundColor = .textBackgroundColor
         }
 
-        // ブックマークポップアップを pullDown モードに設定
-        // （先頭項目がボタンタイトルとして常に表示される）
-        bookmarkPopUpButton.pullsDown = true
-
         // URL フィールドでブックマークのドロップを受け付ける
         urlField.registerForDraggedTypes([bookmarkDragType])
 
-        // ウィンドウ切り替え監視（ブックマーク一覧の更新用）
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(documentWindowDidChange(_:)),
-            name: NSWindow.didBecomeMainNotification,
-            object: nil
-        )
-        NotificationCenter.default.addObserver(
-            self,
-            selector: #selector(documentWindowDidChange(_:)),
-            name: NSWindow.didBecomeKeyNotification,
-            object: nil
-        )
+        // テキスト変更通知でクリアボタンの表示を更新するため delegate を設定
+        urlField.delegate = self
+
+        // クリアボタンを URL フィールドの右端に重ねて配置（パネルのコンテンツビューに追加）
+        setupClearButton()
+    }
+
+    /// URL フィールドのクリアボタンを設定する
+    private func setupClearButton() {
+        guard let contentView = linkPanel.contentView else { return }
+
+        let button = NSButton(frame: .zero)
+        if let image = NSImage(systemSymbolName: "xmark.circle.fill", accessibilityDescription: "Clear") {
+            button.image = image
+        }
+        button.bezelStyle = .inline
+        button.isBordered = false
+        button.imagePosition = .imageOnly
+        button.target = self
+        button.action = #selector(clearURLField)
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.contentTintColor = .tertiaryLabelColor
+        contentView.addSubview(button)
+
+        NSLayoutConstraint.activate([
+            button.trailingAnchor.constraint(equalTo: urlField.trailingAnchor, constant: -4),
+            button.centerYAnchor.constraint(equalTo: urlField.centerYAnchor),
+            button.widthAnchor.constraint(equalToConstant: 16),
+            button.heightAnchor.constraint(equalToConstant: 16)
+        ])
+
+        urlClearButton = button
+    }
+
+    /// URL フィールドのクリアボタンの表示・非表示を更新
+    func updateClearButtonVisibility() {
+        urlClearButton?.isHidden = urlField.stringValue.isEmpty
+    }
+
+    /// URL フィールドをクリア
+    @objc private func clearURLField() {
+        urlField.stringValue = ""
+        updateClearButtonVisibility()
+        linkPanel.makeFirstResponder(urlField)
+    }
+
+    // MARK: - NSWindowDelegate
+
+    /// DroppableTextField 用のカスタムフィールドエディタを返す。
+    /// ブックマークドロップ時にフィールドエディタが .string（表示名）を
+    /// 挿入してしまう問題を回避する。
+    func windowWillReturnFieldEditor(_ sender: NSWindow, to client: Any?) -> Any? {
+        if client is DroppableTextField {
+            return bookmarkFieldEditor
+        }
+        return nil
     }
 
     // MARK: - Public Methods
@@ -116,7 +162,7 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
         guard let panel = linkPanel else { return }
 
         updateFieldsFromSelection()
-        updateBookmarkPopUp()
+        updateClearButtonVisibility()
         panel.orderFront(nil)
     }
 
@@ -196,18 +242,15 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
         }
 
         urlField.stringValue = ""
+        updateClearButtonVisibility()
     }
 
-    /// ブックマークポップアップから選択された時
-    @IBAction func bookmarkPopUpChanged(_ sender: Any?) {
-        guard let popup = bookmarkPopUpButton,
-              let selectedItem = popup.selectedItem,
-              let uuid = selectedItem.representedObject as? String else { return }
+    // MARK: - NSTextFieldDelegate
 
-        urlField.stringValue = uuid
-
-        // ポップアップを先頭項目（ラベル）に戻す
-        popup.selectItem(at: 0)
+    func controlTextDidChange(_ obj: Notification) {
+        if let field = obj.object as? NSTextField, field === urlField {
+            updateClearButtonVisibility()
+        }
     }
 
     // MARK: - Field Update
@@ -251,76 +294,6 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
         }
     }
 
-    /// ブックマークポップアップの内容を更新する
-    private func updateBookmarkPopUp() {
-        guard let popup = bookmarkPopUpButton else { return }
-
-        popup.removeAllItems()
-
-        // メニューが nil の場合は明示的に作成
-        if popup.menu == nil {
-            popup.menu = NSMenu()
-        }
-
-        // 先頭にタイトル項目（pullDown モードではボタンに常に表示される）
-        popup.addItem(withTitle: "Bookmarks".localized)
-
-        guard let document = currentDocument() else { return }
-
-        let root = document.rootBookmark
-        guard !root.childBookmarks.isEmpty else { return }
-        guard let menu = popup.menu else { return }
-
-        menu.addItem(NSMenuItem.separator())
-
-        // ブックマークを再帰的に追加
-        addBookmarksToPopUp(root.childBookmarks, menu: menu, indent: 0)
-    }
-
-    /// ブックマークをポップアップメニューに再帰的に追加する
-    private func addBookmarksToPopUp(_ bookmarks: [Bookmark], menu: NSMenu, indent: Int) {
-        for bookmark in bookmarks {
-            let prefix = String(repeating: "  ", count: indent)
-            let item = NSMenuItem(
-                title: prefix + bookmark.displayName,
-                action: #selector(bookmarkMenuItemSelected(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = bookmark.uuid
-            menu.addItem(item)
-
-            // 子ブックマークを再帰的に追加
-            if !bookmark.childBookmarks.isEmpty {
-                addBookmarksToPopUp(bookmark.childBookmarks, menu: menu, indent: indent + 1)
-            }
-        }
-    }
-
-    /// ブックマークメニュー項目が選択された時
-    @objc private func bookmarkMenuItemSelected(_ sender: NSMenuItem) {
-        guard let uuid = sender.representedObject as? String else { return }
-        urlField.stringValue = uuid
-    }
-
-    // MARK: - Drag & Drop Support for URL Field
-
-    /// URL フィールドへのブックマークドロップを処理するため、
-    /// NSDraggingDestination をカスタムビューではなくコントローラーレベルで処理する。
-    /// urlField に対して draggingEntered / performDragOperation を呼び出すため、
-    /// カスタム NSTextField サブクラスを使うか、パネル自体で処理する。
-    ///
-    /// ここではパネルのコンテンツビューレベルでドロップを受け付ける。
-
-    // MARK: - Window Notifications
-
-    @objc private func documentWindowDidChange(_ notification: Notification) {
-        guard isPanelVisible else { return }
-        guard let window = notification.object as? NSWindow,
-              !(window is NSPanel) else { return }
-        updateBookmarkPopUp()
-    }
-
     // MARK: - Helpers
 
     /// 現在のメインドキュメントウィンドウの NSTextView を取得する
@@ -343,6 +316,29 @@ class LinkPanelController: NSObject, NSTextFieldDelegate {
     }
 }
 
+// MARK: - Bookmark Drop Field Editor
+
+/// ブックマークドロップを正しく処理するカスタムフィールドエディタ。
+/// NSTextField のフィールドエディタとして使用し、ブックマークドラッグ時に
+/// .string（表示名）ではなくブックマーク UUID を設定する。
+class BookmarkDropFieldEditor: NSTextView {
+
+    override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
+        let pboard = sender.draggingPasteboard
+        if let uuid = pboard.string(forType: bookmarkDragType) {
+            // フィールドエディタの delegate は NSTextField 自身
+            if let textField = delegate as? DroppableTextField {
+                textField.stringValue = uuid
+                textField.onDrop?(uuid)
+                // クリアボタンの表示を更新
+                LinkPanelController.shared.updateClearButtonVisibility()
+                return true
+            }
+        }
+        return super.performDragOperation(sender)
+    }
+}
+
 // MARK: - Droppable Text Field
 
 /// ブックマークのドラッグ＆ドロップを受け付ける NSTextField サブクラス。
@@ -354,14 +350,12 @@ class DroppableTextField: NSTextField {
 
     override func awakeFromNib() {
         super.awakeFromNib()
-        registerForDraggedTypes([
-            NSPasteboard.PasteboardType("jp.co.artman21.Jedit-open.bookmark")
-        ])
+        registerForDraggedTypes([bookmarkDragType])
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         let pboard = sender.draggingPasteboard
-        if pboard.string(forType: NSPasteboard.PasteboardType("jp.co.artman21.Jedit-open.bookmark")) != nil {
+        if pboard.string(forType: bookmarkDragType) != nil {
             return .copy
         }
         return super.draggingEntered(sender)
@@ -369,7 +363,7 @@ class DroppableTextField: NSTextField {
 
     override func draggingUpdated(_ sender: NSDraggingInfo) -> NSDragOperation {
         let pboard = sender.draggingPasteboard
-        if pboard.string(forType: NSPasteboard.PasteboardType("jp.co.artman21.Jedit-open.bookmark")) != nil {
+        if pboard.string(forType: bookmarkDragType) != nil {
             return .copy
         }
         return super.draggingUpdated(sender)
@@ -377,11 +371,40 @@ class DroppableTextField: NSTextField {
 
     override func performDragOperation(_ sender: NSDraggingInfo) -> Bool {
         let pboard = sender.draggingPasteboard
-        if let uuid = pboard.string(forType: NSPasteboard.PasteboardType("jp.co.artman21.Jedit-open.bookmark")) {
+        if let uuid = pboard.string(forType: bookmarkDragType) {
             stringValue = uuid
             onDrop?(uuid)
+            LinkPanelController.shared.updateClearButtonVisibility()
             return true
         }
         return super.performDragOperation(sender)
+    }
+}
+
+// MARK: - Droppable Text Field Cell
+
+/// クリアボタン用の右パディングを確保する NSTextFieldCell サブクラス。
+/// テキストの描画・編集領域を右側に縮めて、クリアボタンと重ならないようにする。
+class DroppableTextFieldCell: NSTextFieldCell {
+
+    /// クリアボタン用の右パディング
+    private let rightPadding: CGFloat = 20
+
+    override func drawingRect(forBounds rect: NSRect) -> NSRect {
+        var result = super.drawingRect(forBounds: rect)
+        result.size.width -= rightPadding
+        return result
+    }
+
+    override func edit(withFrame rect: NSRect, in controlView: NSView, editor textObj: NSText, delegate: Any?, event: NSEvent?) {
+        var r = rect
+        r.size.width -= rightPadding
+        super.edit(withFrame: r, in: controlView, editor: textObj, delegate: delegate, event: event)
+    }
+
+    override func select(withFrame rect: NSRect, in controlView: NSView, editor textObj: NSText, delegate: Any?, start selStart: Int, length selLength: Int) {
+        var r = rect
+        r.size.width -= rightPadding
+        super.select(withFrame: r, in: controlView, editor: textObj, delegate: delegate, start: selStart, length: selLength)
     }
 }
