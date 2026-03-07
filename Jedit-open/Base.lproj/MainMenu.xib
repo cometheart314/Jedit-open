@@ -422,6 +422,12 @@
                                     <action selector="toggleToolbarShown:" target="-1" id="BXY-wc-z0C"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Customize Toolbar…" id="cust-toolbar-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="showToolbarCustomizationPalette:" target="-1" id="cust-toolbar-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem title="Show Inspector Bar" id="Insp-Bar-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>

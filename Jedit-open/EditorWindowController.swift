@@ -3315,6 +3315,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
     }
 
+    // MARK: - Toolbar Customization
+
+    @IBAction func showToolbarCustomizationPalette(_ sender: Any?) {
+        guard let toolbar = window?.toolbar else { return }
+        // ツールバーが非表示なら表示する
+        if !toolbar.isVisible {
+            toolbar.isVisible = true
+        }
+        toolbar.runCustomizationPalette(sender)
+    }
+
     // MARK: - Inspector Bar Actions
 
     @IBAction func toggleInspectorBar(_ sender: Any?) {
