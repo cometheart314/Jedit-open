@@ -430,7 +430,6 @@
 "Open Script Editor" = "スクリプトエディタを開く";
 "Open Script Dictionaries" = "スクリプト用語説明を開く";
 "Script Error" = "スクリプトエラー";
-"Could not read script file." = "スクリプトファイルを読み込めませんでした。";
 "Could not load script." = "スクリプトを読み込めませんでした。";
 
 /* Print */

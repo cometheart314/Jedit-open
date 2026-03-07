@@ -22,8 +22,8 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
         return appSupport.appendingPathComponent(bundleID).appendingPathComponent("Scripts")
     }
 
-    /// スクリプトファイルの対象拡張子
-    private let scriptExtensions: Set<String> = ["scpt", "applescript", "scptd"]
+    /// スクリプトファイルの対象拡張子（コンパイル済みスクリプトのみ）
+    private let scriptExtensions: Set<String> = ["scpt", "scptd"]
 
     /// Script Editor のバンドルID
     private let scriptEditorBundleID = "com.apple.ScriptEditor2"
@@ -450,34 +450,17 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
             }
         }
 
-        let ext = url.pathExtension.lowercased()
-
-        if ext == "applescript" {
-            // テキスト形式のスクリプト — ソースを読み込んで NSAppleScript(source:) で実行
-            guard let source = try? String(contentsOf: url, encoding: .utf8) else {
-                showScriptError(fileName: fileName, errorMessage: "Could not read script file.".localized)
-                return
-            }
-            let appleScript = NSAppleScript(source: source)
-            var errorInfo: NSDictionary?
-            appleScript?.executeAndReturnError(&errorInfo)
-            if let errorInfo = errorInfo {
-                let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown error"
-                showScriptError(fileName: fileName, errorMessage: message)
-            }
-        } else {
-            // コンパイル済みスクリプト (.scpt, .scptd) — NSAppleScript(contentsOf:) で実行
-            var errorInfo: NSDictionary?
-            guard let appleScript = NSAppleScript(contentsOf: url, error: &errorInfo) else {
-                let message = errorInfo?[NSAppleScript.errorMessage] as? String ?? "Could not load script.".localized
-                showScriptError(fileName: fileName, errorMessage: message)
-                return
-            }
-            appleScript.executeAndReturnError(&errorInfo)
-            if let errorInfo = errorInfo {
-                let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown error"
-                showScriptError(fileName: fileName, errorMessage: message)
-            }
+        // コンパイル済みスクリプト (.scpt, .scptd) — NSAppleScript(contentsOf:) で実行
+        var errorInfo: NSDictionary?
+        guard let appleScript = NSAppleScript(contentsOf: url, error: &errorInfo) else {
+            let message = errorInfo?[NSAppleScript.errorMessage] as? String ?? "Could not load script.".localized
+            showScriptError(fileName: fileName, errorMessage: message)
+            return
+        }
+        appleScript.executeAndReturnError(&errorInfo)
+        if let errorInfo = errorInfo {
+            let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown error"
+            showScriptError(fileName: fileName, errorMessage: message)
         }
     }
 
