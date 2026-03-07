@@ -434,6 +434,13 @@ class Document: NSDocument {
                 textStorage.replaceCharacters(in: fullRange, with: nsStr as String)
             }
             textStorage.endEditing()
+            // テキストが空でなければ dirty にする
+            // NSCreateCommand の書類作成プロセス完了後に反映するため遅延実行
+            if textStorage.length > 0 {
+                DispatchQueue.main.async { [weak self] in
+                    self?.updateChangeCount(.changeDone)
+                }
+            }
             return
         }
         if key == "scriptingSelection" {
