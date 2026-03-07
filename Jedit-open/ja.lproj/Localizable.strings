@@ -425,15 +425,13 @@
 "Natural" = "自然";
 
 /* Scripts */
-"Install Sample Scripts" = "サンプルスクリプトをインストール";
-"Jedit includes sample AppleScripts. To install them, you need to grant access to the Scripts folder.\n\nIn the next dialog, please select the displayed folder and click \"Open\"." = "Jeditにはサンプルスクリプトが含まれています。インストールするにはスクリプトフォルダへのアクセスを許可する必要があります。\n\n次のダイアログで表示されたフォルダを選択して「開く」をクリックしてください。";
-"Select the Scripts folder to install sample scripts.\nPlease select the folder shown below and click \"Open\"." = "サンプルスクリプトをインストールするスクリプトフォルダを選択してください。\n以下に表示されたフォルダを選択して「開く」をクリックしてください。";
-"Grant access to the Application Scripts folder to install sample scripts.\nPlease click \"Open\" to continue." = "サンプルスクリプトをインストールするためにApplication Scriptsフォルダへのアクセスを許可してください。\n「開く」をクリックして続けてください。";
 "No Scripts" = "スクリプトなし";
 "Open Scripts Folder" = "スクリプトフォルダを開く";
 "Open Script Editor" = "スクリプトエディタを開く";
 "Open Script Dictionaries" = "スクリプト用語説明を開く";
 "Script Error" = "スクリプトエラー";
+"Could not read script file." = "スクリプトファイルを読み込めませんでした。";
+"Could not load script." = "スクリプトを読み込めませんでした。";
 
 /* Print */
 "Cannot print: No text view available" = "印刷できません：テキストビューがありません";

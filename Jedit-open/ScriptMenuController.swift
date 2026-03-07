@@ -3,7 +3,8 @@
 //  Jedit-open
 //
 //  Script メニューの構築・管理を担当
-//  ~/Library/Application Scripts/<bundle-id>/ フォルダ内のスクリプトを一覧表示・実行する
+//  Application Support/<bundle-id>/Scripts/ フォルダ内のスクリプトを一覧表示・実行する
+//  セキュリティスコープ付きブックマーク + NSAppleScript で実行する
 //
 
 import Cocoa
@@ -14,18 +15,11 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
     static let shared = ScriptMenuController()
 
-    /// スクリプトフォルダのURL
+    /// スクリプトフォルダのURL（Application Support/<bundle-id>/Scripts/）
     private var scriptsFolderURL: URL {
-        let appScriptsDir: URL
-        if let url = FileManager.default.urls(for: .applicationScriptsDirectory, in: .userDomainMask).first {
-            appScriptsDir = url
-        } else {
-            // フォールバック: 手動でパスを構築
-            let home = FileManager.default.homeDirectoryForCurrentUser
-            let bundleID = Bundle.main.bundleIdentifier ?? "jp.co.artman21.Jedit-open"
-            appScriptsDir = home.appendingPathComponent("Library/Application Scripts/\(bundleID)")
-        }
-        return appScriptsDir
+        let bundleID = Bundle.main.bundleIdentifier ?? "jp.co.artman21.Jedit-open"
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        return appSupport.appendingPathComponent(bundleID).appendingPathComponent("Scripts")
     }
 
     /// スクリプトファイルの対象拡張子
@@ -174,7 +168,7 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
                 folderItem.submenu = submenu
                 items.append(folderItem)
             } else if scriptExtensions.contains(ext) {
-                // スクリプトファイル
+                // スクリプトファイル — セキュリティスコープ付きブックマークを作成
                 let name = url.deletingPathExtension().lastPathComponent
                 let menuItem = NSMenuItem(
                     title: name,
@@ -182,7 +176,20 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
                     keyEquivalent: ""
                 )
                 menuItem.target = self
-                menuItem.representedObject = url
+                do {
+                    let bookmarkData = try url.bookmarkData(
+                        options: .withSecurityScope,
+                        includingResourceValuesForKeys: nil,
+                        relativeTo: nil
+                    )
+                    menuItem.representedObject = bookmarkData
+                } catch {
+                    #if DEBUG
+                    Swift.print("buildScriptItems: failed to create bookmark for \(url.lastPathComponent): \(error)")
+                    #endif
+                    // ブックマーク作成に失敗した場合はURL をそのまま格納（フォールバック）
+                    menuItem.representedObject = url
+                }
                 items.append(menuItem)
             }
         }
@@ -204,62 +211,21 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
     // MARK: - Scripts Folder Management
 
-    /// スクリプトフォルダが空の場合にサンプルスクリプトをインストールする
+    /// スクリプトフォルダが空の場合にサンプルスクリプトを自動インストールする
     func installSampleScriptsIfNeeded() {
         guard isScriptsFolderEmpty() else { return }
 
-        // 確認アラートを表示
-        let alert = NSAlert()
-        alert.messageText = "Install Sample Scripts".localized
-        alert.informativeText = "Jedit includes sample AppleScripts. To install them, you need to grant access to the Scripts folder.\n\nIn the next dialog, please select the displayed folder and click \"Open\".".localized
-        alert.addButton(withTitle: "Continue".localized)
-        alert.addButton(withTitle: "Skip".localized)
-        alert.alertStyle = .informational
-
-        let response = alert.runModal()
-        guard response == .alertFirstButtonReturn else { return }
-
+        // Application Support はサンドボックスコンテナ内なので直接書き込み可能
         let targetURL = scriptsFolderURL
-        let parentURL = targetURL.deletingLastPathComponent()
-        let folderExists = FileManager.default.fileExists(atPath: targetURL.path)
-
-        // NSOpenPanel でスクリプトフォルダ（または親フォルダ）へのアクセス許可を求める
-        let panel = NSOpenPanel()
-        panel.canChooseFiles = false
-        panel.canChooseDirectories = true
-        panel.canCreateDirectories = true
-
-        if folderExists {
-            // フォルダが存在する → そのフォルダを表示して選択させる
-            panel.message = "Select the Scripts folder to install sample scripts.\nPlease select the folder shown below and click \"Open\".".localized
-            panel.prompt = "Open".localized
-            panel.directoryURL = targetURL
-        } else {
-            // フォルダが存在しない → 親フォルダを表示してアクセス許可を得る
-            panel.message = "Grant access to the Application Scripts folder to install sample scripts.\nPlease click \"Open\" to continue.".localized
-            panel.prompt = "Open".localized
-            panel.directoryURL = parentURL
+        do {
+            try FileManager.default.createDirectory(at: targetURL, withIntermediateDirectories: true)
+        } catch {
+            #if DEBUG
+            Swift.print("installSampleScriptsIfNeeded: failed to create directory: \(error)")
+            #endif
+            return
         }
-
-        let panelResponse = panel.runModal()
-        guard panelResponse == .OK, let selectedURL = panel.url else { return }
-
-        if folderExists {
-            // ユーザーがスクリプトフォルダを選択した → そのまま展開
-            installSampleScripts(to: selectedURL)
-        } else {
-            // ユーザーが親フォルダを選択した → サブフォルダを作成して展開
-            let destURL = selectedURL.appendingPathComponent(targetURL.lastPathComponent)
-            do {
-                try FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: true)
-            } catch {
-                #if DEBUG
-                Swift.print("installSampleScriptsIfNeeded: failed to create directory: \(error)")
-                #endif
-                return
-            }
-            installSampleScripts(to: destURL)
-        }
+        installSampleScripts(to: targetURL)
     }
 
     /// スクリプトフォルダにスクリプトファイルが存在しないかを判定
@@ -447,41 +413,79 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
 
     /// スクリプトを実行する（Option キー押下時はスクリプトエディタで開く）
     @objc private func runScript(_ sender: NSMenuItem) {
-        guard let url = sender.representedObject as? URL else { return }
+        // ブックマーク Data からスクリプト URL を解決
+        if let bookmarkData = sender.representedObject as? Data {
+            var isStale = false
+            guard let secureURL = try? URL(
+                resolvingBookmarkData: bookmarkData,
+                options: [.withSecurityScope, .withoutMounting],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) else { return }
 
-        // Option キーが押されている場合はスクリプトエディタで開く
-        if NSEvent.modifierFlags.contains(.option) {
-            openInScriptEditor(url)
-            return
+            // Option キーが押されている場合はスクリプトエディタで開く
+            if NSEvent.modifierFlags.contains(.option) {
+                openInScriptEditor(secureURL)
+                return
+            }
+
+            executeScript(at: secureURL)
+        } else if let url = sender.representedObject as? URL {
+            // フォールバック: ブックマーク作成に失敗した場合の URL 直接使用
+            if NSEvent.modifierFlags.contains(.option) {
+                openInScriptEditor(url)
+                return
+            }
+            executeScript(at: url)
         }
-
-        // NSUserAppleScriptTask でスクリプトを実行
-        executeScript(at: url)
     }
 
-    /// NSUserAppleScriptTask を使ってスクリプトを実行する
+    /// NSAppleScript + セキュリティスコープ付きリソースアクセスでスクリプトを実行する
     private func executeScript(at url: URL) {
         let fileName = url.lastPathComponent
-
-        do {
-            let task = try NSUserAppleScriptTask(url: url)
-            task.execute(withAppleEvent: nil) { result, error in
-                if let error = error {
-                    DispatchQueue.main.async {
-                        self.showScriptError(fileName: fileName, error: error)
-                    }
-                }
+        let accessed = url.startAccessingSecurityScopedResource()
+        defer {
+            if accessed {
+                url.stopAccessingSecurityScopedResource()
             }
-        } catch {
-            showScriptError(fileName: fileName, error: error)
+        }
+
+        let ext = url.pathExtension.lowercased()
+
+        if ext == "applescript" {
+            // テキスト形式のスクリプト — ソースを読み込んで NSAppleScript(source:) で実行
+            guard let source = try? String(contentsOf: url, encoding: .utf8) else {
+                showScriptError(fileName: fileName, errorMessage: "Could not read script file.".localized)
+                return
+            }
+            let appleScript = NSAppleScript(source: source)
+            var errorInfo: NSDictionary?
+            appleScript?.executeAndReturnError(&errorInfo)
+            if let errorInfo = errorInfo {
+                let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown error"
+                showScriptError(fileName: fileName, errorMessage: message)
+            }
+        } else {
+            // コンパイル済みスクリプト (.scpt, .scptd) — NSAppleScript(contentsOf:) で実行
+            var errorInfo: NSDictionary?
+            guard let appleScript = NSAppleScript(contentsOf: url, error: &errorInfo) else {
+                let message = errorInfo?[NSAppleScript.errorMessage] as? String ?? "Could not load script.".localized
+                showScriptError(fileName: fileName, errorMessage: message)
+                return
+            }
+            appleScript.executeAndReturnError(&errorInfo)
+            if let errorInfo = errorInfo {
+                let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown error"
+                showScriptError(fileName: fileName, errorMessage: message)
+            }
         }
     }
 
     /// スクリプト実行エラーを表示
-    private func showScriptError(fileName: String, error: Error) {
+    private func showScriptError(fileName: String, errorMessage: String) {
         let alert = NSAlert()
         alert.messageText = "Script Error".localized
-        alert.informativeText = "\(fileName):\n\(error.localizedDescription)"
+        alert.informativeText = "\(fileName):\n\(errorMessage)"
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK".localized)
         alert.runModal()
