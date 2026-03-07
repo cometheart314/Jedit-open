@@ -196,9 +196,10 @@ extension Document {
 
     /// 指定した識別子のアンカーを検索し、選択してスクロールする。
     /// - Parameter identifier: アンカーの UUID 文字列。
+    /// - Parameter registerUndo: true の場合、ジャンプ前の位置を Undo スタックに登録する。
     /// - Returns: アンカーが見つかった場合は true。
     @discardableResult
-    func selectAnchor(identifier: String) -> Bool {
+    func selectAnchor(identifier: String, registerUndo: Bool = false) -> Bool {
         guard let textView = currentTextView else { return false }
 
         let fullRange = NSRange(location: 0, length: textStorage.length)
@@ -212,6 +213,25 @@ extension Document {
         }
 
         if let range = foundRange {
+            if registerUndo {
+                let savedSelection = textView.selectedRange()
+                let savedVisibleRect = textView.visibleRect
+
+                textView.undoManager?.registerUndo(withTarget: self) { [identifier] doc in
+                    guard let tv = doc.currentTextView else { return }
+                    tv.setSelectedRange(savedSelection)
+                    tv.scrollToVisible(savedVisibleRect)
+                    // Redo: もう一度アンカーにジャンプ
+                    tv.undoManager?.registerUndo(withTarget: doc) { doc2 in
+                        doc2.selectAnchor(identifier: identifier, registerUndo: true)
+                    }
+                    tv.undoManager?.setActionName(
+                        NSLocalizedString("Anchor Jump", comment: "Undo action name"))
+                }
+                textView.undoManager?.setActionName(
+                    NSLocalizedString("Anchor Jump", comment: "Undo action name"))
+            }
+
             textView.setSelectedRange(range)
             textView.scrollRangeToVisible(range)
             textView.showFindIndicator(for: range)

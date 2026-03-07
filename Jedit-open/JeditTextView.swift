@@ -721,7 +721,7 @@ class JeditTextView: NSTextView {
         if event.clickCount == 1,
            let anchorID = anchorLinkAtPoint(point) {
             if let document = window?.windowController?.document as? Document {
-                document.selectAnchor(identifier: anchorID)
+                document.selectAnchor(identifier: anchorID, registerUndo: true)
             }
             return
         }

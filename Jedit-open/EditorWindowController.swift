@@ -39,6 +39,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private static let encodingToolbarItemIdentifier = NSToolbarItem.Identifier("EncodingItem")
     private static let lineEndingToolbarItemIdentifier = NSToolbarItem.Identifier("LineEndingItem")
     private static let writingProgressToolbarItemIdentifier = NSToolbarItem.Identifier("WritingProgressItem")
+    private static let bookmarkToolbarItemIdentifier = NSToolbarItem.Identifier("BookmarkItem")
 
     // MARK: - IBOutlets
 
@@ -5813,6 +5814,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         return item
     }
 
+    private func createBookmarkToolbarItem() -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: Self.bookmarkToolbarItemIdentifier)
+        item.label = "Bookmarks".localized
+        item.paletteLabel = "Bookmarks".localized
+        item.toolTip = "Show Bookmarks".localized
+        item.image = NSImage(systemSymbolName: "bookmark", accessibilityDescription: "Bookmarks")
+        item.target = nil  // レスポンダチェーンを通じて送信
+        item.action = #selector(Document.showBookmarkPanel(_:))
+        return item
+    }
+
     // MARK: - NSToolbarDelegate
 
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
@@ -5828,6 +5840,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if itemIdentifier == Self.writingProgressToolbarItemIdentifier {
             return createWritingProgressToolbarItem()
         }
+        if itemIdentifier == Self.bookmarkToolbarItemIdentifier {
+            return createBookmarkToolbarItem()
+        }
         return nil
     }
 
@@ -5841,7 +5856,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             Self.findToolbarItemIdentifier,
             Self.encodingToolbarItemIdentifier,
             Self.lineEndingToolbarItemIdentifier,
-            Self.writingProgressToolbarItemIdentifier
+            Self.writingProgressToolbarItemIdentifier,
+            Self.bookmarkToolbarItemIdentifier
         ]
     }
 
@@ -6194,7 +6210,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // MARK: - Find Bar
 
     @objc func showFindBar(_ sender: Any?) {
-        presentFindBar(replaceMode: false)
+        if findBarViewController?.view.superview != nil {
+            dismissFindBar()
+        } else {
+            presentFindBar(replaceMode: false)
+        }
     }
 
     /// FindBar を表示して指定テキストで検索を実行する（Help 検索用）
