@@ -219,19 +219,47 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
         let response = alert.runModal()
         guard response == .alertFirstButtonReturn else { return }
 
-        // NSOpenPanel でスクリプトフォルダへのアクセス許可を求める
+        let targetURL = scriptsFolderURL
+        let parentURL = targetURL.deletingLastPathComponent()
+        let folderExists = FileManager.default.fileExists(atPath: targetURL.path)
+
+        // NSOpenPanel でスクリプトフォルダ（または親フォルダ）へのアクセス許可を求める
         let panel = NSOpenPanel()
-        panel.message = "Select the Scripts folder to install sample scripts.\nPlease select the folder shown below and click \"Open\".".localized
-        panel.prompt = "Open".localized
         panel.canChooseFiles = false
         panel.canChooseDirectories = true
-        panel.canCreateDirectories = false
-        panel.directoryURL = scriptsFolderURL
+        panel.canCreateDirectories = true
+
+        if folderExists {
+            // フォルダが存在する → そのフォルダを表示して選択させる
+            panel.message = "Select the Scripts folder to install sample scripts.\nPlease select the folder shown below and click \"Open\".".localized
+            panel.prompt = "Open".localized
+            panel.directoryURL = targetURL
+        } else {
+            // フォルダが存在しない → 親フォルダを表示してアクセス許可を得る
+            panel.message = "Grant access to the Application Scripts folder to install sample scripts.\nPlease click \"Open\" to continue.".localized
+            panel.prompt = "Open".localized
+            panel.directoryURL = parentURL
+        }
 
         let panelResponse = panel.runModal()
         guard panelResponse == .OK, let selectedURL = panel.url else { return }
 
-        installSampleScripts(to: selectedURL)
+        if folderExists {
+            // ユーザーがスクリプトフォルダを選択した → そのまま展開
+            installSampleScripts(to: selectedURL)
+        } else {
+            // ユーザーが親フォルダを選択した → サブフォルダを作成して展開
+            let destURL = selectedURL.appendingPathComponent(targetURL.lastPathComponent)
+            do {
+                try FileManager.default.createDirectory(at: destURL, withIntermediateDirectories: true)
+            } catch {
+                #if DEBUG
+                Swift.print("installSampleScriptsIfNeeded: failed to create directory: \(error)")
+                #endif
+                return
+            }
+            installSampleScripts(to: destURL)
+        }
     }
 
     /// スクリプトフォルダにスクリプトファイルが存在しないかを判定
@@ -253,6 +281,12 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
               let zipData = try? Data(contentsOf: zipURL) else { return }
 
         let fileManager = FileManager.default
+
+        // 宛先フォルダが存在しない場合は作成
+        if !fileManager.fileExists(atPath: destFolderURL.path) {
+            try? fileManager.createDirectory(at: destFolderURL, withIntermediateDirectories: true)
+        }
+
         let entries = parseZipEntries(from: zipData)
 
         for entry in entries {
