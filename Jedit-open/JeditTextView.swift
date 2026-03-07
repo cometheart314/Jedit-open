@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import UniformTypeIdentifiers
 
 // MARK: - JeditTextView
 
@@ -247,10 +248,7 @@ class JeditTextView: NSTextView {
         ]) as? [URL] else { return false }
 
         for url in fileURLs {
-            let ext = url.pathExtension.lowercased()
-            if Self.textFileExtensions.contains(ext) ||
-               Self.rtfFileExtensions.contains(ext) ||
-               Self.rtfdFileExtensions.contains(ext) {
+            if Self.detectFileContentType(url) != .other {
                 return true
             }
         }
@@ -464,21 +462,90 @@ class JeditTextView: NSTextView {
 
     // MARK: - Text/RTF File Drop Handling
 
-    /// テキストファイル拡張子の判定用
-    private static let textFileExtensions: Set<String> = [
-        "txt", "text", "md", "markdown", "csv", "tsv", "log",
-        "json", "xml", "html", "htm", "css", "js", "ts",
-        "swift", "m", "h", "c", "cpp", "java", "py", "rb", "sh",
-        "yaml", "yml", "toml", "ini", "conf", "cfg",
-        "tex", "sty", "cls", "bib",
-        "sql", "r", "pl", "php", "go", "rs", "kt", "scala"
+    /// Markdownファイル拡張子の判定用
+    private static let markdownFileExtensions: Set<String> = [
+        "md", "markdown", "mdown", "mkd", "mkdn", "mdwn"
     ]
 
-    /// RTFファイル拡張子の判定用
-    private static let rtfFileExtensions: Set<String> = ["rtf"]
+    /// ドロップされたファイルの内容種別
+    private enum DroppedFileContentType {
+        case plainText       // プレーンテキスト（ソースコード等含む）
+        case markdown        // Markdownファイル
+        case rtf             // RTFデータ
+        case rtfd            // RTFDパッケージ
+        case word            // Word (.doc/.docx) または ODT
+        case other           // 画像やバイナリ等
+    }
 
-    /// RTFDファイル拡張子の判定用
-    private static let rtfdFileExtensions: Set<String> = ["rtfd"]
+    /// ファイルURLから内容種別を判定する（拡張子 + UTI + データ内容で判定）
+    private static func detectFileContentType(_ url: URL) -> DroppedFileContentType {
+        let ext = url.pathExtension.lowercased()
+
+        // Markdown は拡張子で判定（テキストだが特別扱い）
+        if markdownFileExtensions.contains(ext) {
+            return .markdown
+        }
+
+        // RTFD はディレクトリパッケージ
+        var isDir: ObjCBool = false
+        if FileManager.default.fileExists(atPath: url.path, isDirectory: &isDir), isDir.boolValue {
+            // RTFDパッケージ判定：TXT.rtf が含まれているか
+            let txtRtf = url.appendingPathComponent("TXT.rtf")
+            if FileManager.default.fileExists(atPath: txtRtf.path) {
+                return .rtfd
+            }
+            return .other
+        }
+
+        // UTI による判定
+        if let uti = try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier {
+            // RTF
+            if UTType(uti)?.conforms(to: .rtf) == true {
+                return .rtf
+            }
+            // Word / ODT
+            let wordUTIs: Set<String> = [
+                "com.microsoft.word.doc",
+                "org.openxmlformats.wordprocessingml.document",
+                "com.microsoft.word.wordml",
+                "org.oasis-open.opendocument.text"
+            ]
+            if wordUTIs.contains(uti) {
+                return .word
+            }
+        }
+
+        // データの先頭バイトで RTF 判定（UTI で判定できなかった場合のフォールバック）
+        if let fh = try? FileHandle(forReadingFrom: url) {
+            let header = fh.readData(ofLength: 6)
+            fh.closeFile()
+            if header.starts(with: [0x7B, 0x5C, 0x72, 0x74, 0x66]) {  // "{\rtf"
+                return .rtf
+            }
+        }
+
+        // テキストファイル判定：UTI が public.text に準拠するか
+        if let uti = try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier,
+           UTType(uti)?.conforms(to: .text) == true {
+            return .plainText
+        }
+
+        // UTI で判定できない場合、データを読んでテキストとしてデコードできるか試す
+        if let data = try? Data(contentsOf: url), !data.isEmpty {
+            let outcome = EncodingDetector.shared.detectAndDecode(
+                from: data, fileURL: url, allowUserSelection: false)
+            switch outcome {
+            case .success:
+                return .plainText
+            case .needsUserSelection:
+                return .plainText
+            case .failure:
+                break
+            }
+        }
+
+        return .other
+    }
 
     /// ドロップされたファイルURLがテキスト/RTFファイルの場合に処理する
     /// - Returns: 処理した場合はtrue
@@ -491,144 +558,186 @@ class JeditTextView: NSTextView {
         var handledAny = false
 
         for url in fileURLs {
-            let ext = url.pathExtension.lowercased()
+            // ファイルの内容種別を判定（拡張子 + UTI + データ内容）
+            let contentType = Self.detectFileContentType(url)
+
+            if contentType == .other {
+                // テキスト系でないファイル → 処理しない（superに委譲）
+                return false
+            }
+
             if isCtrlPressed {
                 // Ctrl+ドロップ
                 if isPlainText {
-                    // プレーンテキスト → 常にパス名挿入（ファイル種別を問わない）
-                    let path = url.path
                     let insertRange = NSRange(location: dropIndex, length: 0)
-                    replaceString(in: insertRange, with: path)
+                    replaceString(in: insertRange, with: url.path)
                     handledAny = true
                 } else {
-                    // リッチテキスト → テキストアタッチメントとして挿入
-                    // RTFD変換が必要
-                    if let windowController = window?.windowController as? EditorWindowController,
-                       let document = windowController.textDocument,
-                       document.documentType != .rtfd {
-                        let alert = NSAlert()
-                        alert.alertStyle = .warning
-                        alert.messageText = "Convert this document to RTFD format?".localized
-                        alert.informativeText = "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?".localized
-                        alert.addButton(withTitle: "Convert".localized)
-                        alert.addButton(withTitle: "Cancel".localized)
-
-                        let response = alert.runModal()
-                        if response == .alertFirstButtonReturn {
-                            document.documentType = .rtfd
-                            document.updateFileTypeFromDocumentType()
-                            document.fileURL = nil
-                            document.autosavedContentsFileURL = nil
-                            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
-                        } else {
-                            return true  // キャンセル
-                        }
-                    }
+                    if !upgradeToRTFDForDrop() { return true }
                     insertFileAsAttachment(url, at: dropIndex)
                     handledAny = true
                 }
+                continue
+            }
 
-            } else if Self.textFileExtensions.contains(ext) {
-                // テキストファイル → エンコーディング自動判定して内容を読み込んでペースト
-                if let data = try? Data(contentsOf: url) {
-                    let outcome = EncodingDetector.shared.detectAndDecode(
-                        from: data, fileURL: url, allowUserSelection: false)
-                    var content: String?
-                    switch outcome {
-                    case .success(_, let str):
-                        content = str
-                    case .needsUserSelection(let candidates):
-                        if let best = candidates.first {
-                            content = String(data: data, encoding: best.encoding)
+            // ダイアログで内容挿入かアタッチメント/パス挿入かを選択
+            let action = showTextFileDropAlert(fileName: url.lastPathComponent)
+            if action == .cancel {
+                return true
+            }
+
+            if action == .insertContents {
+                switch contentType {
+                case .plainText, .markdown:
+                    if let data = try? Data(contentsOf: url) {
+                        let outcome = EncodingDetector.shared.detectAndDecode(
+                            from: data, fileURL: url, allowUserSelection: false)
+                        var content: String?
+                        switch outcome {
+                        case .success(_, let str):
+                            content = str
+                        case .needsUserSelection(let candidates):
+                            if let best = candidates.first {
+                                content = String(data: data, encoding: best.encoding)
+                            }
+                        case .failure:
+                            break
                         }
-                    case .failure:
-                        break
-                    }
-                    if let content = content {
-                        let convertedContent = applyTextConversions(content)
-                        setSelectedRange(NSRange(location: dropIndex, length: 0))
-                        insertText(convertedContent, replacementRange: NSRange(location: dropIndex, length: 0))
-                        handledAny = true
-                    }
-                }
-
-            } else if Self.rtfFileExtensions.contains(ext) {
-                // RTFファイル
-                if isPlainText {
-                    // プレーンテキスト書類 → テキスト部分のみペースト
-                    if let data = try? Data(contentsOf: url),
-                       let attrStr = NSAttributedString(rtf: data, documentAttributes: nil) {
-                        let convertedContent = applyTextConversions(attrStr.string)
-                        let insertRange = NSRange(location: dropIndex, length: 0)
-                        replaceString(in: insertRange, with: convertedContent)
-                        handledAny = true
-                    }
-                } else {
-                    // リッチテキスト書類 → リッチテキストとしてペースト（文字変換を適用）
-                    if let data = try? Data(contentsOf: url),
-                       let attrStr = NSAttributedString(rtf: data, documentAttributes: nil) {
-                        let convertedAttrStr = applyTextConversionsToAttributedString(attrStr)
-                        let insertRange = NSRange(location: dropIndex, length: 0)
-                        replaceString(in: insertRange, with: convertedAttrStr)
-                        handledAny = true
-                    }
-                }
-
-            } else if Self.rtfdFileExtensions.contains(ext) {
-                // RTFDファイル
-                if isPlainText {
-                    // プレーンテキスト書類 → テキスト部分のみペースト
-                    if let fileWrapper = try? FileWrapper(url: url, options: .immediate),
-                       let attrStr = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) {
-                        let convertedContent = applyTextConversions(attrStr.string)
-                        let insertRange = NSRange(location: dropIndex, length: 0)
-                        replaceString(in: insertRange, with: convertedContent)
-                        handledAny = true
-                    }
-                } else {
-                    // リッチテキスト書類 → RTFD変換アラートを表示してリッチテキストとしてペースト
-                    guard let windowController = window?.windowController as? EditorWindowController,
-                          let document = windowController.textDocument else {
-                        return false
-                    }
-
-                    // RTFD変換が必要か判定（すでにRTFDなら不要）
-                    if document.documentType != .rtfd {
-                        let alert = NSAlert()
-                        alert.alertStyle = .warning
-                        alert.messageText = "Convert this document to RTFD format?".localized
-                        alert.informativeText = "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?".localized
-                        alert.addButton(withTitle: "Convert".localized)
-                        alert.addButton(withTitle: "Cancel".localized)
-
-                        let response = alert.runModal()
-                        if response == .alertFirstButtonReturn {
-                            document.documentType = .rtfd
-                            document.updateFileTypeFromDocumentType()
-                            document.fileURL = nil
-                            document.autosavedContentsFileURL = nil
-                            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
-                        } else {
-                            return true  // キャンセル：何もしない
+                        if let content = content {
+                            if !isPlainText && contentType == .markdown {
+                                // リッチテキスト書類にMarkdown → 解釈してリッチテキストとしてペースト
+                                let attrStr = MarkdownParser.attributedString(from: content, baseURL: url.deletingLastPathComponent())
+                                let insertRange = NSRange(location: dropIndex, length: 0)
+                                replaceString(in: insertRange, with: attrStr)
+                            } else {
+                                let convertedContent = applyTextConversions(content)
+                                setSelectedRange(NSRange(location: dropIndex, length: 0))
+                                insertText(convertedContent, replacementRange: NSRange(location: dropIndex, length: 0))
+                            }
+                            handledAny = true
                         }
                     }
 
-                    // RTFDファイルをリッチテキストとしてペースト（文字変換を適用）
-                    if let fileWrapper = try? FileWrapper(url: url, options: .immediate),
-                       let attrStr = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) {
-                        let convertedAttrStr = applyTextConversionsToAttributedString(attrStr)
-                        let insertRange = NSRange(location: dropIndex, length: 0)
-                        replaceString(in: insertRange, with: convertedAttrStr)
+                case .rtf:
+                    if let data = try? Data(contentsOf: url),
+                       let attrStr = NSAttributedString(rtf: data, documentAttributes: nil) {
+                        insertDroppedAttributedString(attrStr, at: dropIndex)
                         handledAny = true
                     }
+
+                case .rtfd:
+                    if let fileWrapper = try? FileWrapper(url: url, options: .immediate),
+                       let attrStr = NSAttributedString(rtfdFileWrapper: fileWrapper, documentAttributes: nil) {
+                        insertDroppedAttributedString(attrStr, at: dropIndex)
+                        handledAny = true
+                    }
+
+                case .word:
+                    if let data = try? Data(contentsOf: url) {
+                        // まず自動判定で読み込み
+                        var attrStr = try? NSAttributedString(data: data, options: [:], documentAttributes: nil)
+                        // 失敗した場合 officeOpenXML で再試行
+                        if attrStr == nil {
+                            let options: [NSAttributedString.DocumentReadingOptionKey: Any] = [.documentType: NSAttributedString.DocumentType.officeOpenXML]
+                            attrStr = try? NSAttributedString(data: data, options: options, documentAttributes: nil)
+                        }
+                        if let attrStr = attrStr {
+                            insertDroppedAttributedString(attrStr, at: dropIndex)
+                            handledAny = true
+                        }
+                    }
+
+                case .other:
+                    break
                 }
             } else {
-                // テキスト/RTF/画像以外のファイル → 処理しない（superに委譲）
-                return false
+                // insertAttachmentOrPath
+                if isPlainText {
+                    let insertRange = NSRange(location: dropIndex, length: 0)
+                    replaceString(in: insertRange, with: url.path)
+                    handledAny = true
+                } else {
+                    if !upgradeToRTFDForDrop() { return true }
+                    insertFileAsAttachment(url, at: dropIndex)
+                    handledAny = true
+                }
             }
         }
 
         return handledAny
+    }
+
+    /// ドロップされた NSAttributedString を挿入する（プレーン/リッチテキストに応じて処理）
+    private func insertDroppedAttributedString(_ attrStr: NSAttributedString, at index: Int) {
+        if isPlainText {
+            let convertedContent = applyTextConversions(attrStr.string)
+            let insertRange = NSRange(location: index, length: 0)
+            replaceString(in: insertRange, with: convertedContent)
+        } else {
+            let convertedAttrStr = applyTextConversionsToAttributedString(attrStr)
+            let insertRange = NSRange(location: index, length: 0)
+            replaceString(in: insertRange, with: convertedAttrStr)
+        }
+    }
+
+    /// テキストファイルドロップ時のアクション
+    private enum TextFileDropAction {
+        case insertContents
+        case insertAttachmentOrPath
+        case cancel
+    }
+
+    /// テキストファイルドロップ時の選択ダイアログを表示する
+    private func showTextFileDropAlert(fileName: String) -> TextFileDropAction {
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        let messageFormat = "Text document \"%@\" was dropped.".localized
+        alert.messageText = String(format: messageFormat, fileName)
+        alert.informativeText = "Do you want to insert the contents of the file?".localized
+        alert.addButton(withTitle: "Insert Contents".localized)
+        if isPlainText {
+            alert.addButton(withTitle: "Insert File Path".localized)
+        } else {
+            alert.addButton(withTitle: "Insert File Attachment".localized)
+        }
+        alert.addButton(withTitle: "Cancel".localized)
+
+        let response = alert.runModal()
+        switch response {
+        case .alertFirstButtonReturn:
+            return .insertContents
+        case .alertSecondButtonReturn:
+            return .insertAttachmentOrPath
+        default:
+            return .cancel
+        }
+    }
+
+    /// ドロップ時に必要であればRTFD変換ダイアログを表示する
+    /// - Returns: 続行可能な場合はtrue、キャンセルされた場合はfalse
+    private func upgradeToRTFDForDrop() -> Bool {
+        guard let windowController = window?.windowController as? EditorWindowController,
+              let document = windowController.textDocument,
+              document.documentType != .rtfd else {
+            return true  // すでにRTFDまたは取得できない場合は続行
+        }
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = "Convert this document to RTFD format?".localized
+        alert.informativeText = "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?".localized
+        alert.addButton(withTitle: "Convert".localized)
+        alert.addButton(withTitle: "Cancel".localized)
+
+        let response = alert.runModal()
+        if response == .alertFirstButtonReturn {
+            document.documentType = .rtfd
+            document.updateFileTypeFromDocumentType()
+            document.fileURL = nil
+            document.autosavedContentsFileURL = nil
+            NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: document)
+            return true
+        }
+        return false
     }
 
     // MARK: - Attach Files

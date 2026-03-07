@@ -459,6 +459,13 @@
 "None" = "なし";
 "All" = "すべて";
 
+/* Text File Drop */
+"Text document \"%@\" was dropped." = "テキスト書類「%@」がドロップされました。";
+"Do you want to insert the contents of the file?" = "ファイルの内容を挿入しますか？";
+"Insert Contents" = "内容を挿入";
+"Insert File Attachment" = "添付ファイルを挿入";
+"Insert File Path" = "ファイルパスを挿入";
+
 /* Link Panel */
 "." = ".";
 
