@@ -441,26 +441,36 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
     }
 
     /// NSAppleScript + セキュリティスコープ付きリソースアクセスでスクリプトを実行する
+    /// プライオリティインバージョンを避けるため独立スレッドで実行する
     private func executeScript(at url: URL) {
         let fileName = url.lastPathComponent
         let accessed = url.startAccessingSecurityScopedResource()
-        defer {
-            if accessed {
-                url.stopAccessingSecurityScopedResource()
-            }
-        }
 
-        // コンパイル済みスクリプト (.scpt, .scptd) — NSAppleScript(contentsOf:) で実行
-        var errorInfo: NSDictionary?
-        guard let appleScript = NSAppleScript(contentsOf: url, error: &errorInfo) else {
-            let message = errorInfo?[NSAppleScript.errorMessage] as? String ?? "Could not load script.".localized
-            showScriptError(fileName: fileName, errorMessage: message)
-            return
-        }
-        appleScript.executeAndReturnError(&errorInfo)
-        if let errorInfo = errorInfo {
-            let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown error"
-            showScriptError(fileName: fileName, errorMessage: message)
+        // GCD の QoS 伝播を避けるため Thread.detachNewThread を使用
+        Thread.detachNewThread { [weak self] in
+            Thread.current.qualityOfService = .default
+            defer {
+                if accessed {
+                    url.stopAccessingSecurityScopedResource()
+                }
+            }
+
+            // コンパイル済みスクリプト (.scpt, .scptd) — NSAppleScript(contentsOf:) で実行
+            var errorInfo: NSDictionary?
+            guard let appleScript = NSAppleScript(contentsOf: url, error: &errorInfo) else {
+                let message = errorInfo?[NSAppleScript.errorMessage] as? String ?? "Could not load script.".localized
+                DispatchQueue.main.async {
+                    self?.showScriptError(fileName: fileName, errorMessage: message)
+                }
+                return
+            }
+            appleScript.executeAndReturnError(&errorInfo)
+            if let errorInfo = errorInfo {
+                let message = errorInfo[NSAppleScript.errorMessage] as? String ?? "Unknown error"
+                DispatchQueue.main.async {
+                    self?.showScriptError(fileName: fileName, errorMessage: message)
+                }
+            }
         }
     }
 
