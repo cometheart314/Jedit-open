@@ -7,6 +7,16 @@ class ShareViewController: NSViewController {
     private static let jeditBundleID = "jp.co.artman21.Jedit-open"
     private static let logger = Logger(subsystem: "jp.co.artman21.Jedit-open.ShareExtension", category: "share")
 
+    private static let timestampFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyyMMdd-HHmmss"
+        return f
+    }()
+
+    private static func timestamp() -> String {
+        timestampFormatter.string(from: Date())
+    }
+
     override func loadView() {
         self.view = NSView(frame: .zero)
     }
@@ -39,7 +49,7 @@ class ShareViewController: NSViewController {
                     documentAttributes: [.documentType: NSAttributedString.DocumentType.rtf]
                 ) {
                     let tempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent("JeditShare-\(UUID().uuidString)")
+                        .appendingPathComponent("JeditShare-\(Self.timestamp())")
                         .appendingPathExtension("rtf")
                     do {
                         try rtfData.write(to: tempURL)
@@ -71,7 +81,7 @@ class ShareViewController: NSViewController {
                         defer { group.leave() }
                         if let data = item as? Data {
                             let tempURL = FileManager.default.temporaryDirectory
-                                .appendingPathComponent("JeditShare-\(UUID().uuidString)")
+                                .appendingPathComponent("JeditShare-\(Self.timestamp())")
                                 .appendingPathExtension("rtf")
                             try? data.write(to: tempURL)
                             fileURLs.append(tempURL)
@@ -112,7 +122,7 @@ class ShareViewController: NSViewController {
 
         for text in texts {
             let tempURL = FileManager.default.temporaryDirectory
-                .appendingPathComponent("JeditShare-\(UUID().uuidString)")
+                .appendingPathComponent("JeditShare-\(Self.timestamp())")
                 .appendingPathExtension("txt")
             do {
                 try text.write(to: tempURL, atomically: true, encoding: .utf8)

@@ -2138,6 +2138,14 @@ class Document: NSDocument {
                 }
             }
         }
+
+        // Share Extension からの一時ファイルは新規書類として扱う
+        if url.lastPathComponent.hasPrefix("JeditShare-") {
+            MainActor.assumeIsolated {
+                self.fileURL = nil
+            }
+            try? FileManager.default.removeItem(at: url)
+        }
     }
 
     // MARK: - Word / OpenDocument Support
