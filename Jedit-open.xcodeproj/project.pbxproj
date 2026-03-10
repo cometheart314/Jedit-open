@@ -7,15 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		742FD7F72EFD3DCC00DF5696 /* ShareExtension.appex in Embed App Extensions */ = {
-			isa = PBXBuildFile;
-			fileRef = 742FD7F02EFD3DCC00DF5696 /* ShareExtension.appex */;
-			settings = {
-				ATTRIBUTES = (
-					RemoveHeadersOnCopy,
-				);
-			};
-		};
+		742FD7F72EFD3DCC00DF5696 /* ShareExtension.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = 742FD7F02EFD3DCC00DF5696 /* ShareExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -397,7 +389,6 @@
 				CODE_SIGN_ENTITLEMENTS = "Jedit-open/Jedit-open.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 260308.0;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
 				ENABLE_APP_SANDBOX = YES;
@@ -448,7 +439,6 @@
 				CODE_SIGN_ENTITLEMENTS = "Jedit-open/Jedit-open.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 260308.0;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
 				ENABLE_APP_SANDBOX = YES;
@@ -525,6 +515,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 260310.5;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
@@ -592,6 +583,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 260310.5;
 				DEAD_CODE_STRIPPING = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
@@ -705,7 +697,6 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260308.0;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
 				ENABLE_APP_SANDBOX = YES;
@@ -732,7 +723,6 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = ShareExtension/ShareExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 260308.0;
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = F8FSQZCDV7;
 				ENABLE_APP_SANDBOX = YES;
