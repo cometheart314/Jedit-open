@@ -835,6 +835,16 @@ class JeditTextView: NSTextView {
             return
         }
 
+        // Cmd+クリックでファイルパスを Finder で表示（絶対パス・~/パス）
+        // URLチェックより先に判定する（Smart Links が .link 属性を付与している場合の誤検出を防ぐ）
+        if event.modifierFlags.contains(.command),
+           event.clickCount == 1,
+           let filePath = filePathAtPoint(point) {
+            // Finder にファイル選択を依頼（Finder はサンドボックス外なのでアクセス可能）
+            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: filePath)])
+            return
+        }
+
         // Cmd+クリックで通常の URL リンクをブラウザで開く
         if event.modifierFlags.contains(.command),
            event.clickCount == 1,
@@ -972,6 +982,122 @@ class JeditTextView: NSTextView {
             if match.range.contains(charOffsetInLine), let url = match.url {
                 return url
             }
+        }
+
+        return nil
+    }
+
+    /// 指定座標にあるファイルパスを取得（絶対パスまたは~/パス）
+    private func filePathAtPoint(_ point: NSPoint) -> String? {
+        guard let layoutManager = layoutManager,
+              let textContainer = textContainer,
+              let textStorage = textStorage,
+              textStorage.length > 0 else {
+            return nil
+        }
+
+        let locationInContainer = NSPoint(
+            x: point.x - textContainerOrigin.x,
+            y: point.y - textContainerOrigin.y
+        )
+
+        let glyphIndex = layoutManager.glyphIndex(for: locationInContainer, in: textContainer)
+        let charIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
+        guard charIndex < textStorage.length else { return nil }
+
+        let nsString = textStorage.string as NSString
+        let lineRange = nsString.lineRange(for: NSRange(location: charIndex, length: 0))
+        let lineString = nsString.substring(with: lineRange)
+        let charOffsetInLine = charIndex - lineRange.location
+
+        // パスの正規表現: ~/... または /... で始まり、引用符・制御文字などで終わる
+        // スペースを含む macOS パスに対応するため、空白は区切りに含めない
+        let pattern = "(?:~/|/)[^\"'<>|;\\t\\n\\r]+"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
+
+        let matches = regex.matches(in: lineString, range: NSRange(location: 0, length: lineString.utf16.count))
+
+        for match in matches {
+            guard match.range.contains(charOffsetInLine) else { continue }
+
+            var pathString = (lineString as NSString).substring(with: match.range)
+
+            // 末尾の空白・句読点を除去
+            while let last = pathString.last, ".,;:!?)]} \t".contains(last) {
+                pathString = String(pathString.dropLast())
+            }
+
+            // クリック位置がトリム後のパス範囲内かチェック
+            let pathStartInLine = match.range.location
+            let pathLengthUtf16 = (pathString as NSString).length
+            guard charOffsetInLine >= pathStartInLine,
+                  charOffsetInLine < pathStartInLine + pathLengthUtf16 else {
+                continue
+            }
+
+            // チルダ展開してパスの存在を確認（Unicode 正規化の違いも考慮）
+            // サンドボックスアプリでは expandingTildeInPath がコンテナパスに展開されるため、
+            // 実際のホームディレクトリを使う
+            let expanded = expandTilde(in: pathString)
+            if let resolved = resolveExistingPath(expanded) {
+                return resolved
+            }
+
+            // スペースを含むパスが誤って長くマッチした場合 → 末尾をスペース単位で削る
+            var candidate = pathString
+            while let spaceRange = candidate.range(of: " ", options: .backwards) {
+                candidate = String(candidate[..<spaceRange.lowerBound])
+                let candidateLengthUtf16 = (candidate as NSString).length
+                // クリック位置が候補パスの範囲外になったら終了
+                guard charOffsetInLine < pathStartInLine + candidateLengthUtf16 else { break }
+
+                let expandedCandidate = expandTilde(in: candidate)
+                if let resolved = resolveExistingPath(expandedCandidate) {
+                    return resolved
+                }
+            }
+        }
+
+        return nil
+    }
+
+    /// チルダをサンドボックスの影響を受けない実際のホームディレクトリに展開する。
+    /// expandingTildeInPath はサンドボックスコンテナに展開されてしまうため使用しない。
+    private func expandTilde(in path: String) -> String {
+        guard path.hasPrefix("~/") else { return path }
+        if let pw = getpwuid(getuid()), let dir = pw.pointee.pw_dir {
+            return String(cString: dir) + String(path.dropFirst(1))
+        }
+        return (path as NSString).expandingTildeInPath
+    }
+
+    /// パスの存在を確認する。Unicode 正規化（NFC/NFD）の違いも考慮し、
+    /// ファイルが見つからない場合は親ディレクトリの存在もチェックする。
+    private func resolveExistingPath(_ path: String) -> String? {
+        let fm = FileManager.default
+
+        // そのままのパスで確認
+        if fm.fileExists(atPath: path) {
+            return path
+        }
+        // Unicode NFC（合成済み）で再試行
+        let nfc = path.precomposedStringWithCanonicalMapping
+        if nfc != path, fm.fileExists(atPath: nfc) {
+            return nfc
+        }
+        // Unicode NFD（分解済み）で再試行
+        let nfd = path.decomposedStringWithCanonicalMapping
+        if nfd != path, nfd != nfc, fm.fileExists(atPath: nfd) {
+            return nfd
+        }
+        // ファイルが見つからないが祖先ディレクトリが存在する場合はパスを返す
+        // （サンドボックスにより fileExists が false を返す場合への対策）
+        var ancestor = (path as NSString).deletingLastPathComponent
+        while !ancestor.isEmpty, ancestor != "/" {
+            if fm.fileExists(atPath: ancestor) {
+                return path
+            }
+            ancestor = (ancestor as NSString).deletingLastPathComponent
         }
 
         return nil
