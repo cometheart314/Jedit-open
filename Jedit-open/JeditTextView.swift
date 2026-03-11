@@ -31,6 +31,12 @@ class JeditTextView: NSTextView {
     /// updateRuler()の再入防止フラグ
     private var isUpdatingRuler: Bool = false
 
+    /// ドラッグ開始時のソース選択範囲（ドロップ時に selectedRange() が変わっている場合の保護）
+    private var dragSourceRange: NSRange?
+
+    /// ドラッグ操作用の一時ファイルURL（遅延クリーンアップ）
+    private var dragTempFileURLs: [URL] = []
+
     /// RTFD昇格済みフラグ（performDragOperationでアラート表示後にreadSelectionで再チェックしない）
     private var rtfdUpgradeHandled: Bool = false
 
@@ -231,6 +237,105 @@ class JeditTextView: NSTextView {
         }
     }
 
+    /// ドラッグ開始時のソース選択範囲を保存
+    override func beginDraggingSession(with items: [NSDraggingItem], event: NSEvent, source: NSDraggingSource) -> NSDraggingSession {
+        dragSourceRange = selectedRange()
+        return super.beginDraggingSession(with: items, event: event, source: source)
+    }
+
+    /// NSTextView がドラッグ用にペーストボードを準備する際に呼ばれる。
+    /// super の RTFD データに加えて、イメージアタッチメントがあれば
+    /// NSFilenamesPboardType で一時ファイルパスを追加する。
+    /// Finder は NSFilenamesPboardType を RTFD より優先するため、
+    /// ファイルとしてドロップされる。
+    override func writeSelection(to pboard: NSPasteboard, types: [NSPasteboard.PasteboardType]) -> Bool {
+        let result = super.writeSelection(to: pboard, types: types)
+
+        guard let textStorage = textStorage else { return result }
+        let selRange = selectedRange()
+        guard selRange.length > 0 else { return result }
+
+        // 前回の一時ファイルをクリーンアップ
+        cleanupDragTempFiles()
+
+        var tempFilePaths: [String] = []
+
+        textStorage.enumerateAttribute(.attachment, in: selRange, options: []) { value, _, _ in
+            guard let attachment = value as? NSTextAttachment else { return }
+
+            var imageData: Data?
+            var filename = "image.png"
+
+            // fileWrapper からデータとファイル名を取得
+            if let fileWrapper = attachment.fileWrapper,
+               let data = fileWrapper.regularFileContents {
+                imageData = data
+                if let name = fileWrapper.preferredFilename, !name.isEmpty {
+                    filename = name
+                }
+            }
+
+            // セルの画像からデータを取得（フォールバック）
+            if imageData == nil,
+               let cell = attachment.attachmentCell as? NSCell,
+               let image = cell.image,
+               let tiffData = image.tiffRepresentation,
+               let rep = NSBitmapImageRep(data: tiffData),
+               let pngData = rep.representation(using: .png, properties: [:]) {
+                imageData = pngData
+            }
+
+            guard let data = imageData else { return }
+
+            // 一時ファイルに書き出す
+            let tempDir = FileManager.default.temporaryDirectory
+                .appendingPathComponent("JeditImageDrag-\(UUID().uuidString)")
+            do {
+                try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+                let tempURL = tempDir.appendingPathComponent(filename)
+                try data.write(to: tempURL)
+                self.dragTempFileURLs.append(tempURL)
+                tempFilePaths.append(tempURL.path)
+            } catch {
+                // 書き出し失敗時はスキップ
+            }
+        }
+
+        // イメージがあればファイルパスをペーストボードに追加
+        if !tempFilePaths.isEmpty {
+            let filenameType = NSPasteboard.PasteboardType("NSFilenamesPboardType")
+            pboard.addTypes([filenameType], owner: nil)
+            pboard.setPropertyList(tempFilePaths, forType: filenameType)
+        }
+
+        return result
+    }
+
+    /// ドラッグ用一時ファイルをクリーンアップ
+    private func cleanupDragTempFiles() {
+        for url in dragTempFileURLs {
+            let dir = url.deletingLastPathComponent()
+            try? FileManager.default.removeItem(at: dir)
+        }
+        dragTempFileURLs.removeAll()
+    }
+
+    /// ドラッグセッション終了時にドラッグソース範囲をクリアし、一時ファイルを遅延クリーンアップ
+    override func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
+        super.draggingSession(session, endedAt: screenPoint, operation: operation)
+        dragSourceRange = nil
+
+        // Finder がファイルをコピーする時間を確保してから一時ファイルを削除
+        let urlsToCleanup = dragTempFileURLs
+        dragTempFileURLs.removeAll()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+            for url in urlsToCleanup {
+                let dir = url.deletingLastPathComponent()
+                try? FileManager.default.removeItem(at: dir)
+            }
+        }
+    }
+
     /// ドラッグソースが同一書類内のテキストビューかどうかを判定
     private func isDragFromSameDocument(_ sender: any NSDraggingInfo) -> Bool {
         guard let sourceView = sender.draggingSource as? JeditTextView,
@@ -333,10 +438,10 @@ class JeditTextView: NSTextView {
                 return super.performDragOperation(sender)
             }
 
-            // ソース側の選択範囲を保存
-            let sourceRange = sourceView.selectedRange()
+            // ソース側の選択範囲を取得（ドラッグ開始時に保存した範囲を優先）
+            let sourceRange = sourceView.dragSourceRange ?? sourceView.selectedRange()
             guard sourceRange.length > 0 else {
-                return super.performDragOperation(sender)
+                return true  // ソース範囲が不明な場合は何もせず成功を返す（画像消失防止）
             }
 
             // ドロップ先の文字位置を取得
@@ -360,17 +465,25 @@ class JeditTextView: NSTextView {
                 finalInsertIndex = dropIndex - sourceRange.length
             }
 
-            // 単一のUndoableな操作として実行: 元の範囲を削除してから挿入
-            // shouldChangeTextで全体の変更を通知し、didChangeTextは1回だけ呼ぶ
+            // 削除と挿入を個別の shouldChangeText/didChangeText ペアで実行し、
+            // UndoGrouping でまとめて1つの Undo 操作にする
+            undoManager?.beginUndoGrouping()
+
+            // 1. ソースを削除
             if shouldChangeText(in: sourceRange, replacementString: "") {
-                textStorage.beginEditing()
-                // 1. ソースを削除
                 textStorage.deleteCharacters(in: sourceRange)
-                // 2. 調整後の位置に挿入
-                textStorage.insert(draggedContent, at: finalInsertIndex)
-                textStorage.endEditing()
                 didChangeText()
             }
+
+            // 2. 調整後の位置に挿入
+            let insertRange = NSRange(location: finalInsertIndex, length: 0)
+            if shouldChangeText(in: insertRange, replacementString: draggedContent.string) {
+                textStorage.insert(draggedContent, at: finalInsertIndex)
+                didChangeText()
+            }
+
+            undoManager?.endUndoGrouping()
+            undoManager?.setActionName(NSLocalizedString("Move", comment: "Undo action name for drag move"))
 
             // 挿入したテキストを選択
             setSelectedRange(NSRange(location: finalInsertIndex, length: draggedContent.length))
@@ -2825,3 +2938,4 @@ class JeditTextView: NSTextView {
         }
     }
 }
+
