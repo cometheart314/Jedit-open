@@ -242,6 +242,10 @@
 "pages" = "枚";
 "visible chars" = "表示文字";
 
+/* Invisible Characters */
+"Show All" = "すべてを表示";
+"Hide All" = "すべてを隠す";
+
 /* Editing Lock */
 "Allow Editing" = "編集を許可";
 "Allow Editing?" = "編集を許可しますか？";

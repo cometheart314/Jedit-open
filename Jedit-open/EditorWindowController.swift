@@ -3953,7 +3953,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // Invisible character menu items validation
         if menuItem.action == #selector(toggleAllInvisibleCharacters(_:)) {
-            menuItem.title = invisibleCharacterOptions == .none ? "Show All" : "Hide All"
+            menuItem.title = invisibleCharacterOptions == .none ? "Show All".localized : "Hide All".localized
         }
         if menuItem.action == #selector(toggleShowReturnCharacter(_:)) {
             menuItem.state = invisibleCharacterOptions.contains(.returnCharacter) ? .on : .off

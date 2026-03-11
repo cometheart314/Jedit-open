@@ -345,8 +345,11 @@ extension Document {
         }
 
         // textStorage にアンカー属性を設定
-        // ブックマーク位置の JEDITANCHOR: リンクは .anchor に変換し、
-        // クロスリファレンス（ドロップされたリンク）はそのまま残す
+        // まず RTF 読み込み後に残っている全ての JEDITANCHOR: リンク属性を一括削除
+        // （applyAnchorAttributesFromBookmarks の個別チェックでは range のずれで
+        //   削除漏れが発生する可能性があるため、先に一括削除する）
+        removeAllAnchorLinkAttributes()
+        // ブックマーク位置に .anchor 属性を設定
         applyAnchorAttributesFromBookmarks(root)
 
         return true

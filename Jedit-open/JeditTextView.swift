@@ -2227,9 +2227,17 @@ class JeditTextView: NSTextView {
     // MARK: - Auto Indent
 
     /// 改行が挿入されたときの処理
+    /// Shift+Return の場合は行セパレータ（U+2028）を挿入する。
     /// Auto Indent が有効な場合、現在の行の先頭の空白文字を新しい行にコピー
     /// プレーンテキストで Wrapped Line Indent が有効な場合、パラグラフスタイルも設定
     override func insertNewline(_ sender: Any?) {
+        // Shift+Return の場合は行セパレータ（U+2028 Line Separator）を挿入
+        if let event = NSApp.currentEvent, event.type == .keyDown,
+           event.modifierFlags.contains(.shift) {
+            insertLineBreak(sender)
+            return
+        }
+
         guard let windowController = window?.windowController as? EditorWindowController,
               let presetData = windowController.textDocument?.presetData,
               presetData.format.autoIndent else {

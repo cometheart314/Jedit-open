@@ -55,8 +55,8 @@
 /* Edit > Insert */
 "insert-submenu-001.title" = "挿入";
 "insert-submenu-menu.title" = "挿入";
-"insert-line-break-001.title" = "改行";
-"insert-para-break-001.title" = "段落区切り";
+"insert-line-break-001.title" = "行セパレーター";
+"insert-para-break-001.title" = "改行";
 "insert-page-break-001.title" = "改ページ";
 "stamp-date-001.title" = "日付";
 "stamp-time-001.title" = "時刻";
