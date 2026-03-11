@@ -17,7 +17,7 @@
 "1af-lE-zDz.title" = "著作権";
 
 /* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "1wa-4q-YBL"; */
-"1wa-4q-YBL.title" = "変更時刻";
+"1wa-4q-YBL.title" = "修正時刻";
 
 /* Class = "NSTextFieldCell"; title = "Footer"; ObjectID = "2Qb-jQ-Cp9"; */
 "2Qb-jQ-Cp9.title" = "フッタ";
@@ -155,7 +155,7 @@
 "J7l-27-aDA.title" = "ベースフォント";
 
 /* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "JPp-kl-JCt"; */
-"JPp-kl-JCt.title" = "変更時刻";
+"JPp-kl-JCt.title" = "修正時刻";
 
 /* Class = "NSTextFieldCell"; title = "Header"; ObjectID = "K6p-4e-R5u"; */
 "K6p-4e-R5u.title" = "ヘッダ";
@@ -260,7 +260,7 @@
 "aiL-6X-GUM.title" = "名称未設定 #";
 
 /* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "bLQ-Ys-65L"; */
-"bLQ-Ys-65L.title" = "変更日";
+"bLQ-Ys-65L.title" = "修正日付";
 
 /* Class = "NSTextFieldCell"; title = "Line Number"; ObjectID = "c5J-ik-Kp6"; */
 "c5J-ik-Kp6.title" = "行番号";
@@ -275,7 +275,7 @@
 "cN6-PQ-yGa.title" = "デフォルトに戻す";
 
 /* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "cYp-xe-ucn"; */
-"cYp-xe-ucn.title" = "変更日";
+"cYp-xe-ucn.title" = "修正日付";
 
 /* Class = "NSMenuItem"; title = "File Path"; ObjectID = "dME-zg-fRw"; */
 "dME-zg-fRw.title" = "ファイルパス";

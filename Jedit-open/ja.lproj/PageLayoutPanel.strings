@@ -26,7 +26,7 @@
 "7uF-bG-vA9.title" = "コメント";
 
 /* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "C8k-MG-7nc"; */
-"C8k-MG-7nc.title" = "変更日";
+"C8k-MG-7nc.title" = "修正日付";
 
 /* Class = "NSMenuItem"; title = "Comment"; ObjectID = "FmF-WM-bxB"; */
 "FmF-WM-bxB.title" = "コメント";
@@ -38,7 +38,7 @@
 "Gml-ke-SLh.title" = "inches";
 
 /* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "H7F-de-j3K"; */
-"H7F-de-j3K.title" = "変更時刻";
+"H7F-de-j3K.title" = "修正時刻";
 
 /* Class = "NSMenuItem"; title = "Copyright"; ObjectID = "Ivx-O4-biA"; */
 "Ivx-O4-biA.title" = "著作権";
@@ -68,7 +68,7 @@
 "UGJ-UA-bfo.title" = "現在の時刻";
 
 /* Class = "NSMenuItem"; title = "Modification Time"; ObjectID = "UGY-m2-yw5"; */
-"UGY-m2-yw5.title" = "変更時刻";
+"UGY-m2-yw5.title" = "修正時刻";
 
 /* Class = "NSButtonCell"; title = "Ruler"; ObjectID = "W3I-Dp-cpF"; */
 "W3I-Dp-cpF.title" = "ルーラ";
@@ -110,7 +110,7 @@
 "hpQ-jj-QEI.title" = "キーワード";
 
 /* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "jOJ-fd-cXa"; */
-"jOJ-fd-cXa.title" = "変更日";
+"jOJ-fd-cXa.title" = "修正日付";
 
 /* Class = "NSMenuItem"; title = "Page Total"; ObjectID = "jhO-pk-328"; */
 "jhO-pk-328.title" = "総ページ数";
