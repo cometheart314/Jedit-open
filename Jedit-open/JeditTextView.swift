@@ -1211,6 +1211,41 @@ class JeditTextView: NSTextView {
             menu.addItem(stylesItem)
         }
 
+        // Jedit カスタム項目: スタイルとルーラーをコピー / ペースト
+        if !isPlainText && !hiddenActions.contains("copyStyleAndRuler:") {
+            if menu.items.count > 0 {
+                menu.addItem(.separator())
+            }
+            let copyItem = NSMenuItem(
+                title: "Copy Style and Ruler".localized,
+                action: #selector(copyStyleAndRuler(_:)),
+                keyEquivalent: ""
+            )
+            copyItem.target = nil  // responder chain
+            menu.addItem(copyItem)
+
+            if !hiddenActions.contains("pasteStyleAndRuler:") {
+                let pasteItem = NSMenuItem(
+                    title: "Paste Style and Ruler".localized,
+                    action: #selector(pasteStyleAndRuler(_:)),
+                    keyEquivalent: ""
+                )
+                pasteItem.target = nil  // responder chain
+                menu.addItem(pasteItem)
+            }
+        } else if !isPlainText && !hiddenActions.contains("pasteStyleAndRuler:") {
+            if menu.items.count > 0 {
+                menu.addItem(.separator())
+            }
+            let pasteItem = NSMenuItem(
+                title: "Paste Style and Ruler".localized,
+                action: #selector(pasteStyleAndRuler(_:)),
+                keyEquivalent: ""
+            )
+            pasteItem.target = nil  // responder chain
+            menu.addItem(pasteItem)
+        }
+
         // デフォルトメニュー項目の個別フィルタリング
         if showDefaultMenu {
             filterContextMenu(menu, hiddenActions: hiddenActions)
@@ -1253,6 +1288,18 @@ class JeditTextView: NSTextView {
                 i += 1
             }
         }
+    }
+
+    /// Action for "Copy Style and Ruler" context menu item
+    @objc func copyStyleAndRuler(_ sender: Any?) {
+        copyFont(sender)
+        copyRuler(sender)
+    }
+
+    /// Action for "Paste Style and Ruler" context menu item
+    @objc func pasteStyleAndRuler(_ sender: Any?) {
+        pasteFont(sender)
+        pasteRuler(sender)
     }
 
     /// Action for "Change Image Size..." context menu item

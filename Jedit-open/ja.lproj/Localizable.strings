@@ -498,6 +498,8 @@
 "Speech" = "スピーチ";
 "Share" = "共有";
 "Layout Orientation" = "レイアウトの方向";
+"Copy Style and Ruler" = "スタイルとルーラーをコピー";
+"Paste Style and Ruler" = "スタイルとルーラーをペースト";
 "Change Image Size…" = "画像サイズを変更…";
 
 /* Document Preset Names */

@@ -152,9 +152,9 @@
 "2h7-ER-AoG.title" = "上げる";
 "1tx-W0-xDw.title" = "下げる";
 
-/* Format > Font > Copy/Paste Style */
-"5Vv-lz-BsD.title" = "スタイルをコピー";
-"vKC-jM-MkH.title" = "スタイルをペースト";
+/* Edit > Copy/Paste Style */
+"kA2-mv-hsG.title" = "スタイルをコピー";
+"jgc-L9-FK6.title" = "スタイルをペースト";
 
 /* Format > Text */
 "Fal-I4-PZk.title" = "テキスト";
@@ -176,10 +176,12 @@
 "BgM-ve-c93.title" = "\t左から右";
 "jFq-tB-4Kx.title" = "\t右から左";
 
-/* Format > Text > Show Ruler / Copy-Paste Ruler */
+/* Format > Text > Show Ruler */
 "vLm-3I-IUL.title" = "ルーラを表示";
-"MkV-Pr-PK5.title" = "ルーラをコピー";
-"LVM-kO-fVI.title" = "ルーラをペースト";
+
+/* Edit > Copy/Paste Ruler */
+"OTq-qE-hCx.title" = "ルーラをコピー";
+"XJ0-zn-Ha3.title" = "ルーラをペースト";
 
 /* Format > Document Colors */
 "doc-col-001.title" = "書類のカラー…";

@@ -499,11 +499,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         Swift.print("paperSize: \(document.printInfo.paperSize)")
         #endif
 
-        // ページモードの場合のみ、ページサイズを更新
         if displayMode == .page {
             // ページモードを再設定（用紙サイズ、向き、マージンが変更された可能性がある）
             guard let textStorage = textDocument?.textStorage else { return }
             setupPageMode(with: textStorage)
+        } else if displayMode == .continuous && lineWrapMode == .paperWidth {
+            // 連続モードで「用紙幅に合わせる」の場合、用紙サイズの変更を反映
+            applyLineWrapMode(updatePresetData: false)
         }
     }
 

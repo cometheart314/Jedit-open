@@ -13,7 +13,7 @@
             <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
             <subviews>
                 <button fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="EcK-zU-dyk">
-                    <rect key="frame" x="93" y="74" width="351" height="18"/>
+                    <rect key="frame" x="133" y="74" width="311" height="18"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <buttonCell key="cell" type="check" title="Export Only Selection" bezelStyle="regularSquare" imagePosition="left" inset="2" id="sjn-a3-x1g">
                         <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -21,7 +21,7 @@
                     </buttonCell>
                 </button>
                 <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Z5R-p6-eWL">
-                    <rect key="frame" x="12" y="49" width="76" height="17"/>
+                    <rect key="frame" x="2" y="49" width="126" height="17"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="File Format:" id="z3D-Af-trm">
                         <font key="font" metaFont="system"/>
@@ -30,7 +30,7 @@
                     </textFieldCell>
                 </textField>
                 <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0cX-px-Ko0">
-                    <rect key="frame" x="93" y="44" width="352" height="26"/>
+                    <rect key="frame" x="133" y="44" width="312" height="26"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <popUpButtonCell key="cell" type="push" title="Rich Text Format (.rtf)" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" tag="1" imageScaling="proportionallyDown" inset="2" selectedItem="2Kq-9B-atu" id="6PT-sx-8No">
                         <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -90,7 +90,7 @@
                     </popUpButtonCell>
                 </popUpButton>
                 <popUpButton toolTip="Encoding to use if there is no encoding specified with the file." verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="xYd-Gv-DfH">
-                    <rect key="frame" x="92" y="20" width="221" height="22"/>
+                    <rect key="frame" x="132" y="20" width="181" height="22"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <popUpButtonCell key="cell" type="push" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="clipping" borderStyle="border" inset="2" arrowPosition="arrowAtCenter" preferredEdge="maxY" autoenablesItems="NO" id="cDx-e6-Seq" customClass="EncodingPopUpButtonCell" customModule="Jedit" customModuleProvider="target">
                         <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
@@ -106,7 +106,7 @@
                     </connections>
                 </popUpButton>
                 <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="1000" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="o7X-YR-fcw">
-                    <rect key="frame" x="18" y="25" width="70" height="14"/>
+                    <rect key="frame" x="2" y="25" width="126" height="14"/>
                     <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                     <textFieldCell key="cell" controlSize="small" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" alignment="right" title="Encoding:" usesSingleLineMode="YES" id="Nc8-IX-Hcr">
                         <font key="font" metaFont="smallSystem"/>

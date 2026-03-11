@@ -821,7 +821,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // セパレータとClipboard項目を追加
         newSubmenu.addItem(NSMenuItem.separator())
         let clipboardItem = NSMenuItem(
-            title: "Clipboard",
+            title: "Clipboard".localized,
             action: #selector(newDocumentFromClipboard(_:)),
             keyEquivalent: ""
         )

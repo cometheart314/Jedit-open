@@ -14,7 +14,7 @@
 "935-vq-qfa.title" = "DO NOT LOCALIZE";
 
 /* Class = "NSMenuItem"; title = "Plain Text Document"; ObjectID = "9kR-Wh-1Zv"; */
-"9kR-Wh-1Zv.title" = "標準テキスト書類";
+"9kR-Wh-1Zv.title" = "プレーンテキスト書類";
 
 /* Class = "NSTextFieldCell"; title = "Encoding:"; ObjectID = "Nc8-IX-Hcr"; */
 "Nc8-IX-Hcr.title" = "エンコーディング:";

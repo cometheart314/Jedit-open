@@ -44,8 +44,8 @@
 /* Class = "NSMenuItem"; title = "Edit"; ObjectID = "5QF-Oa-p0T"; */
 "5QF-Oa-p0T.title" = "Edit";
 
-/* Class = "NSMenuItem"; title = "Copy Style"; ObjectID = "5Vv-lz-BsD"; */
-"5Vv-lz-BsD.title" = "Copy Style";
+/* Class = "NSMenuItem"; title = "Copy Style"; ObjectID = "kA2-mv-hsG"; */
+"kA2-mv-hsG.title" = "Copy Style";
 
 /* Class = "NSMenuItem"; title = "About Jedit"; ObjectID = "5kV-Vb-QxS"; */
 "5kV-Vb-QxS.title" = "About Jedit";
@@ -152,14 +152,14 @@
 /* Class = "NSMenuItem"; title = "Bring All to Front"; ObjectID = "LE2-aR-0XJ"; */
 "LE2-aR-0XJ.title" = "Bring All to Front";
 
-/* Class = "NSMenuItem"; title = "Paste Ruler"; ObjectID = "LVM-kO-fVI"; */
-"LVM-kO-fVI.title" = "Paste Ruler";
+/* Class = "NSMenuItem"; title = "Paste Ruler"; ObjectID = "XJ0-zn-Ha3"; */
+"XJ0-zn-Ha3.title" = "Paste Ruler";
 
 /* Class = "NSMenuItem"; title = "\tLeft to Right"; ObjectID = "Lbh-J2-qVU"; */
 "Lbh-J2-qVU.title" = "\tLeft to Right";
 
-/* Class = "NSMenuItem"; title = "Copy Ruler"; ObjectID = "MkV-Pr-PK5"; */
-"MkV-Pr-PK5.title" = "Copy Ruler";
+/* Class = "NSMenuItem"; title = "Copy Ruler"; ObjectID = "OTq-qE-hCx"; */
+"OTq-qE-hCx.title" = "Copy Ruler";
 
 /* Class = "NSMenuItem"; title = "Services"; ObjectID = "NMo-om-nkz"; */
 "NMo-om-nkz.title" = "Services";
@@ -548,8 +548,8 @@
 /* Class = "NSMenuItem"; title = "Paragraph Number"; ObjectID = "vA0-nC-ila"; */
 "vA0-nC-ila.title" = "Paragraph Number";
 
-/* Class = "NSMenuItem"; title = "Paste Style"; ObjectID = "vKC-jM-MkH"; */
-"vKC-jM-MkH.title" = "Paste Style";
+/* Class = "NSMenuItem"; title = "Paste Style"; ObjectID = "jgc-L9-FK6"; */
+"jgc-L9-FK6.title" = "Paste Style";
 
 /* Class = "NSMenuItem"; title = "Show Ruler"; ObjectID = "vLm-3I-IUL"; */
 "vLm-3I-IUL.title" = "Show Ruler";

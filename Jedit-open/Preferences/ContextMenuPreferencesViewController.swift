@@ -44,6 +44,8 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
     /// Jedit カスタムメニュー項目
     private static let jeditMenuItems: [KnownMenuItem] = [
         KnownMenuItem(displayTitle: "Styles".localized,                identifier: "submenu:styles",                isSubmenu: true,  submenuDetectionAction: "applyTextStyle:"),
+        KnownMenuItem(displayTitle: "Copy Style and Ruler".localized,  identifier: "copyStyleAndRuler:",            isSubmenu: false, submenuDetectionAction: nil),
+        KnownMenuItem(displayTitle: "Paste Style and Ruler".localized, identifier: "pasteStyleAndRuler:",           isSubmenu: false, submenuDetectionAction: nil),
         KnownMenuItem(displayTitle: "Change Image Size…".localized,    identifier: "changeImageSize:",              isSubmenu: false, submenuDetectionAction: nil),
     ]
 
@@ -165,12 +167,14 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
     private var tableView: NSTableView!
     private var scrollView: NSScrollView!
     private var stylesCheckbox: NSButton!
+    private var copyStyleAndRulerCheckbox: NSButton!
+    private var pasteStyleAndRulerCheckbox: NSButton!
     private var changeImageSizeCheckbox: NSButton!
 
     // MARK: - Lifecycle
 
     override func loadView() {
-        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 340, height: 390))
+        self.view = NSView(frame: NSRect(x: 0, y: 0, width: 340, height: 440))
     }
 
     override func viewDidLoad() {
@@ -249,6 +253,18 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         stylesCheckbox.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(stylesCheckbox)
 
+        copyStyleAndRulerCheckbox = NSButton(checkboxWithTitle: "Copy Style and Ruler".localized, target: self, action: #selector(jeditItemToggled(_:)))
+        copyStyleAndRulerCheckbox.state = hiddenActions.contains("copyStyleAndRuler:") ? .off : .on
+        copyStyleAndRulerCheckbox.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        copyStyleAndRulerCheckbox.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(copyStyleAndRulerCheckbox)
+
+        pasteStyleAndRulerCheckbox = NSButton(checkboxWithTitle: "Paste Style and Ruler".localized, target: self, action: #selector(jeditItemToggled(_:)))
+        pasteStyleAndRulerCheckbox.state = hiddenActions.contains("pasteStyleAndRuler:") ? .off : .on
+        pasteStyleAndRulerCheckbox.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
+        pasteStyleAndRulerCheckbox.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(pasteStyleAndRulerCheckbox)
+
         changeImageSizeCheckbox = NSButton(checkboxWithTitle: "Change Image Size…".localized, target: self, action: #selector(jeditItemToggled(_:)))
         changeImageSizeCheckbox.state = hiddenActions.contains("changeImageSize:") ? .off : .on
         changeImageSizeCheckbox.font = NSFont.systemFont(ofSize: NSFont.systemFontSize)
@@ -282,7 +298,13 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
             stylesCheckbox.topAnchor.constraint(equalTo: jeditLabel.bottomAnchor, constant: 6),
             stylesCheckbox.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
 
-            changeImageSizeCheckbox.topAnchor.constraint(equalTo: stylesCheckbox.bottomAnchor, constant: 4),
+            copyStyleAndRulerCheckbox.topAnchor.constraint(equalTo: stylesCheckbox.bottomAnchor, constant: 4),
+            copyStyleAndRulerCheckbox.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+
+            pasteStyleAndRulerCheckbox.topAnchor.constraint(equalTo: copyStyleAndRulerCheckbox.bottomAnchor, constant: 4),
+            pasteStyleAndRulerCheckbox.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
+
+            changeImageSizeCheckbox.topAnchor.constraint(equalTo: pasteStyleAndRulerCheckbox.bottomAnchor, constant: 4),
             changeImageSizeCheckbox.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
 
             // Revert ボタン（ペイン下部に配置）
@@ -368,6 +390,8 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
 
         // Jedit 項目も全て表示
         stylesCheckbox.state = .on
+        copyStyleAndRulerCheckbox.state = .on
+        pasteStyleAndRulerCheckbox.state = .on
         changeImageSizeCheckbox.state = .on
 
         // 非表示リストをクリア
@@ -383,6 +407,12 @@ class ContextMenuPreferencesViewController: NSViewController, NSTableViewDataSou
         // Jedit 項目
         if stylesCheckbox.state == .off {
             hiddenActions.append("submenu:styles")
+        }
+        if copyStyleAndRulerCheckbox.state == .off {
+            hiddenActions.append("copyStyleAndRuler:")
+        }
+        if pasteStyleAndRulerCheckbox.state == .off {
+            hiddenActions.append("pasteStyleAndRuler:")
         }
         if changeImageSizeCheckbox.state == .off {
             hiddenActions.append("changeImageSize:")

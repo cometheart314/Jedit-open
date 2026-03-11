@@ -2714,6 +2714,10 @@ class Document: NSDocument {
 
         // OKボタンが押された場合のみ通知
         if returnCode == NSApplication.ModalResponse.OK.rawValue {
+            // presetData の printInfo も更新
+            presetData?.printInfo = NewDocData.PrintInfoData(from: self.printInfo)
+            presetDataEdited = true
+
             NotificationCenter.default.post(name: Document.printInfoDidChangeNotification, object: self)
         }
     }
