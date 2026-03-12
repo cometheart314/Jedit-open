@@ -446,7 +446,7 @@
                             <menuItem title="Show Toolbar" keyEquivalent="t" id="snW-S8-Cw5">
                                 <modifierMask key="keyEquivalentModifierMask" option="YES" command="YES"/>
                                 <connections>
-                                    <action selector="toggleToolbarShown:" target="-1" id="BXY-wc-z0C"/>
+                                    <action selector="toggleToolbarVisibility:" target="-1" id="BXY-wc-z0C"/>
                                 </connections>
                             </menuItem>
                             <menuItem title="Customize Toolbar…" id="cust-toolbar-001">

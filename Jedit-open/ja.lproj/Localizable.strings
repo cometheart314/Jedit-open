@@ -280,6 +280,8 @@
 "Collapse to single view." = "単一ビューに戻す。";
 
 /* Menu - Dynamic Titles */
+"Hide Toolbar" = "ツールバーを隠す";
+"Show Toolbar" = "ツールバーを表示";
 "Hide Inspector Bar" = "インスペクタバーを隠す";
 "Show Inspector Bar" = "インスペクタバーを表示";
 "Wrap to Page" = "ページサイズで表示";

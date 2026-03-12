@@ -53,6 +53,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var lineEndingToolbarItem: NSToolbarItem?
     private var writingProgressToolbarItem: NSToolbarItem?
     private lazy var writingGoalPanel = WritingGoalPanel()
+    /// ツールバー非表示時にインスタンスを保持する（window.toolbar = nil にしても参照を保持）
+    private var cachedToolbar: NSToolbar?
 
     // MARK: - Image Resize
 
@@ -261,11 +263,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ツールバーのセットアップ（コードで作成）
         setupEncodingToolbarItem()
 
-        // ツールバー可視性変更を監視（KVO）- setupEncodingToolbarItem後に実行
-        if let toolbar = self.window?.toolbar {
-            toolbar.addObserver(self, forKeyPath: "visible", options: [.new], context: nil)
-        }
-
         // TextStorageを設定
         setupTextStorage()
 
@@ -310,12 +307,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 DispatchQueue.main.async { [weak self] in
                     self?.updateTextColorForAppearance()
                 }
-            }
-        } else if keyPath == "visible" {
-            // ツールバー可視性変更を presetData に反映
-            if let toolbar = object as? NSToolbar {
-                textDocument?.presetData?.view.showToolBar = toolbar.isVisible
-                textDocument?.presetDataEdited = true
             }
         } else {
             super.observeValue(forKeyPath: keyPath, of: object, change: change, context: context)
@@ -555,9 +546,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         invisibleCharacterOptions = viewData.showInvisibles.toInvisibleCharacterOptions()
 
         // ツールバーの表示状態を適用
-        if let window = self.window, let toolbar = window.toolbar {
-            toolbar.isVisible = viewData.showToolBar
-        }
+        setToolbarVisible(viewData.showToolBar, updatePreset: false)
 
         // スケールを適用
         scrollView1?.setZoomLevel(viewData.scale)
@@ -3319,12 +3308,42 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // MARK: - Toolbar Customization
 
-    @IBAction func showToolbarCustomizationPalette(_ sender: Any?) {
-        guard let toolbar = window?.toolbar else { return }
-        // ツールバーが非表示なら表示する
-        if !toolbar.isVisible {
-            toolbar.isVisible = true
+    /// ツールバーの表示状態を返す
+    var isToolbarVisible: Bool {
+        return window?.toolbar != nil
+    }
+
+    /// ツールバーの表示/非表示を切り替える
+    /// - Parameter updatePreset: presetData に反映するかどうか（初期ロード時は false）
+    private func setToolbarVisible(_ visible: Bool, updatePreset: Bool = true) {
+        guard let window = self.window else { return }
+        if visible {
+            // cachedToolbar からウィンドウに再設定
+            if window.toolbar == nil, let toolbar = cachedToolbar {
+                window.toolbar = toolbar
+            }
+        } else {
+            // ウィンドウからツールバーを外す（インスタンスは cachedToolbar で保持）
+            if window.toolbar != nil {
+                window.toolbar = nil
+            }
         }
+        if updatePreset {
+            textDocument?.presetData?.view.showToolBar = visible
+            textDocument?.presetDataEdited = true
+        }
+    }
+
+    @IBAction func toggleToolbarVisibility(_ sender: Any?) {
+        setToolbarVisible(!isToolbarVisible)
+    }
+
+    @IBAction func showToolbarCustomizationPalette(_ sender: Any?) {
+        // ツールバーが非表示なら表示する
+        if !isToolbarVisible {
+            setToolbarVisible(true)
+        }
+        guard let toolbar = window?.toolbar else { return }
         toolbar.runCustomizationPalette(sender)
     }
 
@@ -3895,6 +3914,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // MARK: - Menu Validation
 
     @objc func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
+        if menuItem.action == #selector(toggleToolbarVisibility(_:)) {
+            menuItem.title = isToolbarVisible ? "Hide Toolbar".localized : "Show Toolbar".localized
+        }
         if menuItem.action == #selector(toggleInspectorBar(_:)) {
             menuItem.title = isInspectorBarVisible ? "Hide Inspector Bar".localized : "Show Inspector Bar".localized
         }
@@ -5304,8 +5326,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         toolbar.autosavesConfiguration = false  // 書類ごとに保存するため無効化
         toolbar.allowsUserCustomization = true
 
-        // ウィンドウに設定
+        // ウィンドウに設定し、cachedToolbarにも保持
         window.toolbar = toolbar
+        cachedToolbar = toolbar
 
         // 保存されたツールバー設定を復元
         restoreToolbarConfiguration()
@@ -5339,7 +5362,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// ツールバー設定を保存
     func saveToolbarConfiguration() {
-        guard let toolbar = window?.toolbar else { return }
+        guard let toolbar = cachedToolbar else { return }
         let identifiers = toolbar.items.map { $0.itemIdentifier.rawValue }
         textDocument?.presetData?.view.toolbarItemIdentifiers = identifiers
         // displayMode を保存
@@ -5349,7 +5372,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     /// ツールバー設定を復元
     private func restoreToolbarConfiguration() {
-        guard let toolbar = window?.toolbar else { return }
+        guard let toolbar = cachedToolbar else { return }
 
         // displayMode を復元
         if let displayModeValue = textDocument?.presetData?.view.toolbarDisplayMode,
@@ -5460,7 +5483,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             return popup
         }
         // ツールバーから直接検索
-        guard let toolbar = self.window?.toolbar else { return nil }
+        guard let toolbar = cachedToolbar else { return nil }
         for item in toolbar.items {
             if item.itemIdentifier == Self.encodingToolbarItemIdentifier,
                let popup = item.view as? EncodingPopUpButton {
@@ -5644,7 +5667,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             return popup
         }
         // ツールバーから直接検索
-        guard let toolbar = self.window?.toolbar else { return nil }
+        guard let toolbar = cachedToolbar else { return nil }
         for item in toolbar.items {
             if item.itemIdentifier == Self.lineEndingToolbarItemIdentifier,
                let popup = item.view as? NSPopUpButton {
@@ -5766,7 +5789,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             return view
         }
         // ツールバーから直接検索
-        guard let toolbar = self.window?.toolbar else { return nil }
+        guard let toolbar = cachedToolbar else { return nil }
         for item in toolbar.items {
             if item.itemIdentifier == Self.writingProgressToolbarItemIdentifier,
                let view = item.view as? WritingProgressView {
@@ -5792,11 +5815,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             self.textDocument?.presetDataEdited = true
 
             // 目標が設定された場合、ツールバーを表示し執筆進捗アイテムを追加
-            if goalData.targetCount > 0, let toolbar = self.window?.toolbar {
+            if goalData.targetCount > 0, let toolbar = self.cachedToolbar {
                 // ツールバーが非表示なら表示する
-                if !toolbar.isVisible {
-                    toolbar.isVisible = true
-                    self.textDocument?.presetData?.view.showToolBar = true
+                if !self.isToolbarVisible {
+                    self.setToolbarVisible(true)
                 }
                 // 執筆進捗アイテムがツールバーにない場合は追加
                 let hasWritingProgress = toolbar.items.contains {
