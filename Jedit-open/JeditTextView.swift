@@ -34,6 +34,9 @@ class JeditTextView: NSTextView {
     /// ドラッグ開始時のソース選択範囲（ドロップ時に selectedRange() が変わっている場合の保護）
     private var dragSourceRange: NSRange?
 
+    /// 同一書類内ドラッグを自前で処理したかどうか（super のソース削除を防ぐフラグ）
+    private var handledSameDocumentDrag = false
+
     /// ドラッグ操作用の一時ファイルURL（遅延クリーンアップ）
     private var dragTempFileURLs: [URL] = []
 
@@ -322,7 +325,14 @@ class JeditTextView: NSTextView {
 
     /// ドラッグセッション終了時にドラッグソース範囲をクリアし、一時ファイルを遅延クリーンアップ
     override func draggingSession(_ session: NSDraggingSession, endedAt screenPoint: NSPoint, operation: NSDragOperation) {
-        super.draggingSession(session, endedAt: screenPoint, operation: operation)
+        if handledSameDocumentDrag {
+            // 同一書類内ドラッグを自前で処理済み: super に .move を渡すとソースが二重削除されるため
+            // .none を渡してソース削除を防ぐ
+            super.draggingSession(session, endedAt: screenPoint, operation: [])
+            handledSameDocumentDrag = false
+        } else {
+            super.draggingSession(session, endedAt: screenPoint, operation: operation)
+        }
         dragSourceRange = nil
 
         // Finder がファイルをコピーする時間を確保してから一時ファイルを削除
@@ -441,6 +451,7 @@ class JeditTextView: NSTextView {
             // ソース側の選択範囲を取得（ドラッグ開始時に保存した範囲を優先）
             let sourceRange = sourceView.dragSourceRange ?? sourceView.selectedRange()
             guard sourceRange.length > 0 else {
+                handledSameDocumentDrag = true
                 return true  // ソース範囲が不明な場合は何もせず成功を返す（画像消失防止）
             }
 
@@ -454,6 +465,7 @@ class JeditTextView: NSTextView {
 
             // ドロップ先がソース範囲内なら何もしない
             if dropIndex >= sourceRange.location && dropIndex <= sourceRange.location + sourceRange.length {
+                handledSameDocumentDrag = true
                 return true
             }
 
@@ -487,6 +499,7 @@ class JeditTextView: NSTextView {
 
             // 挿入したテキストを選択
             setSelectedRange(NSRange(location: finalInsertIndex, length: draggedContent.length))
+            handledSameDocumentDrag = true
             return true
         }
 
@@ -637,10 +650,22 @@ class JeditTextView: NSTextView {
             }
         }
 
-        // テキストファイル判定：UTI が public.text に準拠するか
+        // UTI による判定: 既知のバイナリ形式（画像・動画・音声・アーカイブ等）は .other
         if let uti = try? url.resourceValues(forKeys: [.typeIdentifierKey]).typeIdentifier,
-           UTType(uti)?.conforms(to: .text) == true {
-            return .plainText
+           let utType = UTType(uti) {
+            // テキスト系は .plainText
+            if utType.conforms(to: .text) {
+                return .plainText
+            }
+            // 既知のバイナリ形式は .other（データ読み込みでの誤判定を防ぐ）
+            let binaryTypes: [UTType] = [.image, .audiovisualContent, .archive,
+                                         .executable, .database, .spreadsheet,
+                                         .presentation, .pdf, .font]
+            for binaryType in binaryTypes {
+                if utType.conforms(to: binaryType) {
+                    return .other
+                }
+            }
         }
 
         // UTI で判定できない場合、データを読んでテキストとしてデコードできるか試す
@@ -675,7 +700,14 @@ class JeditTextView: NSTextView {
             let contentType = Self.detectFileContentType(url)
 
             if contentType == .other {
-                // テキスト系でないファイル → 処理しない（superに委譲）
+                // プレーンテキスト書類: 非テキストファイルはフルパスを挿入
+                if isPlainText {
+                    let insertRange = NSRange(location: dropIndex, length: 0)
+                    replaceString(in: insertRange, with: url.path)
+                    handledAny = true
+                    continue
+                }
+                // リッチテキスト書類: 処理しない（superに委譲してアタッチメント挿入）
                 return false
             }
 
@@ -1125,7 +1157,8 @@ class JeditTextView: NSTextView {
 
         // パスの正規表現: ~/... または /... で始まり、引用符・制御文字などで終わる
         // スペースを含む macOS パスに対応するため、空白は区切りに含めない
-        let pattern = "(?:~/|/)[^\"'<>|;\\t\\n\\r]+"
+        // U+FFFC（Object Replacement Character: 画像アタッチメント）も除外
+        let pattern = "(?:~/|/)[^\"'<>|;\\t\\n\\r\u{FFFC}]+"
         guard let regex = try? NSRegularExpression(pattern: pattern) else { return nil }
 
         let matches = regex.matches(in: lineString, range: NSRange(location: 0, length: lineString.utf16.count))
@@ -1148,16 +1181,18 @@ class JeditTextView: NSTextView {
                 continue
             }
 
-            // チルダ展開してパスの存在を確認（Unicode 正規化の違いも考慮）
-            // サンドボックスアプリでは expandingTildeInPath がコンテナパスに展開されるため、
-            // 実際のホームディレクトリを使う
+            // チルダ展開（サンドボックスアプリでは expandingTildeInPath がコンテナパスに
+            // 展開されるため、実際のホームディレクトリを使う）
             let expanded = expandTilde(in: pathString)
+
+            // ファイルの存在を確認できればそのパスを返す
             if let resolved = resolveExistingPath(expanded) {
                 return resolved
             }
 
             // スペースを含むパスが誤って長くマッチした場合 → 末尾をスペース単位で削る
             var candidate = pathString
+            var found = false
             while let spaceRange = candidate.range(of: " ", options: .backwards) {
                 candidate = String(candidate[..<spaceRange.lowerBound])
                 let candidateLengthUtf16 = (candidate as NSString).length
@@ -1166,8 +1201,16 @@ class JeditTextView: NSTextView {
 
                 let expandedCandidate = expandTilde(in: candidate)
                 if let resolved = resolveExistingPath(expandedCandidate) {
+                    found = true
                     return resolved
                 }
+            }
+
+            // サンドボックスで fileExists が制限される場合があるため、
+            // 存在確認できなくてもパスパターンに合致すれば返す
+            // （Finder 側でファイルの有無を処理する）
+            if !found {
+                return expanded
             }
         }
 
@@ -1282,7 +1325,7 @@ class JeditTextView: NSTextView {
             menu = NSMenu()
         }
 
-        // Jedit カスタム項目: Change Image Size
+        // Jedit カスタム項目: Change Image Size（動画は自動伸縮するため対象外）
         if !hiddenActions.contains("changeImageSize:"),
            let layoutManager = layoutManager,
            let textContainer = textContainer,
@@ -1300,7 +1343,8 @@ class JeditTextView: NSTextView {
 
             if charIndex < textStorage.length,
                let controller = imageResizeController,
-               controller.getImageAttachment(in: self, at: charIndex) != nil {
+               let attachmentInfo = controller.getImageAttachment(in: self, at: charIndex),
+               !controller.isVideo(attachment: attachmentInfo.attachment) {
                 contextMenuImageCharIndex = charIndex
                 let changeImageSizeItem = NSMenuItem(
                     title: "Change Image Size...".localized,

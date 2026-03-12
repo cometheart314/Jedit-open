@@ -564,6 +564,10 @@ class Document: NSDocument {
     /// ドキュメント統計情報（Location[Size] タブ表示用）
     var statistics = DocumentStatistics()
 
+    /// エイリアスアタッチメントのセキュリティスコープ付きURL
+    /// ドキュメントを閉じる際に stopAccessingSecurityScopedResource() を呼ぶ
+    private var securityScopedAttachmentURLs: [URL] = []
+
     /// フォントフォールバック復帰用のDelegate
     private var fontFallbackRecoveryDelegate: FontFallbackRecoveryDelegate?
 
@@ -688,6 +692,15 @@ class Document: NSDocument {
         super.updateChangeCount(change)
     }
 
+    override func close() {
+        // エイリアスアタッチメントのセキュリティスコープ付きリソースを解放
+        for url in securityScopedAttachmentURLs {
+            url.stopAccessingSecurityScopedResource()
+        }
+        securityScopedAttachmentURLs.removeAll()
+        super.close()
+    }
+
     // MARK: - Window Controllers
 
     override func makeWindowControllers() {
@@ -802,9 +815,15 @@ class Document: NSDocument {
                 boundsInfoList = (try? JSONDecoder().decode([AttachmentBoundsInfo].self, from: metadataData)) ?? []
             }
 
+            // エイリアスアタッチメントのセキュリティスコープ付きブックマークを復元
+            let restoredURLs = Self.restoreAttachmentBookmarks(from: fileWrapper)
+
             MainActor.assumeIsolated {
                 self.documentType = .rtfd
                 self.textStorage.setAttributedString(attributedString)
+
+                // セキュリティスコープ付きURLを保持
+                self.securityScopedAttachmentURLs = restoredURLs
 
                 // bounds情報を適用
                 if !boundsInfoList.isEmpty {
@@ -815,7 +834,6 @@ class Document: NSDocument {
                 if let attrs = documentAttributes as? [NSAttributedString.DocumentAttributeKey: Any] {
                     self.applyDocumentAttributesToProperties(attrs)
                 }
-
 
                 NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
             }
@@ -909,12 +927,91 @@ class Document: NSDocument {
                 }
             }
 
+            // エイリアスアタッチメントのセキュリティスコープ付きブックマークを保存
+            saveAttachmentBookmarks(to: fileWrapper)
+
             return fileWrapper
         } else {
             // その他のファイルタイプは通常のdata(ofType:)を使用
             let data = try data(ofType: typeName)
             return FileWrapper(regularFileWithContents: data)
         }
+    }
+
+    // MARK: - Attachment Security-Scoped Bookmarks
+
+    /// RTFD パッケージ内のエイリアス（シンボリックリンク）FileWrapper のセキュリティスコープ付き
+    /// ブックマークを .attachment_bookmarks.json として保存する
+    private func saveAttachmentBookmarks(to fileWrapper: FileWrapper) {
+        guard let childWrappers = fileWrapper.fileWrappers else { return }
+
+        var bookmarkEntries: [[String: String]] = []
+
+        for (name, child) in childWrappers {
+            // シンボリックリンク FileWrapper のリンク先URLに対してブックマークを作成
+            if child.isSymbolicLink, let destURL = child.symbolicLinkDestinationURL {
+                do {
+                    let bookmarkData = try destURL.bookmarkData(
+                        options: [.withSecurityScope],
+                        includingResourceValuesForKeys: nil,
+                        relativeTo: nil
+                    )
+                    bookmarkEntries.append([
+                        "filename": name,
+                        "bookmark": bookmarkData.base64EncodedString()
+                    ])
+                } catch {
+                    // ブックマーク作成失敗は無視（コピーされたファイルには不要）
+                }
+            }
+        }
+
+        guard !bookmarkEntries.isEmpty else { return }
+
+        if let data = try? JSONSerialization.data(withJSONObject: bookmarkEntries, options: [.prettyPrinted]) {
+            // 既存のブックマークメタデータがあれば削除
+            if let existing = fileWrapper.fileWrappers?[".attachment_bookmarks.json"] {
+                fileWrapper.removeFileWrapper(existing)
+            }
+            let bookmarkWrapper = FileWrapper(regularFileWithContents: data)
+            bookmarkWrapper.preferredFilename = ".attachment_bookmarks.json"
+            fileWrapper.addFileWrapper(bookmarkWrapper)
+        }
+    }
+
+    /// RTFD パッケージから .attachment_bookmarks.json を読み込み、
+    /// セキュリティスコープ付きリソースのアクセスを開始する
+    /// - Returns: アクセス中のセキュリティスコープ付きURL
+    private nonisolated static func restoreAttachmentBookmarks(from fileWrapper: FileWrapper) -> [URL] {
+        guard let fileWrappers = fileWrapper.fileWrappers,
+              let bookmarkWrapper = fileWrappers[".attachment_bookmarks.json"],
+              let data = bookmarkWrapper.regularFileContents,
+              let entries = try? JSONSerialization.jsonObject(with: data) as? [[String: String]] else {
+            return []
+        }
+
+        var accessedURLs: [URL] = []
+
+        for entry in entries {
+            guard let base64 = entry["bookmark"],
+                  let bookmarkData = Data(base64Encoded: base64) else {
+                continue
+            }
+
+            var isStale = false
+            if let url = try? URL(
+                resolvingBookmarkData: bookmarkData,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &isStale
+            ) {
+                if url.startAccessingSecurityScopedResource() {
+                    accessedURLs.append(url)
+                }
+            }
+        }
+
+        return accessedURLs
     }
 
     // MARK: - List Marker Attribute Normalization

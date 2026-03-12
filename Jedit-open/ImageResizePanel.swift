@@ -34,13 +34,13 @@ class ImageResizePanel: NSPanel {
 
     init() {
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 280, height: 200),
+            contentRect: NSRect(x: 0, y: 0, width: 300, height: 200),
             styleMask: [.titled, .closable, .utilityWindow],
             backing: .buffered,
             defer: false
         )
 
-        self.title = "Resize Image"
+        self.title = "Resize Image".localized
         self.isFloatingPanel = true
         self.becomesKeyOnlyIfNeeded = true
         self.hidesOnDeactivate = false
@@ -55,101 +55,126 @@ class ImageResizePanel: NSPanel {
         guard let contentView = self.contentView else { return }
 
         let margin: CGFloat = 16
-        let labelWidth: CGFloat = 50
         let fieldWidth: CGFloat = 80
         let rowHeight: CGFloat = 24
         let spacing: CGFloat = 8
+        let labelFont = NSFont.systemFont(ofSize: NSFont.systemFontSize)
 
-        var yPos = contentView.bounds.height - margin - rowHeight
+        // ラベルの最大幅を動的に計算
+        let labelStrings = ["Width:".localized, "Height:".localized, "Scale:".localized]
+        let labelWidth = ceil(labelStrings.map {
+            ($0 as NSString).size(withAttributes: [.font: labelFont]).width
+        }.max()! + 4)
+
+        // フィールド開始位置
+        let fieldX = margin + labelWidth + spacing
+        // パネル幅を計算
+        let panelWidth = max(fieldX + fieldWidth + 4 + 30 + margin, 280)
+        // パネル高さ（ボタンを下に余裕を持たせる）
+        let panelHeight: CGFloat = 220
+
+        self.setContentSize(NSSize(width: panelWidth, height: panelHeight))
+
+        var yPos = panelHeight - margin - rowHeight
+
+        // 右揃えラベルを作成するヘルパー（手動構成で確実に右揃え）
+        func makeLabel(_ text: String, x: CGFloat, y: CGFloat, width: CGFloat) -> NSTextField {
+            let label = NSTextField(frame: NSRect(x: x, y: y, width: width, height: rowHeight))
+            label.stringValue = text
+            label.isEditable = false
+            label.isSelectable = false
+            label.isBordered = false
+            label.drawsBackground = false
+            label.alignment = .right
+            label.font = labelFont
+            label.cell?.lineBreakMode = .byClipping
+            label.cell?.wraps = false
+            return label
+        }
 
         // Width row
-        let widthLabel = NSTextField(labelWithString: "Width:")
-        widthLabel.frame = NSRect(x: margin, y: yPos, width: labelWidth, height: rowHeight)
-        widthLabel.alignment = .right
+        let widthLabel = makeLabel("Width:".localized, x: margin, y: yPos, width: labelWidth)
         contentView.addSubview(widthLabel)
 
         widthField = NSTextField()
-        widthField.frame = NSRect(x: margin + labelWidth + spacing, y: yPos, width: fieldWidth, height: rowHeight)
+        widthField.frame = NSRect(x: fieldX, y: yPos, width: fieldWidth, height: rowHeight)
         widthField.formatter = NumberFormatter()
         widthField.target = self
         widthField.action = #selector(widthFieldChanged(_:))
         contentView.addSubview(widthField)
 
         let pxLabel1 = NSTextField(labelWithString: "px")
-        pxLabel1.frame = NSRect(x: margin + labelWidth + spacing + fieldWidth + 4, y: yPos, width: 30, height: rowHeight)
+        pxLabel1.frame = NSRect(x: fieldX + fieldWidth + 4, y: yPos, width: 30, height: rowHeight)
         contentView.addSubview(pxLabel1)
 
         yPos -= rowHeight + spacing
 
         // Height row
-        let heightLabel = NSTextField(labelWithString: "Height:")
-        heightLabel.frame = NSRect(x: margin, y: yPos, width: labelWidth, height: rowHeight)
-        heightLabel.alignment = .right
+        let heightLabel = makeLabel("Height:".localized, x: margin, y: yPos, width: labelWidth)
         contentView.addSubview(heightLabel)
 
         heightField = NSTextField()
-        heightField.frame = NSRect(x: margin + labelWidth + spacing, y: yPos, width: fieldWidth, height: rowHeight)
+        heightField.frame = NSRect(x: fieldX, y: yPos, width: fieldWidth, height: rowHeight)
         heightField.formatter = NumberFormatter()
         heightField.target = self
         heightField.action = #selector(heightFieldChanged(_:))
         contentView.addSubview(heightField)
 
         let pxLabel2 = NSTextField(labelWithString: "px")
-        pxLabel2.frame = NSRect(x: margin + labelWidth + spacing + fieldWidth + 4, y: yPos, width: 30, height: rowHeight)
+        pxLabel2.frame = NSRect(x: fieldX + fieldWidth + 4, y: yPos, width: 30, height: rowHeight)
         contentView.addSubview(pxLabel2)
 
         yPos -= rowHeight + spacing * 2
 
         // Aspect ratio checkbox
-        aspectRatioCheckbox = NSButton(checkboxWithTitle: "Maintain aspect ratio", target: self, action: #selector(aspectRatioChanged(_:)))
-        aspectRatioCheckbox.frame = NSRect(x: margin, y: yPos, width: 200, height: rowHeight)
+        aspectRatioCheckbox = NSButton(checkboxWithTitle: "Maintain aspect ratio".localized, target: self, action: #selector(aspectRatioChanged(_:)))
+        aspectRatioCheckbox.frame = NSRect(x: margin, y: yPos, width: panelWidth - margin * 2, height: rowHeight)
         aspectRatioCheckbox.state = .on
         contentView.addSubview(aspectRatioCheckbox)
 
         yPos -= rowHeight + spacing * 2
 
         // Scale slider row
-        let scaleTextLabel = NSTextField(labelWithString: "Scale:")
-        scaleTextLabel.frame = NSRect(x: margin, y: yPos, width: labelWidth, height: rowHeight)
-        scaleTextLabel.alignment = .right
+        let scaleTextLabel = makeLabel("Scale:".localized, x: margin, y: yPos, width: labelWidth)
         contentView.addSubview(scaleTextLabel)
 
+        let scaleLabelWidth: CGFloat = 50
+        let sliderWidth = panelWidth - fieldX - scaleLabelWidth - 4 - margin
         scaleSlider = NSSlider(value: 100, minValue: 0, maxValue: 200, target: self, action: #selector(scaleSliderChanged(_:)))
-        scaleSlider.frame = NSRect(x: margin + labelWidth + spacing, y: yPos, width: 130, height: rowHeight)
+        scaleSlider.frame = NSRect(x: fieldX, y: yPos + 2, width: sliderWidth, height: rowHeight)
         scaleSlider.isContinuous = true
         contentView.addSubview(scaleSlider)
 
         scaleLabel = NSTextField(labelWithString: "100%")
-        scaleLabel.frame = NSRect(x: margin + labelWidth + spacing + 135, y: yPos, width: 50, height: rowHeight)
+        scaleLabel.frame = NSRect(x: fieldX + sliderWidth + 4, y: yPos, width: scaleLabelWidth, height: rowHeight)
         scaleLabel.alignment = .left
         contentView.addSubview(scaleLabel)
 
-        yPos -= rowHeight + spacing * 2
-
-        // Buttons
+        // Buttons（下に余裕を持たせる）
         let buttonWidth: CGFloat = 80
         let buttonSpacing: CGFloat = 12
+        let buttonY: CGFloat = 10
 
-        cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancelClicked(_:)))
+        cancelButton = NSButton(title: "Cancel".localized, target: self, action: #selector(cancelClicked(_:)))
         cancelButton.bezelStyle = .rounded
         cancelButton.frame = NSRect(
-            x: contentView.bounds.width - margin - buttonWidth * 2 - buttonSpacing,
-            y: margin,
+            x: panelWidth - margin - buttonWidth * 2 - buttonSpacing,
+            y: buttonY,
             width: buttonWidth,
             height: 28
         )
-        cancelButton.keyEquivalent = "\u{1b}" // Escape key
+        cancelButton.keyEquivalent = "\u{1b}"
         contentView.addSubview(cancelButton)
 
-        applyButton = NSButton(title: "Apply", target: self, action: #selector(applyClicked(_:)))
+        applyButton = NSButton(title: "Apply".localized, target: self, action: #selector(applyClicked(_:)))
         applyButton.bezelStyle = .rounded
         applyButton.frame = NSRect(
-            x: contentView.bounds.width - margin - buttonWidth,
-            y: margin,
+            x: panelWidth - margin - buttonWidth,
+            y: buttonY,
             width: buttonWidth,
             height: 28
         )
-        applyButton.keyEquivalent = "\r" // Enter key
+        applyButton.keyEquivalent = "\r"
         contentView.addSubview(applyButton)
     }
 

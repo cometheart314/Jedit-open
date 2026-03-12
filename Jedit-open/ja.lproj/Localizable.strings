@@ -17,6 +17,7 @@
 "Revert" = "元に戻す";
 "Export" = "書き出し";
 "Attach" = "添付";
+"Apply" = "適用";
 "Search" = "検索";
 "Find" = "検索";
 "Replace" = "置換";
@@ -297,8 +298,15 @@
 "Prevent Editing" = "編集を禁止";
 "Allow Editing" = "編集を許可";
 
-/* Image */
+/* Image / Video */
 "Change Image Size..." = "画像サイズを変更...";
+"Change Video Size..." = "動画サイズを変更...";
+"Resize Image" = "画像のリサイズ";
+"Resize Video" = "動画のリサイズ";
+"Width:" = "幅:";
+"Height:" = "高さ:";
+"Maintain aspect ratio" = "縦横比を維持";
+"Scale:" = "拡大／縮小:";
 
 /* Line Number */
 "." = ".";

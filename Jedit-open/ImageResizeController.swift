@@ -6,6 +6,7 @@
 //
 
 import Cocoa
+import AVFoundation
 
 // MARK: - ImageResizeController
 
@@ -69,6 +70,11 @@ class ImageResizeController: NSObject {
             return false
         }
 
+        // 動画アタッチメントはダブルクリックでリサイズせず外部アプリで開く
+        if isVideoAttachment(attachment) {
+            return false
+        }
+
         // Get the image
         let image = getImage(from: attachment)
         guard let img = image else {
@@ -96,6 +102,44 @@ class ImageResizeController: NSObject {
 
     // MARK: - Private Methods
 
+    /// 動画ファイルの拡張子セット
+    private static let videoExtensions: Set<String> = [
+        "mov", "mp4", "m4v", "avi", "mkv", "webm", "mpg", "mpeg", "wmv", "flv"
+    ]
+
+    /// FileWrapper が動画ファイルかどうかを判定
+    static func isVideoFileWrapper(_ fileWrapper: FileWrapper) -> Bool {
+        guard let filename = fileWrapper.preferredFilename ?? fileWrapper.filename else {
+            return false
+        }
+        let ext = (filename as NSString).pathExtension.lowercased()
+        return videoExtensions.contains(ext)
+    }
+
+    /// アタッチメントが動画ファイルかどうかを判定
+    private func isVideoAttachment(_ attachment: NSTextAttachment) -> Bool {
+        guard let fileWrapper = attachment.fileWrapper else { return false }
+        return Self.isVideoFileWrapper(fileWrapper)
+    }
+
+    /// 外部から動画判定を行うためのメソッド
+    func isVideo(attachment: NSTextAttachment) -> Bool {
+        return isVideoAttachment(attachment)
+    }
+
+    /// FileWrapper からファイルデータを取得する（シンボリックリンク対応）
+    private func fileContents(of fileWrapper: FileWrapper) -> Data? {
+        // 通常のファイル
+        if let data = fileWrapper.regularFileContents {
+            return data
+        }
+        // シンボリックリンクの場合はリンク先からデータを読み込む
+        if fileWrapper.isSymbolicLink, let destURL = fileWrapper.symbolicLinkDestinationURL {
+            return try? Data(contentsOf: destURL)
+        }
+        return nil
+    }
+
     private func getImage(from attachment: NSTextAttachment) -> NSImage? {
         // Try attachment.image first
         if let image = attachment.image {
@@ -114,14 +158,49 @@ class ImageResizeController: NSObject {
             return image
         }
 
-        // Try fileWrapper
+        // Try fileWrapper（シンボリックリンク対応）
         if let fileWrapper = attachment.fileWrapper,
-           let data = fileWrapper.regularFileContents,
-           let image = NSImage(data: data) {
-            return image
+           let data = fileContents(of: fileWrapper) {
+            if let image = NSImage(data: data) {
+                return image
+            }
+
+            // 動画ファイルの場合はポスターフレームを取得
+            if isVideoAttachment(attachment) {
+                return getVideoThumbnail(from: data, fileWrapper: fileWrapper)
+            }
         }
 
         return nil
+    }
+
+    /// 動画データからサムネイル（ポスターフレーム）を取得
+    private func getVideoThumbnail(from data: Data, fileWrapper: FileWrapper) -> NSImage? {
+        // 一時ファイルに書き出して AVAsset で読み込む
+        let tempDir = FileManager.default.temporaryDirectory
+        let filename = fileWrapper.preferredFilename ?? fileWrapper.filename ?? "video.mov"
+        let tempURL = tempDir.appendingPathComponent(UUID().uuidString + "_" + filename)
+
+        do {
+            try data.write(to: tempURL)
+        } catch {
+            return nil
+        }
+
+        defer {
+            try? FileManager.default.removeItem(at: tempURL)
+        }
+
+        let asset = AVAsset(url: tempURL)
+        let imageGenerator = AVAssetImageGenerator(asset: asset)
+        imageGenerator.appliesPreferredTrackTransform = true
+
+        do {
+            let cgImage = try imageGenerator.copyCGImage(at: .zero, actualTime: nil)
+            return NSImage(cgImage: cgImage, size: NSSize(width: cgImage.width, height: cgImage.height))
+        } catch {
+            return nil
+        }
     }
 
     private func getDisplaySize(_ attachment: NSTextAttachment, image: NSImage) -> NSSize {
@@ -298,7 +377,12 @@ class ImageResizeController: NSObject {
             controller.registerUndo(oldSize: newSize, newSize: oldSize, range: range, in: textView)
         }
 
-        undoManager.setActionName("Resize Image")
+        // 動画かどうかでUndoアクション名を切り替え
+        if let fw = capturedFileWrapper, Self.isVideoFileWrapper(fw) {
+            undoManager.setActionName("Resize Video".localized)
+        } else {
+            undoManager.setActionName("Resize Image".localized)
+        }
     }
 
     private func clearState() {
@@ -315,7 +399,7 @@ class ImageResizeController: NSObject {
         resizePanel = nil
     }
 
-    /// Check if there's an image attachment at the given character index
+    /// Check if there's an image/video attachment at the given character index
     /// Returns the attachment info if found
     func getImageAttachment(in textView: NSTextView, at charIndex: Int) -> (attachment: NSTextAttachment, image: NSImage, size: NSSize)? {
         guard let textStorage = textView.textStorage,
@@ -328,16 +412,88 @@ class ImageResizeController: NSObject {
             return nil
         }
 
-        guard let image = getImage(from: attachment) else {
-            return nil
+        // まず通常の画像取得を試みる
+        if let image = getImage(from: attachment) {
+            let displaySize = getDisplaySize(attachment, image: image)
+            guard displaySize.width > 0 && displaySize.height > 0 else {
+                return nil
+            }
+            return (attachment, image, displaySize)
         }
 
-        let displaySize = getDisplaySize(attachment, image: image)
-        guard displaySize.width > 0 && displaySize.height > 0 else {
-            return nil
+        // 動画アタッチメントの場合、セルやビューから表示サイズを取得してポスターフレームを生成
+        if isVideoAttachment(attachment) {
+            let (image, size) = getVideoAttachmentInfo(attachment, in: textView, at: charIndex)
+            if let image = image, size.width > 0 && size.height > 0 {
+                return (attachment, image, size)
+            }
         }
 
-        return (attachment, image, displaySize)
+        return nil
+    }
+
+    /// 動画アタッチメントの情報（ポスターフレームとサイズ）を取得
+    private func getVideoAttachmentInfo(_ attachment: NSTextAttachment, in textView: NSTextView, at charIndex: Int) -> (NSImage?, NSSize) {
+        var displaySize = NSSize.zero
+
+        // bounds からサイズを取得
+        if attachment.bounds.size.width > 0 && attachment.bounds.size.height > 0 {
+            displaySize = attachment.bounds.size
+        }
+
+        // attachmentCell からサイズを取得（NSTextAttachmentCell以外のセルも対応）
+        if displaySize.width <= 0 || displaySize.height <= 0,
+           let cell = attachment.attachmentCell {
+            let cellSize = cell.cellSize()
+            if cellSize.width > 0 && cellSize.height > 0 {
+                displaySize = cellSize
+            }
+        }
+
+        // レイアウトマネージャーから表示矩形を取得
+        if displaySize.width <= 0 || displaySize.height <= 0,
+           let layoutManager = textView.layoutManager {
+            let glyphRange = layoutManager.glyphRange(forCharacterRange: NSRange(location: charIndex, length: 1), actualCharacterRange: nil)
+            let rect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textView.textContainer!)
+            if rect.width > 0 && rect.height > 0 {
+                displaySize = rect.size
+            }
+        }
+
+        // ポスターフレームを一時ファイル経由で取得（シンボリックリンク対応）
+        if let fileWrapper = attachment.fileWrapper,
+           let data = fileContents(of: fileWrapper) {
+            if let thumbnail = getVideoThumbnail(from: data, fileWrapper: fileWrapper) {
+                // サイズが未取得ならサムネイルのサイズを使用
+                if displaySize.width <= 0 || displaySize.height <= 0 {
+                    displaySize = thumbnail.size
+                }
+                return (thumbnail, displaySize)
+            }
+        }
+
+        // ポスターフレーム取得失敗時はプレースホルダー画像を作成
+        if displaySize.width > 0 && displaySize.height > 0 {
+            let placeholder = NSImage(size: displaySize)
+            placeholder.lockFocus()
+            NSColor.darkGray.setFill()
+            NSBezierPath(rect: NSRect(origin: .zero, size: displaySize)).fill()
+            // 再生アイコン風の三角形を描画
+            let triangleSize: CGFloat = min(displaySize.width, displaySize.height) * 0.3
+            let centerX = displaySize.width / 2
+            let centerY = displaySize.height / 2
+            let path = NSBezierPath()
+            path.move(to: NSPoint(x: centerX - triangleSize * 0.4, y: centerY - triangleSize * 0.5))
+            path.line(to: NSPoint(x: centerX - triangleSize * 0.4, y: centerY + triangleSize * 0.5))
+            path.line(to: NSPoint(x: centerX + triangleSize * 0.5, y: centerY))
+            path.close()
+            NSColor.white.withAlphaComponent(0.8).setFill()
+            path.fill()
+            placeholder.unlockFocus()
+            return (placeholder, displaySize)
+        }
+
+        return (nil, .zero)
     }
 
     /// Show resize panel for an attachment at the specified character index
