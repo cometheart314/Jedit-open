@@ -627,9 +627,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
-        // 選択範囲とスクロール位置の復元（レイアウト完了後に実行）
+        // スケールと選択範囲の復元（レイアウト完了後に実行）
         DispatchQueue.main.async { [weak self] in
-            self?.restoreSelectionAndScrollPosition()
+            guard let self = self else { return }
+            // スケールを再適用（setupTextViewsやウィンドウリサイズでリセットされる場合があるため）
+            if viewData.scale != 1.0 {
+                self.scrollView1?.setZoomLevel(viewData.scale)
+            }
+            self.restoreSelectionAndScrollPosition()
         }
     }
 
@@ -2016,6 +2021,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             setupTextViews(with: textDocument.textStorage)
         }
 
+        // 分割時、新しいビューの倍率を元のビューに合わせる
+        if mode != .none,
+           let sv1 = scrollView1,
+           let sv2 = scrollView2 {
+            sv2.setZoomLevel(sv1.magnification)
+        }
+
         // ルーラーの表示状態を更新（updateContinuousModeRuler内でtile()とupdateTextViewSizeが呼ばれる）
         updateRulerVisibility()
 
@@ -2825,6 +2837,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // スケール表示を更新
         scrollView.updateScaleDisplay()
+
+        // presetDataのスケールを更新（ピンチジェスチャー等での変更を保存）
+        updatePresetDataScale()
     }
 
     // MARK: - Invisible Character Actions

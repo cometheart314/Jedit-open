@@ -909,7 +909,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         if let imageData = pasteboard.data(forType: .tiff) ?? pasteboard.data(forType: .png),
            let image = NSImage(data: imageData) {
             let attachment = NSTextAttachment()
-            let cell = NSTextAttachmentCell(imageCell: image)
+            let cell = ResizableImageAttachmentCell(image: image, displaySize: image.size)
             attachment.attachmentCell = cell
             let attributedString = NSAttributedString(attachment: attachment)
             createRichTextDocument(with: attributedString, isRTFD: true)

@@ -943,14 +943,20 @@ enum MarkdownParser {
 
             if let image = image {
                 let attachment = NSTextAttachment()
-                attachment.image = image
                 // 画像サイズを制限（幅最大600pt）
                 let maxWidth: CGFloat = 600.0
                 let imageSize = image.size
+                let displaySize: NSSize
                 if imageSize.width > maxWidth {
                     let scale = maxWidth / imageSize.width
-                    attachment.bounds = CGRect(x: 0, y: 0, width: maxWidth, height: imageSize.height * scale)
+                    displaySize = NSSize(width: maxWidth, height: imageSize.height * scale)
+                    attachment.bounds = CGRect(origin: .zero, size: displaySize)
+                } else {
+                    displaySize = imageSize
                 }
+                // ResizableImageAttachmentCellで統一（グレー枠を防止）
+                let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
+                attachment.attachmentCell = cell
                 let imageString = NSMutableAttributedString(attachment: attachment)
                 if let titleText = titleText {
                     imageString.addAttribute(.toolTip, value: titleText, range: NSRange(location: 0, length: imageString.length))

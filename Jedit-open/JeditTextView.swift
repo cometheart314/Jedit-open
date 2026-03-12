@@ -942,8 +942,8 @@ class JeditTextView: NSTextView {
             let ext = pboard.data(forType: .png) != nil ? "png" : "tiff"
             fileWrapper.preferredFilename = "image.\(ext)"
             attachment.fileWrapper = fileWrapper
-            // 表示用のセルを設定
-            let cell = NSTextAttachmentCell(imageCell: image)
+            // 表示用のセルを設定（ResizableImageAttachmentCellで統一し、グレー枠を防止）
+            let cell = ResizableImageAttachmentCell(image: image, displaySize: image.size)
             attachment.attachmentCell = cell
             let attrStr = NSAttributedString(attachment: attachment)
             let insertRange = selectedRange()
@@ -960,6 +960,13 @@ class JeditTextView: NSTextView {
         let fileWrapper = try? FileWrapper(url: url, options: .immediate)
         attachment.fileWrapper = fileWrapper
         attachment.fileWrapper?.preferredFilename = url.lastPathComponent
+
+        // 画像ファイルの場合はResizableImageAttachmentCellを設定（グレー枠を防止）
+        if let data = fileWrapper?.regularFileContents,
+           let image = NSImage(data: data) {
+            let cell = ResizableImageAttachmentCell(image: image, displaySize: image.size)
+            attachment.attachmentCell = cell
+        }
 
         let attrStr = NSAttributedString(attachment: attachment)
         let insertRange = NSRange(location: index, length: 0)
