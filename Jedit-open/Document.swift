@@ -298,9 +298,13 @@ class Document: NSDocument {
         set {
             guard let textView = currentTextView else { return }
             let range = textView.selectedRange()
-            textStorage.beginEditing()
-            textStorage.replaceCharacters(in: range, with: newValue)
-            textStorage.endEditing()
+            // Undo 可能にするため textView 経由で挿入する
+            if textView.shouldChangeText(in: range, replacementString: newValue.string) {
+                textStorage.beginEditing()
+                textStorage.replaceCharacters(in: range, with: newValue)
+                textStorage.endEditing()
+                textView.didChangeText()
+            }
             // 置き換え後、カーソルを置き換えテキストの末尾に移動
             textView.setSelectedRange(NSRange(location: range.location + newValue.length, length: 0))
         }
@@ -446,17 +450,25 @@ class Document: NSDocument {
         if key == "scriptingSelection" {
             guard let textView = currentTextView else { return }
             let range = textView.selectedRange()
-            textStorage.beginEditing()
+            let replacementString: String
             if let attrStr = value as? NSAttributedString {
-                textStorage.replaceCharacters(in: range, with: attrStr)
-                textStorage.endEditing()
-                textView.setSelectedRange(NSRange(location: range.location + attrStr.length, length: 0))
+                replacementString = attrStr.string
             } else if let str = value as? String {
-                textStorage.replaceCharacters(in: range, with: str)
-                textStorage.endEditing()
-                textView.setSelectedRange(NSRange(location: range.location + str.count, length: 0))
+                replacementString = str
             } else {
+                return
+            }
+            // Undo 可能にするため textView 経由で挿入する
+            if textView.shouldChangeText(in: range, replacementString: replacementString) {
+                textStorage.beginEditing()
+                if let attrStr = value as? NSAttributedString {
+                    textStorage.replaceCharacters(in: range, with: attrStr)
+                } else {
+                    textStorage.replaceCharacters(in: range, with: replacementString)
+                }
                 textStorage.endEditing()
+                textView.didChangeText()
+                textView.setSelectedRange(NSRange(location: range.location + replacementString.count, length: 0))
             }
             return
         }
