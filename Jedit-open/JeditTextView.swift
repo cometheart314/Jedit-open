@@ -370,13 +370,25 @@ class JeditTextView: NSTextView {
         return false
     }
 
+    /// ペーストボードにファイルURLが含まれているか判定
+    private func pasteboardContainsFileURL(_ pboard: NSPasteboard) -> Bool {
+        guard let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [
+            .urlReadingFileURLsOnly: true
+        ]) as? [URL] else { return false }
+        return !fileURLs.isEmpty
+    }
+
     /// ファイルURLドラッグ時のオペレーションを判定
     /// Ctrl押下時は.link（↩マーク）、通常はsuperの結果を使用
     private func dragOperationForFileDrop(_ sender: any NSDraggingInfo) -> NSDragOperation? {
-        guard pasteboardContainsDroppableTextFile(sender.draggingPasteboard) else { return nil }
         if NSApp.currentEvent?.modifierFlags.contains(.control) == true {
-            return .link
+            // Ctrl+ドロップ: 任意のファイル/フォルダでパス+リンク挿入
+            if pasteboardContainsFileURL(sender.draggingPasteboard) {
+                return .link
+            }
         }
+        // 通常ドロップ: テキストファイルのみ処理
+        guard pasteboardContainsDroppableTextFile(sender.draggingPasteboard) else { return nil }
         return nil
     }
 
@@ -409,9 +421,14 @@ class JeditTextView: NSTextView {
         return superResult
     }
 
-    /// ドロップ準備: テキスト/RTFファイルドロップを受け入れる
+    /// ドロップ準備: テキスト/RTFファイルドロップ、またはCtrl+ファイルドロップを受け入れる
     override func prepareForDragOperation(_ sender: any NSDraggingInfo) -> Bool {
         if pasteboardContainsDroppableTextFile(sender.draggingPasteboard) {
+            return true
+        }
+        // Ctrl+ファイルドロップ（任意のファイル/フォルダ）
+        if NSEvent.modifierFlags.contains(.control),
+           pasteboardContainsFileURL(sender.draggingPasteboard) {
             return true
         }
         return super.prepareForDragOperation(sender)
@@ -504,6 +521,20 @@ class JeditTextView: NSTextView {
         }
 
         // --- 以下は別書類・アプリ外からのドロップ、またはOption+ドラッグ（コピー）---
+
+        // Ctrl+ファイル/フォルダドロップ: フルパス名をリンク付きで挿入
+        if NSEvent.modifierFlags.contains(.control),
+           let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [
+               .urlReadingFileURLsOnly: true
+           ]) as? [URL], !fileURLs.isEmpty {
+            guard let dropIndex = characterIndex(for: sender) else {
+                return super.performDragOperation(sender)
+            }
+            for url in fileURLs {
+                insertFilePathWithLink(url, at: dropIndex)
+            }
+            return true
+        }
 
         // ファイルURLがドロップされた場合のテキストファイル/RTFファイル処理
         if let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [
@@ -971,6 +1002,24 @@ class JeditTextView: NSTextView {
         let attrStr = NSAttributedString(attachment: attachment)
         let insertRange = NSRange(location: index, length: 0)
         replaceString(in: insertRange, with: attrStr)
+    }
+
+    /// ファイル/フォルダのフルパスをリンク付きで挿入（Ctrl+ドロップ用）
+    /// プレーンテキストではパス文字列のみ、リッチテキストではfile:// URLリンク付きで挿入
+    private func insertFilePathWithLink(_ url: URL, at index: Int) {
+        let path = url.path
+        let insertRange = NSRange(location: index, length: 0)
+
+        if isPlainText {
+            replaceString(in: insertRange, with: path)
+        } else {
+            let fileURL = url.standardizedFileURL
+            // 現在のタイピング属性を継承してリンク属性を追加
+            var attrs = typingAttributes
+            attrs[.link] = fileURL
+            let attrStr = NSAttributedString(string: path, attributes: attrs)
+            replaceString(in: insertRange, with: attrStr)
+        }
     }
 
     // MARK: - Mouse Events

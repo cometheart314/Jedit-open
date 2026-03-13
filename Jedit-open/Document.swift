@@ -842,6 +842,10 @@ class Document: NSDocument {
                     self.applyAttachmentBoundsMetadata(boundsInfoList)
                 }
 
+                // すべての画像アタッチメントを ResizableImageAttachmentCell に変換
+                // （デフォルト NSTextAttachmentCell のグレー枠を防止）
+                self.convertAllImageAttachmentsToResizableCell()
+
                 // Document attributes から properties を取得して反映
                 if let attrs = documentAttributes as? [NSAttributedString.DocumentAttributeKey: Any] {
                     self.applyDocumentAttributesToProperties(attrs)
@@ -1103,6 +1107,58 @@ class Document: NSDocument {
         return boundsInfoList
     }
 
+    /// すべての画像アタッチメントのセルを ResizableImageAttachmentCell に変換する
+    /// macOS デフォルトの NSTextAttachmentCell はグレー枠を描画するため、
+    /// RTFD 読み込み後に呼び出してグレー枠を防止する
+    func convertAllImageAttachmentsToResizableCell() {
+        var replacements: [(range: NSRange, attachment: NSTextAttachment)] = []
+
+        textStorage.enumerateAttribute(.attachment, in: NSRange(location: 0, length: textStorage.length)) { value, range, _ in
+            guard let attachment = value as? NSTextAttachment else { return }
+            // すでに ResizableImageAttachmentCell の場合はスキップ
+            if attachment.attachmentCell is ResizableImageAttachmentCell { return }
+            // 画像データを持つアタッチメントのみ対象
+            guard let fileWrapper = attachment.fileWrapper,
+                  let data = fileWrapper.regularFileContents,
+                  let image = NSImage(data: data) else { return }
+            // ファイル拡張子で画像かどうかを判定
+            let imageExtensions = ["png", "jpg", "jpeg", "gif", "tiff", "tif", "bmp", "webp", "heic", "heif", "ico", "svg"]
+            if let filename = fileWrapper.preferredFilename,
+               let ext = filename.components(separatedBy: ".").last?.lowercased(),
+               !imageExtensions.contains(ext) {
+                return
+            }
+            replacements.append((range: range, attachment: attachment))
+        }
+
+        guard !replacements.isEmpty else { return }
+
+        // 後ろから置き換え（位置ずれ防止）
+        let sorted = replacements.sorted { $0.range.location > $1.range.location }
+
+        textStorage.beginEditing()
+        for item in sorted {
+            let newAttachment = NSTextAttachment()
+            newAttachment.fileWrapper = item.attachment.fileWrapper
+            newAttachment.bounds = item.attachment.bounds
+
+            if let data = item.attachment.fileWrapper?.regularFileContents,
+               let image = NSImage(data: data) {
+                let displaySize = item.attachment.bounds.size.width > 0 ? item.attachment.bounds.size : image.size
+                let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
+                newAttachment.attachmentCell = cell
+            }
+
+            // 元の属性（段落スタイル等）を保持してアタッチメントのみ置き換える
+            let originalAttrs = textStorage.attributes(at: UInt(item.range.location), effectiveRange: nil) as? [NSAttributedString.Key: Any] ?? [:]
+            var newAttrs = originalAttrs
+            newAttrs[NSAttributedString.Key.attachment] = newAttachment
+            let attachmentString = NSAttributedString(string: "\u{FFFC}", attributes: newAttrs)
+            textStorage.replaceCharacters(in: item.range, with: attachmentString)
+        }
+        textStorage.endEditing()
+    }
+
     /// 画像attachmentにbounds情報を適用
     func applyAttachmentBoundsMetadata(_ boundsInfoList: [AttachmentBoundsInfo]) {
         // attachmentを置き換えてboundsを適用する
@@ -1154,7 +1210,11 @@ class Document: NSDocument {
                 newAttachment.attachmentCell = cell
             }
 
-            let attachmentString = NSAttributedString(attachment: newAttachment)
+            // 元の属性（段落スタイル等）を保持してアタッチメントのみ置き換える
+            let originalAttrs = textStorage.attributes(at: UInt(replacement.range.location), effectiveRange: nil) as? [NSAttributedString.Key: Any] ?? [:]
+            var newAttrs = originalAttrs
+            newAttrs[NSAttributedString.Key.attachment] = newAttachment
+            let attachmentString = NSAttributedString(string: "\u{FFFC}", attributes: newAttrs)
             textStorage.replaceCharacters(in: replacement.range, with: attachmentString)
         }
         textStorage.endEditing()
@@ -1686,11 +1746,16 @@ class Document: NSDocument {
                     self.documentType = docType
                     self.textStorage.setAttributedString(attributedString)
 
+                    // すべての画像アタッチメントを ResizableImageAttachmentCell に変換
+                    // （デフォルト NSTextAttachmentCell のグレー枠を防止）
+                    if docType == .rtfd || docType == .rtf {
+                        self.convertAllImageAttachmentsToResizableCell()
+                    }
+
                     // Document attributes から properties を取得して反映
                     if let attrs = documentAttributes as? [NSAttributedString.DocumentAttributeKey: Any] {
                         self.applyDocumentAttributesToProperties(attrs)
                     }
-
 
                     NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
                 }
@@ -2332,6 +2397,7 @@ class Document: NSDocument {
         MainActor.assumeIsolated {
             self.documentType = .rtf
             self.textStorage.setAttributedString(result)
+            self.convertAllImageAttachmentsToResizableCell()
             self.presetData = NewDocData.richText
             self.isImportedDocument = true
 
@@ -2508,6 +2574,7 @@ class Document: NSDocument {
                 MainActor.assumeIsolated {
                     self.documentType = .rtfd
                     self.textStorage.setAttributedString(attributedString)
+                    self.convertAllImageAttachmentsToResizableCell()
                     self.presetData = NewDocData.richText
                     // 新規ファイルとして扱う（fileURLをnilに）
                     self.fileURL = nil
@@ -2523,6 +2590,7 @@ class Document: NSDocument {
             MainActor.assumeIsolated {
                 self.documentType = .rtf
                 self.textStorage.setAttributedString(attributedString)
+                self.convertAllImageAttachmentsToResizableCell()
                 self.presetData = NewDocData.richText
                 // 新規ファイルとして扱う（fileURLをnilに）
                 self.fileURL = nil
