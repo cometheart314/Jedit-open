@@ -335,6 +335,14 @@ class BookmarkDropFieldEditor: NSTextView {
                 return true
             }
         }
+        // Finder からのファイルドロップ: file:// URL を設定
+        if let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
+           let url = fileURLs.first,
+           let textField = delegate as? DroppableTextField {
+            textField.stringValue = url.absoluteString
+            LinkPanelController.shared.updateClearButtonVisibility()
+            return true
+        }
         return super.performDragOperation(sender)
     }
 }
@@ -350,12 +358,15 @@ class DroppableTextField: NSTextField {
 
     override func awakeFromNib() {
         super.awakeFromNib()
-        registerForDraggedTypes([bookmarkDragType])
+        registerForDraggedTypes([bookmarkDragType, .fileURL])
     }
 
     override func draggingEntered(_ sender: NSDraggingInfo) -> NSDragOperation {
         let pboard = sender.draggingPasteboard
         if pboard.string(forType: bookmarkDragType) != nil {
+            return .copy
+        }
+        if pboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] != nil {
             return .copy
         }
         return super.draggingEntered(sender)
@@ -366,6 +377,9 @@ class DroppableTextField: NSTextField {
         if pboard.string(forType: bookmarkDragType) != nil {
             return .copy
         }
+        if pboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL] != nil {
+            return .copy
+        }
         return super.draggingUpdated(sender)
     }
 
@@ -374,6 +388,13 @@ class DroppableTextField: NSTextField {
         if let uuid = pboard.string(forType: bookmarkDragType) {
             stringValue = uuid
             onDrop?(uuid)
+            LinkPanelController.shared.updateClearButtonVisibility()
+            return true
+        }
+        // Finder からのファイルドロップ: file:// URL を設定
+        if let fileURLs = pboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL],
+           let url = fileURLs.first {
+            stringValue = url.absoluteString
             LinkPanelController.shared.updateClearButtonVisibility()
             return true
         }
