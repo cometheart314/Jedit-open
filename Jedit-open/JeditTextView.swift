@@ -62,6 +62,9 @@ class JeditTextView: NSTextView {
     /// 英語と日本語の間にスペースを自動挿入するかどうか
     var isSmartSeparationEnglishJapaneseEnabled: Bool = false
 
+    /// mouseDown 中の不要な scrollRangeToVisible を抑制するフラグ
+    private var suppressScrollRangeToVisible = false
+
     /// SmartLanguageSeparation インスタンスへのアクセス
     private var smartLanguageSeparation: SmartLanguageSeparation? {
         return (textStorage?.delegate as? FontFallbackRecoveryDelegate)?.smartLanguageSeparation
@@ -1071,7 +1074,15 @@ class JeditTextView: NSTextView {
         }
 
         // Not an attachment double-click, proceed with normal behavior
+        // mouseDown 中の不要な自動スクロールを抑制して画面揺れを防止
+        suppressScrollRangeToVisible = true
         super.mouseDown(with: event)
+        suppressScrollRangeToVisible = false
+    }
+
+    override func scrollRangeToVisible(_ range: NSRange) {
+        if suppressScrollRangeToVisible { return }
+        super.scrollRangeToVisible(range)
     }
 
     /// 指定座標にあるNSTextAttachmentを取得

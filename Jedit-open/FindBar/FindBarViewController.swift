@@ -36,6 +36,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     private let regexToggle = NSButton()
     private let regexHelpButton = NSButton()
     private let wholeWordToggle = NSButton()
+    private let wrapAroundToggle = NSButton()
     private let doneButton = NSButton()
 
     // Replace row
@@ -156,6 +157,12 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         highlightManager.clearAllHighlights()
         currentResult = .empty
         updateMatchCountLabel()
+
+        // テキスト変更の監視を解除（検索バーを閉じた後にインクリメンタルサーチが発動するのを防止）
+        if let observer = textStorageObserver {
+            NotificationCenter.default.removeObserver(observer)
+            textStorageObserver = nil
+        }
     }
 
     // MARK: - Actions
@@ -271,6 +278,12 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         UserDefaults.standard.set(sender.state == .on, forKey: UserDefaults.Keys.findWholeWord)
         updateToggleAppearance(sender)
         performIncrementalSearch()
+    }
+
+    @objc private func toggleWrapAround(_ sender: NSButton) {
+        findEngine.options.wrapAround = (sender.state == .on)
+        UserDefaults.standard.set(sender.state == .on, forKey: UserDefaults.Keys.findWrapAround)
+        updateToggleAppearance(sender)
     }
 
     /// NSSearchField のアクション（Recent Searches メニューから選択された時に呼ばれる）
@@ -956,10 +969,12 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         regexToggle.state = findEngine.options.useRegex ? .on : .off
         wholeWordToggle.state = findEngine.options.wholeWord ? .on : .off
         wholeWordToggle.isEnabled = !findEngine.options.useRegex
+        wrapAroundToggle.state = findEngine.options.wrapAround ? .on : .off
 
         updateToggleAppearance(caseSensitiveToggle)
         updateToggleAppearance(regexToggle)
         updateToggleAppearance(wholeWordToggle)
+        updateToggleAppearance(wrapAroundToggle)
 
         // Find Pasteboard から検索テキストを読み込み
         if let findString = NSPasteboard(name: .find).string(forType: .string) {
@@ -1015,6 +1030,15 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         matchCountLabel.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         matchCountLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
         findRow.addSubview(matchCountLabel)
+
+        // Wrap Around Toggle（SF Symbol アイコン）
+        configureToggle(wrapAroundToggle, title: "", action: #selector(toggleWrapAround(_:)), toolTip: "Wrap Around".localized)
+        if let wrapImage = NSImage(systemSymbolName: "arrow.2.squarepath", accessibilityDescription: "Wrap Around") {
+            let config = NSImage.SymbolConfiguration(pointSize: 10, weight: .medium)
+            wrapAroundToggle.image = wrapImage.withSymbolConfiguration(config)
+            wrapAroundToggle.imagePosition = .imageOnly
+        }
+        findRow.addSubview(wrapAroundToggle)
 
         // Case Sensitive Toggle
         configureToggle(caseSensitiveToggle, title: "Aa", action: #selector(toggleCaseSensitive(_:)), toolTip: "Match Case".localized)
@@ -1113,7 +1137,10 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             matchCountLabel.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
             matchCountLabel.widthAnchor.constraint(greaterThanOrEqualToConstant: 30),
 
-            caseSensitiveToggle.leadingAnchor.constraint(equalTo: matchCountLabel.trailingAnchor, constant: 6),
+            wrapAroundToggle.leadingAnchor.constraint(equalTo: matchCountLabel.trailingAnchor, constant: 6),
+            wrapAroundToggle.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
+
+            caseSensitiveToggle.leadingAnchor.constraint(equalTo: wrapAroundToggle.trailingAnchor, constant: 2),
             caseSensitiveToggle.centerYAnchor.constraint(equalTo: findRow.centerYAnchor),
 
             wholeWordToggle.leadingAnchor.constraint(equalTo: caseSensitiveToggle.trailingAnchor, constant: 2),
