@@ -38,7 +38,7 @@
 "cel-link-001.title" = "スマートリンク";
 
 /* Class = "NSButtonCell"; title = "Open Markdown files as plain text"; ObjectID = "cel-md-plain-001"; */
-"cel-md-plain-001.title" = "Markdownファイルを標準テキストとして開く";
+"cel-md-plain-001.title" = "Markdownファイルをプレーンテキストとして開く";
 
 /* Class = "NSButtonCell"; title = "Smart quotes"; ObjectID = "cel-quot-001"; */
 "cel-quot-001.title" = "スマート引用符";
@@ -53,7 +53,7 @@
 "cel-rtlm-001.title" = "リッチテキストを常にライトモードで表示";
 
 /* Class = "NSButtonCell"; title = "Smart separation between English and Japanese"; ObjectID = "cel-sep-001"; */
-"cel-sep-001.title" = "英語と日本語の間を自動的に分離";
+"cel-sep-001.title" = "スマート日欧分離";
 
 /* Class = "NSButtonCell"; title = "Check spelling as you type"; ObjectID = "cel-spell-001"; */
 "cel-spell-001.title" = "入力中にスペルをチェック";
