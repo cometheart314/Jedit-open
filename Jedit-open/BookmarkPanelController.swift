@@ -562,6 +562,8 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
     func outlineViewSelectionDidChange(_ notification: Notification) {
         // リロード中（書類切替時など）は選択変更を無視
         guard !isReloading else { return }
+        // Optionキーを押しながらクリックした場合はジャンプせず選択のみ
+        guard !NSEvent.modifierFlags.contains(.option) else { return }
         guard let bookmark = selectedBookmark(),
               let document = currentDocument() else { return }
         document.selectAnchor(identifier: bookmark.uuid)

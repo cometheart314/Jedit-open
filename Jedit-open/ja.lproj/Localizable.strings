@@ -176,10 +176,10 @@
 /* Document Info Panel - Row Names */
 "Location" = "位置";
 "Characters" = "文字数";
-"Visible Chars" = "表示文字数";
-"Words" = "単語数";
+"Visible Chars" = "原稿文字数";
+"Words" = "ワード数";
 "Rows" = "行数";
-"Paragraphs" = "段落数";
+"Paragraphs" = "パラグラフ数";
 "Pages" = "ページ数";
 "Char. Code" = "文字コード";
 
@@ -231,7 +231,7 @@
 "Writing Progress - Click to set goal" = "執筆の進捗 - クリックして目標を設定";
 "Writing Progress - No goal set" = "執筆の進捗 - 目標未設定";
 "Click to cycle through statistics" = "クリックして統計を切り替え";
-"Visible Characters" = "表示文字数";
+"Visible Characters" = "原稿文字数";
 "Manuscript Pages (400 chars)" = "原稿用紙（400字）";
 "Paragraph Number" = "段落数";
 "Row Number" = "行数";
@@ -524,3 +524,13 @@
 /* Preferences - Tab Width Description */
 "tab code will be inserted by tab key." = "タブコードがTabキーで挿入されます。";
 "space chars. will be inserted by tab key." = "個のスペースがTabキーで挿入されます。";
+
+/* Settings Export / Import / Revert */
+"Export All Settings" = "すべての設定を書き出す";
+"Import All Settings" = "すべての設定を読み込む";
+"Revert All Settings to Factory Settings" = "すべての設定を工場出荷時に戻す";
+"Import Failed" = "読み込みに失敗";
+"The selected file is not a valid settings file." = "選択されたファイルは有効な設定ファイルではありません。";
+"Current settings will be overwritten. Jedit will quit after importing. Do you want to continue?" = "現在の設定が上書きされます。読み込み後、Jeditは終了します。続けますか？";
+"All settings will be reset to their default values. Jedit will quit after resetting. This cannot be undone." = "すべての設定がデフォルト値にリセットされます。リセット後、Jeditは終了します。この操作は元に戻せません。";
+"Revert" = "元に戻す";

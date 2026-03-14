@@ -61,8 +61,14 @@
 /* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "goO-rC-gEl"; */
 "goO-rC-gEl.title" = "デフォルトに戻す";
 
-/* Class = "NSButtonCell"; title = "Revert to Defaults"; ObjectID = "le4-JR-wPb"; */
-"le4-JR-wPb.title" = "デフォルトに戻す";
+/* Class = "NSButtonCell"; title = "Export All Settings"; ObjectID = "cel-export-all"; */
+"cel-export-all.title" = "すべての設定を書き出す";
+
+/* Class = "NSButtonCell"; title = "Import All Settings"; ObjectID = "cel-import-all"; */
+"cel-import-all.title" = "すべての設定を読み込む";
+
+/* Class = "NSButtonCell"; title = "Revert All Settings to Factory Settings"; ObjectID = "cel-revert-factory"; */
+"cel-revert-factory.title" = "すべての設定を工場出荷時に戻す";
 
 /* Class = "NSTextFieldCell"; title = "Auto Start at Login"; ObjectID = "mKV-F1-JbX"; */
 "mKV-F1-JbX.title" = "ログイン時に自動起動";

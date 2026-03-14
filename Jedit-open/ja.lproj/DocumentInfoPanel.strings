@@ -32,7 +32,7 @@
 "kLl-fK-Qoo.title" = "エンコーディング:";
 
 /* Class = "NSButtonCell"; title = "Visibles: Count as 0.5 char. for half-width characters."; ObjectID = "nOi-RP-5go"; */
-"nOi-RP-5go.title" = "表示文字数: 半角文字を0.5文字として数える";
+"nOi-RP-5go.title" = "原稿文字数: 半角文字を0.5文字として数える";
 
 /* Class = "NSTextFieldCell"; title = "Document Type:"; ObjectID = "zVu-5U-5Vm"; */
 "zVu-5U-5Vm.title" = "書類タイプ:";

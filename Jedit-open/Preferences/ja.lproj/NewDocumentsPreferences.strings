@@ -404,7 +404,7 @@
 "wUd-1y-hBP.title" = "書類の幅:";
 
 /* Class = "NSMenuItem"; title = "Visible Characters"; ObjectID = "wg-item0"; */
-"wg-item0.title" = "表示文字数";
+"wg-item0.title" = "原稿文字数";
 
 /* Class = "NSMenuItem"; title = "Manuscript Pages (400 chars)"; ObjectID = "wg-item1"; */
 "wg-item1.title" = "原稿用紙（400字）";

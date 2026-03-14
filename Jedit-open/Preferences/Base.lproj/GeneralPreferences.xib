@@ -383,18 +383,46 @@
                                             <action selector="openMarkdownAsPlainTextClicked:" target="-2" id="act-md-plain-001"/>
                                         </connections>
                                     </button>
-                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="S47-8L-S8s">
-                                        <rect key="frame" x="20" y="17" width="167" height="24"/>
-                                        <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="le4-JR-wPb">
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-export-all">
+                                        <rect key="frame" x="20" y="83" width="280" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Export All Settings" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cel-export-all">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
                                         </buttonCell>
                                         <constraints>
-                                            <constraint firstAttribute="height" constant="24" id="Tvy-QH-t3K"/>
-                                            <constraint firstAttribute="width" constant="167" id="gkO-OH-eCR"/>
+                                            <constraint firstAttribute="height" constant="24" id="h-export-all"/>
+                                            <constraint firstAttribute="width" constant="280" id="w-export-all"/>
                                         </constraints>
                                         <connections>
-                                            <action selector="revertAdvancedToDefaults:" target="-2" id="act-revert-advanced"/>
+                                            <action selector="exportAllSettings:" target="-2" id="act-export-all"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-import-all">
+                                        <rect key="frame" x="20" y="53" width="280" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Import All Settings" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cel-import-all">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="24" id="h-import-all"/>
+                                            <constraint firstAttribute="width" constant="280" id="w-import-all"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="importAllSettings:" target="-2" id="act-import-all"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-revert-factory">
+                                        <rect key="frame" x="20" y="17" width="280" height="24"/>
+                                        <buttonCell key="cell" type="push" title="Revert All Settings to Factory Settings" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cel-revert-factory">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="24" id="h-revert-factory"/>
+                                            <constraint firstAttribute="width" constant="280" id="w-revert-factory"/>
+                                        </constraints>
+                                        <connections>
+                                            <action selector="revertAllSettingsToFactory:" target="-2" id="act-revert-factory"/>
                                         </connections>
                                     </button>
                                     <textField horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="koB-SS-CaL">
@@ -408,8 +436,12 @@
                                     </textField>
                                 </subviews>
                                 <constraints>
-                                    <constraint firstItem="S47-8L-S8s" firstAttribute="leading" secondItem="view-advanced-001" secondAttribute="leading" constant="20" symbolic="YES" id="W5b-hh-gDX"/>
-                                    <constraint firstAttribute="bottom" secondItem="S47-8L-S8s" secondAttribute="bottom" constant="17" id="wVf-j1-yHW"/>
+                                    <constraint firstItem="btn-export-all" firstAttribute="leading" secondItem="view-advanced-001" secondAttribute="leading" constant="20" symbolic="YES" id="lead-export"/>
+                                    <constraint firstItem="btn-import-all" firstAttribute="leading" secondItem="view-advanced-001" secondAttribute="leading" constant="20" symbolic="YES" id="lead-import"/>
+                                    <constraint firstItem="btn-revert-factory" firstAttribute="leading" secondItem="view-advanced-001" secondAttribute="leading" constant="20" symbolic="YES" id="lead-revert"/>
+                                    <constraint firstAttribute="bottom" secondItem="btn-revert-factory" secondAttribute="bottom" constant="17" id="bot-revert"/>
+                                    <constraint firstItem="btn-import-all" firstAttribute="top" secondItem="btn-revert-factory" secondAttribute="top" constant="-30" id="gap-revert-import"/>
+                                    <constraint firstItem="btn-export-all" firstAttribute="top" secondItem="btn-import-all" secondAttribute="top" constant="-30" id="gap-import-export"/>
                                 </constraints>
                             </view>
                         </tabViewItem>

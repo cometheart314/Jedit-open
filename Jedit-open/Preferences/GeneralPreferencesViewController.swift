@@ -7,6 +7,7 @@
 
 import Cocoa
 import ServiceManagement
+import UniformTypeIdentifiers
 
 // MARK: - GeneralPreferencesViewController
 
@@ -390,22 +391,171 @@ class GeneralPreferencesViewController: NSViewController {
         )
     }
 
-    @IBAction func revertAdvancedToDefaults(_ sender: Any) {
-        // Reset all Advanced tab settings to defaults
-        defaults.set(false, forKey: UserDefaults.Keys.autoStartOption)
-        defaults.set(0, forKey: UserDefaults.Keys.startupOption)
-        defaults.set(false, forKey: UserDefaults.Keys.openMarkdownAsPlainText)
+    // MARK: - Export / Import / Revert All Settings
 
-        // Update UI
-        autoStartCheckBox?.state = .off
-        startupOptionPopupButton?.selectItem(withTag: 0)
-        openMarkdownAsPlainTextCheckBox?.state = .off
+    /// すべてのアプリ設定キーの一覧
+    private static var allSettingsKeys: [String] {
+        return [
+            // 一般設定
+            UserDefaults.Keys.autoStartOption,
+            UserDefaults.Keys.startupOption,
+            UserDefaults.Keys.appearanceOption,
+            UserDefaults.Keys.richTextAlwaysUsesLightMode,
+            UserDefaults.Keys.scaleMenuArray,
+            UserDefaults.Keys.infoFieldRow,
+            UserDefaults.Keys.dateFormatType,
+            UserDefaults.Keys.timeFormatType,
+            UserDefaults.Keys.customDateFormat,
+            UserDefaults.Keys.customTimeFormat,
+            // テキスト編集
+            UserDefaults.Keys.checkSpellingAsYouType,
+            UserDefaults.Keys.checkGrammarWithSpelling,
+            UserDefaults.Keys.dataDetectors,
+            UserDefaults.Keys.smartLinks,
+            UserDefaults.Keys.smartSeparationEnglishJapanese,
+            UserDefaults.Keys.smartCopyPaste,
+            UserDefaults.Keys.dontShowContextMenuDefaultItems,
+            UserDefaults.Keys.richTextSubstitutionsEnabled,
+            UserDefaults.Keys.textReplacements,
+            UserDefaults.Keys.smartQuotes,
+            UserDefaults.Keys.smartDashes,
+            UserDefaults.Keys.correctSpellingAutomatically,
+            // エンコーディング
+            UserDefaults.Keys.enabledEncodings,
+            UserDefaults.Keys.defaultEncoding,
+            UserDefaults.Keys.plainTextEncodingForRead,
+            UserDefaults.Keys.plainTextEncodingForWrite,
+            UserDefaults.Keys.plainTextLineEndingForWrite,
+            UserDefaults.Keys.plainTextBomForWrite,
+            UserDefaults.Keys.convertYenToBackSlash,
+            UserDefaults.Keys.convertOverlineToTilde,
+            UserDefaults.Keys.convertFullWidthTilde,
+            "Encodings",  // EncodingManager のエンコーディングリスト
+            // Markdown
+            UserDefaults.Keys.openMarkdownAsPlainText,
+            // 禁則処理
+            UserDefaults.Keys.cantBeTopChars,
+            UserDefaults.Keys.cantBeEndChars,
+            UserDefaults.Keys.burasagariChars,
+            UserDefaults.Keys.cantSeparateChars,
+            // コンテキストメニュー
+            UserDefaults.Keys.hiddenContextMenuActions,
+            // 検索バー
+            UserDefaults.Keys.findSearchHistory,
+            UserDefaults.Keys.findReplaceHistory,
+            UserDefaults.Keys.findRecentSearchEntries,
+            UserDefaults.Keys.findSavedPatterns,
+            UserDefaults.Keys.findCaseSensitive,
+            UserDefaults.Keys.findUseRegex,
+            UserDefaults.Keys.findWholeWord,
+            UserDefaults.Keys.findWrapAround,
+            // 新規書類プリセット (DocumentPresetManager)
+            "documentPresets",
+            "selectedDocumentPresetID",
+            // テーマカラー (JOThemeColorPopupButton)
+            "userThemeArray",
+            // 書類情報パネル
+            "DocumentInfoCountHalfAs05",
+        ]
+    }
 
-        // Unregister from login items
-        do {
-            try SMAppService.mainApp.unregister()
-        } catch {
-            // Ignore errors - might not be registered
+    @IBAction func exportAllSettings(_ sender: Any) {
+        let savePanel = NSSavePanel()
+        savePanel.title = NSLocalizedString("Export All Settings", comment: "")
+        savePanel.nameFieldStringValue = "JeditSettings.plist"
+        savePanel.allowedContentTypes = [.propertyList]
+
+        guard let window = self.view.window else { return }
+        savePanel.beginSheetModal(for: window) { response in
+            guard response == .OK, let url = savePanel.url else { return }
+
+            var dict = [String: Any]()
+            for key in Self.allSettingsKeys {
+                if let value = self.defaults.object(forKey: key) {
+                    dict[key] = value
+                }
+            }
+
+            let plistData = NSDictionary(dictionary: dict)
+            plistData.write(to: url, atomically: true)
+        }
+    }
+
+    @IBAction func importAllSettings(_ sender: Any) {
+        let openPanel = NSOpenPanel()
+        openPanel.title = NSLocalizedString("Import All Settings", comment: "")
+        openPanel.allowedContentTypes = [.propertyList]
+        openPanel.allowsMultipleSelection = false
+
+        guard let window = self.view.window else { return }
+        openPanel.beginSheetModal(for: window) { response in
+            guard response == .OK, let url = openPanel.url else { return }
+            guard let dict = NSDictionary(contentsOf: url) as? [String: Any] else {
+                let alert = NSAlert()
+                alert.messageText = NSLocalizedString("Import Failed", comment: "")
+                alert.informativeText = NSLocalizedString("The selected file is not a valid settings file.", comment: "")
+                alert.alertStyle = .warning
+                alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+                alert.beginSheetModal(for: window, completionHandler: nil)
+                return
+            }
+
+            // 確認アラートを表示
+            let confirm = NSAlert()
+            confirm.messageText = NSLocalizedString("Import All Settings", comment: "")
+            confirm.informativeText = NSLocalizedString("Current settings will be overwritten. Jedit will quit after importing. Do you want to continue?", comment: "")
+            confirm.alertStyle = .warning
+            confirm.addButton(withTitle: NSLocalizedString("Continue", comment: ""))
+            confirm.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+            confirm.beginSheetModal(for: window) { confirmResponse in
+                guard confirmResponse == .alertFirstButtonReturn else { return }
+
+                for (key, value) in dict {
+                    self.defaults.set(value, forKey: key)
+                }
+
+                // インポートした設定を確実にディスクに書き込む
+                self.defaults.synchronize()
+
+                // メモリ上のキャッシュと競合するため、アプリを終了する
+                NSApplication.shared.terminate(nil)
+            }
+        }
+    }
+
+    @IBAction func revertAllSettingsToFactory(_ sender: Any) {
+        guard let window = self.view.window else { return }
+
+        let alert = NSAlert()
+        alert.messageText = NSLocalizedString("Revert All Settings to Factory Settings", comment: "")
+        alert.informativeText = NSLocalizedString("All settings will be reset to their default values. Jedit will quit after resetting. This cannot be undone.", comment: "")
+        alert.alertStyle = .critical
+        alert.addButton(withTitle: NSLocalizedString("Revert", comment: ""))
+        alert.addButton(withTitle: NSLocalizedString("Cancel", comment: ""))
+
+        alert.beginSheetModal(for: window) { response in
+            guard response == .alertFirstButtonReturn else { return }
+
+            // すべての設定キーを削除
+            for key in Self.allSettingsKeys {
+                self.defaults.removeObject(forKey: key)
+            }
+
+            // デフォルト値を再登録
+            UserDefaults.registerDefaults()
+
+            // ログインアイテムの登録を解除
+            do {
+                try SMAppService.mainApp.unregister()
+            } catch {
+                // エラーは無視 - 登録されていない可能性がある
+            }
+
+            // 設定を確実にディスクに書き込む
+            self.defaults.synchronize()
+
+            // メモリ上のキャッシュと競合するため、アプリを終了する
+            NSApplication.shared.terminate(nil)
         }
     }
 
