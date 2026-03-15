@@ -4882,6 +4882,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // replaceStringを使って置換（Undo対応）
         textView.replaceString(in: targetRange, with: mutableString)
+
+        // タイピングアトリビュートも更新（新規入力文字に反映）
+        var attrs = textView.typingAttributes
+        if hasUnderline {
+            attrs.removeValue(forKey: .underlineStyle)
+        } else {
+            attrs[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        }
+        textView.typingAttributes = attrs
     }
 
     // MARK: - Kern Support
@@ -4906,6 +4915,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // replaceStringを使って置換（Undo対応）
         textView.replaceString(in: targetRange, with: mutableString)
+
+        // タイピングアトリビュートも更新
+        var attrs = textView.typingAttributes
+        if let kernValue = value {
+            attrs[.kern] = kernValue
+        } else {
+            attrs.removeValue(forKey: .kern)
+        }
+        textView.typingAttributes = attrs
     }
 
     /// プレーンテキスト全文のカーニングを調整（Undo/Redo対応）
@@ -4926,6 +4944,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // replaceStringを使って置換（Undo対応）
         textView.replaceString(in: targetRange, with: mutableString)
+
+        // タイピングアトリビュートも更新
+        var attrs = textView.typingAttributes
+        attrs[.kern] = newKern
+        textView.typingAttributes = attrs
     }
 
     // MARK: - Ligature Support
@@ -4944,6 +4967,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // replaceStringを使って置換（Undo対応）
         textView.replaceString(in: targetRange, with: mutableString)
+
+        // タイピングアトリビュートも更新
+        var attrs = textView.typingAttributes
+        attrs[.ligature] = value
+        textView.typingAttributes = attrs
     }
 
     // MARK: - Text Alignment Support
@@ -4986,6 +5014,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // replaceStringを使って置換（Undo対応）
         textView.replaceString(in: targetRange, with: mutableString)
+
+        // タイピングアトリビュートも更新
+        var attrs = textView.typingAttributes
+        attrs[.foregroundColor] = color
+        textView.typingAttributes = attrs
     }
 
     /// プレーンテキスト全文に背景色を適用（Undo/Redo対応）
@@ -5008,6 +5041,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // replaceStringを使って置換（Undo対応）
         textView.replaceString(in: targetRange, with: mutableString)
+
+        // タイピングアトリビュートも更新
+        var attrs = textView.typingAttributes
+        if let color = color {
+            attrs[.backgroundColor] = color
+        } else {
+            attrs.removeValue(forKey: .backgroundColor)
+        }
+        textView.typingAttributes = attrs
     }
 
     // MARK: - Auto Indent
