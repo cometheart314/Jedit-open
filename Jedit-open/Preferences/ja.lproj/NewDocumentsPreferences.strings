@@ -140,7 +140,7 @@
 "Hag-Q9-5jz.title" = "作成者";
 
 /* Class = "NSButtonCell"; title = "Plain Text"; ObjectID = "Hj5-2U-yY3"; */
-"Hj5-2U-yY3.title" = "標準テキスト";
+"Hj5-2U-yY3.title" = "プレーンテキスト";
 
 /* Class = "NSMenuItem"; title = "Company"; ObjectID = "Hpe-Of-hvq"; */
 "Hpe-Of-hvq.title" = "会社名";
@@ -248,7 +248,7 @@
 "XL3-mP-Zxz.title" = "センチメートル";
 
 /* Class = "NSButtonCell"; title = "Indent wrapped lines of Plain Text by: "; ObjectID = "Zfk-ZN-REq"; */
-"Zfk-ZN-REq.title" = "標準テキストの折り返し行のインデント: ";
+"Zfk-ZN-REq.title" = "プレーンテキストの折り返し行のインデント: ";
 
 /* Class = "NSTextFieldCell"; title = "Top"; ObjectID = "a2L-lc-tad"; */
 "a2L-lc-tad.title" = "上";

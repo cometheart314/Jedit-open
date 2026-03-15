@@ -33,10 +33,10 @@
 "Show Hidden Files" = "不可視ファイルを表示";
 
 /* Document Types */
-"Make Plain Text" = "標準テキストにする";
+"Make Plain Text" = "プレーンテキストにする";
 "Make Rich Text" = "リッチテキストにする";
-"Convert this document to plain text?" = "この書類を標準テキストに変換しますか？";
-"Making a rich text document plain will lose all text styles (such as fonts and colors), and images." = "リッチテキストを標準テキストにすると、フォントやカラーなどのテキストスタイル、および画像がすべて失われます。";
+"Convert this document to plain text?" = "この書類をプレーンテキストに変換しますか？";
+"Making a rich text document plain will lose all text styles (such as fonts and colors), and images." = "リッチテキストをプレーンテキストにすると、フォントやカラーなどのテキストスタイル、および画像がすべて失われます。";
 "Convert this document to RTFD format?" = "この書類をRTFDフォーマットに変換しますか？";
 "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?" = "この書類にはグラフィックスまたは添付ファイルが含まれているため、RTFD（グラフィックス付きRTF）フォーマットで保存されます。RTFD書類は一部のアプリケーションと互換性がない場合があります。変換しますか？";
 "This document was imported from a format with limited compatibility. Some formatting may not be fully preserved when saved." = "この書類は互換性が限定的なフォーマットから読み込まれました。保存時に一部のフォーマットが完全に保持されない場合があります。";
@@ -120,7 +120,7 @@
 "Other Color..." = "その他のカラー...";
 "Other Color…" = "その他のカラー…";
 "Color Change Not Allowed" = "カラーの変更ができません";
-"Character colors cannot be changed in plain text documents. To change colors, convert the document to Rich Text format." = "標準テキスト書類では文字カラーを変更できません。カラーを変更するには、書類をリッチテキストフォーマットに変換してください。";
+"Character colors cannot be changed in plain text documents. To change colors, convert the document to Rich Text format." = "プレーンテキスト書類では文字カラーを変更できません。カラーを変更するには、書類をリッチテキストフォーマットに変換してください。";
 
 /* Color Names - Fore */
 "Text Color" = "テキストカラー";
@@ -256,12 +256,12 @@
 
 /* Plain Text Warnings */
 "Text Alignment" = "テキストの配置";
-"In plain text documents, alignment changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、配置の変更が書類全体に適用されます。続けますか？";
-"In plain text documents, color changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、カラーの変更が書類全体に適用されます。続けますか？";
-"In plain text documents, font changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、フォントの変更が書類全体に適用されます。続けますか？";
-"In plain text documents, kerning changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、カーニングの変更が書類全体に適用されます。続けますか？";
-"In plain text documents, ligature changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、合字の変更が書類全体に適用されます。続けますか？";
-"In plain text documents, underline changes apply to the entire document. Do you want to continue?" = "標準テキスト書類では、下線の変更が書類全体に適用されます。続けますか？";
+"In plain text documents, alignment changes apply to the entire document. Do you want to continue?" = "プレーンテキスト書類では、配置の変更が書類全体に適用されます。続けますか？";
+"In plain text documents, color changes apply to the entire document. Do you want to continue?" = "プレーンテキスト書類では、カラーの変更が書類全体に適用されます。続けますか？";
+"In plain text documents, font changes apply to the entire document. Do you want to continue?" = "プレーンテキスト書類では、フォントの変更が書類全体に適用されます。続けますか？";
+"In plain text documents, kerning changes apply to the entire document. Do you want to continue?" = "プレーンテキスト書類では、カーニングの変更が書類全体に適用されます。続けますか？";
+"In plain text documents, ligature changes apply to the entire document. Do you want to continue?" = "プレーンテキスト書類では、合字の変更が書類全体に適用されます。続けますか？";
+"In plain text documents, underline changes apply to the entire document. Do you want to continue?" = "プレーンテキスト書類では、下線の変更が書類全体に適用されます。続けますか？";
 "Are you sure?" = "よろしいですか？";
 
 /* Kern / Ligatures / Underline */
@@ -270,7 +270,7 @@
 "Underline" = "下線";
 
 /* Lists */
-"Lists cannot be used in plain text documents. To use lists, convert the document to Rich Text format." = "標準テキスト書類ではリストを使用できません。リストを使用するには、書類をリッチテキストフォーマットに変換してください。";
+"Lists cannot be used in plain text documents. To use lists, convert the document to Rich Text format." = "プレーンテキスト書類ではリストを使用できません。リストを使用するには、書類をリッチテキストフォーマットに変換してください。";
 
 /* Special Characters */
 "Special Characters" = "特殊文字";
