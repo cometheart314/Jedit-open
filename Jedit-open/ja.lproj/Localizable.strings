@@ -322,6 +322,13 @@
 "Rename Preset" = "プリセット名の変更";
 "Enter a new name for the preset:" = "プリセットの新しい名前を入力してください：";
 
+/* Document Type Edit Panel */
+"Edit Document Type" = "書類タイプの編集";
+"Document Type Name:" = "書類タイプ:";
+"UTI:" = "UTI:";
+"Regex:" = "正規表現:";
+"Sample UTIs" = "サンプルUTI";
+
 /* Theme */
 "Theme" = "テーマ";
 "Add Theme" = "テーマを追加";

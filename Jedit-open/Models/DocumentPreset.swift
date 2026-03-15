@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import UniformTypeIdentifiers
 
 // MARK: - Notification Names
 
@@ -21,12 +22,33 @@ struct DocumentPreset: Codable, Equatable, Identifiable {
     var name: String
     var data: NewDocData
     var isBuiltIn: Bool
+    var uti: String      // 対応UTI（例: "public.text"）
+    var regex: String    // ファイル名マッチング用正規表現（例: "\.py$"）
 
-    init(id: UUID = UUID(), name: String, data: NewDocData, isBuiltIn: Bool = false) {
+    init(id: UUID = UUID(), name: String, data: NewDocData, isBuiltIn: Bool = false,
+         uti: String = "", regex: String = "") {
         self.id = id
         self.name = name
         self.data = data
         self.isBuiltIn = isBuiltIn
+        self.uti = uti
+        self.regex = regex
+    }
+
+    // MARK: - Codable（既存保存データとの後方互換性）
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, data, isBuiltIn, uti, regex
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        name = try container.decode(String.self, forKey: .name)
+        data = try container.decode(NewDocData.self, forKey: .data)
+        isBuiltIn = try container.decode(Bool.self, forKey: .isBuiltIn)
+        uti = try container.decodeIfPresent(String.self, forKey: .uti) ?? ""
+        regex = try container.decodeIfPresent(String.self, forKey: .regex) ?? ""
     }
 
     /// 表示用のローカライズ済み名前
@@ -45,7 +67,9 @@ struct DocumentPreset: Codable, Equatable, Identifiable {
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000001")!,
             name: "Default",
             data: .default,
-            isBuiltIn: true
+            isBuiltIn: true,
+            uti: "",
+            regex: ""
         )
     }
 
@@ -54,7 +78,9 @@ struct DocumentPreset: Codable, Equatable, Identifiable {
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000002")!,
             name: "Plain Text",
             data: .plainText,
-            isBuiltIn: true
+            isBuiltIn: true,
+            uti: "public.text",
+            regex: ""
         )
     }
 
@@ -63,7 +89,9 @@ struct DocumentPreset: Codable, Equatable, Identifiable {
             id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
             name: "Rich Text",
             data: .richText,
-            isBuiltIn: true
+            isBuiltIn: true,
+            uti: "public.rtf",
+            regex: ""
         )
     }
 
@@ -96,8 +124,11 @@ class DocumentPresetManager {
             var result: [DocumentPreset] = []
 
             // ビルトインプリセットを追加（保存されたデータで上書き可能）
+            // ただし uti/regex はビルトイン定義値を常に適用（既存保存データとの互換性）
             for builtIn in DocumentPreset.builtInPresets {
-                if let saved = savedPresets.first(where: { $0.id == builtIn.id }) {
+                if var saved = savedPresets.first(where: { $0.id == builtIn.id }) {
+                    saved.uti = builtIn.uti
+                    saved.regex = builtIn.regex
                     result.append(saved)
                 } else {
                     result.append(builtIn)
@@ -205,6 +236,44 @@ class DocumentPresetManager {
             presets[index] = builtIn
             savePresets()
         }
+    }
+
+    // MARK: - Preset Matching
+
+    /// ファイルのURLとUTIタイプ名から、マッチする書類タイププリセットを検索する
+    /// プリセット配列を逆順（最後から）に走査し、最初に一致したプリセットを返す
+    /// - Parameters:
+    ///   - url: ファイルのURL
+    ///   - typeName: ファイルのUTIタイプ名
+    /// - Returns: マッチしたプリセット、見つからなければ nil
+    func findMatchingPreset(url: URL, typeName: String) -> DocumentPreset? {
+        let fileName = url.lastPathComponent
+
+        for preset in presets.reversed() {
+            // 正規表現マッチ
+            if !preset.regex.isEmpty {
+                if let regex = try? NSRegularExpression(pattern: preset.regex, options: []),
+                   regex.firstMatch(in: fileName, options: [],
+                                    range: NSRange(fileName.startIndex..., in: fileName)) != nil {
+                    return preset
+                }
+            }
+
+            // UTI マッチ
+            if !preset.uti.isEmpty {
+                // 完全一致
+                if typeName == preset.uti {
+                    return preset
+                }
+                // UTType 適合チェック（例: public.python-script は public.source-code に適合）
+                if let fileType = UTType(typeName), let presetType = UTType(preset.uti),
+                   fileType.conforms(to: presetType) {
+                    return preset
+                }
+            }
+        }
+
+        return nil
     }
 
     // MARK: - Notification

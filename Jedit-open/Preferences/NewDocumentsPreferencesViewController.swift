@@ -114,6 +114,7 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
 
     private let presetManager = DocumentPresetManager.shared
     private var selectedPresetIndex: Int = 0
+    private var documentTypeEditPanel: DocumentTypeEditPanel?
 
     // MARK: - Lifecycle
 
@@ -599,31 +600,38 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
     // MARK: - IBActions
 
     @IBAction func addPresetClicked(_ sender: Any) {
-        let alert = NSAlert()
-        alert.messageText = "New Preset".localized
-        alert.informativeText = "Enter a name for the new preset:".localized
-        alert.addButton(withTitle: "OK".localized)
-        alert.addButton(withTitle: "Cancel".localized)
+        guard let window = view.window else { return }
 
-        let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        inputField.stringValue = "New Preset".localized
-        alert.accessoryView = inputField
+        if documentTypeEditPanel == nil {
+            documentTypeEditPanel = DocumentTypeEditPanel()
+        }
 
-        alert.beginSheetModal(for: view.window!) { response in
-            if response == .alertFirstButtonReturn {
-                let name = inputField.stringValue.isEmpty ? "New Preset" : inputField.stringValue
-                let currentPreset = self.presetManager.preset(at: self.selectedPresetIndex)
-                let newPreset = self.presetManager.addPreset(name: name, basedOn: currentPreset)
+        documentTypeEditPanel?.beginSheet(
+            for: window,
+            name: "New Preset".localized,
+            uti: "",
+            regex: "",
+            isBuiltIn: false
+        ) { [weak self] result in
+            guard let self = self, let result = result else { return }
 
-                self.presetTableView?.reloadData()
+            let name = result.name.isEmpty ? "New Preset" : result.name
+            let currentPreset = self.presetManager.preset(at: self.selectedPresetIndex)
+            var newPreset = self.presetManager.addPreset(name: name, basedOn: currentPreset)
 
-                // 新しいプリセットを選択
-                if let index = self.presetManager.presets.firstIndex(where: { $0.id == newPreset.id }) {
-                    self.selectedPresetIndex = index
-                    self.presetTableView?.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
-                    self.loadSelectedPreset()
-                    self.updateRemoveButtonState()
-                }
+            // UTI と正規表現をセット
+            newPreset.uti = result.uti
+            newPreset.regex = result.regex
+            self.presetManager.updatePreset(newPreset)
+
+            self.presetTableView?.reloadData()
+
+            // 新しいプリセットを選択
+            if let index = self.presetManager.presets.firstIndex(where: { $0.id == newPreset.id }) {
+                self.selectedPresetIndex = index
+                self.presetTableView?.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+                self.loadSelectedPreset()
+                self.updateRemoveButtonState()
             }
         }
     }
@@ -827,29 +835,32 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         editSelectedPreset()
     }
 
-    /// 選択されているプリセット名を編集
+    /// 選択されているプリセットの書類タイプ情報を編集
     private func editSelectedPreset() {
         guard let preset = presetManager.preset(at: selectedPresetIndex),
-              !preset.isBuiltIn else { return }
+              let window = view.window else { return }
 
-        // プリセット名の編集
-        let alert = NSAlert()
-        alert.messageText = "Rename Preset".localized
-        alert.informativeText = "Enter a new name for the preset:".localized
-        alert.addButton(withTitle: "OK".localized)
-        alert.addButton(withTitle: "Cancel".localized)
+        if documentTypeEditPanel == nil {
+            documentTypeEditPanel = DocumentTypeEditPanel()
+        }
 
-        let inputField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
-        inputField.stringValue = preset.displayName
-        alert.accessoryView = inputField
+        documentTypeEditPanel?.beginSheet(
+            for: window,
+            name: preset.isBuiltIn ? preset.displayName : preset.name,
+            uti: preset.uti,
+            regex: preset.regex,
+            isBuiltIn: preset.isBuiltIn
+        ) { [weak self] result in
+            guard let self = self, let result = result else { return }
+            // ビルトインの場合は閲覧のみなので更新しない
+            guard !preset.isBuiltIn else { return }
 
-        alert.beginSheetModal(for: view.window!) { response in
-            if response == .alertFirstButtonReturn {
-                var updatedPreset = preset
-                updatedPreset.name = inputField.stringValue.isEmpty ? preset.name : inputField.stringValue
-                self.presetManager.updatePreset(updatedPreset)
-                self.presetTableView?.reloadData()
-            }
+            var updatedPreset = preset
+            updatedPreset.name = result.name.isEmpty ? preset.name : result.name
+            updatedPreset.uti = result.uti
+            updatedPreset.regex = result.regex
+            self.presetManager.updatePreset(updatedPreset)
+            self.presetTableView?.reloadData()
         }
     }
 

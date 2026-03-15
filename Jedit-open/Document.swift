@@ -2295,9 +2295,10 @@ class Document: NSDocument {
                 self.applyBasicFontIfPlainText()
             }
         } else {
-            // 拡張属性がない場合は、ファイルタイプに応じたデフォルトのNewDocDataを設定
+            // 拡張属性がない場合は、書類タイプテーブルからマッチングし、
+            // マッチしなければファイルタイプに応じたデフォルトのNewDocDataを設定
             MainActor.assumeIsolated {
-                self.presetData = self.createDefaultPresetDataForCurrentDocumentType()
+                self.presetData = self.createDefaultPresetDataForCurrentDocumentType(url: url, typeName: typeName)
                 // プレーンテキストの場合はBasic Fontを適用
                 self.applyBasicFontIfPlainText()
 
@@ -2818,21 +2819,22 @@ class Document: NSDocument {
     }
 
     /// 現在のドキュメントタイプに応じたデフォルトのNewDocDataを作成
-    /// Preferencesで選択されているプリセットの設定をコピーして使用
-    private func createDefaultPresetDataForCurrentDocumentType() -> NewDocData {
-        // Preferencesで選択されているプリセットを取得
-        if let selectedPreset = DocumentPresetManager.shared.selectedPreset() {
-            return selectedPreset.data
+    /// まず書類タイプテーブルからUTI/正規表現でマッチングを試み、
+    /// マッチしなければドキュメントタイプに応じたデフォルト値を使用
+    private func createDefaultPresetDataForCurrentDocumentType(url: URL? = nil, typeName: String? = nil) -> NewDocData {
+        // 書類タイプテーブルからマッチするプリセットを検索（最後から順にテスト）
+        if let url = url, let typeName = typeName,
+           let matchedPreset = DocumentPresetManager.shared.findMatchingPreset(url: url, typeName: typeName) {
+            return matchedPreset.data
         }
 
-        // フォールバック: プリセットがない場合はドキュメントタイプに応じたデフォルト値
+        // マッチしなかった場合: ドキュメントタイプに応じたデフォルト値
         switch documentType {
         case .plain:
             return NewDocData.plainText
         case .rtf, .rtfd:
             return NewDocData.richText
         default:
-            // その他のタイプはリッチテキストとして扱う
             return NewDocData.richText
         }
     }
