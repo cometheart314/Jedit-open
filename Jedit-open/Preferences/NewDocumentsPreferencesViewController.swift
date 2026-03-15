@@ -127,11 +127,16 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
 
     // MARK: - Setup
 
+    private static let presetDragType = NSPasteboard.PasteboardType("com.artman21.Jedit-open.presetRow")
+
     private func setupTableView() {
         presetTableView?.delegate = self
         presetTableView?.dataSource = self
         presetTableView?.doubleAction = #selector(tableViewDoubleClicked(_:))
         presetTableView?.target = self
+        // ドラッグ＆ドロップによる並べ替えを有効化
+        presetTableView?.registerForDraggedTypes([Self.presetDragType])
+        presetTableView?.draggingDestinationFeedbackStyle = .regular
     }
 
     private func setupUI() {
@@ -1063,6 +1068,42 @@ extension NewDocumentsPreferencesViewController: NSTableViewDataSource {
     func numberOfRows(in tableView: NSTableView) -> Int {
         return presetManager.presets.count
     }
+
+    // MARK: - Drag & Drop Reorder
+
+    func tableView(_ tableView: NSTableView, pasteboardWriterForRow row: Int) -> (any NSPasteboardWriting)? {
+        // ビルトインプリセットはドラッグ不可
+        guard let preset = presetManager.preset(at: row), !preset.isBuiltIn else { return nil }
+        let item = NSPasteboardItem()
+        item.setString(String(row), forType: Self.presetDragType)
+        return item
+    }
+
+    func tableView(_ tableView: NSTableView, validateDrop info: any NSDraggingInfo,
+                    proposedRow row: Int, proposedDropOperation dropOperation: NSTableView.DropOperation) -> NSDragOperation {
+        guard dropOperation == .above else { return [] }
+        // ビルトインプリセットの領域へはドロップ不可
+        let builtInCount = presetManager.presets.filter { $0.isBuiltIn }.count
+        guard row >= builtInCount else { return [] }
+        return .move
+    }
+
+    func tableView(_ tableView: NSTableView, acceptDrop info: any NSDraggingInfo,
+                    row: Int, dropOperation: NSTableView.DropOperation) -> Bool {
+        guard let item = info.draggingPasteboard.pasteboardItems?.first,
+              let rowString = item.string(forType: Self.presetDragType),
+              let fromIndex = Int(rowString) else { return false }
+
+        if presetManager.movePreset(fromIndex: fromIndex, toIndex: row) {
+            tableView.reloadData()
+            // 移動後の新しい位置を選択
+            let newIndex = row > fromIndex ? row - 1 : row
+            selectedPresetIndex = newIndex
+            tableView.selectRowIndexes(IndexSet(integer: newIndex), byExtendingSelection: false)
+            return true
+        }
+        return false
+    }
 }
 
 // MARK: - NSTableViewDelegate
@@ -1079,19 +1120,38 @@ extension NewDocumentsPreferencesViewController: NSTableViewDelegate {
             cellView = NSTableCellView()
             cellView?.identifier = cellIdentifier
 
+            let imageView = NSImageView()
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.imageScaling = .scaleProportionallyDown
+            cellView?.addSubview(imageView)
+            cellView?.imageView = imageView
+
             let textField = NSTextField(labelWithString: "")
             textField.translatesAutoresizingMaskIntoConstraints = false
             cellView?.addSubview(textField)
             cellView?.textField = textField
 
             NSLayoutConstraint.activate([
-                textField.leadingAnchor.constraint(equalTo: cellView!.leadingAnchor, constant: 4),
+                imageView.leadingAnchor.constraint(equalTo: cellView!.leadingAnchor, constant: 4),
+                imageView.centerYAnchor.constraint(equalTo: cellView!.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: 14),
+                imageView.heightAnchor.constraint(equalToConstant: 14),
+                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 3),
                 textField.trailingAnchor.constraint(equalTo: cellView!.trailingAnchor, constant: -4),
                 textField.centerYAnchor.constraint(equalTo: cellView!.centerYAnchor)
             ])
         }
 
         cellView?.textField?.stringValue = preset.displayName
+
+        if preset.isBuiltIn {
+            cellView?.imageView?.image = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: "Built-in")
+            cellView?.imageView?.contentTintColor = .secondaryLabelColor
+            cellView?.imageView?.isHidden = false
+        } else {
+            cellView?.imageView?.image = nil
+            cellView?.imageView?.isHidden = true
+        }
 
         return cellView
     }

@@ -525,7 +525,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="wDi-0p-k5J">
-                                        <rect key="frame" x="22" y="15" width="167" height="24"/>
+                                        <rect key="frame" x="22" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="qCY-dj-AB3">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
@@ -1196,7 +1196,7 @@
                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                 <subviews>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fln-js-kA9">
-                                        <rect key="frame" x="15" y="399" width="72" height="17"/>
+                                        <rect key="frame" x="-5" y="399" width="92" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Base Font" id="J7l-27-aDA">
                                             <font key="font" metaFont="system"/>
@@ -1378,7 +1378,7 @@
                                         </connections>
                                     </colorWell>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="X51-SO-L89">
-                                        <rect key="frame" x="17" y="15" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="cHa-Lr-5Gj">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>
@@ -2165,7 +2165,7 @@ individual documents</string>
                 <constraint firstItem="N7X-le-vA6" firstAttribute="leading" secondItem="xlc-I5-2ws" secondAttribute="trailing" constant="2" id="pxu-1p-ZNa"/>
                 <constraint firstItem="Orc-03-RCR" firstAttribute="leading" secondItem="5VY-dr-NPg" secondAttribute="trailing" constant="10" id="yRJ-WP-ECV"/>
             </constraints>
-            <point key="canvasLocation" x="333" y="-1215.5"/>
+            <point key="canvasLocation" x="741" y="-1337.5"/>
         </customView>
     </objects>
     <resources>

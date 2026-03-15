@@ -238,6 +238,36 @@ class DocumentPresetManager {
         }
     }
 
+    // MARK: - Reorder
+
+    /// プリセットを移動する（ビルトインプリセットは移動不可）
+    /// - Parameters:
+    ///   - fromIndex: 移動元のインデックス
+    ///   - toIndex: 移動先のインデックス
+    /// - Returns: 移動が成功したかどうか
+    @discardableResult
+    func movePreset(fromIndex: Int, toIndex: Int) -> Bool {
+        guard fromIndex >= 0 && fromIndex < presets.count else { return false }
+        guard toIndex >= 0 && toIndex <= presets.count else { return false }
+        guard fromIndex != toIndex else { return false }
+
+        // ビルトインプリセットは移動不可
+        guard !presets[fromIndex].isBuiltIn else { return false }
+
+        // ビルトインプリセットの上には移動不可
+        let builtInCount = presets.filter { $0.isBuiltIn }.count
+        let effectiveTo = toIndex > fromIndex ? toIndex - 1 : toIndex
+        guard effectiveTo >= builtInCount else { return false }
+
+        let preset = presets.remove(at: fromIndex)
+        let insertIndex = toIndex > fromIndex ? toIndex - 1 : toIndex
+        presets.insert(preset, at: insertIndex)
+
+        savePresets()
+        notifyPresetsDidChange()
+        return true
+    }
+
     // MARK: - Preset Matching
 
     /// ファイルのURLとUTIタイプ名から、マッチする書類タイププリセットを検索する
