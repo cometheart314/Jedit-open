@@ -120,6 +120,7 @@ class LineNumberView: NSView {
     /// パラグラフの開始位置キャッシュを再構築する
     /// テキスト変更時にのみ呼び出される（draw()からは呼ばない）
     private func rebuildParagraphCacheIfNeeded() {
+        guard lineNumberMode != .none else { return }
         guard let textView = textView,
               let textStorage = textView.textStorage else { return }
 
