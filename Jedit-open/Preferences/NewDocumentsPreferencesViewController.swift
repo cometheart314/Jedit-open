@@ -429,9 +429,19 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         copyrightField?.stringValue = data.properties.copyright
 
         // Update controls enabled state based on text style
+        updateTextStyleMatrixEnabled()
         updateEncodingControlsEnabled()
         updateColorsControlsEnabled()
         updateWrappedLineIndentControlsEnabled()
+    }
+
+    /// Text Style（Rich Text / Plain Text）ラジオボタンの有効/無効を更新
+    /// ビルトインの「Plain Text」「Rich Text」プリセットでは変更不可にする
+    private func updateTextStyleMatrixEnabled() {
+        guard let preset = presetManager.preset(at: selectedPresetIndex) else { return }
+        let isFixedTextStyle = preset.id == DocumentPreset.builtInPlainText.id ||
+                               preset.id == DocumentPreset.builtInRichText.id
+        textStyleMatrix?.isEnabled = !isFixedTextStyle
     }
 
     private func saveCurrentPreset() {

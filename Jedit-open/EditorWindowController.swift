@@ -77,6 +77,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     private var splitMode: SplitMode = .none
+    private var isSettingUpSplit: Bool = false  // setSplitMode リエントランシー防止
 
     // 表示モード
     private var displayMode: DisplayMode = .continuous
@@ -1995,7 +1996,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     }
 
     private func setSplitMode(_ mode: SplitMode) {
-        guard let splitView = splitView else { return }
+        guard let splitView = splitView, !isSettingUpSplit else { return }
+        isSettingUpSplit = true
+        defer { isSettingUpSplit = false }
 
         splitMode = mode
 

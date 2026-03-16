@@ -50,7 +50,7 @@
 "7PE-KN-48y.title" = "行番号";
 
 /* Class = "NSButtonCell"; title = "Wrap to Window"; ObjectID = "7iH-9W-tkm"; */
-"7iH-9W-tkm.title" = "ウインドウ幅に合わせる";
+"7iH-9W-tkm.title" = "ウインドウサイズで表示";
 
 /* Class = "NSMenuItem"; title = "Current Date"; ObjectID = "7x8-Ts-zCn"; */
 "7x8-Ts-zCn.title" = "現在の日付";
@@ -167,7 +167,7 @@
 "KXz-MP-wkn.title" = "ウインドウ幅に合わせる";
 
 /* Class = "NSButtonCell"; title = "Wrap to Page"; ObjectID = "Kyf-S6-EtW"; */
-"Kyf-S6-EtW.title" = "用紙幅に合わせる";
+"Kyf-S6-EtW.title" = "ページサイズで表示";
 
 /* Class = "NSTextFieldCell"; title = "Company:"; ObjectID = "L7W-15-spu"; */
 "L7W-15-spu.title" = "会社名:";

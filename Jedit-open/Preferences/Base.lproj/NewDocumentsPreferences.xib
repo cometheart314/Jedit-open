@@ -668,10 +668,10 @@
                                         </textFieldCell>
                                     </textField>
                                     <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Cb4-qe-HEM">
-                                        <rect key="frame" x="131" y="237" width="224" height="17"/>
+                                        <rect key="frame" x="131" y="237" width="288" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
-                                        <size key="cellSize" width="110" height="17"/>
+                                        <size key="cellSize" width="142" height="17"/>
                                         <size key="intercellSpacing" width="4" height="2"/>
                                         <buttonCell key="prototype" type="radio" title="Radio" imagePosition="left" alignment="left" controlSize="small" inset="2" id="CiW-he-031">
                                             <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
@@ -1170,7 +1170,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Uoc-y6-orF">
-                                        <rect key="frame" x="17" y="15" width="167" height="24"/>
+                                        <rect key="frame" x="17" y="17" width="167" height="24"/>
                                         <buttonCell key="cell" type="push" title="Revert to Defaults" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="o9A-OD-nBU">
                                             <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="system"/>

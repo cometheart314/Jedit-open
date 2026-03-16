@@ -298,11 +298,10 @@ class LineNumberView: NSView {
         guard lineNumberMode != .none,
               let textView = textView,
               let layoutManager = textView.layoutManager,
+              let textStorage = layoutManager.textStorage,
               textView.textContainer != nil else {
             return
         }
-
-        let textStorage = layoutManager.textStorage!
         let mode = lineNumberMode
 
         switch mode {
@@ -414,12 +413,11 @@ class LineNumberView: NSView {
         guard lineNumberMode != .none,
               let textView = textView,
               let layoutManager = textView.layoutManager,
+              let textStorage = layoutManager.textStorage,
               let textContainer = textView.textContainer,
               let scrollView = scrollView else {
             return
         }
-
-        let textStorage = layoutManager.textStorage!
 
         // magnificationを適用したフォントサイズ
         let scaledFontSize: CGFloat = 10 * magnification
