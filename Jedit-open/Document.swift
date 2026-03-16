@@ -2854,10 +2854,20 @@ class Document: NSDocument {
 
     // MARK: - Menu Validation
 
+    /// ブックマーク機能をサポートしない書類かどうか（Markdown, Word/ODT）
+    var isBookmarkUnsupported: Bool {
+        return isMarkdownDocument || isImportedDocument
+    }
+
     override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
         if item.action == #selector(showProperties(_:)) {
             // 書類ウィンドウがある場合のみ有効
             return windowControllers.first?.window != nil
+        }
+        // ブックマーク関連メニューは md/Word/ODT では無効
+        if item.action == #selector(bookmarkSelection(_:)) ||
+           item.action == #selector(showBookmarkPanel(_:)) {
+            return !isBookmarkUnsupported
         }
         return super.validateUserInterfaceItem(item)
     }

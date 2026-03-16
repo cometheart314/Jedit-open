@@ -160,6 +160,15 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         displayedRootBookmark = targetDocument?.rootBookmark
         outlineView.reloadData()
 
+        // ブックマーク非対応書類（md/Word/ODT）ではUI要素を無効化
+        let isEnabled = !(targetDocument?.isBookmarkUnsupported ?? false)
+        addButton?.isEnabled = isEnabled
+        deleteButton?.isEnabled = isEnabled
+        leftArrowButton?.isEnabled = isEnabled
+        rightArrowButton?.isEnabled = isEnabled
+        actionPopUpButton?.isEnabled = isEnabled
+        outlineView.isEnabled = isEnabled
+
         // 選択を復元（同一ドキュメントの場合のみ有効）
         if !previouslySelected.isEmpty {
             var rowIndexes = IndexSet()
@@ -349,6 +358,12 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         let clearAllItem = NSMenuItem(title: "Clear All".localized, action: #selector(clearAll(_:)), keyEquivalent: "")
         clearAllItem.target = self
         menu.addItem(clearAllItem)
+
+        menu.addItem(NSMenuItem.separator())
+
+        let importFromFindItem = NSMenuItem(title: "Import from Find Results".localized, action: #selector(importFromFindResults(_:)), keyEquivalent: "")
+        importFromFindItem.target = self
+        menu.addItem(importFromFindItem)
     }
 
     @objc private func expandAll(_ sender: Any?) {
@@ -396,6 +411,66 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
         reloadOutlineView()
         document.updateChangeCount(.changeDone)
+    }
+
+    /// 検索結果からブックマークを一括作成
+    @objc private func importFromFindResults(_ sender: Any?) {
+        guard let document = currentDocument() else {
+            NSSound.beep()
+            return
+        }
+
+        // EditorWindowController から検索結果を取得
+        guard let editorWC = document.windowControllers.first as? EditorWindowController else {
+            NSSound.beep()
+            return
+        }
+
+        let ranges = editorWC.currentFindResultRanges
+        guard !ranges.isEmpty else {
+            let alert = NSAlert()
+            alert.messageText = "No Find Results".localized
+            alert.informativeText = "Perform a search first to import results as bookmarks.".localized
+            alert.alertStyle = .informational
+            alert.addButton(withTitle: "OK".localized)
+            alert.runModal()
+            return
+        }
+
+        let root = document.rootBookmark
+        let textStorage = document.textStorage
+        let string = textStorage.string as NSString
+        var createdBookmarks: [Bookmark] = []
+
+        for range in ranges {
+            // 範囲を行全体に拡張
+            let lineRange = string.lineRange(for: range)
+
+            // 表示名を取得（マッチしたテキスト、最大50文字）
+            let matchedText = string.substring(with: range)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            let maxLength = 50
+            let displayName: String
+            if matchedText.count > maxLength {
+                displayName = String(matchedText.prefix(maxLength)) + "…"
+            } else if matchedText.isEmpty {
+                displayName = "Bookmark"
+            } else {
+                displayName = matchedText
+            }
+
+            // アンカーを作成（確認ダイアログなし）
+            guard let uuid = document.createAnchor(for: lineRange, ask: false) else { continue }
+
+            let bookmark = Bookmark(uuid: uuid, displayName: displayName, range: lineRange)
+            root.addChild(bookmark)
+            createdBookmarks.append(bookmark)
+        }
+
+        if !createdBookmarks.isEmpty {
+            reloadOutlineView()
+            document.updateChangeCount(.changeDone)
+        }
     }
 
     /// 全ブックマークとアンカーをクリア

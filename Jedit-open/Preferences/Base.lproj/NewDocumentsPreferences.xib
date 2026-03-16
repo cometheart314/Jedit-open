@@ -1666,7 +1666,7 @@
                                         <rect key="frame" x="10" y="285" width="470" height="105"/>
                                         <clipView key="contentView" drawsBackground="NO" id="Yxb-EA-UHh">
                                             <rect key="frame" x="1" y="1" width="468" height="103"/>
-                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="MCd-yq-CCl">
                                                     <rect key="frame" x="0.0" y="0.0" width="468" height="103"/>
@@ -1995,7 +1995,7 @@
                                         <rect key="frame" x="16" y="132" width="464" height="106"/>
                                         <clipView key="contentView" drawsBackground="NO" id="vCn-fD-0uC">
                                             <rect key="frame" x="1" y="1" width="462" height="104"/>
-                                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                            <autoresizingMask key="autoresizingMask"/>
                                             <subviews>
                                                 <textView importsGraphics="NO" verticallyResizable="YES" usesFontPanel="YES" findStyle="panel" continuousSpellChecking="YES" allowsUndo="YES" usesRuler="YES" spellingCorrection="YES" smartInsertDelete="YES" id="dYM-gi-Wc0">
                                                     <rect key="frame" x="0.0" y="0.0" width="462" height="104"/>

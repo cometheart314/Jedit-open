@@ -65,6 +65,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var findBarViewController: FindBarViewController?
     private var splitViewTopConstraint: NSLayoutConstraint?
 
+    /// 現在の検索結果の範囲配列を返す（ブックマークパネルからの参照用）
+    var currentFindResultRanges: [NSRange] {
+        return findBarViewController?.currentResult.ranges ?? []
+    }
+
     // MARK: - Properties
 
     var textDocument: Document? {

@@ -165,6 +165,10 @@
 "Sort by Location" = "位置で並べ替え";
 "Collapse All" = "すべてを折りたたむ";
 "Expand All" = "すべてを展開";
+"Reset Structure" = "構造をリセット";
+"Import from Find Results" = "検索結果から取り込み";
+"No Find Results" = "検索結果がありません";
+"Perform a search first to import results as bookmarks." = "ブックマークとして取り込むには、先に検索を実行してください。";
 
 /* Document Info */
 "Show Document Info" = "書類情報を表示";

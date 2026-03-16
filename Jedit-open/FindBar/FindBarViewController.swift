@@ -48,7 +48,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     // MARK: - State
 
     private(set) var isReplaceMode: Bool = false
-    private var currentResult: FindResult = .empty
+    private(set) var currentResult: FindResult = .empty
 
     // MARK: - Dependencies
 
