@@ -54,6 +54,50 @@ class InvisibleCharacterLayoutManager: NSLayoutManager {
 
     // MARK: - Drawing
 
+    override func drawBackground(forGlyphRange glyphsToShow: NSRange, at origin: NSPoint) {
+        super.drawBackground(forGlyphRange: glyphsToShow, at: origin)
+
+        // インラインコード背景をテキスト高さに合わせて描画
+        guard let textStorage = textStorage else { return }
+        let charRange = characterRange(forGlyphRange: glyphsToShow, actualGlyphRange: nil)
+        guard charRange.location != NSNotFound else { return }
+
+        textStorage.enumerateAttribute(MarkdownParser.inlineCodeBackgroundKey, in: charRange, options: []) { value, range, _ in
+            guard let color = value as? NSColor else { return }
+            let glyphRange = self.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
+
+            // フォントメトリクスからテキスト高さを取得
+            let font = textStorage.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont
+                ?? NSFont.systemFont(ofSize: 12)
+            let textHeight = font.ascender - font.descender
+            let padding: CGFloat = 2.0
+
+            // 各行フラグメントごとに描画
+            self.enumerateLineFragments(forGlyphRange: glyphRange) { lineRect, _, _, effectiveGlyphRange, _ in
+                let intersect = NSIntersectionRange(glyphRange, effectiveGlyphRange)
+                guard intersect.length > 0 else { return }
+
+                // 水平位置: グリフの bounding rect から取得
+                guard let container = self.textContainer(forGlyphAt: intersect.location, effectiveRange: nil) else { return }
+                let glyphBounds = self.boundingRect(forGlyphRange: intersect, in: container)
+
+                // ベースラインからテキスト高さを計算
+                let glyphLocation = self.location(forGlyphAt: intersect.location)
+                let baselineY = origin.y + lineRect.origin.y + glyphLocation.y
+                let bgRect = NSRect(
+                    x: origin.x + glyphBounds.origin.x - padding,
+                    y: baselineY - font.ascender - padding,
+                    width: glyphBounds.width + padding * 2,
+                    height: textHeight + padding * 2
+                )
+
+                let path = NSBezierPath(roundedRect: bgRect, xRadius: 3, yRadius: 3)
+                color.setFill()
+                path.fill()
+            }
+        }
+    }
+
     override func drawGlyphs(forGlyphRange glyphsToShow: NSRange, at origin: NSPoint) {
         // グラフィックスコンテキストがない場合は描画をスキップ
         guard NSGraphicsContext.current != nil else { return }

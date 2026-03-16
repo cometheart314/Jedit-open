@@ -16,6 +16,10 @@ enum MarkdownParser {
     /// 逆変換（markdownString(from:)）で正確にブロックタイプを判定するために使用
     static let markdownBlockTypeKey = NSAttributedString.Key("jp.co.artman21.Jedit.markdownBlockType")
 
+    /// インラインコードの背景色（LayoutManager でテキスト高さに合わせて描画するため、
+    /// .backgroundColor ではなくカスタム属性を使用する）
+    static let inlineCodeBackgroundKey = NSAttributedString.Key("jp.co.artman21.Jedit.inlineCodeBackground")
+
     /// ブロックタイプの値（カスタム属性に設定する文字列）
     private enum MarkdownBlockValue {
         static let heading1 = "h1"
@@ -42,7 +46,7 @@ enum MarkdownParser {
     private static let codeFontSize: CGFloat = 12.0
     private static let listIndent: CGFloat = 24.0
     private static let blockquoteIndent: CGFloat = 20.0
-    private static let lineHeightMultiple: CGFloat = 1.8
+    private static let lineSpacingAmount: CGFloat = baseFontSize * 0.8
 
     private static var baseFont: NSFont {
         NSFont.systemFont(ofSize: baseFontSize)
@@ -282,6 +286,14 @@ enum MarkdownParser {
                         i += 1
                     } else if qLine.isEmpty {
                         break
+                    } else if isHorizontalRule(qLine)
+                                || parseHeading(qLine) != nil
+                                || qLine.hasPrefix("```")
+                                || isUnorderedListItem(qLine)
+                                || isOrderedListItem(qLine)
+                                || isTableRow(qLine) {
+                        // ブロック要素が来たら引用を中断（CommonMark 仕様準拠）
+                        break
                     } else {
                         // 引用の続き（lazy continuation）
                         quoteLines.append(qLine)
@@ -459,7 +471,7 @@ enum MarkdownParser {
 
     private static func parseUnorderedListItem(_ line: String) -> ListItem? {
         // インデントレベルを計算
-        let indentLevel = countLeadingSpaces(line) / 2
+        let indentLevel = countLeadingSpaces(line) / 4
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard trimmed.count >= 2 else { return nil }
         let markers: [String] = ["- ", "* ", "+ "]
@@ -485,7 +497,7 @@ enum MarkdownParser {
     }
 
     private static func parseOrderedListItem(_ line: String) -> ListItem? {
-        let indentLevel = countLeadingSpaces(line) / 2
+        let indentLevel = countLeadingSpaces(line) / 4
         let trimmed = line.trimmingCharacters(in: .whitespaces)
         guard let dotIndex = trimmed.firstIndex(of: ".") else { return nil }
         let prefix = trimmed[trimmed.startIndex..<dotIndex]
@@ -601,7 +613,7 @@ enum MarkdownParser {
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.paragraphSpacingBefore = fontSize * 0.5
         paragraphStyle.paragraphSpacing = fontSize * 0.3
-        paragraphStyle.lineHeightMultiple = lineHeightMultiple
+        paragraphStyle.lineSpacing = lineSpacingAmount
 
         let blockValue = "h\(level)"
         let attributes: [NSAttributedString.Key: Any] = [
@@ -646,7 +658,7 @@ enum MarkdownParser {
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.paragraphSpacing = baseFontSize * 0.4
-        paragraphStyle.lineHeightMultiple = lineHeightMultiple
+        paragraphStyle.lineSpacing = lineSpacingAmount
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: baseFont,
@@ -662,18 +674,19 @@ enum MarkdownParser {
 
     private static func renderCodeBlock(lines: [String]) -> NSAttributedString {
         let text = lines.joined(separator: "\n")
+
+        let textBlock = NSTextBlock()
+        textBlock.backgroundColor = codeBackgroundColor
+        textBlock.setContentWidth(100, type: .percentageValueType)
+        textBlock.setWidth(12.0, type: .absoluteValueType, for: .padding)
+
         let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.headIndent = 12.0
-        paragraphStyle.firstLineHeadIndent = 12.0
-        paragraphStyle.tailIndent = -12.0
-        paragraphStyle.paragraphSpacingBefore = 6.0
-        paragraphStyle.paragraphSpacing = 6.0
-        paragraphStyle.lineHeightMultiple = lineHeightMultiple
+        paragraphStyle.textBlocks = [textBlock]
+        paragraphStyle.lineSpacing = lineSpacingAmount
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: codeFont,
             .foregroundColor: NSColor.textColor,
-            .backgroundColor: codeBackgroundColor,
             .paragraphStyle: paragraphStyle,
             markdownBlockTypeKey: MarkdownBlockValue.codeBlock
         ]
@@ -682,14 +695,14 @@ enum MarkdownParser {
     }
 
     private static func renderBlockquote(level: Int, lines: [String], baseURL: URL?, referenceLinks: [String: ReferenceLinkDefinition] = [:]) -> NSAttributedString {
-        let text = lines.joined(separator: " ")
+        let text = lines.joined(separator: "\n")
         let indent = blockquoteIndent * CGFloat(level)
 
         let paragraphStyle = NSMutableParagraphStyle()
         paragraphStyle.headIndent = indent
         paragraphStyle.firstLineHeadIndent = indent
         paragraphStyle.paragraphSpacing = baseFontSize * 0.3
-        paragraphStyle.lineHeightMultiple = lineHeightMultiple
+        paragraphStyle.lineSpacing = lineSpacingAmount
 
         let attributes: [NSAttributedString.Key: Any] = [
             .font: baseFont,
@@ -715,7 +728,7 @@ enum MarkdownParser {
             let paragraphStyle = NSMutableParagraphStyle()
             paragraphStyle.headIndent = indent
             paragraphStyle.firstLineHeadIndent = indent - listIndent + 4
-            paragraphStyle.lineHeightMultiple = lineHeightMultiple
+            paragraphStyle.lineSpacing = lineSpacingAmount
 
             // マーカー
             let marker: String
@@ -748,7 +761,7 @@ enum MarkdownParser {
         paragraphStyle.alignment = .center
         paragraphStyle.paragraphSpacingBefore = 8.0
         paragraphStyle.paragraphSpacing = 8.0
-        paragraphStyle.lineHeightMultiple = lineHeightMultiple
+        paragraphStyle.lineSpacing = lineSpacingAmount
 
         let ruleText = String(repeating: "\u{2500}", count: 40)
         let attributes: [NSAttributedString.Key: Any] = [
@@ -1147,7 +1160,7 @@ enum MarkdownParser {
                     .trimmingCharacters(in: .whitespaces)  // ダブルバッククォート内の前後スペースを除去
                 let codeAttrs: [NSAttributedString.Key: Any] = [
                     .font: codeFont,
-                    .backgroundColor: codeBackgroundColor,
+                    inlineCodeBackgroundKey: codeBackgroundColor,
                     .foregroundColor: NSColor.textColor
                 ]
                 let codeString = NSAttributedString(string: codeText, attributes: codeAttrs)
@@ -1165,7 +1178,7 @@ enum MarkdownParser {
             let codeText = text.substring(with: match.range(at: 1))
             let codeAttrs: [NSAttributedString.Key: Any] = [
                 .font: codeFont,
-                .backgroundColor: codeBackgroundColor,
+                inlineCodeBackgroundKey: codeBackgroundColor,
                 .foregroundColor: NSColor.textColor
             ]
             let codeString = NSAttributedString(string: codeText, attributes: codeAttrs)
