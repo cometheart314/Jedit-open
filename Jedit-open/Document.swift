@@ -1932,7 +1932,7 @@ class Document: NSDocument {
         Self.duplicatingPresetData = nil
 
         if let newDocument = newDoc as? Document {
-            newDocument.isMarkdownDocument = false
+            newDocument.isMarkdownDocument = self.isMarkdownDocument
         }
         return newDoc
     }
