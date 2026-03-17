@@ -103,7 +103,7 @@
 			<key>NSMenuItem</key>
 			<dict>
 				<key>default</key>
-				<string>Jedit: Open Selection</string>
+				<string>Jedit: Open Selected Text</string>
 			</dict>
 			<key>NSSendTypes</key>
 			<array>
@@ -111,6 +111,29 @@
 				<string>NSRTFPboardType</string>
 				<string>NSRTFDPboardType</string>
 			</array>
+			<key>NSReturnTypes</key>
+			<array/>
+			<key>NSPortName</key>
+			<string>Jedit</string>
+		</dict>
+		<dict>
+			<key>NSMessage</key>
+			<string>openFile</string>
+			<key>NSMenuItem</key>
+			<dict>
+				<key>default</key>
+				<string>Open with Jedit</string>
+			</dict>
+			<key>NSSendTypes</key>
+			<array>
+				<string>NSURLPboardType</string>
+				<string>NSStringPboardType</string>
+			</array>
+			<key>NSRequiredContext</key>
+			<dict>
+				<key>NSTextContent</key>
+				<string>FilePath</string>
+			</dict>
 			<key>NSReturnTypes</key>
 			<array/>
 			<key>NSPortName</key>

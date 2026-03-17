@@ -1347,6 +1347,9 @@ class Document: NSDocument {
         var string = textStorage.string
         string = convertLineEndings(in: string, to: saveLineEnding)
 
+        // 4.5. 保存時のエンコーディング変換（読み込み時の逆変換）
+        string = applyEncodingSaveConversions(string, encoding: saveEncoding)
+
         // 5. 指定エンコーディングでエンコード
         var encodedData: Data?
         var usedEncoding = saveEncoding
@@ -1452,6 +1455,30 @@ class Document: NSDocument {
         // これはエンコーディングに関係なく適用
         if defaults.bool(forKey: "JOConvertFullWidthTidle") {
             result = result.replacingOccurrences(of: "\u{FF5E}", with: "\u{301C}")
+        }
+
+        return result
+    }
+
+    /// Shift_JIS保存時の文字変換（読み込み時の逆変換、Preferencesの設定に基づく）
+    /// - Parameters:
+    ///   - string: 変換対象の文字列
+    ///   - encoding: 保存先のエンコーディング
+    /// - Returns: 変換後の文字列
+    private func applyEncodingSaveConversions(_ string: String, encoding: String.Encoding) -> String {
+        let defaults = UserDefaults.standard
+        var result = string
+
+        // Shift_JISエンコーディンググループかどうかを判定
+        let isShiftJIS = encoding == .shiftJIS ||
+                         encoding.rawValue == CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.dosJapanese.rawValue)) ||
+                         encoding.rawValue == CFStringConvertEncodingToNSStringEncoding(CFStringEncoding(CFStringEncodings.shiftJIS_X0213.rawValue))
+
+        // Convert Back Slash '\' (U+005C) to '¥' (U+00A5) when Shift_JIS encoding group
+        // 読み込み時に U+00A5 → U+005C に変換したものを元に戻し、
+        // 確実に 0x5c として保存されるようにする
+        if defaults.bool(forKey: UserDefaults.Keys.convertYenToBackSlash) && isShiftJIS {
+            result = result.replacingOccurrences(of: "\\", with: "\u{00A5}")
         }
 
         return result

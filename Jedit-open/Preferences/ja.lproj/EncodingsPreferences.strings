@@ -44,7 +44,7 @@
 "revertBtnCell.title" = "デフォルトに戻す";
 
 /* Class = "NSButtonCell"; title = "Convert  FULLWIDTH TILDE  '〜' (U+FF5E) to WAVE DASH '〜' (U+301C)."; ObjectID = "tjE-uI-ywr"; */
-"tjE-uI-ywr.title" = "全角チルダ '〜' (U+FF5E) を波ダッシュ '〜' (U+301C) に変換";
+"tjE-uI-ywr.title" = "FULLWIDTH TILDE '〜' (U+FF5E) を WAVE DASH '〜' (U+301C) に変換する";
 
 /* Class = "NSButtonCell"; title = "Convert  '¯' (0x7e) to Tilde '~' (U+007E) when Shift_JIS encoding group."; ObjectID = "tti-iL-xXo"; */
 "tti-iL-xXo.title" = "Shift_JISエンコーディンググループの時、'¯' (0x7e) をチルダ '~' (U+007E) に変換";

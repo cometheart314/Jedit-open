@@ -84,7 +84,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
         NSApp.registerServicesMenuSendTypes([.string, .rtf, .rtfd], returnTypes: imageReturnTypes + [.tiff, .png])
 
-        // サービスメニューの「Jedit: Open Selection」用にプロバイダを登録
+        // サービスメニューの「Jedit: Open Selected Text」用にプロバイダを登録
         NSApp.servicesProvider = self
 
         // プリセット変更通知を監視
@@ -982,7 +982,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     // MARK: - Services Menu
 
-    /// サービスメニュー「Jedit: Open Selection」のハンドラ
+    /// サービスメニュー「Jedit: Open Selected Text」のハンドラ
     /// 他のアプリケーションの選択テキストを新規書類で開く
     @objc func openSelection(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
         // RTFD（画像含むリッチテキスト）を優先チェック
@@ -1006,6 +1006,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
 
         error.pointee = "No suitable text data found on the pasteboard." as NSString
+    }
+
+    /// サービスメニュー「Open with Jedit」のハンドラ
+    /// Finder などで選択されたファイルパスを受け取りファイルを開く
+    @objc func openFile(_ pasteboard: NSPasteboard, userData: String, error: AutoreleasingUnsafeMutablePointer<NSString?>) {
+        // URL として取得を試みる
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: [.urlReadingFileURLsOnly: true]) as? [URL], !urls.isEmpty {
+            let docController = NSDocumentController.shared
+            for url in urls {
+                docController.openDocument(withContentsOf: url, display: true) { _, _, _ in }
+            }
+            return
+        }
+
+        // テキスト（ファイルパス）として取得を試みる
+        if let path = pasteboard.string(forType: .string), !path.isEmpty {
+            let url = URL(fileURLWithPath: path)
+            if FileManager.default.fileExists(atPath: url.path) {
+                NSDocumentController.shared.openDocument(withContentsOf: url, display: true) { _, _, _ in }
+                return
+            }
+        }
+
+        error.pointee = "No file path found on the pasteboard." as NSString
     }
 
     // MARK: - Help

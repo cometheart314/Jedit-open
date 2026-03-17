@@ -17,7 +17,7 @@
 "JOo-v5-NbS.title" = "標準";
 
 /* Class = "NSTextFieldCell"; title = "Punctuations sticky for line end "; ObjectID = "OOL-k6-fuF"; */
-"OOL-k6-fuF.title" = "行末に連続する句読点";
+"OOL-k6-fuF.title" = "行末にぶらさがる句読点など";
 
 /* Class = "NSMenuItem"; title = "Sample Rules"; ObjectID = "ROs-48-H10"; */
 "ROs-48-H10.title" = "サンプルルール";
