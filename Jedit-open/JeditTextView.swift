@@ -1025,6 +1025,37 @@ class JeditTextView: NSTextView {
         }
     }
 
+    // MARK: - Selection Change
+
+    /// カーソル移動時に typingAttributes をカーソル位置のテキスト属性にリセットする。
+    /// applyTextStyle 等でカスタム typingAttributes を設定した後、別の位置に
+    /// カーソルを移動してもカスタム属性が持ち越されてしまう問題を防止する。
+    override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
+        super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+
+        // ドラッグ中（stillSelecting）は更新しない
+        guard !stillSelecting else { return }
+
+        // リッチテキストのみ対象
+        guard isRichText, let textStorage = textStorage, textStorage.length > 0 else { return }
+
+        // 挿入ポイント（選択範囲なし）の場合のみリセット
+        guard let firstRange = ranges.first?.rangeValue,
+              firstRange.length == 0 else { return }
+
+        // カーソル位置のテキスト属性を取得して typingAttributes に反映
+        // カーソルが文末にある場合は直前の文字の属性を使用
+        let attrIndex = firstRange.location > 0
+            ? firstRange.location - 1
+            : firstRange.location
+        if attrIndex < textStorage.length {
+            var attrs = textStorage.attributes(at: attrIndex, effectiveRange: nil)
+            // リンク属性は持ち越さない（リンク文字列の直後でリンクが継続するのを防ぐ）
+            attrs.removeValue(forKey: .link)
+            typingAttributes = attrs
+        }
+    }
+
     // MARK: - Mouse Events
 
     override func mouseDown(with event: NSEvent) {
@@ -1083,25 +1114,28 @@ class JeditTextView: NSTextView {
     override func scrollRangeToVisible(_ range: NSRange) {
         if suppressScrollRangeToVisible { return }
 
-        // カーソル（rangeの先頭）が既にvisibleRect内に見えている場合は
-        // 不要なスクロールを抑制する。NSTextViewのinsertText等が内部的に
-        // scrollRangeToVisibleを呼ぶが、カーソルが見えているのに
-        // 強制スクロールが発生する問題を防止する。
+        // rangeの末尾（＝操作後のカーソル位置）が既にvisibleRect内に見えている
+        // 場合のみ不要なスクロールを抑制する。NSTextViewのinsertText等が内部的に
+        // scrollRangeToVisibleを呼ぶが、カーソルが見えているのに強制スクロールが
+        // 発生する問題を防止する。
+        // ペースト等でrangeの末尾がウィンドウ外に出る場合はスクロールを実行する。
         if let layoutManager = layoutManager, let textContainer = textContainer {
-            let glyphRange = layoutManager.glyphRange(
-                forCharacterRange: NSRange(location: range.location, length: 0),
+            let endLocation = min(range.location + range.length,
+                                  layoutManager.numberOfGlyphs)
+            let endGlyphRange = layoutManager.glyphRange(
+                forCharacterRange: NSRange(location: endLocation, length: 0),
                 actualCharacterRange: nil
             )
-            let rect = layoutManager.boundingRect(
-                forGlyphRange: glyphRange, in: textContainer
+            let endRect = layoutManager.boundingRect(
+                forGlyphRange: endGlyphRange, in: textContainer
             )
             // textContainerOriginを加算してビュー座標に変換
-            let cursorRect = rect.offsetBy(
+            let endCursorRect = endRect.offsetBy(
                 dx: textContainerOrigin.x,
                 dy: textContainerOrigin.y
             )
-            // カーソル位置がvisibleRect内にあればスクロール不要
-            if visibleRect.contains(cursorRect.origin) {
+            // rangeの末尾がvisibleRect内にあればスクロール不要
+            if visibleRect.contains(endCursorRect.origin) {
                 return
             }
         }

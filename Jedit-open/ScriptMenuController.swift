@@ -25,6 +25,9 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
     /// スクリプトファイルの対象拡張子（コンパイル済みスクリプトのみ）
     private let scriptExtensions: Set<String> = ["scpt", "scptd"]
 
+    /// アプリケーションバンドルの拡張子
+    private let appExtensions: Set<String> = ["app"]
+
     /// Script Editor のバンドルID
     private let scriptEditorBundleID = "com.apple.ScriptEditor2"
 
@@ -147,7 +150,22 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
             let isDirectory = (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory ?? false
             let ext = url.pathExtension.lowercased()
 
-            if isDirectory && ext != "scptd" {
+            if isDirectory && appExtensions.contains(ext) {
+                // .app バンドル: アプリケーションとして起動するメニュー項目
+                let name = url.deletingPathExtension().lastPathComponent
+                let menuItem = NSMenuItem(
+                    title: name,
+                    action: #selector(launchApp(_:)),
+                    keyEquivalent: ""
+                )
+                menuItem.target = self
+                menuItem.representedObject = url
+                // アプリのアイコンを取得して表示
+                let icon = NSWorkspace.shared.icon(forFile: url.path)
+                icon.size = NSSize(width: 16, height: 16)
+                menuItem.image = icon
+                items.append(menuItem)
+            } else if isDirectory && ext != "scptd" {
                 // 通常のフォルダ: サブメニューとして展開
                 let folderItem = NSMenuItem(
                     title: url.lastPathComponent,
@@ -238,7 +256,10 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
             // フォルダが存在しない場合も空とみなす
             return true
         }
-        return !contents.contains { scriptExtensions.contains($0.pathExtension.lowercased()) }
+        return !contents.contains {
+            let ext = $0.pathExtension.lowercased()
+            return scriptExtensions.contains(ext) || appExtensions.contains(ext)
+        }
     }
 
     /// 指定されたフォルダにサンプルスクリプトを展開する
@@ -482,6 +503,29 @@ class ScriptMenuController: NSObject, NSMenuDelegate {
         alert.alertStyle = .warning
         alert.addButton(withTitle: "OK".localized)
         alert.runModal()
+    }
+
+    /// .app バンドルをアプリケーションとして起動する（Option キー押下時は Finder で表示）
+    @objc private func launchApp(_ sender: NSMenuItem) {
+        guard let url = sender.representedObject as? URL else { return }
+
+        if NSEvent.modifierFlags.contains(.option) {
+            // Option キー: Finder で表示
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+            return
+        }
+
+        let config = NSWorkspace.OpenConfiguration()
+        NSWorkspace.shared.openApplication(at: url, configuration: config) { _, error in
+            if let error = error {
+                DispatchQueue.main.async { [weak self] in
+                    self?.showScriptError(
+                        fileName: url.lastPathComponent,
+                        errorMessage: error.localizedDescription
+                    )
+                }
+            }
+        }
     }
 
     /// スクリプトをスクリプトエディタで開く
