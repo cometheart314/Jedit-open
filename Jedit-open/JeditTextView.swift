@@ -1082,6 +1082,30 @@ class JeditTextView: NSTextView {
 
     override func scrollRangeToVisible(_ range: NSRange) {
         if suppressScrollRangeToVisible { return }
+
+        // カーソル（rangeの先頭）が既にvisibleRect内に見えている場合は
+        // 不要なスクロールを抑制する。NSTextViewのinsertText等が内部的に
+        // scrollRangeToVisibleを呼ぶが、カーソルが見えているのに
+        // 強制スクロールが発生する問題を防止する。
+        if let layoutManager = layoutManager, let textContainer = textContainer {
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: NSRange(location: range.location, length: 0),
+                actualCharacterRange: nil
+            )
+            let rect = layoutManager.boundingRect(
+                forGlyphRange: glyphRange, in: textContainer
+            )
+            // textContainerOriginを加算してビュー座標に変換
+            let cursorRect = rect.offsetBy(
+                dx: textContainerOrigin.x,
+                dy: textContainerOrigin.y
+            )
+            // カーソル位置がvisibleRect内にあればスクロール不要
+            if visibleRect.contains(cursorRect.origin) {
+                return
+            }
+        }
+
         super.scrollRangeToVisible(range)
     }
 
