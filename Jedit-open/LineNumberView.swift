@@ -264,10 +264,15 @@ class LineNumberView: NSView {
                 forName: NSTextStorage.didProcessEditingNotification,
                 object: textStorage,
                 queue: .main
-            ) { [weak self] _ in
-                self?.invalidateParagraphCache()
-                self?.rebuildParagraphCacheIfNeeded()
-                // 即時再描画
+            ) { [weak self] notification in
+                guard let ts = notification.object as? NSTextStorage else { return }
+                let editedMask = ts.editedMask
+                if editedMask.contains(.editedCharacters) {
+                    // テキスト変更時のみパラグラフキャッシュを再構築
+                    self?.invalidateParagraphCache()
+                    self?.rebuildParagraphCacheIfNeeded()
+                }
+                // 属性変更（フォントサイズ変更等）でも再描画は必要
                 self?.needsDisplay = true
                 // レイアウトが確定するまで待ってから再描画
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in

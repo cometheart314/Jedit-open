@@ -1986,6 +1986,16 @@ class Document: NSDocument {
             applyFormatTagForSave(formatTag)
         }
 
+        // ユーザーが明示的に保存する場合、super.save() を呼ぶ前に untitledDocumentName を
+        // クリアする。NSDocument 内部で fileURL がセットされると KVO 経由で displayName が
+        // 参照されるが、そのとき untitledDocumentName が残っていると正しいファイル名ではなく
+        // カスタム名が返されてしまい、NSDocument の内部的な rename 処理と競合する。
+        // 保存失敗時は復元する。
+        let savedUntitledName = self.untitledDocumentName
+        if saveOperation == .saveOperation || saveOperation == .saveAsOperation {
+            self.untitledDocumentName = nil
+        }
+
         super.save(to: url, ofType: typeName, for: saveOperation) { [weak self] error in
             guard let self = self else {
                 completionHandler(error)
@@ -1994,11 +2004,17 @@ class Document: NSDocument {
 
             if error == nil {
                 // 保存成功後にプリセットデータを拡張属性に書き込む
-                self.writePresetDataToExtendedAttribute(at: url)
-                // ユーザーが明示的に保存した場合、untitledDocumentName をクリア
-                // （autosave 操作ではクリアしない）
+                // NSDocument の内部処理（autosave 一時ファイルのクリーンアップ等）との
+                // ファイルシステム競合を避けるため、実際の fileURL に対して書き込む
+                if let actualURL = self.fileURL {
+                    self.writePresetDataToExtendedAttribute(at: actualURL)
+                }
+            } else {
+                // 保存失敗時は untitledDocumentName を復元
                 if saveOperation == .saveOperation || saveOperation == .saveAsOperation {
-                    self.untitledDocumentName = nil
+                    if self.untitledDocumentName == nil {
+                        self.untitledDocumentName = savedUntitledName
+                    }
                 }
             }
 

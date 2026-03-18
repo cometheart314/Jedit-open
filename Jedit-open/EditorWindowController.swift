@@ -1028,20 +1028,38 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 行番号ビューのサイズが変更されたら制約を更新
         guard displayMode == .continuous else { return }
 
-        if let lineNumberView = notification.object as? LineNumberView {
-            if lineNumberView === lineNumberView1 {
-                if isVerticalLayout {
-                    lineNumberWidthConstraint1?.constant = lineNumberView.currentHeight
-                } else {
-                    lineNumberWidthConstraint1?.constant = lineNumberView.currentWidth
-                }
-            } else if lineNumberView === lineNumberView2 {
-                if isVerticalLayout {
-                    lineNumberWidthConstraint2?.constant = lineNumberView.currentHeight
-                } else {
-                    lineNumberWidthConstraint2?.constant = lineNumberView.currentWidth
-                }
+        guard let lineNumberView = notification.object as? LineNumberView else { return }
+
+        // 制約更新前にスクロール位置を保存
+        // Auto Layout による scroll view リサイズが NSTextView の内部的な
+        // scrollRangeToVisible を誘発し、カーソルがセンターにスクロールされる問題を防止
+        let savedScrollPosition1 = scrollView1?.contentView.bounds.origin
+        let savedScrollPosition2 = scrollView2?.contentView.bounds.origin
+
+        if lineNumberView === lineNumberView1 {
+            if isVerticalLayout {
+                lineNumberWidthConstraint1?.constant = lineNumberView.currentHeight
+            } else {
+                lineNumberWidthConstraint1?.constant = lineNumberView.currentWidth
             }
+        } else if lineNumberView === lineNumberView2 {
+            if isVerticalLayout {
+                lineNumberWidthConstraint2?.constant = lineNumberView.currentHeight
+            } else {
+                lineNumberWidthConstraint2?.constant = lineNumberView.currentWidth
+            }
+        }
+
+        // レイアウト後にスクロール位置を復元
+        // constraint 変更は次のレイアウトパスで反映されるため、
+        // layoutSubtreeIfNeeded で即座にレイアウトを確定させてからスクロール位置を戻す
+        window?.contentView?.layoutSubtreeIfNeeded()
+
+        if let savedOrigin = savedScrollPosition1, let clipView = scrollView1?.contentView {
+            clipView.setBoundsOrigin(savedOrigin)
+        }
+        if let savedOrigin = savedScrollPosition2, let clipView = scrollView2?.contentView {
+            clipView.setBoundsOrigin(savedOrigin)
         }
     }
 
