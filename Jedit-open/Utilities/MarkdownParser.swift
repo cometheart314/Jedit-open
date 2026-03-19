@@ -26,6 +26,9 @@ enum MarkdownParser {
     /// リモート画像の表示サイズ（非同期読み込み用）
     static let remoteImageSizeKey = NSAttributedString.Key("jp.co.artman21.Jedit.remoteImageSize")
 
+    /// 画像の元ソース（逆変換用：<img>タグ全体 または ![alt](url) 形式の文字列）
+    static let imageSourceKey = NSAttributedString.Key("jp.co.artman21.Jedit.imageSource")
+
     /// リモート画像キャッシュ
     private static let imageCache = NSCache<NSURL, NSImage>()
 
@@ -876,8 +879,9 @@ enum MarkdownParser {
                     finalParagraphStyle = paragraphStyle
                 }
 
-                // インラインフォーマット適用後もparagraphStyleを維持
+                // インラインフォーマット適用後もparagraphStyleとblockTypeを維持
                 cellAttr.addAttribute(.paragraphStyle, value: finalParagraphStyle, range: NSRange(location: 0, length: cellAttr.length))
+                cellAttr.addAttribute(markdownBlockTypeKey, value: blockValue, range: NSRange(location: 0, length: cellAttr.length))
                 // NSTextTable は各セル末尾に改行が必要
                 var finalAttrs = attrs
                 finalAttrs[.paragraphStyle] = finalParagraphStyle
@@ -1097,6 +1101,9 @@ enum MarkdownParser {
                 }
             }
 
+            // 元の<img>タグを逆変換用に保存
+            let originalImgTag = text.substring(with: match.range)
+
             if let image = image {
                 // 画像が利用可能（ローカルまたはキャッシュ済みリモート）
                 let displaySize = calcDisplaySize(image.size)
@@ -1104,7 +1111,8 @@ enum MarkdownParser {
                 attachment.bounds = CGRect(origin: .zero, size: displaySize)
                 let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
                 attachment.attachmentCell = cell
-                let imgAttr = NSAttributedString(attachment: attachment)
+                let imgAttr = NSMutableAttributedString(attachment: attachment)
+                imgAttr.addAttribute(imageSourceKey, value: originalImgTag, range: NSRange(location: 0, length: imgAttr.length))
                 attrString.replaceCharacters(in: match.range, with: imgAttr)
             } else if isRemote, let url = remoteURL {
                 // リモート画像: プレースホルダーを挿入し、後で非同期読み込み
@@ -1126,6 +1134,7 @@ enum MarkdownParser {
                 // リモートURL・サイズ情報をカスタム属性に保存
                 let range = NSRange(location: 0, length: imgAttr.length)
                 imgAttr.addAttribute(remoteImageURLKey, value: url, range: range)
+                imgAttr.addAttribute(imageSourceKey, value: originalImgTag, range: range)
                 if let h = specifiedHeight {
                     imgAttr.addAttribute(remoteImageSizeKey, value: NSValue(size: NSSize(width: specifiedWidth ?? 0, height: h)), range: range)
                 }
@@ -1209,6 +1218,9 @@ enum MarkdownParser {
                     if let blockType = existingAttrs[markdownBlockTypeKey] {
                         imgAttr.addAttribute(markdownBlockTypeKey, value: blockType, range: NSRange(location: 0, length: imgAttr.length))
                     }
+                    if let source = existingAttrs[imageSourceKey] {
+                        imgAttr.addAttribute(imageSourceKey, value: source, range: NSRange(location: 0, length: imgAttr.length))
+                    }
 
                     textStorage.beginEditing()
                     textStorage.replaceCharacters(in: replaceRange, with: imgAttr)
@@ -1270,6 +1282,9 @@ enum MarkdownParser {
                 if let titleText = titleText {
                     imageString.addAttribute(.toolTip, value: titleText, range: NSRange(location: 0, length: imageString.length))
                 }
+                // 元のMarkdown画像ソースを保存（逆変換用）
+                let originalMarkdown = text.substring(with: match.range)
+                imageString.addAttribute(imageSourceKey, value: originalMarkdown, range: NSRange(location: 0, length: imageString.length))
                 attrString.replaceCharacters(in: match.range, with: imageString)
             } else {
                 // リモートURL等: リンクとして表示
@@ -1669,6 +1684,7 @@ enum MarkdownParser {
         var inTable = false
         var pendingTableCells: [NSAttributedString] = []
         var pendingTableIsHeader = false
+        var currentTable: NSTextTable?  // テーブル境界の検出用
 
         while currentIndex < nsText.length {
             // 次の改行を探す
@@ -1727,6 +1743,15 @@ enum MarkdownParser {
                 if blockType == MarkdownBlockValue.tableHeader || blockType == MarkdownBlockValue.tableRow {
                     if let ps = firstAttrs[.paragraphStyle] as? NSParagraphStyle,
                        let tableBlock = ps.textBlocks.first as? NSTextTableBlock {
+                        // テーブルが変わったら未完了のセルを破棄してリセット
+                        if tableBlock.table !== currentTable {
+                            pendingTableCells.removeAll()
+                            currentTable = tableBlock.table
+                            if inTable {
+                                // 前のテーブルとの間に空行
+                                paragraphs.append("")
+                            }
+                        }
                         let totalCols = tableBlock.table.numberOfColumns
                         pendingTableCells.append(lineAttr)
                         pendingTableIsHeader = (blockType == MarkdownBlockValue.tableHeader)
@@ -1891,6 +1916,7 @@ enum MarkdownParser {
         case boldStrikethrough
         case link(url: String, title: String?)
         case image(name: String)
+        case rawMarkdown  // 元のMarkdown/HTMLをそのまま出力
     }
 
     /// インラインスタイルのセグメント（同じスタイルの連続テキストをマージ用）
@@ -2023,9 +2049,14 @@ enum MarkdownParser {
             let segmentText = nsText.substring(with: effectiveRange)
 
             // NSTextAttachment（画像）の検出
-            if let attachment = attrs[.attachment] as? NSTextAttachment {
-                let imageName = attachment.fileWrapper?.preferredFilename ?? "image"
-                segments.append(InlineSegment(text: imageName, style: .image(name: imageName)))
+            if attrs[.attachment] is NSTextAttachment {
+                // 元ソース情報があればそのまま使用（<img>タグ or ![alt](url)）
+                if let source = attrs[imageSourceKey] as? String {
+                    segments.append(InlineSegment(text: source, style: .rawMarkdown))
+                } else {
+                    let imageName = "image"
+                    segments.append(InlineSegment(text: imageName, style: .image(name: imageName)))
+                }
                 i = NSMaxRange(effectiveRange)
                 continue
             }
@@ -2090,6 +2121,8 @@ enum MarkdownParser {
             switch seg.style {
             case .image(let name):
                 result += "![\(name)]()"
+            case .rawMarkdown:
+                result += seg.text
             case .link(let url, let title):
                 if let title = title, !title.isEmpty {
                     result += "[\(seg.text)](\(url) \"\(title)\")"
