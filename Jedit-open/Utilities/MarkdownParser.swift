@@ -20,6 +20,15 @@ enum MarkdownParser {
     /// .backgroundColor ではなくカスタム属性を使用する）
     static let inlineCodeBackgroundKey = NSAttributedString.Key("jp.co.artman21.Jedit.inlineCodeBackground")
 
+    /// リモート画像のURL（非同期読み込み用）
+    static let remoteImageURLKey = NSAttributedString.Key("jp.co.artman21.Jedit.remoteImageURL")
+
+    /// リモート画像の表示サイズ（非同期読み込み用）
+    static let remoteImageSizeKey = NSAttributedString.Key("jp.co.artman21.Jedit.remoteImageSize")
+
+    /// リモート画像キャッシュ
+    private static let imageCache = NSCache<NSURL, NSImage>()
+
     /// ブロックタイプの値（カスタム属性に設定する文字列）
     private enum MarkdownBlockValue {
         static let heading1 = "h1"
@@ -251,6 +260,13 @@ enum MarkdownParser {
                 continue
             }
 
+            // 見出し（HTML <h1>〜<h6> タグ）
+            if let (level, headingText) = parseHTMLHeading(trimmed) {
+                blocks.append(.heading(level: level, text: headingText))
+                i += 1
+                continue
+            }
+
             // テーブル
             if isTableRow(trimmed) && i + 1 < lines.count && isTableSeparator(lines[i + 1].trimmingCharacters(in: .whitespaces)) {
                 var tableRows: [[String]] = []
@@ -441,6 +457,18 @@ enum MarkdownParser {
         let rest = String(line.dropFirst(level)).trimmingCharacters(in: .whitespaces)
         // 末尾の # を除去
         let text = rest.replacingOccurrences(of: #"\s*#+\s*$"#, with: "", options: .regularExpression)
+        return (level, text)
+    }
+
+    /// HTML <h1>〜<h6> タグをパースして (level, text) を返す
+    private static func parseHTMLHeading(_ line: String) -> (Int, String)? {
+        let pattern = #"^<h([1-6])(?:\s[^>]*)?>(.+?)</h\1>$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { return nil }
+        let nsLine = line as NSString
+        guard let match = regex.firstMatch(in: line, range: NSRange(location: 0, length: nsLine.length)) else { return nil }
+        let levelStr = nsLine.substring(with: match.range(at: 1))
+        guard let level = Int(levelStr) else { return nil }
+        let text = nsLine.substring(with: match.range(at: 2)).trimmingCharacters(in: .whitespaces)
         return (level, text)
     }
 
@@ -778,63 +806,116 @@ enum MarkdownParser {
         guard !rows.isEmpty else { return NSAttributedString() }
         let result = NSMutableAttributedString()
         let tableFont = NSFont.monospacedSystemFont(ofSize: codeFontSize, weight: .regular)
+        let headerFont = NSFont.monospacedSystemFont(ofSize: codeFontSize, weight: .bold)
 
-        // 各列の最大幅を計算
-        var columnWidths: [Int] = []
+        let columnCount = rows.map { $0.count }.max() ?? 0
+        guard columnCount > 0 else { return NSAttributedString() }
+
+        let table = NSTextTable()
+        table.numberOfColumns = columnCount
+        table.layoutAlgorithm = .automaticLayoutAlgorithm
+        table.collapsesBorders = true
+
+        // カラム幅をレンダリング後の表示幅に基づいて計算
+        var maxColWidths = [CGFloat](repeating: 0, count: columnCount)
         for row in rows {
-            for (colIndex, cell) in row.enumerated() {
-                if colIndex >= columnWidths.count {
-                    columnWidths.append(cell.count)
-                } else {
-                    columnWidths[colIndex] = max(columnWidths[colIndex], cell.count)
-                }
+            for (colIndex, cell) in row.enumerated() where colIndex < columnCount {
+                let width = estimateDisplayWidth(cell)
+                maxColWidths[colIndex] = max(maxColWidths[colIndex], width)
             }
         }
+        // 最小幅を保証
+        for i in 0..<columnCount {
+            maxColWidths[i] = max(maxColWidths[i], 3)
+        }
+        let totalWidth = maxColWidths.reduce(0, +)
 
         for (rowIndex, row) in rows.enumerated() {
-            if rowIndex > 0 {
-                result.append(NSAttributedString(string: "\n"))
-            }
-
-            var lineText = ""
-            for (colIndex, cell) in row.enumerated() {
-                if colIndex > 0 { lineText += "  " }
-                let width = colIndex < columnWidths.count ? columnWidths[colIndex] : cell.count
-                lineText += cell.padding(toLength: width, withPad: " ", startingAt: 0)
-            }
-
-            let font = (hasHeader && rowIndex == 0) ?
-                NSFont.monospacedSystemFont(ofSize: codeFontSize, weight: .bold) : tableFont
-
+            let font = (hasHeader && rowIndex == 0) ? headerFont : tableFont
             let blockValue = (hasHeader && rowIndex == 0) ? MarkdownBlockValue.tableHeader : MarkdownBlockValue.tableRow
-            let attributes: [NSAttributedString.Key: Any] = [
-                .font: font,
-                .foregroundColor: NSColor.textColor,
-                markdownBlockTypeKey: blockValue
-            ]
 
-            let line = NSMutableAttributedString(string: lineText, attributes: attributes)
-            applyInlineFormatting(to: line, baseFont: font, baseURL: baseURL, referenceLinks: referenceLinks)
-            result.append(line)
+            for colIndex in 0..<columnCount {
+                let cellText = colIndex < row.count ? row[colIndex] : ""
 
-            // ヘッダー行の後にセパレーターを挿入
-            if hasHeader && rowIndex == 0 {
-                var separator = ""
-                for (colIndex, width) in columnWidths.enumerated() {
-                    if colIndex > 0 { separator += "  " }
-                    separator += String(repeating: "\u{2500}", count: width)
+                let block = NSTextTableBlock(table: table, startingRow: rowIndex, rowSpan: 1, startingColumn: colIndex, columnSpan: 1)
+                // コンテンツに基づいたカラム幅を設定
+                let widthPercent = maxColWidths[colIndex] / totalWidth * 100.0
+                block.setContentWidth(widthPercent, type: .percentageValueType)
+                block.setWidth(4, type: .absoluteValueType, for: .padding)
+
+                // ヘッダー行の下罫線
+                if hasHeader && rowIndex == 0 {
+                    block.setWidth(1.0, type: .absoluteValueType, for: .border, edge: .maxY)
+                    block.setBorderColor(horizontalRuleColor, for: .maxY)
                 }
-                let sepAttrs: [NSAttributedString.Key: Any] = [
-                    .font: tableFont,
-                    .foregroundColor: horizontalRuleColor,
-                    markdownBlockTypeKey: MarkdownBlockValue.tableSeparator
+
+                let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.textBlocks = [block]
+
+                let attrs: [NSAttributedString.Key: Any] = [
+                    .font: font,
+                    .foregroundColor: NSColor.textColor,
+                    .paragraphStyle: paragraphStyle,
+                    markdownBlockTypeKey: blockValue
                 ]
-                result.append(NSAttributedString(string: "\n"))
-                result.append(NSAttributedString(string: separator, attributes: sepAttrs))
+
+                let cellAttr = NSMutableAttributedString(string: cellText, attributes: attrs)
+                applyInlineFormatting(to: cellAttr, baseFont: font, baseURL: baseURL, referenceLinks: referenceLinks)
+
+                // 画像を含むセルはセンタリング
+                var hasImage = false
+                cellAttr.enumerateAttribute(.attachment, in: NSRange(location: 0, length: cellAttr.length)) { value, _, _ in
+                    if value != nil { hasImage = true }
+                }
+                let finalParagraphStyle: NSParagraphStyle
+                if hasImage {
+                    let centeredStyle = paragraphStyle.mutableCopy() as! NSMutableParagraphStyle
+                    centeredStyle.alignment = .center
+                    finalParagraphStyle = centeredStyle
+                } else {
+                    finalParagraphStyle = paragraphStyle
+                }
+
+                // インラインフォーマット適用後もparagraphStyleを維持
+                cellAttr.addAttribute(.paragraphStyle, value: finalParagraphStyle, range: NSRange(location: 0, length: cellAttr.length))
+                // NSTextTable は各セル末尾に改行が必要
+                var finalAttrs = attrs
+                finalAttrs[.paragraphStyle] = finalParagraphStyle
+                cellAttr.append(NSAttributedString(string: "\n", attributes: finalAttrs))
+                result.append(cellAttr)
             }
         }
 
         return result
+    }
+
+    /// セルテキストのレンダリング後の表示幅を推定（文字数ベース）
+    /// Markdownリンクや画像タグを考慮して実際の表示幅を返す
+    private static func estimateDisplayWidth(_ text: String) -> CGFloat {
+        var s = text
+
+        // <img ...> → 画像は固定幅で推定
+        if let imgRegex = try? NSRegularExpression(pattern: #"<img\s[^>]*>"#) {
+            let range = NSRange(location: 0, length: (s as NSString).length)
+            if imgRegex.firstMatch(in: s, range: range) != nil {
+                // 画像セルは画像幅相当（高さ20pxの画像 ≒ 10文字幅程度）
+                s = imgRegex.stringByReplacingMatches(in: s, range: range, withTemplate: "XXXXXXXXXX")
+            }
+        }
+
+        // [text](url) → text のみ
+        if let linkRegex = try? NSRegularExpression(pattern: #"\[([^\]]*)\]\([^\)]*\)"#) {
+            let range = NSRange(location: 0, length: (s as NSString).length)
+            s = linkRegex.stringByReplacingMatches(in: s, range: range, withTemplate: "$1")
+        }
+
+        // ![alt](url) → alt のみ（短い幅）
+        if let imgMdRegex = try? NSRegularExpression(pattern: #"!\[([^\]]*)\]\([^\)]*\)"#) {
+            let range = NSRange(location: 0, length: (s as NSString).length)
+            s = imgMdRegex.stringByReplacingMatches(in: s, range: range, withTemplate: "$1")
+        }
+
+        return CGFloat(max(s.count, 3))
     }
 
     // MARK: - Inline Formatting (Pass 2)
@@ -848,6 +929,7 @@ enum MarkdownParser {
         // 4. プレースホルダーをリテラル文字に復元
         applyEscapes(to: attrString)
         applyHTMLBreaks(to: attrString)
+        applyHTMLImages(to: attrString, baseURL: baseURL)
         applyImages(to: attrString, baseURL: baseURL)
         applyLinks(to: attrString)
         applyReferenceLinks(to: attrString, referenceLinks: referenceLinks)
@@ -919,6 +1001,220 @@ enum MarkdownParser {
         let matches = regex.matches(in: attrString.string, range: NSRange(location: 0, length: text.length))
         for match in matches.reversed() {
             attrString.replaceCharacters(in: match.range, with: "\n")
+        }
+    }
+
+    // MARK: - Inline: HTML Images
+
+    /// HTML <img> タグを処理（ローカル・リモート画像を埋め込み表示）
+    private static func applyHTMLImages(to attrString: NSMutableAttributedString, baseURL: URL?) {
+        // <img ... /> または <img ...> パターン
+        let pattern = #"<img\s+[^>]*?/?>"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive) else { return }
+        let srcPattern = #"src\s*=\s*"([^"]*)""#
+        let altPattern = #"alt\s*=\s*"([^"]*)""#
+        let heightPattern = #"height\s*=\s*"(\d+)""#
+        let widthPattern = #"width\s*=\s*"(\d+)""#
+        let srcRegex = try? NSRegularExpression(pattern: srcPattern, options: .caseInsensitive)
+        let altRegex = try? NSRegularExpression(pattern: altPattern, options: .caseInsensitive)
+        let heightRegex = try? NSRegularExpression(pattern: heightPattern, options: .caseInsensitive)
+        let widthRegex = try? NSRegularExpression(pattern: widthPattern, options: .caseInsensitive)
+
+        let text = attrString.string as NSString
+        let matches = regex.matches(in: attrString.string, range: NSRange(location: 0, length: text.length))
+
+        for match in matches.reversed() {
+            let tagString = text.substring(with: match.range)
+            let tagNS = tagString as NSString
+            let tagRange = NSRange(location: 0, length: tagNS.length)
+
+            // src属性を抽出
+            var srcURL: String?
+            if let srcMatch = srcRegex?.firstMatch(in: tagString, range: tagRange) {
+                srcURL = tagNS.substring(with: srcMatch.range(at: 1))
+            }
+
+            // alt属性を抽出
+            var altText: String?
+            if let altMatch = altRegex?.firstMatch(in: tagString, range: tagRange) {
+                altText = tagNS.substring(with: altMatch.range(at: 1))
+            }
+
+            // height/width属性を抽出
+            var specifiedHeight: CGFloat?
+            var specifiedWidth: CGFloat?
+            if let hMatch = heightRegex?.firstMatch(in: tagString, range: tagRange) {
+                specifiedHeight = CGFloat(Double(tagNS.substring(with: hMatch.range(at: 1))) ?? 0)
+            }
+            if let wMatch = widthRegex?.firstMatch(in: tagString, range: tagRange) {
+                specifiedWidth = CGFloat(Double(tagNS.substring(with: wMatch.range(at: 1))) ?? 0)
+            }
+
+            // 画像を読み込み（ローカルファイル）
+            var image: NSImage?
+            var isRemote = false
+            var remoteURL: URL?
+
+            if let urlString = srcURL {
+                // ローカルファイル
+                if let baseURL = baseURL {
+                    let imageURL = URL(fileURLWithPath: urlString, relativeTo: baseURL)
+                    image = NSImage(contentsOf: imageURL)
+                }
+                if image == nil, let url = URL(string: urlString), url.isFileURL {
+                    image = NSImage(contentsOf: url)
+                }
+                if image == nil, FileManager.default.fileExists(atPath: urlString) {
+                    image = NSImage(contentsOfFile: urlString)
+                }
+                // リモートURLの判定
+                if image == nil, let url = URL(string: urlString), let scheme = url.scheme,
+                   (scheme == "http" || scheme == "https") {
+                    remoteURL = url
+                    isRemote = true
+                    // キャッシュを確認
+                    image = imageCache.object(forKey: url as NSURL)
+                }
+            }
+
+            // 表示サイズを計算するヘルパー
+            let calcDisplaySize: (NSSize) -> NSSize = { imageSize in
+                if let h = specifiedHeight, let w = specifiedWidth {
+                    return NSSize(width: w, height: h)
+                } else if let h = specifiedHeight, imageSize.width > 0 && imageSize.height > 0 {
+                    let scale = h / imageSize.height
+                    return NSSize(width: imageSize.width * scale, height: h)
+                } else if let w = specifiedWidth, imageSize.width > 0 && imageSize.height > 0 {
+                    let scale = w / imageSize.width
+                    return NSSize(width: w, height: imageSize.height * scale)
+                } else {
+                    let maxWidth: CGFloat = 600.0
+                    if imageSize.width > maxWidth {
+                        let scale = maxWidth / imageSize.width
+                        return NSSize(width: maxWidth, height: imageSize.height * scale)
+                    }
+                    return imageSize
+                }
+            }
+
+            if let image = image {
+                // 画像が利用可能（ローカルまたはキャッシュ済みリモート）
+                let displaySize = calcDisplaySize(image.size)
+                let attachment = NSTextAttachment()
+                attachment.bounds = CGRect(origin: .zero, size: displaySize)
+                let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
+                attachment.attachmentCell = cell
+                let imgAttr = NSAttributedString(attachment: attachment)
+                attrString.replaceCharacters(in: match.range, with: imgAttr)
+            } else if isRemote, let url = remoteURL {
+                // リモート画像: プレースホルダーを挿入し、後で非同期読み込み
+                let placeholderSize = NSSize(
+                    width: specifiedWidth ?? specifiedHeight ?? 20,
+                    height: specifiedHeight ?? 20
+                )
+                let placeholderImage = NSImage(size: placeholderSize)
+                placeholderImage.lockFocus()
+                NSColor.separatorColor.withAlphaComponent(0.3).setFill()
+                NSBezierPath(roundedRect: NSRect(origin: .zero, size: placeholderSize), xRadius: 2, yRadius: 2).fill()
+                placeholderImage.unlockFocus()
+
+                let attachment = NSTextAttachment()
+                attachment.bounds = CGRect(origin: .zero, size: placeholderSize)
+                let cell = ResizableImageAttachmentCell(image: placeholderImage, displaySize: placeholderSize)
+                attachment.attachmentCell = cell
+                let imgAttr = NSMutableAttributedString(attachment: attachment)
+                // リモートURL・サイズ情報をカスタム属性に保存
+                let range = NSRange(location: 0, length: imgAttr.length)
+                imgAttr.addAttribute(remoteImageURLKey, value: url, range: range)
+                if let h = specifiedHeight {
+                    imgAttr.addAttribute(remoteImageSizeKey, value: NSValue(size: NSSize(width: specifiedWidth ?? 0, height: h)), range: range)
+                }
+                attrString.replaceCharacters(in: match.range, with: imgAttr)
+            } else {
+                // 読み込めない場合はプレースホルダー表示
+                let placeholder = altText ?? {
+                    if let src = srcURL, let url = URL(string: src) {
+                        let filename = url.deletingPathExtension().lastPathComponent
+                        if !filename.isEmpty { return filename }
+                    }
+                    return "img"
+                }()
+                let replacement = "[\(placeholder)]"
+                attrString.replaceCharacters(in: match.range, with: replacement)
+            }
+        }
+    }
+
+    // MARK: - Remote Image Loading
+
+    /// テキストストレージ内のリモート画像プレースホルダーを非同期で読み込み、実画像に差し替える
+    static func loadRemoteImages(in textStorage: NSTextStorage) {
+        // リモート画像のプレースホルダーを列挙
+        var entries: [(location: Int, url: URL, specifiedSize: NSSize)] = []
+        textStorage.enumerateAttribute(remoteImageURLKey, in: NSRange(location: 0, length: textStorage.length)) { value, range, _ in
+            guard let url = value as? URL else { return }
+            let sizeValue = (textStorage.attribute(remoteImageSizeKey, at: range.location, effectiveRange: nil) as? NSValue)?.sizeValue
+            let specifiedSize = sizeValue ?? .zero
+            entries.append((range.location, url, specifiedSize))
+        }
+
+        for entry in entries {
+            URLSession.shared.dataTask(with: entry.url) { data, _, _ in
+                guard let data = data, let image = NSImage(data: data) else { return }
+                // キャッシュに保存
+                imageCache.setObject(image, forKey: entry.url as NSURL)
+
+                DispatchQueue.main.async {
+                    // テキストストレージが変更されている可能性があるため位置を再検索
+                    guard entry.location < textStorage.length else { return }
+                    guard let storedURL = textStorage.attribute(remoteImageURLKey, at: entry.location, effectiveRange: nil) as? URL,
+                          storedURL == entry.url else { return }
+
+                    // 表示サイズを計算
+                    let displaySize: NSSize
+                    let specSize = entry.specifiedSize
+                    if specSize.width > 0 && specSize.height > 0 {
+                        displaySize = specSize
+                    } else if specSize.height > 0 && image.size.height > 0 {
+                        let scale = specSize.height / image.size.height
+                        displaySize = NSSize(width: image.size.width * scale, height: specSize.height)
+                    } else if specSize.width > 0 && image.size.width > 0 {
+                        let scale = specSize.width / image.size.width
+                        displaySize = NSSize(width: specSize.width, height: image.size.height * scale)
+                    } else {
+                        let maxWidth: CGFloat = 600.0
+                        if image.size.width > maxWidth {
+                            let scale = maxWidth / image.size.width
+                            displaySize = NSSize(width: maxWidth, height: image.size.height * scale)
+                        } else {
+                            displaySize = image.size
+                        }
+                    }
+
+                    // プレースホルダーを実画像に差し替え（アタッチメント文字は1文字）
+                    let replaceRange = NSRange(location: entry.location, length: 1)
+
+                    // 既存の属性（paragraphStyle等）を保持
+                    let existingAttrs = textStorage.attributes(at: entry.location, effectiveRange: nil)
+
+                    let attachment = NSTextAttachment()
+                    attachment.bounds = CGRect(origin: .zero, size: displaySize)
+                    let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
+                    attachment.attachmentCell = cell
+                    let imgAttr = NSMutableAttributedString(attachment: attachment)
+                    // paragraphStyle（NSTextTableBlock含む）を復元
+                    if let ps = existingAttrs[.paragraphStyle] {
+                        imgAttr.addAttribute(.paragraphStyle, value: ps, range: NSRange(location: 0, length: imgAttr.length))
+                    }
+                    if let blockType = existingAttrs[markdownBlockTypeKey] {
+                        imgAttr.addAttribute(markdownBlockTypeKey, value: blockType, range: NSRange(location: 0, length: imgAttr.length))
+                    }
+
+                    textStorage.beginEditing()
+                    textStorage.replaceCharacters(in: replaceRange, with: imgAttr)
+                    textStorage.endEditing()
+                }
+            }.resume()
         }
     }
 
@@ -1371,6 +1667,8 @@ enum MarkdownParser {
         var currentIndex = 0
         var inCodeBlock = false
         var inTable = false
+        var pendingTableCells: [NSAttributedString] = []
+        var pendingTableIsHeader = false
 
         while currentIndex < nsText.length {
             // 次の改行を探す
@@ -1419,26 +1717,53 @@ enum MarkdownParser {
                     inCodeBlock = false
                 }
 
-                // テーブルセパレーター行はスキップ（tableHeader 処理でセパレーターを出力済み）
+                // テーブルセパレーター行はスキップ（旧形式の互換性）
                 if blockType == MarkdownBlockValue.tableSeparator {
                     currentIndex = lineEnd + 1
                     continue
                 }
 
-                let markdownLine = convertLineToMarkdown(lineAttr, listInfo: listInfo)
+                // NSTextTable セルの処理（セル単位の段落を行に集約）
+                if blockType == MarkdownBlockValue.tableHeader || blockType == MarkdownBlockValue.tableRow {
+                    if let ps = firstAttrs[.paragraphStyle] as? NSParagraphStyle,
+                       let tableBlock = ps.textBlocks.first as? NSTextTableBlock {
+                        let totalCols = tableBlock.table.numberOfColumns
+                        pendingTableCells.append(lineAttr)
+                        pendingTableIsHeader = (blockType == MarkdownBlockValue.tableHeader)
 
-                // テーブルヘッダーの後にセパレーターを挿入
-                if blockType == MarkdownBlockValue.tableHeader {
+                        if pendingTableCells.count >= totalCols {
+                            // 行が完成 → Markdown行を出力
+                            let cellMarkdowns = pendingTableCells.map { cellAttr -> String in
+                                convertInlineToMarkdown(cellAttr).trimmingCharacters(in: .whitespacesAndNewlines)
+                            }
+                            let row = "| " + cellMarkdowns.joined(separator: " | ") + " |"
+                            paragraphs.append(row)
+
+                            if pendingTableIsHeader {
+                                let separator = "| " + cellMarkdowns.map {
+                                    String(repeating: "-", count: max($0.count, 3))
+                                }.joined(separator: " | ") + " |"
+                                paragraphs.append(separator)
+                            }
+                            pendingTableCells.removeAll()
+                            inTable = true
+                        }
+                        currentIndex = lineEnd + 1
+                        continue
+                    }
+
+                    // 旧形式（スペースパディング）のフォールバック
                     inTable = true
+                    let markdownLine = convertLineToMarkdown(lineAttr, listInfo: listInfo)
                     paragraphs.append(markdownLine)
-                    // セパレーター行を生成
-                    let cells = parseTableCellsFromRendered(lineAttr.string)
-                    let separator = "| " + cells.map { String(repeating: "-", count: max($0.trimmingCharacters(in: .whitespaces).count, 3)) }.joined(separator: " | ") + " |"
-                    paragraphs.append(separator)
-                } else if blockType == MarkdownBlockValue.tableRow {
-                    paragraphs.append(markdownLine)
+                    if blockType == MarkdownBlockValue.tableHeader {
+                        let cells = parseTableCellsFromRendered(lineAttr.string)
+                        let separator = "| " + cells.map { String(repeating: "-", count: max($0.trimmingCharacters(in: .whitespaces).count, 3)) }.joined(separator: " | ") + " |"
+                        paragraphs.append(separator)
+                    }
                 } else {
                     if inTable { inTable = false }
+                    let markdownLine = convertLineToMarkdown(lineAttr, listInfo: listInfo)
                     if !markdownLine.isEmpty {
                         paragraphs.append(markdownLine)
                     }
@@ -2035,12 +2360,15 @@ enum MarkdownParser {
     /// テーブル行（ヘッダーまたはデータ行）を Markdown テーブル行に変換
     /// レンダリング時にスペースパディングされたテキストを | 区切りに変換
     private static func convertTableLineToMarkdown(_ lineAttr: NSAttributedString, isHeader: Bool) -> String {
-        let cells = parseTableCellsFromRendered(lineAttr.string)
-        if cells.isEmpty { return lineAttr.string }
-        return "| " + cells.map { $0.trimmingCharacters(in: .whitespaces) }.joined(separator: " | ") + " |"
+        let cellAttrs = parseTableCellAttrsFromRendered(lineAttr)
+        if cellAttrs.isEmpty { return convertInlineToMarkdown(lineAttr) }
+        let cellMarkdowns = cellAttrs.map { cellAttr -> String in
+            convertInlineToMarkdown(cellAttr).trimmingCharacters(in: .whitespaces)
+        }
+        return "| " + cellMarkdowns.joined(separator: " | ") + " |"
     }
 
-    /// レンダリングされたテーブル行テキストからセルを分割
+    /// レンダリングされたテーブル行テキストからセルを分割（プレーンテキスト版）
     /// renderTable で各セルは columnWidth にパディングされ、2スペースで区切られている
     private static func parseTableCellsFromRendered(_ text: String) -> [String] {
         // 2つ以上のスペースをセパレーターとして分割
@@ -2060,6 +2388,30 @@ enum MarkdownParser {
         // 最後のセル
         if lastEnd < nsText.length {
             cells.append(nsText.substring(from: lastEnd))
+        }
+        return cells
+    }
+
+    /// レンダリングされたテーブル行から属性付きセルを分割
+    private static func parseTableCellAttrsFromRendered(_ lineAttr: NSAttributedString) -> [NSAttributedString] {
+        let text = lineAttr.string
+        let pattern = "  +"
+        guard let regex = try? NSRegularExpression(pattern: pattern) else {
+            return [lineAttr]
+        }
+        let nsText = text as NSString
+        var cells: [NSAttributedString] = []
+        var lastEnd = 0
+        let matches = regex.matches(in: text, range: NSRange(location: 0, length: nsText.length))
+        for match in matches {
+            let cellRange = NSRange(location: lastEnd, length: match.range.location - lastEnd)
+            cells.append(lineAttr.attributedSubstring(from: cellRange))
+            lastEnd = NSMaxRange(match.range)
+        }
+        // 最後のセル
+        if lastEnd < nsText.length {
+            let cellRange = NSRange(location: lastEnd, length: nsText.length - lastEnd)
+            cells.append(lineAttr.attributedSubstring(from: cellRange))
         }
         return cells
     }

@@ -2502,6 +2502,9 @@ class Document: NSDocument {
             // 編集ロック状態にする
             self.presetData?.view.preventEditing = true
 
+            // リモート画像を非同期で読み込み
+            MarkdownParser.loadRemoteImages(in: self.textStorage)
+
             NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
         }
     }
