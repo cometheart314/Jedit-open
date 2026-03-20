@@ -3798,6 +3798,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
+        // ズーム時の補正: availableWidth/HeightはcontentViewの座標系（表示座標）だが、
+        // テキストビューはmagnification前の座標系で動作するため、magnificationで割って変換する
+        // （windowWidthモードはScalingScrollView.updateTextContainerSizeが別途処理するため除外）
+        if lineWrapMode != .windowWidth, let scalingScrollView = scrollView as? ScalingScrollView,
+           scalingScrollView.magnification != 1.0 {
+            let mag = scalingScrollView.magnification
+            availableWidth = availableWidth / mag
+            availableHeight = availableHeight / mag
+        }
+
         if isVerticalLayout {
             // 縦書きの場合
             let lineHeight: CGFloat
