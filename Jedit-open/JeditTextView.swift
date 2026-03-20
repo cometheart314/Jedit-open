@@ -1120,23 +1120,38 @@ class JeditTextView: NSTextView {
         // 発生する問題を防止する。
         // ペースト等でrangeの末尾がウィンドウ外に出る場合はスクロールを実行する。
         if let layoutManager = layoutManager, let textContainer = textContainer {
-            let endLocation = min(range.location + range.length,
-                                  layoutManager.numberOfGlyphs)
-            let endGlyphRange = layoutManager.glyphRange(
-                forCharacterRange: NSRange(location: endLocation, length: 0),
-                actualCharacterRange: nil
-            )
-            let endRect = layoutManager.boundingRect(
-                forGlyphRange: endGlyphRange, in: textContainer
-            )
-            // textContainerOriginを加算してビュー座標に変換
-            let endCursorRect = endRect.offsetBy(
-                dx: textContainerOrigin.x,
-                dy: textContainerOrigin.y
-            )
-            // rangeの末尾がvisibleRect内にあればスクロール不要
-            if visibleRect.contains(endCursorRect.origin) {
-                return
+            let glyphCount = layoutManager.numberOfGlyphs
+            let endLocation = min(range.location + range.length, glyphCount)
+
+            var endRect: NSRect
+            if endLocation < glyphCount {
+                let endGlyphRange = layoutManager.glyphRange(
+                    forCharacterRange: NSRange(location: endLocation, length: 0),
+                    actualCharacterRange: nil
+                )
+                endRect = layoutManager.boundingRect(
+                    forGlyphRange: endGlyphRange, in: textContainer
+                )
+            } else {
+                // 文書末尾の場合: boundingRectが空rectを返す可能性があるため
+                // extraLineFragmentRectを使用してカーソル位置を正確に取得
+                endRect = layoutManager.extraLineFragmentRect
+            }
+
+            // endRectが有効（非空）な場合のみ可視チェックを行う
+            // 空の場合はガードをスキップしてsuper実行（安全側に倒す）
+            if !endRect.isEmpty {
+                // textContainerOriginを加算してビュー座標に変換
+                let endCursorRect = endRect.offsetBy(
+                    dx: textContainerOrigin.x,
+                    dy: textContainerOrigin.y
+                )
+                // ズーム時のサブピクセル座標精度問題に対応するため、
+                // visibleRectに少しマージンを持たせる
+                let marginedVisibleRect = visibleRect.insetBy(dx: -2, dy: -2)
+                if marginedVisibleRect.contains(endCursorRect.origin) {
+                    return
+                }
             }
         }
 

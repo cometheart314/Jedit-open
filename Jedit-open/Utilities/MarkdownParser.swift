@@ -935,6 +935,7 @@ enum MarkdownParser {
         applyHTMLBreaks(to: attrString)
         applyHTMLImages(to: attrString, baseURL: baseURL)
         applyImages(to: attrString, baseURL: baseURL)
+        applyReferenceImages(to: attrString, referenceLinks: referenceLinks)
         applyLinks(to: attrString)
         applyReferenceLinks(to: attrString, referenceLinks: referenceLinks)
         applyAutoLinks(to: attrString)
@@ -1170,6 +1171,7 @@ enum MarkdownParser {
         for entry in entries {
             URLSession.shared.dataTask(with: entry.url) { data, _, _ in
                 guard let data = data, let image = NSImage(data: data) else { return }
+
                 // キャッシュに保存
                 imageCache.setObject(image, forKey: entry.url as NSURL)
 
@@ -1200,30 +1202,15 @@ enum MarkdownParser {
                         }
                     }
 
-                    // プレースホルダーを実画像に差し替え（アタッチメント文字は1文字）
+                    // プレースホルダーを実画像に差し替え
+                    // NSTextAttachment標準描画を使用（attachmentCellはboundsと二重計上されるため不使用）
                     let replaceRange = NSRange(location: entry.location, length: 1)
-
-                    // 既存の属性（paragraphStyle等）を保持
-                    let existingAttrs = textStorage.attributes(at: entry.location, effectiveRange: nil)
-
-                    let attachment = NSTextAttachment()
-                    attachment.bounds = CGRect(origin: .zero, size: displaySize)
-                    let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
-                    attachment.attachmentCell = cell
-                    let imgAttr = NSMutableAttributedString(attachment: attachment)
-                    // paragraphStyle（NSTextTableBlock含む）を復元
-                    if let ps = existingAttrs[.paragraphStyle] {
-                        imgAttr.addAttribute(.paragraphStyle, value: ps, range: NSRange(location: 0, length: imgAttr.length))
-                    }
-                    if let blockType = existingAttrs[markdownBlockTypeKey] {
-                        imgAttr.addAttribute(markdownBlockTypeKey, value: blockType, range: NSRange(location: 0, length: imgAttr.length))
-                    }
-                    if let source = existingAttrs[imageSourceKey] {
-                        imgAttr.addAttribute(imageSourceKey, value: source, range: NSRange(location: 0, length: imgAttr.length))
-                    }
-
+                    let newAttachment = NSTextAttachment()
+                    newAttachment.image = image
+                    newAttachment.bounds = CGRect(origin: .zero, size: displaySize)
+                    let attachmentString = NSAttributedString(attachment: newAttachment)
                     textStorage.beginEditing()
-                    textStorage.replaceCharacters(in: replaceRange, with: imgAttr)
+                    textStorage.replaceCharacters(in: replaceRange, with: attachmentString)
                     textStorage.endEditing()
                 }
             }.resume()
@@ -1262,6 +1249,17 @@ enum MarkdownParser {
                 image = NSImage(contentsOfFile: urlString)
             }
 
+            // 元のMarkdown画像ソースを保存（逆変換用）
+            let originalMarkdown = text.substring(with: match.range)
+
+            // リモートURLの場合はキャッシュをチェック
+            if image == nil, let url = URL(string: urlString),
+               (url.scheme == "http" || url.scheme == "https") {
+                if let cached = imageCache.object(forKey: url as NSURL) {
+                    image = cached
+                }
+            }
+
             if let image = image {
                 let attachment = NSTextAttachment()
                 // 画像サイズを制限（幅最大600pt）
@@ -1271,23 +1269,45 @@ enum MarkdownParser {
                 if imageSize.width > maxWidth {
                     let scale = maxWidth / imageSize.width
                     displaySize = NSSize(width: maxWidth, height: imageSize.height * scale)
-                    attachment.bounds = CGRect(origin: .zero, size: displaySize)
                 } else {
                     displaySize = imageSize
                 }
                 // ResizableImageAttachmentCellで統一（グレー枠を防止）
+                attachment.bounds = CGRect(origin: .zero, size: displaySize)
                 let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
                 attachment.attachmentCell = cell
                 let imageString = NSMutableAttributedString(attachment: attachment)
                 if let titleText = titleText {
                     imageString.addAttribute(.toolTip, value: titleText, range: NSRange(location: 0, length: imageString.length))
                 }
-                // 元のMarkdown画像ソースを保存（逆変換用）
-                let originalMarkdown = text.substring(with: match.range)
                 imageString.addAttribute(imageSourceKey, value: originalMarkdown, range: NSRange(location: 0, length: imageString.length))
                 attrString.replaceCharacters(in: match.range, with: imageString)
+            } else if let url = URL(string: urlString),
+                      (url.scheme == "http" || url.scheme == "https") {
+                // リモート画像: プレースホルダーを挿入し、後で非同期読み込み
+                let placeholderSize = NSSize(width: 20, height: 20)
+                let placeholderImage = NSImage(size: placeholderSize)
+                placeholderImage.lockFocus()
+                NSColor.tertiaryLabelColor.setFill()
+                NSBezierPath(roundedRect: NSRect(origin: .zero, size: placeholderSize),
+                             xRadius: 2, yRadius: 2).fill()
+                placeholderImage.unlockFocus()
+
+                let attachment = NSTextAttachment()
+                attachment.bounds = CGRect(origin: .zero, size: placeholderSize)
+                let placeholderCell = ResizableImageAttachmentCell(image: placeholderImage, displaySize: placeholderSize)
+                attachment.attachmentCell = placeholderCell
+                let imgAttr = NSMutableAttributedString(attachment: attachment)
+                let range = NSRange(location: 0, length: imgAttr.length)
+                imgAttr.addAttribute(remoteImageURLKey, value: url, range: range)
+                imgAttr.addAttribute(imageSourceKey, value: originalMarkdown, range: range)
+                // ![alt](url) にはサイズ指定がないので、サイズは 0x0（loadRemoteImagesで自然サイズを使用）
+                if let titleText = titleText {
+                    imgAttr.addAttribute(.toolTip, value: titleText, range: range)
+                }
+                attrString.replaceCharacters(in: match.range, with: imgAttr)
             } else {
-                // リモートURL等: リンクとして表示
+                // ローカルファイルが見つからない場合: リンクとして表示
                 let displayText = altText.isEmpty ? urlString : altText
                 let linkString = NSMutableAttributedString(string: "[\(displayText)]", attributes: [
                     .font: baseFont,
@@ -1300,8 +1320,90 @@ enum MarkdownParser {
                 if let titleText = titleText {
                     linkString.addAttribute(.toolTip, value: titleText, range: NSRange(location: 0, length: linkString.length))
                 }
+                linkString.addAttribute(imageSourceKey, value: originalMarkdown, range: NSRange(location: 0, length: linkString.length))
                 attrString.replaceCharacters(in: match.range, with: linkString)
             }
+        }
+    }
+
+    // MARK: - Inline: Reference Images
+
+    /// 参照画像 ![alt][id] を処理（参照リンク定義から画像URLを取得し、非同期読み込み）
+    private static func applyReferenceImages(to attrString: NSMutableAttributedString, referenceLinks: [String: ReferenceLinkDefinition]) {
+        guard !referenceLinks.isEmpty else { return }
+
+        // ![alt][id] パターン
+        let pattern = #"!\[([^\]]*)\]\[([^\]]+)\]"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return }
+        let text = attrString.string as NSString
+
+        let matches = regex.matches(in: attrString.string, range: NSRange(location: 0, length: text.length))
+        for match in matches.reversed() {
+            let altText = text.substring(with: match.range(at: 1))
+            let idText = text.substring(with: match.range(at: 2))
+            let lookupId = idText.lowercased()
+
+            guard let definition = referenceLinks[lookupId] else { continue }
+            let urlString = definition.url
+            let titleText = definition.title
+
+            // 元のMarkdownソースを保存
+            let originalMarkdown = text.substring(with: match.range)
+
+            var image: NSImage?
+            // キャッシュチェック
+            if let url = URL(string: urlString),
+               (url.scheme == "http" || url.scheme == "https") {
+                image = imageCache.object(forKey: url as NSURL)
+            }
+
+            if let image = image {
+                // キャッシュ済み: 即座に表示
+                let maxWidth: CGFloat = 600.0
+                let imageSize = image.size
+                let displaySize: NSSize
+                if imageSize.width > maxWidth {
+                    let scale = maxWidth / imageSize.width
+                    displaySize = NSSize(width: maxWidth, height: imageSize.height * scale)
+                } else {
+                    displaySize = imageSize
+                }
+                let attachment = NSTextAttachment()
+                attachment.bounds = CGRect(origin: .zero, size: displaySize)
+                let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
+                attachment.attachmentCell = cell
+                let imageString = NSMutableAttributedString(attachment: attachment)
+                let range = NSRange(location: 0, length: imageString.length)
+                imageString.addAttribute(imageSourceKey, value: originalMarkdown, range: range)
+                if let titleText = titleText {
+                    imageString.addAttribute(.toolTip, value: titleText, range: range)
+                }
+                attrString.replaceCharacters(in: match.range, with: imageString)
+            } else if let url = URL(string: urlString),
+                      (url.scheme == "http" || url.scheme == "https") {
+                // リモート画像: プレースホルダーを挿入
+                let placeholderSize = NSSize(width: 20, height: 20)
+                let placeholderImage = NSImage(size: placeholderSize)
+                placeholderImage.lockFocus()
+                NSColor.tertiaryLabelColor.setFill()
+                NSBezierPath(roundedRect: NSRect(origin: .zero, size: placeholderSize),
+                             xRadius: 2, yRadius: 2).fill()
+                placeholderImage.unlockFocus()
+
+                let attachment = NSTextAttachment()
+                attachment.bounds = CGRect(origin: .zero, size: placeholderSize)
+                let placeholderCell = ResizableImageAttachmentCell(image: placeholderImage, displaySize: placeholderSize)
+                attachment.attachmentCell = placeholderCell
+                let imgAttr = NSMutableAttributedString(attachment: attachment)
+                let range = NSRange(location: 0, length: imgAttr.length)
+                imgAttr.addAttribute(remoteImageURLKey, value: url, range: range)
+                imgAttr.addAttribute(imageSourceKey, value: originalMarkdown, range: range)
+                if let titleText = titleText {
+                    imgAttr.addAttribute(.toolTip, value: titleText, range: range)
+                }
+                attrString.replaceCharacters(in: match.range, with: imgAttr)
+            }
+            // ローカルファイル参照画像はリンクとして残す（applyReferenceLinksが処理）
         }
     }
 
