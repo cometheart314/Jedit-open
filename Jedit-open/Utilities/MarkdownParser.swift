@@ -1158,7 +1158,8 @@ enum MarkdownParser {
     // MARK: - Remote Image Loading
 
     /// テキストストレージ内のリモート画像プレースホルダーを非同期で読み込み、実画像に差し替える
-    static func loadRemoteImages(in textStorage: NSTextStorage) {
+    /// completion: 全画像のダウンロード完了時に呼ばれる（メインスレッド）
+    static func loadRemoteImages(in textStorage: NSTextStorage, completion: (() -> Void)? = nil) {
         // リモート画像のプレースホルダーを列挙
         var entries: [(location: Int, url: URL, specifiedSize: NSSize)] = []
         textStorage.enumerateAttribute(remoteImageURLKey, in: NSRange(location: 0, length: textStorage.length)) { value, range, _ in
@@ -1168,14 +1169,28 @@ enum MarkdownParser {
             entries.append((range.location, url, specifiedSize))
         }
 
+        if entries.isEmpty {
+            completion?()
+            return
+        }
+
+        // 全画像ダウンロード完了を追跡
+        let group = DispatchGroup()
+
         for entry in entries {
+            group.enter()
             URLSession.shared.dataTask(with: entry.url) { data, _, _ in
-                guard let data = data, let image = NSImage(data: data) else { return }
+                guard let data = data, let image = NSImage(data: data) else {
+                    group.leave()
+                    return
+                }
 
                 // キャッシュに保存
                 imageCache.setObject(image, forKey: entry.url as NSURL)
 
                 DispatchQueue.main.async {
+                    defer { group.leave() }
+
                     // テキストストレージが変更されている可能性があるため位置を再検索
                     guard entry.location < textStorage.length else { return }
                     guard let storedURL = textStorage.attribute(remoteImageURLKey, at: entry.location, effectiveRange: nil) as? URL,
@@ -1214,6 +1229,11 @@ enum MarkdownParser {
                     textStorage.endEditing()
                 }
             }.resume()
+        }
+
+        // 全画像ダウンロード完了後にcompletion呼び出し
+        group.notify(queue: .main) {
+            completion?()
         }
     }
 

@@ -748,6 +748,31 @@ class Document: NSDocument {
             }
         }
         super.showWindows()
+
+        // Markdownドキュメントの場合、ウインドウ表示後にMarkdownを再パースして
+        // textStorageを再設定する。readMarkdownDocumentはウインドウ作成前に実行
+        // されるため、NSTextTableのレイアウトが正しいビュー幅なしで計算される。
+        // ウインドウ表示後に再パースすることで、正しいビュー幅でテーブルが配置される。
+        // Markdownドキュメントの場合、ウインドウ表示後にパースを実行
+        // readMarkdownDocumentではパースせず生テキストのみ保存しているため、
+        // ここでテキストコンテナサイズが確定した状態でパースする
+        if isMarkdownDocument, let markdownText = originalMarkdownText {
+            let baseURL = fileURL?.deletingLastPathComponent()
+            let attributedString = MarkdownParser.attributedString(from: markdownText, baseURL: baseURL)
+            textStorage.setAttributedString(attributedString)
+
+            // リモート画像を非同期読み込み、全画像ダウンロード完了後に
+            // キャッシュ済み画像で再パースしてNSTextTableのレイアウトを確定する
+            MarkdownParser.loadRemoteImages(in: textStorage) { [weak self] in
+                guard let self = self,
+                      let markdownText = self.originalMarkdownText else { return }
+                let baseURL = self.fileURL?.deletingLastPathComponent()
+                let refreshed = MarkdownParser.attributedString(from: markdownText, baseURL: baseURL)
+                self.textStorage.setAttributedString(refreshed)
+                // 2回目のパースではキャッシュ済み画像が直接挿入されるため
+                // loadRemoteImagesは不要（プレースホルダーが存在しない）
+            }
+        }
     }
 
     override func windowControllerDidLoadNib(_ windowController: NSWindowController) {
@@ -2485,12 +2510,12 @@ class Document: NSDocument {
 
         let baseURL = url.deletingLastPathComponent()
 
-        // リッチテキストとして読み込み、readOnly（編集ロック）で開く
+        // Markdownの実際のパースはshowWindows()で行う（テキストコンテナサイズ確定後）
+        // ここではメタデータとプリセットのみ設定
         MainActor.assumeIsolated {
-            // Markdown をパースしてリッチテキストに変換
-            let attributedString = MarkdownParser.attributedString(from: markdownText, baseURL: baseURL)
             self.documentType = .rtf
-            self.textStorage.setAttributedString(attributedString)
+            // 仮の空コンテンツを設定（ウインドウ表示後に実際のMarkdownをパースする）
+            self.textStorage.setAttributedString(NSAttributedString(string: " "))
             self.presetData = NewDocData.richText
             self.isImportedDocument = true
             self.isMarkdownDocument = true
@@ -2501,9 +2526,6 @@ class Document: NSDocument {
 
             // 編集ロック状態にする
             self.presetData?.view.preventEditing = true
-
-            // リモート画像を非同期で読み込み
-            MarkdownParser.loadRemoteImages(in: self.textStorage)
 
             NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
         }
