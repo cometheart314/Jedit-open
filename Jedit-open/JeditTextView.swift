@@ -64,6 +64,8 @@ class JeditTextView: NSTextView {
 
     /// mouseDown 中の不要な scrollRangeToVisible を抑制するフラグ
     private var suppressScrollRangeToVisible = false
+    /// scrollRangeToVisible の再入防止フラグ（レイアウト中の再帰呼び出しを防止）
+    private var isInsideScrollRangeToVisible = false
 
     /// SmartLanguageSeparation インスタンスへのアクセス
     private var smartLanguageSeparation: SmartLanguageSeparation? {
@@ -1113,6 +1115,10 @@ class JeditTextView: NSTextView {
 
     override func scrollRangeToVisible(_ range: NSRange) {
         if suppressScrollRangeToVisible { return }
+        // レイアウト中の再帰呼び出しを防止（テーブル挿入後のペースト等で
+        // calculateStatistics → layout → scrollRangeToVisible → layout の
+        // 無限ループが発生する問題を回避）
+        if isInsideScrollRangeToVisible { return }
 
         // rangeの末尾（＝操作後のカーソル位置）が既にvisibleRect内に見えている
         // 場合のみ不要なスクロールを抑制する。NSTextViewのinsertText等が内部的に
@@ -1155,7 +1161,9 @@ class JeditTextView: NSTextView {
             }
         }
 
+        isInsideScrollRangeToVisible = true
         super.scrollRangeToVisible(range)
+        isInsideScrollRangeToVisible = false
     }
 
     /// 指定座標にあるNSTextAttachmentを取得

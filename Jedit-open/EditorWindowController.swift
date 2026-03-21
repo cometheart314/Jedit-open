@@ -6053,7 +6053,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             while index < numberOfGlyphs {
                 var lineRange = NSRange()
-                layoutManager.lineFragmentRect(forGlyphAt: index, effectiveRange: &lineRange, withoutAdditionalLayout: false)
+                layoutManager.lineFragmentRect(forGlyphAt: index, effectiveRange: &lineRange, withoutAdditionalLayout: true)
                 lineCount += 1
 
                 // 選択開始位置の行番号を記録
