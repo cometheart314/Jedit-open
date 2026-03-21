@@ -1162,6 +1162,12 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         searchFieldTrailing.priority = .defaultHigh
         searchFieldTrailing.isActive = true
 
+        // doneButton を regexHelpButton にできるだけ近づけることで、
+        // 余剰スペースを searchField 側に回す（バー拡大時にフィールドが広がらない問題を防止）
+        let doneButtonCompact = doneButton.leadingAnchor.constraint(equalTo: regexHelpButton.trailingAnchor, constant: 6)
+        doneButtonCompact.priority = .defaultHigh
+        doneButtonCompact.isActive = true
+
         // Replace Row constraints
         replaceRowHeightConstraint = replaceRow.heightAnchor.constraint(equalToConstant: 0)
         replaceRowHeightConstraint.isActive = true
