@@ -545,3 +545,8 @@
 "Current settings will be overwritten. Jedit will quit after importing. Do you want to continue?" = "現在の設定が上書きされます。読み込み後、Jeditは終了します。続けますか？";
 "All settings will be reset to their default values. Jedit will quit after resetting. This cannot be undone." = "すべての設定がデフォルト値にリセットされます。リセット後、Jeditは終了します。この操作は元に戻せません。";
 "Revert" = "元に戻す";
+
+/* Style Info Panel - Font Menu */
+"Recent Fonts" = "最近使ったフォント";
+"More Fonts…" = "その他のフォント…";
+"%@ Fonts" = "%@フォント";
