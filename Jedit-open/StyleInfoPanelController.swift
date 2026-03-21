@@ -66,8 +66,8 @@ class StyleInfoPanelController: NSObject {
     private var isSettingUpColorPanel = false
 
     // MARK: - Font Section
-    private var fontFamilyField: NSTextField!
-    private var fontStyleField: NSTextField!
+    private var fontFamilyPopup: NSPopUpButton!
+    private var fontStylePopup: NSPopUpButton!
     private var fontSizeField: NSTextField!
     private var fontSizeStepper: NSStepper!
 
@@ -264,24 +264,25 @@ class StyleInfoPanelController: NSObject {
 
         // Family
         let familyRow = createLabeledRow("Family:".localized)
-        fontFamilyField = NSTextField(labelWithString: "")
-        fontFamilyField.lineBreakMode = .byTruncatingTail
-        fontFamilyField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        familyRow.addArrangedSubview(fontFamilyField)
-
-        let fontsButton = NSButton(title: "Change…".localized, target: self, action: #selector(showFontPanel(_:)))
-        fontsButton.controlSize = .small
-        fontsButton.bezelStyle = .rounded
-        fontsButton.setContentHuggingPriority(.required, for: .horizontal)
-        familyRow.addArrangedSubview(fontsButton)
+        fontFamilyPopup = NSPopUpButton(frame: .zero, pullsDown: false)
+        fontFamilyPopup.controlSize = .small
+        fontFamilyPopup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        fontFamilyPopup.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        fontFamilyPopup.target = self
+        fontFamilyPopup.action = #selector(fontFamilyPopupChanged(_:))
+        rebuildFontFamilyMenu()
+        familyRow.addArrangedSubview(fontFamilyPopup)
         stack.addArrangedSubview(familyRow)
 
         // Style (weight + italic)
         let styleRow = createLabeledRow("Style:".localized)
-        fontStyleField = NSTextField(labelWithString: "")
-        fontStyleField.lineBreakMode = .byTruncatingTail
-        fontStyleField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
-        styleRow.addArrangedSubview(fontStyleField)
+        fontStylePopup = NSPopUpButton(frame: .zero, pullsDown: false)
+        fontStylePopup.controlSize = .small
+        fontStylePopup.font = NSFont.systemFont(ofSize: NSFont.smallSystemFontSize)
+        fontStylePopup.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        fontStylePopup.target = self
+        fontStylePopup.action = #selector(fontStylePopupChanged(_:))
+        styleRow.addArrangedSubview(fontStylePopup)
         stack.addArrangedSubview(styleRow)
 
         // Size
@@ -1007,13 +1008,15 @@ class StyleInfoPanelController: NSObject {
     private func updateUIFromSingleAttributes(_ attrs: [NSAttributedString.Key: Any]) {
         // Font
         if let font = attrs[.font] as? NSFont {
-            fontFamilyField.stringValue = localizedFamilyName(for: font)
-            fontStyleField.stringValue = localizedFaceName(for: font)
+            let family = font.familyName ?? font.fontName
+            selectFontFamilyInPopup(family)
+            populateFontStylePopup(forFamily: family)
+            selectFontStyleInPopup(font.fontName)
             fontSizeField.doubleValue = Double(font.pointSize)
             fontSizeStepper.doubleValue = Double(font.pointSize)
         } else {
-            fontFamilyField.stringValue = ""
-            fontStyleField.stringValue = ""
+            fontFamilyPopup.selectItem(at: -1)
+            fontStylePopup.removeAllItems()
             fontSizeField.stringValue = ""
         }
 
@@ -1059,8 +1062,8 @@ class StyleInfoPanelController: NSObject {
     }
 
     private func clearAllFields() {
-        fontFamilyField.stringValue = ""
-        fontStyleField.stringValue = ""
+        fontFamilyPopup.selectItem(at: -1)
+        fontStylePopup.removeAllItems()
         fontSizeField.stringValue = ""
         updateColorIndicator(foreColorIndicator, color: .textColor)
         updateColorIndicator(backColorIndicator, color: nil)
@@ -1107,22 +1110,25 @@ class StyleInfoPanelController: NSObject {
     // MARK: - Section Update Helpers
 
     private func updateFontSection(fonts: [NSFont]) {
-        let families = Set(fonts.map { self.localizedFamilyName(for: $0) })
-        if families.count == 1, let family = families.first {
-            fontFamilyField.stringValue = family
-        } else if families.isEmpty {
-            fontFamilyField.stringValue = ""
+        let familyNames = Set(fonts.compactMap { $0.familyName })
+        if familyNames.count == 1, let family = familyNames.first {
+            selectFontFamilyInPopup(family)
+            populateFontStylePopup(forFamily: family)
+        } else if familyNames.isEmpty {
+            fontFamilyPopup.selectItem(at: -1)
+            fontStylePopup.removeAllItems()
         } else {
-            fontFamilyField.stringValue = Self.mixedPlaceholder
+            // Mixed — 選択解除
+            fontFamilyPopup.selectItem(at: -1)
+            fontStylePopup.removeAllItems()
         }
 
-        let faces = Set(fonts.map { self.localizedFaceName(for: $0) })
-        if faces.count == 1, let face = faces.first {
-            fontStyleField.stringValue = face
-        } else if faces.isEmpty {
-            fontStyleField.stringValue = ""
-        } else {
-            fontStyleField.stringValue = Self.mixedPlaceholder
+        let postscriptNames = Set(fonts.map { $0.fontName })
+        if postscriptNames.count == 1, let name = postscriptNames.first {
+            selectFontStyleInPopup(name)
+        } else if !postscriptNames.isEmpty {
+            // Mixed — 選択解除
+            fontStylePopup.selectItem(at: -1)
         }
 
         let sizes = Set(fonts.map { $0.pointSize })
@@ -1350,8 +1356,346 @@ class StyleInfoPanelController: NSObject {
 
     // MARK: Font Actions
 
+    // MARK: - Recent Fonts
+
+    /// 最近使用したフォントファミリの UserDefaults キー
+    private static let recentFontFamiliesKey = "StyleInfoPanel_RecentFontFamilies"
+    /// 最近使用したフォントの最大保持数
+    private static let maxRecentFonts = 5
+
+    /// 最近使用したフォントファミリ一覧を取得
+    private func recentFontFamilies() -> [String] {
+        return UserDefaults.standard.stringArray(forKey: Self.recentFontFamiliesKey) ?? []
+    }
+
+    /// ファミリを「最近使った」リストの先頭に追加
+    private func addToRecentFontFamilies(_ family: String) {
+        var recents = recentFontFamilies()
+        recents.removeAll { $0 == family }
+        recents.insert(family, at: 0)
+        if recents.count > Self.maxRecentFonts {
+            recents = Array(recents.prefix(Self.maxRecentFonts))
+        }
+        UserDefaults.standard.set(recents, forKey: Self.recentFontFamiliesKey)
+    }
+
+    // MARK: - Font Family Menu
+
+    /// セクションヘッダー用のタグ（選択不可を示す）
+    private static let fontMenuHeaderTag = -999
+
+    /// セクションヘッダー用メニュー項目を生成（選択不可）
+    private func createFontMenuHeader(_ title: String) -> NSMenuItem {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.tag = Self.fontMenuHeaderTag
+        item.isEnabled = false
+        item.attributedTitle = NSAttributedString(
+            string: title,
+            attributes: [.font: NSFont.boldSystemFont(ofSize: NSFont.smallSystemFontSize),
+                         .foregroundColor: NSColor.secondaryLabelColor])
+        return item
+    }
+
+    /// 「最近使ったフォント」+「その他…」+「言語フォント」でファミリメニューを構築
+    private func rebuildFontFamilyMenu() {
+        let menu = NSMenu()
+        let recents = recentFontFamilies()
+
+        // 最近使ったフォント
+        if !recents.isEmpty {
+            menu.addItem(createFontMenuHeader("Recent Fonts".localized))
+            for family in recents {
+                let title = localizedFamilyName(forFamilyName: family)
+                let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+                item.representedObject = family
+                // フォント自体をメニュー項目のフォントに使用（プレビュー）
+                if let previewFont = representativeFont(forFamily: family, size: NSFont.systemFontSize) {
+                    item.attributedTitle = NSAttributedString(
+                        string: title,
+                        attributes: [.font: previewFont])
+                }
+                menu.addItem(item)
+            }
+            menu.addItem(NSMenuItem.separator())
+        }
+
+        // その他のフォント…（システムフォントパネル）
+        let moreFonts = NSMenuItem(title: "More Fonts…".localized, action: #selector(showFontPanel(_:)), keyEquivalent: "")
+        moreFonts.target = self
+        moreFonts.tag = Self.fontMenuHeaderTag  // 選択状態にならないようにする
+        menu.addItem(moreFonts)
+        menu.addItem(NSMenuItem.separator())
+
+        // 現在のアプリ言語に対応するフォントファミリ
+        menu.addItem(createFontMenuHeader(currentLanguageFontSectionHeader()))
+
+        let langFamilies = fontFamiliesForCurrentLanguage()
+        for family in langFamilies {
+            let title = localizedFamilyName(forFamilyName: family)
+            let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            item.representedObject = family
+            menu.addItem(item)
+        }
+
+        fontFamilyPopup.menu = menu
+    }
+
+    /// 現在のアプリ言語に対応するセクションヘッダーを返す
+    private func currentLanguageFontSectionHeader() -> String {
+        let lang = Bundle.main.preferredLocalizations.first ?? "en"
+        let locale = Locale(identifier: lang)
+        let displayName = locale.localizedString(forLanguageCode: lang)
+            ?? locale.localizedString(forIdentifier: lang)
+            ?? lang
+        return String(format: "%@ Fonts".localized, displayName.capitalized)
+    }
+
+    /// 現在のアプリ言語のスクリプトをサポートするフォントファミリ一覧を返す
+    private func fontFamiliesForCurrentLanguage() -> [String] {
+        let lang = Bundle.main.preferredLocalizations.first ?? "en"
+
+        // 言語 → テスト文字列のマッピング（そのスクリプトを含むか判定に使用）
+        let testString: String
+        switch lang {
+        case "ja":
+            testString = "あ亜"
+        case "zh-Hans", "zh-CN":
+            testString = "中文"
+        case "zh-Hant", "zh-TW":
+            testString = "中文"
+        case "ko":
+            testString = "가한"
+        case "ar":
+            testString = "عربي"
+        case "he":
+            testString = "עברית"
+        case "th":
+            testString = "ไทย"
+        case "hi", "mr", "ne":
+            testString = "हिन्दी"
+        default:
+            // ラテン文字系言語の場合、全フォントを返す
+            return NSFontManager.shared.availableFontFamilies.sorted {
+                $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+            }
+        }
+
+        let testChars = Array(testString.unicodeScalars)
+        let fm = NSFontManager.shared
+
+        return fm.availableFontFamilies.filter { family in
+            // ファミリの代表フォントを取得
+            guard let font = representativeFont(forFamily: family, size: 12) else { return false }
+            let ctFont = font as CTFont
+            guard let charset = CTFontCopyCharacterSet(ctFont) as? CharacterSet else { return false }
+            // テスト文字列の全文字がサポートされているか
+            return testChars.allSatisfy { charset.contains($0) }
+        }.sorted {
+            $0.localizedCaseInsensitiveCompare($1) == .orderedAscending
+        }
+    }
+
+    /// ファミリの代表フォントを取得（プレビュー用）
+    private func representativeFont(forFamily family: String, size: CGFloat) -> NSFont? {
+        if let font = NSFont(name: family, size: size) {
+            return font
+        }
+        if let members = NSFontManager.shared.availableMembers(ofFontFamily: family),
+           let first = members.first,
+           let postscriptName = first[0] as? String {
+            return NSFont(name: postscriptName, size: size)
+        }
+        return nil
+    }
+
+    /// システムフォントパネルを表示し、ポップアップの選択を現在のフォントに復元
     @objc private func showFontPanel(_ sender: Any?) {
+        restoreFontFamilyPopupSelection()
         NSFontManager.shared.orderFrontFontPanel(sender)
+    }
+
+    /// ファミリ名から表示用ローカライズ名を取得
+    private func localizedFamilyName(forFamilyName family: String) -> String {
+        if let font = NSFont(name: family, size: 12) {
+            return localizedFamilyName(for: font)
+        }
+        // ファミリ名で直接フォントが作れない場合、メンバーの最初を試す
+        if let members = NSFontManager.shared.availableMembers(ofFontFamily: family),
+           let first = members.first,
+           let postscriptName = first[0] as? String,
+           let font = NSFont(name: postscriptName, size: 12) {
+            return localizedFamilyName(for: font)
+        }
+        return family
+    }
+
+    // MARK: - Font Style Popup
+
+    /// 選択中のファミリに応じてスタイルポップアップを更新
+    private func populateFontStylePopup(forFamily family: String) {
+        fontStylePopup.removeAllItems()
+        guard let members = NSFontManager.shared.availableMembers(ofFontFamily: family) else { return }
+        for member in members {
+            // member: [PostScript名, スタイル名, ウェイト, トレイト]
+            guard let postscriptName = member[0] as? String else { continue }
+            let displayName: String
+            if let font = NSFont(name: postscriptName, size: 12) {
+                displayName = localizedFaceName(for: font)
+            } else {
+                displayName = (member[1] as? String) ?? postscriptName
+            }
+            fontStylePopup.addItem(withTitle: displayName)
+            fontStylePopup.lastItem?.representedObject = postscriptName
+        }
+    }
+
+    // MARK: - Popup Selection Helpers
+
+    /// ファミリ名からポップアップ上で選択する
+    private func selectFontFamilyInPopup(_ familyName: String) {
+        guard let menu = fontFamilyPopup.menu else { return }
+        for (i, item) in menu.items.enumerated() {
+            if let stored = item.representedObject as? String,
+               stored == familyName {
+                fontFamilyPopup.selectItem(at: i)
+                return
+            }
+        }
+    }
+
+    /// PostScript 名からスタイルポップアップ上で選択する
+    private func selectFontStyleInPopup(_ postscriptName: String) {
+        for i in 0..<fontStylePopup.numberOfItems {
+            if let stored = fontStylePopup.item(at: i)?.representedObject as? String,
+               stored == postscriptName {
+                fontStylePopup.selectItem(at: i)
+                return
+            }
+        }
+    }
+
+    /// スタイル名（ローカライズ済み face 名）でフォールバック選択する
+    private func selectFontStyleByFaceName(_ faceName: String) {
+        for i in 0..<fontStylePopup.numberOfItems {
+            if fontStylePopup.item(at: i)?.title == faceName {
+                fontStylePopup.selectItem(at: i)
+                return
+            }
+        }
+    }
+
+    // MARK: - Font Family/Style Action Handlers
+
+    @objc private func fontFamilyPopupChanged(_ sender: NSPopUpButton) {
+        guard !isUpdatingUI else { return }
+
+        // ヘッダー項目や「More Fonts…」が選択された場合は現在のフォントに戻す
+        if sender.selectedItem?.representedObject as? String == nil {
+            restoreFontFamilyPopupSelection()
+            return
+        }
+        guard let family = sender.selectedItem?.representedObject as? String else { return }
+
+        // 最近使ったフォントに追加してメニューを再構築
+        addToRecentFontFamilies(family)
+        let savedFamily = family
+        rebuildFontFamilyMenu()
+        selectFontFamilyInPopup(savedFamily)
+
+        // ファミリだけを変更（スタイルはトレイトを維持）
+        applyFontFamily(family)
+
+        // 適用後のフォントに合わせてスタイルポップアップを更新
+        if let textView = currentTextView() {
+            let font: NSFont?
+            let range = textView.selectedRange()
+            if range.length == 0 {
+                font = textView.typingAttributes[.font] as? NSFont
+            } else {
+                font = textView.textStorage?.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont
+            }
+            if let font = font {
+                populateFontStylePopup(forFamily: font.familyName ?? family)
+                selectFontStyleInPopup(font.fontName)
+            }
+        }
+    }
+
+    /// 現在のテキストのフォントに合わせてファミリポップアップの選択を復元する
+    private func restoreFontFamilyPopupSelection() {
+        guard let textView = currentTextView() else { return }
+        let range = textView.selectedRange()
+        let font: NSFont?
+        if range.length == 0 {
+            font = textView.typingAttributes[.font] as? NSFont
+        } else {
+            font = textView.textStorage?.attribute(.font, at: range.location, effectiveRange: nil) as? NSFont
+        }
+        if let family = font?.familyName {
+            selectFontFamilyInPopup(family)
+        }
+    }
+
+    @objc private func fontStylePopupChanged(_ sender: NSPopUpButton) {
+        guard !isUpdatingUI else { return }
+        guard let postscriptName = sender.selectedItem?.representedObject as? String else { return }
+        applyFontByPostScriptName(postscriptName)
+    }
+
+    // MARK: - Font Application Helpers
+
+    /// PostScript 名を使ってフォントを適用（サイズは現在値を維持）
+    private func applyFontByPostScriptName(_ postscriptName: String) {
+        guard let textView = currentTextView(),
+              let textStorage = textView.textStorage else { return }
+        let range = textView.selectedRange()
+
+        if range.length == 0 {
+            let currentFont = textView.typingAttributes[.font] as? NSFont
+            let size = currentFont?.pointSize ?? 12
+            if let newFont = NSFont(name: postscriptName, size: size) {
+                textView.typingAttributes[.font] = newFont
+            }
+        } else {
+            if textView.shouldChangeText(in: range, replacementString: nil) {
+                textStorage.beginEditing()
+                textStorage.enumerateAttribute(.font, in: range, options: []) { value, subRange, _ in
+                    let size = (value as? NSFont)?.pointSize ?? 12
+                    if let newFont = NSFont(name: postscriptName, size: size) {
+                        textStorage.addAttribute(.font, value: newFont, range: subRange)
+                    }
+                }
+                textStorage.endEditing()
+                textView.didChangeText()
+            }
+        }
+    }
+
+    /// ファミリだけを変更（NSFontManager.convert で既存のトレイト Bold/Italic を維持）
+    private func applyFontFamily(_ family: String) {
+        guard let textView = currentTextView(),
+              let textStorage = textView.textStorage else { return }
+        let range = textView.selectedRange()
+        let fm = NSFontManager.shared
+
+        if range.length == 0 {
+            if let currentFont = textView.typingAttributes[.font] as? NSFont {
+                let newFont = fm.convert(currentFont, toFamily: family)
+                textView.typingAttributes[.font] = newFont
+            }
+        } else {
+            if textView.shouldChangeText(in: range, replacementString: nil) {
+                textStorage.beginEditing()
+                textStorage.enumerateAttribute(.font, in: range, options: []) { value, subRange, _ in
+                    if let font = value as? NSFont {
+                        let newFont = fm.convert(font, toFamily: family)
+                        textStorage.addAttribute(.font, value: newFont, range: subRange)
+                    }
+                }
+                textStorage.endEditing()
+                textView.didChangeText()
+            }
+        }
     }
 
     @objc private func fontSizeFieldChanged(_ sender: NSTextField) {
