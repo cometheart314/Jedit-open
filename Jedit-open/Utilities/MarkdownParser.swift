@@ -2333,14 +2333,15 @@ enum MarkdownParser {
 
     /// 引用の色かどうか
     private static func isBlockquoteColor(_ color: NSColor) -> Bool {
-        // secondaryLabelColor と比較
+        // secondaryLabelColor と比較（RGB + alpha）
         guard let converted = color.usingColorSpace(.deviceRGB),
               let secondary = NSColor.secondaryLabelColor.usingColorSpace(.deviceRGB) else {
             return false
         }
         return abs(converted.redComponent - secondary.redComponent) < 0.05 &&
                abs(converted.greenComponent - secondary.greenComponent) < 0.05 &&
-               abs(converted.blueComponent - secondary.blueComponent) < 0.05
+               abs(converted.blueComponent - secondary.blueComponent) < 0.05 &&
+               abs(converted.alphaComponent - secondary.alphaComponent) < 0.05
     }
 
     /// 段落スタイルからリストのネストレベルを検出する

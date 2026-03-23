@@ -3730,7 +3730,23 @@ class Document: NSDocument {
 
     /// エクスポート用の Markdown データを生成
     private func generateExportMarkdownData(range: NSRange) throws -> Data {
-        // 対象範囲の NSAttributedString を取得
+        // プレインテキスト書類の場合はテキストをそのまま出力（拡張子のみ .md に変更）
+        if documentType == .plain {
+            let plainText: String
+            if range.location == 0 && range.length == textStorage.length {
+                plainText = textStorage.string
+            } else {
+                plainText = (textStorage.string as NSString).substring(with: range)
+            }
+            guard let data = plainText.data(using: .utf8) else {
+                throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteInapplicableStringEncodingError, userInfo: [
+                    NSLocalizedDescriptionKey: "Could not encode text as UTF-8"
+                ])
+            }
+            return data
+        }
+
+        // リッチテキスト書類の場合は NSAttributedString から Markdown に逆変換
         let attrString: NSAttributedString
         if range.location == 0 && range.length == textStorage.length {
             attrString = textStorage
