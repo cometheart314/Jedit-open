@@ -6454,7 +6454,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
-        findBar.focusSearchField()
+        // レイアウト完了後にフォーカスをセット（メニューからの呼び出し時にも確実に動作させるため）
+        DispatchQueue.main.async {
+            findBar.focusSearchField()
+        }
     }
 
     private func dismissFindBar() {
