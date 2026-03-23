@@ -16,6 +16,7 @@
                 <outlet property="dateFormatField" destination="VTJ-q7-DRs" id="dff-out-con"/>
                 <outlet property="dateFormatPopupButton" destination="juc-dQ-EgR" id="dfp-out-con"/>
                 <outlet property="openMarkdownAsPlainTextCheckBox" destination="chk-md-plain-001" id="out-md-plain-001"/>
+                <outlet property="useSaveAsCheckBox" destination="chk-saveas-001" id="out-saveas-001"/>
                 <outlet property="richTextAlwaysUsesLightModeCheckBox" destination="chk-rtlm-001" id="out-rtlm-001"/>
                 <outlet property="richTextSubstitutionsCheckBox" destination="chk-rich-001" id="out-rich-001"/>
                 <outlet property="smartCopyPasteCheckBox" destination="chk-copy-001" id="out-copy-001"/>
@@ -381,6 +382,17 @@
                                         </buttonCell>
                                         <connections>
                                             <action selector="openMarkdownAsPlainTextClicked:" target="-2" id="act-md-plain-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-saveas-001">
+                                        <rect key="frame" x="18" y="314" width="400" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Use &quot;Save As&quot; for Shift+Cmd+S" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-saveas-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="useSaveAsClicked:" target="-2" id="act-saveas-001"/>
                                         </connections>
                                     </button>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-export-all">

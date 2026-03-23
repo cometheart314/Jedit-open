@@ -42,6 +42,7 @@ class GeneralPreferencesViewController: NSViewController {
 
     // Advanced Options
     @IBOutlet weak var openMarkdownAsPlainTextCheckBox: NSButton!
+    @IBOutlet weak var useSaveAsCheckBox: NSButton!
 
     // Text Editing Options
     @IBOutlet weak var checkSpellingAsYouTypeCheckBox: NSButton!
@@ -135,6 +136,10 @@ class GeneralPreferencesViewController: NSViewController {
         // Markdown
         let openMarkdownAsPlainText = defaults.bool(forKey: UserDefaults.Keys.openMarkdownAsPlainText)
         openMarkdownAsPlainTextCheckBox?.state = openMarkdownAsPlainText ? .on : .off
+
+        // Save As
+        let useSaveAs = defaults.bool(forKey: UserDefaults.Keys.useSaveAs)
+        useSaveAsCheckBox?.state = useSaveAs ? .on : .off
 
         // Auto Start at Login
         let autoStart = defaults.bool(forKey: UserDefaults.Keys.autoStartOption)
@@ -348,6 +353,12 @@ class GeneralPreferencesViewController: NSViewController {
         guard let button = sender as? NSButton else { return }
         let isOn = button.state == .on
         defaults.set(isOn, forKey: UserDefaults.Keys.openMarkdownAsPlainText)
+    }
+
+    @IBAction func useSaveAsClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.useSaveAs)
     }
 
     // MARK: - Revert to Defaults Actions

@@ -2955,7 +2955,46 @@ class Document: NSDocument {
            item.action == #selector(showBookmarkPanel(_:)) {
             return !isBookmarkUnsupported
         }
-        return super.validateUserInterfaceItem(item)
+
+        let result = super.validateUserInterfaceItem(item)
+
+        // Shift+Cmd+S の動作を設定に応じて切り替え（タイトルを入れ替える）
+        let useSaveAs = UserDefaults.standard.bool(forKey: UserDefaults.Keys.useSaveAs)
+        if let menuItem = item as? NSMenuItem {
+            if menuItem.action == #selector(NSDocument.duplicate(_:)) {
+                menuItem.title = useSaveAs
+                    ? NSLocalizedString("Save As…", comment: "File menu: Save As")
+                    : NSLocalizedString("Duplicate", comment: "File menu: Duplicate")
+            } else if menuItem.action == #selector(NSDocument.saveAs(_:)) {
+                menuItem.title = useSaveAs
+                    ? NSLocalizedString("Duplicate", comment: "File menu: Duplicate")
+                    : NSLocalizedString("Save As…", comment: "File menu: Save As")
+            }
+        }
+
+        return result
+    }
+
+    // MARK: - Save As / Duplicate 切り替え
+
+    /// Shift+Cmd+S (Duplicate) のアクションを設定に応じてリダイレクト
+    @IBAction override func duplicate(_ sender: Any?) {
+        if UserDefaults.standard.bool(forKey: UserDefaults.Keys.useSaveAs) {
+            // Save As モード: Save As を実行
+            super.saveAs(sender)
+        } else {
+            super.duplicate(sender)
+        }
+    }
+
+    /// Option+Shift+Cmd+S (Save As) のアクションを設定に応じてリダイレクト
+    @IBAction override func saveAs(_ sender: Any?) {
+        if UserDefaults.standard.bool(forKey: UserDefaults.Keys.useSaveAs) {
+            // Save As モード: Option 時は Duplicate を実行
+            super.duplicate(sender)
+        } else {
+            super.saveAs(sender)
+        }
     }
 
     // MARK: - Page Setup

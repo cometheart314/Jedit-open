@@ -73,6 +73,9 @@ extension UserDefaults {
         // Markdown
         static let openMarkdownAsPlainText = "openMarkdownAsPlainText"
 
+        // Save As
+        static let useSaveAs = "useSaveAs"
+
         // Line Breaking
         static let cantBeTopChars = "CantBeTopChars"
         static let cantBeEndChars = "CantBeEndChars"
@@ -142,6 +145,8 @@ extension UserDefaults {
             Keys.convertFullWidthTilde: false,
             // Markdown
             Keys.openMarkdownAsPlainText: false,
+            // Save As
+            Keys.useSaveAs: false,
             // Line Breaking
             Keys.cantBeTopChars: "、。，．・：；？！゛゜´｀¨ヽヾゝゞ々ー）］｝〕〉》」』】°′″℃¢％‰",
             Keys.cantBeEndChars: "（［｛〔〈《「『【",

@@ -23,6 +23,7 @@
 "Replace" = "置換";
 "Close" = "閉じる";
 "Duplicate" = "複製";
+"Save As…" = "別名で保存…";
 
 /* Dock Menu / File Menu */
 "New" = "新規";

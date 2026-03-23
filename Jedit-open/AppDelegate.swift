@@ -71,6 +71,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         let appearanceOption = UserDefaults.standard.integer(forKey: UserDefaults.Keys.appearanceOption)
         AppDelegate.applyAppearance(appearanceOption)
 
+        // File メニューのデリゲートを設定（Save As / Duplicate 切り替え用）
+        setupFileMenuDelegate()
+
         // File > New サブメニューを構築
         setupNewDocumentSubmenu()
 
@@ -783,6 +786,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
         image.isTemplate = false
         return image
+    }
+
+    // MARK: - File Menu (Save As / Duplicate 切り替え)
+
+    /// File メニューのデリゲートを設定（不要になったため空実装）
+    private func setupFileMenuDelegate() {
+        // Save As / Duplicate の切り替えは Document.validateUserInterfaceItem で処理
     }
 
     // MARK: - New Document Submenu

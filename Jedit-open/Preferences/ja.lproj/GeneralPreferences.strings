@@ -40,6 +40,9 @@
 /* Class = "NSButtonCell"; title = "Open Markdown files as plain text"; ObjectID = "cel-md-plain-001"; */
 "cel-md-plain-001.title" = "Markdownファイルをプレーンテキストとして開く";
 
+/* Class = "NSButtonCell"; title = "Use \"Save As\" for Shift+Cmd+S"; ObjectID = "cel-saveas-001"; */
+"cel-saveas-001.title" = "Shift+Cmd+S で「別名で保存」を使用";
+
 /* Class = "NSButtonCell"; title = "Smart quotes"; ObjectID = "cel-quot-001"; */
 "cel-quot-001.title" = "スマート引用符";
 
