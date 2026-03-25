@@ -1090,21 +1090,40 @@ class JeditTextView: NSTextView {
             return
         }
 
-        // Cmd+クリックでファイルパスを Finder で表示（絶対パス・~/パス）
-        // URLチェックより先に判定する（Smart Links が .link 属性を付与している場合の誤検出を防ぐ）
+        // Cmd+クリックで URL/ファイルパスを開く（Cmd+ドラッグ選択と共存）
+        // super.mouseDown() に渡すと不連続選択として消費されるため、
+        // リンク位置では自前でマウスをトラッキングしてクリックかドラッグかを判定する。
         if event.modifierFlags.contains(.command),
            event.clickCount == 1,
-           let filePath = filePathAtPoint(point) {
-            // Finder にファイル選択を依頼（Finder はサンドボックス外なのでアクセス可能）
-            NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: filePath)])
-            return
-        }
+           urlAtPoint(point) != nil || filePathAtPoint(point) != nil,
+           let eventWindow = event.window {
 
-        // Cmd+クリックで通常の URL リンクをブラウザで開く
-        if event.modifierFlags.contains(.command),
-           event.clickCount == 1,
-           let url = urlAtPoint(point) {
-            NSWorkspace.shared.open(url)
+            var didDrag = false
+            while let nextEvent = eventWindow.nextEvent(matching: [.leftMouseUp, .leftMouseDragged]) {
+                if nextEvent.type == .leftMouseUp { break }
+                let dragPoint = convert(nextEvent.locationInWindow, from: nil)
+                let dx = dragPoint.x - point.x
+                let dy = dragPoint.y - point.y
+                if dx * dx + dy * dy >= 9.0 {
+                    didDrag = true
+                    break
+                }
+            }
+
+            if didDrag {
+                // ドラッグ → super に渡して通常の選択処理
+                suppressScrollRangeToVisible = true
+                super.mouseDown(with: event)
+                suppressScrollRangeToVisible = false
+            } else {
+                // クリック → URL/ファイルパスを開く
+                // URLを先にチェック（filePathAtPoint が URL の一部を誤検出する場合があるため）
+                if let url = urlAtPoint(point) {
+                    NSWorkspace.shared.open(url)
+                } else if let filePath = filePathAtPoint(point) {
+                    NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: filePath)])
+                }
+            }
             return
         }
 
