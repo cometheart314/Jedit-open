@@ -117,8 +117,7 @@ class ImageResizePanel: NSPanel {
         widthField = NSTextField()
         widthField.frame = NSRect(x: fieldX, y: yPos, width: fieldWidth, height: rowHeight)
         widthField.formatter = NumberFormatter()
-        widthField.target = self
-        widthField.action = #selector(widthFieldChanged(_:))
+        widthField.delegate = self
         contentView.addSubview(widthField)
 
         let pxLabel1 = NSTextField(labelWithString: "px")
@@ -134,8 +133,7 @@ class ImageResizePanel: NSPanel {
         heightField = NSTextField()
         heightField.frame = NSRect(x: fieldX, y: yPos, width: fieldWidth, height: rowHeight)
         heightField.formatter = NumberFormatter()
-        heightField.target = self
-        heightField.action = #selector(heightFieldChanged(_:))
+        heightField.delegate = self
         contentView.addSubview(heightField)
 
         let pxLabel2 = NSTextField(labelWithString: "px")
@@ -224,10 +222,10 @@ class ImageResizePanel: NSPanel {
 
     // MARK: - Actions
 
-    @objc private func widthFieldChanged(_ sender: NSTextField) {
+    private func commitWidthField() {
         guard !isUpdatingFields else { return }
 
-        let newWidth = CGFloat(sender.integerValue)
+        let newWidth = CGFloat(widthField.integerValue)
         guard newWidth > 0 else { return }
 
         if aspectRatioCheckbox.state == .on && originalSize.width > 0 {
@@ -242,10 +240,10 @@ class ImageResizePanel: NSPanel {
         onSizeChange?(currentSize)
     }
 
-    @objc private func heightFieldChanged(_ sender: NSTextField) {
+    private func commitHeightField() {
         guard !isUpdatingFields else { return }
 
-        let newHeight = CGFloat(sender.integerValue)
+        let newHeight = CGFloat(heightField.integerValue)
         guard newHeight > 0 else { return }
 
         if aspectRatioCheckbox.state == .on && originalSize.height > 0 {
@@ -316,5 +314,33 @@ class ImageResizePanel: NSPanel {
     @objc private func cancelClicked(_ sender: NSButton) {
         onCancel?()
         close()
+    }
+}
+
+// MARK: - NSTextFieldDelegate
+
+extension ImageResizePanel: NSTextFieldDelegate {
+
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if commandSelector == #selector(insertNewline(_:)) {
+            // Return key: apply and close
+            applyClicked(applyButton)
+            return true
+        }
+        return false
+    }
+
+    func controlTextDidEndEditing(_ obj: Notification) {
+        guard let textField = obj.object as? NSTextField else { return }
+
+        // Check if ended by Tab or Backtab (not Return, which is handled above)
+        if let movementValue = obj.userInfo?["NSTextMovement"] as? Int,
+           movementValue == NSTextMovement.tab.rawValue || movementValue == NSTextMovement.backtab.rawValue {
+            if textField === widthField {
+                commitWidthField()
+            } else if textField === heightField {
+                commitHeightField()
+            }
+        }
     }
 }
