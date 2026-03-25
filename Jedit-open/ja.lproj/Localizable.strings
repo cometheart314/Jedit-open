@@ -3,6 +3,7 @@
 /* Common Buttons */
 "OK" = "OK";
 "Cancel" = "キャンセル";
+"More Info" = "詳細を見る";
 "Delete" = "削除";
 "Remove" = "削除";
 "Add" = "追加";

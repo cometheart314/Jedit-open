@@ -46,9 +46,34 @@ enum AppMessageChecker {
         let minVersion: String
         let maxVersion: String
         let title: String
+        let title_en: String?
         let body: String
+        let body_en: String?
         let url: String
+        let url_en: String?
         let priority: String
+
+        /// ユーザーの言語設定に応じたタイトルを返す。
+        var localizedTitle: String {
+            if !isJapanese, let en = title_en, !en.isEmpty { return en }
+            return title
+        }
+
+        /// ユーザーの言語設定に応じた本文を返す。
+        var localizedBody: String {
+            if !isJapanese, let en = body_en, !en.isEmpty { return en }
+            return body
+        }
+
+        /// ユーザーの言語設定に応じた URL を返す。
+        var localizedURL: String {
+            if !isJapanese, let en = url_en, !en.isEmpty { return en }
+            return url
+        }
+
+        private var isJapanese: Bool {
+            Locale.preferredLanguages.first?.hasPrefix("ja") ?? false
+        }
     }
 
     // MARK: - Public API
@@ -128,8 +153,8 @@ enum AppMessageChecker {
         guard let message = messages.first else { return }
 
         let alert = NSAlert()
-        alert.messageText = message.title
-        alert.informativeText = message.body
+        alert.messageText = message.localizedTitle
+        alert.informativeText = message.localizedBody
 
         // priority に応じたアラートスタイル
         switch message.priority {
@@ -144,16 +169,16 @@ enum AppMessageChecker {
         alert.addButton(withTitle: "OK")
 
         // URL がある場合は「詳細を見る」ボタンを追加
-        let hasURL = !message.url.isEmpty && URL(string: message.url) != nil
+        let hasURL = !message.localizedURL.isEmpty && URL(string: message.localizedURL) != nil
         if hasURL {
-            alert.addButton(withTitle: "詳細を見る")
+            alert.addButton(withTitle: "More Info".localized)
         }
 
         let response = alert.runModal()
 
         // 「詳細を見る」がクリックされた場合
         if hasURL, response == .alertSecondButtonReturn,
-           let url = URL(string: message.url) {
+           let url = URL(string: message.localizedURL) {
             NSWorkspace.shared.open(url)
         }
 
