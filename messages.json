@@ -1,0 +1,14 @@
+{
+    "messages": [
+        {
+            "id": "2026-03-25-001",
+            "date": "2026-03-25",
+            "minVersion": "",
+            "maxVersion": "",
+            "title": "メッセージのテストです。",
+            "body": "Jedit Open Project は以下のURL です。",
+            "url": "https://www.artman21.com/jp/jedit-open-project.html",
+            "priority": "normal"
+        }
+    ]
+}
