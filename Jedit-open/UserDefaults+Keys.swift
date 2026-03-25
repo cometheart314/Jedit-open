@@ -85,6 +85,9 @@ extension UserDefaults {
         // Context Menu
         static let hiddenContextMenuActions = "hiddenContextMenuActions"
 
+        // App Messages
+        static let readMessageIDs = "readMessageIDs"
+
         // Find Bar
         static let findSearchHistory = "findSearchHistory"
         static let findReplaceHistory = "findReplaceHistory"

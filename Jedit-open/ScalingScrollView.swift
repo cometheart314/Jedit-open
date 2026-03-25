@@ -229,7 +229,7 @@ class ScalingScrollView: NSScrollView {
         button.setButtonType(.momentaryLight)
         button.bezelStyle = .smallSquare
         button.isBordered = true
-        button.font = NSFont.systemFont(ofSize: 9)
+        button.font = NSFont.systemFont(ofSize: 10)
         button.target = nil
         button.action = #selector(EditorWindowController.toggleRichText(_:))
         button.refusesFirstResponder = true
@@ -252,7 +252,7 @@ class ScalingScrollView: NSScrollView {
         button.setButtonType(.momentaryLight)
         button.bezelStyle = .smallSquare
         button.isBordered = true
-        button.font = NSFont.systemFont(ofSize: 9)
+        button.font = NSFont.systemFont(ofSize: 10)
         button.target = self
         button.action = #selector(scaleButtonClicked(_:))
         button.refusesFirstResponder = true
@@ -278,7 +278,7 @@ class ScalingScrollView: NSScrollView {
         button.setButtonType(.momentaryLight)
         button.bezelStyle = .smallSquare
         button.isBordered = true
-        button.font = NSFont.monospacedDigitSystemFont(ofSize: 9, weight: .regular)
+        button.font = NSFont.monospacedDigitSystemFont(ofSize: 10, weight: .regular)
         button.alignment = .center
         button.target = self
         button.action = #selector(infoFieldClicked(_:))

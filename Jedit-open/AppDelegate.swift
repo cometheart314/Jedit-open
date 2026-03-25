@@ -186,6 +186,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             }
         }
 
+        // GitHub からアプリ内メッセージをチェック
+        AppMessageChecker.checkMessages()
+
         // 起動時の Open Panel 抑制を解除
         // macOS の State Restoration（_reopenWindowsAsNecessaryIncludingRestorableState:）が
         // 非同期の完了ハンドラ内から _doOpenUntitled → openDocument: を呼ぶため、
