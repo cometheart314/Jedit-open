@@ -5,6 +5,8 @@
 	<key>CFBundleDocumentTypes</key>
 	<array>
 		<dict>
+			<key>CFBundleTypeIconFile</key>
+			<string>PlainText</string>
 			<key>CFBundleTypeName</key>
 			<string>Text Document</string>
 			<key>CFBundleTypeRole</key>
@@ -15,9 +17,24 @@
 			<array>
 				<string>public.plain-text</string>
 				<string>public.text</string>
+				<string>public.data</string>
+			</array>
+			<key>NSDocumentClass</key>
+			<string>$(PRODUCT_MODULE_NAME).Document</string>
+		</dict>
+		<dict>
+			<key>CFBundleTypeIconFile</key>
+			<string>RichText</string>
+			<key>CFBundleTypeName</key>
+			<string>Rich Text Document</string>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
 				<string>public.rtf</string>
 				<string>com.apple.rtfd</string>
-				<string>public.data</string>
 			</array>
 			<key>NSDocumentClass</key>
 			<string>$(PRODUCT_MODULE_NAME).Document</string>
