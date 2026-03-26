@@ -3158,13 +3158,15 @@ class Document: NSDocument {
 
     /// 新規ドキュメント名を生成（presetDataの設定に基づく）
     private func generateUntitledDocumentName() {
+        let localizedUntitled = "Untitled".localized
+
         guard let presetData = self.presetData else {
             // presetDataがない場合はデフォルト（Untitled）
             Document.untitledCounter += 1
             if Document.untitledCounter > 1 {
-                untitledDocumentName = "Untitled \(Document.untitledCounter)"
+                untitledDocumentName = "\(localizedUntitled) \(Document.untitledCounter)"
             } else {
-                untitledDocumentName = "Untitled"
+                untitledDocumentName = localizedUntitled
             }
             return
         }
@@ -3176,9 +3178,9 @@ class Document: NSDocument {
             // Untitled #
             Document.untitledCounter += 1
             if Document.untitledCounter > 1 {
-                untitledDocumentName = "Untitled \(Document.untitledCounter)"
+                untitledDocumentName = "\(localizedUntitled) \(Document.untitledCounter)"
             } else {
-                untitledDocumentName = "Untitled"
+                untitledDocumentName = localizedUntitled
             }
 
         case .dateTime:

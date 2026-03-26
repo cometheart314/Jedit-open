@@ -30,6 +30,7 @@
 "New" = "新規";
 "New Document" = "新規書類";
 "Clipboard" = "クリップボード";
+"Untitled" = "名称未設定";
 
 /* Document Controller */
 "Show Hidden Files" = "不可視ファイルを表示";
