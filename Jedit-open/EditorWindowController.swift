@@ -3263,7 +3263,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let attachment = textStorage.attribute(.attachment, at: loc, longestEffectiveRange: &attachmentRange, in: NSRange(location: loc, length: textStorage.length - loc))
             if attachment != nil {
                 let ch = (textStorage.string as NSString).character(at: loc)
-                if ch == unichar(NSTextAttachment.character) {
+                if ch == unichar(0xFFFC) {
                     if let textView = textView,
                        textView.shouldChangeText(in: NSRange(location: loc, length: 1), replacementString: "") {
                         textStorage.replaceCharacters(in: NSRange(location: loc, length: 1), with: "")
