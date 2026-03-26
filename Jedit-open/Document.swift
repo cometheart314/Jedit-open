@@ -918,6 +918,54 @@ class Document: NSDocument {
         return fileWrappers["TXT.rtf"] != nil
     }
 
+    /// RTFD パッケージの FileWrapper を作成する。
+    /// アクセスできないシンボリックリンク（サンドボックス外を指すリンク等）をスキップし、
+    /// 読み込み可能なファイルのみで FileWrapper を構築する。
+    private nonisolated static func createRTFDFileWrapperSkippingInaccessibleSymlinks(from url: URL) throws -> FileWrapper {
+        let fm = FileManager.default
+        let directoryWrapper = FileWrapper(directoryWithFileWrappers: [:])
+
+        guard let contents = try? fm.contentsOfDirectory(at: url, includingPropertiesForKeys: [.isSymbolicLinkKey, .isRegularFileKey, .isDirectoryKey]) else {
+            throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
+                NSLocalizedDescriptionKey: "Could not read RTFD directory contents"
+            ])
+        }
+
+        for itemURL in contents {
+            let resourceValues = try? itemURL.resourceValues(forKeys: [.isSymbolicLinkKey, .isRegularFileKey, .isDirectoryKey])
+            let isSymlink = resourceValues?.isSymbolicLink ?? false
+
+            if isSymlink {
+                // シンボリックリンク: リンク先にアクセスできるか確認
+                let destination = itemURL.resolvingSymlinksInPath()
+                if fm.isReadableFile(atPath: destination.path) {
+                    // アクセス可能ならリンク先の内容で通常のファイルとして追加
+                    if let data = try? Data(contentsOf: destination) {
+                        let childWrapper = FileWrapper(regularFileWithContents: data)
+                        childWrapper.preferredFilename = itemURL.lastPathComponent
+                        directoryWrapper.addFileWrapper(childWrapper)
+                    }
+                }
+                // アクセスできない場合はスキップ
+            } else if resourceValues?.isDirectory ?? false {
+                // サブディレクトリ: 再帰的に FileWrapper を作成
+                if let childWrapper = try? FileWrapper(url: itemURL, options: .immediate) {
+                    childWrapper.preferredFilename = itemURL.lastPathComponent
+                    directoryWrapper.addFileWrapper(childWrapper)
+                }
+            } else {
+                // 通常ファイル
+                if let data = try? Data(contentsOf: itemURL) {
+                    let childWrapper = FileWrapper(regularFileWithContents: data)
+                    childWrapper.preferredFilename = itemURL.lastPathComponent
+                    directoryWrapper.addFileWrapper(childWrapper)
+                }
+            }
+        }
+
+        return directoryWrapper
+    }
+
     // RTFDファイルパッケージの書き込みをサポート
     override func fileWrapper(ofType typeName: String) throws -> FileWrapper {
         // RTFDとして保存するかどうかを判定
@@ -1161,7 +1209,9 @@ class Document: NSDocument {
             // すでに ResizableImageAttachmentCell の場合はスキップ
             if attachment.attachmentCell is ResizableImageAttachmentCell { return }
             // 画像データを持つアタッチメントのみ対象
+            // （シンボリックリンク型 FileWrapper では regularFileContents が例外をスローするためチェック）
             guard let fileWrapper = attachment.fileWrapper,
+                  fileWrapper.isRegularFile,
                   let data = fileWrapper.regularFileContents,
                   let image = NSImage(data: data) else { return }
             // ファイル拡張子で画像かどうかを判定
@@ -1185,7 +1235,8 @@ class Document: NSDocument {
             newAttachment.fileWrapper = item.attachment.fileWrapper
             newAttachment.bounds = item.attachment.bounds
 
-            if let data = item.attachment.fileWrapper?.regularFileContents,
+            if let fw = item.attachment.fileWrapper, fw.isRegularFile,
+               let data = fw.regularFileContents,
                let image = NSImage(data: data) {
                 let displaySize = item.attachment.bounds.size.width > 0 ? item.attachment.bounds.size : image.size
                 let cell = ResizableImageAttachmentCell(image: image, displaySize: displaySize)
@@ -1246,7 +1297,7 @@ class Document: NSDocument {
             newAttachment.bounds = replacement.bounds
 
             // 画像を取得してカスタムセルを設定（縦書き対応）
-            if let fileWrapper = replacement.attachment.fileWrapper,
+            if let fileWrapper = replacement.attachment.fileWrapper, fileWrapper.isRegularFile,
                let data = fileWrapper.regularFileContents,
                let image = NSImage(data: data) {
                 let cell = ResizableImageAttachmentCell(image: image, displaySize: replacement.bounds.size)
@@ -2338,7 +2389,20 @@ class Document: NSDocument {
         }
 
         // まず通常のファイル読み込みを行う
-        try super.read(from: url, ofType: typeName)
+        // RTFD パッケージでシンボリックリンクがサンドボックス外を指す場合に
+        // FileWrapper の作成が失敗することがあるため、フォールバックで再試行する
+        let isRTFDType = typeName == "com.apple.rtfd" || url.pathExtension.lowercased() == "rtfd"
+        if isRTFDType {
+            do {
+                try super.read(from: url, ofType: typeName)
+            } catch {
+                // アクセスできないシンボリックリンクをスキップして FileWrapper を作成し再試行
+                let fileWrapper = try Self.createRTFDFileWrapperSkippingInaccessibleSymlinks(from: url)
+                try read(from: fileWrapper, ofType: "com.apple.rtfd")
+            }
+        } else {
+            try super.read(from: url, ofType: typeName)
+        }
 
         // 拡張属性からプリセットデータのJSONを読み込む
         if let jsonData = Document.readPresetDataRaw(at: url) {

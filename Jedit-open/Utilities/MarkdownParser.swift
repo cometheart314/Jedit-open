@@ -102,6 +102,11 @@ enum MarkdownParser {
         NSColor(calibratedWhite: 0.7, alpha: 1.0)
     }
 
+    /// テーブルの縞模様（偶数行）の背景色
+    private static var tableStripeColor: NSColor {
+        NSColor(calibratedWhite: 0.93, alpha: 1.0)
+    }
+
     // MARK: - Escape Sequence Placeholders
 
     /// バックスラッシュエスケープ用のプレースホルダー（U+E000-U+E0FF Private Use Area）
@@ -868,6 +873,12 @@ enum MarkdownParser {
                 if hasHeader && rowIndex == 0 {
                     block.setWidth(1.0, type: .absoluteValueType, for: .border, edge: .maxY)
                     block.setBorderColor(horizontalRuleColor, for: .maxY)
+                }
+
+                // 縞模様の背景色（ヘッダー行を除いたデータ行の偶数行）
+                let dataRowIndex = hasHeader ? rowIndex - 1 : rowIndex
+                if dataRowIndex > 0 && dataRowIndex % 2 != 0 {
+                    block.backgroundColor = tableStripeColor
                 }
 
                 let paragraphStyle = NSMutableParagraphStyle()
