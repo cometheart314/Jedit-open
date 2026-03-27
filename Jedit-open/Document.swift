@@ -2382,8 +2382,13 @@ class Document: NSDocument {
         // Markdown ファイルの場合
         if Self.isMarkdownType(typeName) || Self.isMarkdownFile(url: url) {
             if !UserDefaults.standard.bool(forKey: "openMarkdownAsPlainText") {
-                try readMarkdownDocument(from: url)
-                return
+                // 拡張子が .md でも実際の内容が RTF の場合はMarkdownとして扱わない
+                if Self.isActuallyRTF(url: url) {
+                    // RTFとして通常フローで読み込む
+                } else {
+                    try readMarkdownDocument(from: url)
+                    return
+                }
             }
             // プレーンテキストとして読み込む場合は通常のフローへ
         }
@@ -2575,6 +2580,16 @@ class Document: NSDocument {
     private nonisolated static func isMarkdownFile(url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         return ["md", "markdown", "mdown", "mkd", "mkdn", "mdwn"].contains(ext)
+    }
+
+    /// ファイルの内容が実際には RTF かどうかを先頭バイトで判定
+    /// 拡張子が .md でも中身が RTF の場合にMarkdownパーサーのフリーズを防ぐ
+    private nonisolated static func isActuallyRTF(url: URL) -> Bool {
+        guard let fh = try? FileHandle(forReadingFrom: url) else { return false }
+        defer { fh.closeFile() }
+        guard let header = try? fh.read(upToCount: 6) else { return false }
+        // RTF ファイルは "{\\rtf1" で始まる
+        return header.starts(with: [0x7B, 0x5C, 0x72, 0x74, 0x66, 0x31])  // {\rtf1
     }
 
     /// Markdown (.md) ファイルを読み込む
