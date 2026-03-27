@@ -27,6 +27,17 @@ import Cocoa
 
 class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegate {
 
+    // MARK: - Lifecycle
+
+    deinit {
+        // フォントパネルのターゲットが自身の場合はクリアする
+        // （ダングリングポインタによるクラッシュを防止）
+        let fontManager = NSFontManager.shared
+        if fontManager.target === self {
+            fontManager.target = nil
+        }
+    }
+
     // MARK: - IBOutlets
 
     @IBOutlet weak var presetTableView: NSTableView!
