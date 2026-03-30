@@ -5,6 +5,53 @@
  Everyone is permitted to copy and distribute verbatim copies
  of this license document, but changing it is not allowed.
 
+======================================================================
+  APPLE APP STORE EXCEPTION / Apple App Store 例外条項
+======================================================================
+
+  Additional permission under GNU GPL version 3 section 7
+
+  Copyright (C) 2025 Satoshi Matsumoto
+
+  As the copyright holder of Jedit-open, I hereby grant additional
+  permission to distribute this program and its compiled binary
+  through the Apple App Store, under Apple's standard terms of
+  service, without requiring compliance with GNU GPL version 3,
+  sections 3 (Protecting Users' Legal Rights From Anti-Circumvention
+  Law) and 10 (Automatic Licensing of Downstream Recipients), solely
+  with respect to the copy of the program distributed through the
+  Apple App Store.
+
+  The complete source code of this program is available at:
+  https://github.com/cometheart314/Jedit-open
+
+  All other terms of the GNU GPL version 3 remain in full effect.
+  This exception applies only to the unmodified program as
+  distributed by the copyright holder through the Apple App Store.
+
+  ---
+
+  GNU GPL バージョン 3 第 7 条に基づく追加許可
+
+  Copyright (C) 2025 松本 慧
+
+  Jedit-open の著作権者として、本プログラムおよびそのコンパイル済み
+  バイナリを Apple App Store を通じて配布することについて、Apple の
+  標準利用規約に従い、追加の許可を付与します。この許可は、Apple App
+  Store を通じて配布されるプログラムのコピーに限り、GNU GPL バージョ
+  ン 3 の第 3 条（反回避法からのユーザーの法的権利の保護）および
+  第 10 条（下流受領者への自動ライセンス）への準拠を免除するもので
+  す。
+
+  本プログラムの完全なソースコードは以下で入手可能です：
+  https://github.com/cometheart314/Jedit-open
+
+  GNU GPL バージョン 3 のその他のすべての条項は完全に有効です。
+  この例外は、著作権者が Apple App Store を通じて配布する、未改変の
+  プログラムにのみ適用されます。
+
+======================================================================
+
                             Preamble
 
   The GNU General Public License is a free, copyleft license for
