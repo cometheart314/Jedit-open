@@ -97,6 +97,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // ヘルプファイルを Application Support にコピー/更新
         updateHelpFileIfNeeded()
+        updateTipsFileIfNeeded()
 
         // Help メニューに検索フィールドを追加
         setupHelpSearchField()
@@ -1073,6 +1074,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         return appSupport.appendingPathComponent("Jedit/Help/JeditHelp.rtfd")
     }
 
+    /// Application Support 内の Tips ファイルの URL を返す
+    private var tipsFileURL: URL? {
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        return appSupport.appendingPathComponent("Jedit/Help/JeditTips.rtf")
+    }
+
     /// バンドル内の JeditHelp.rtfd.zip を Application Support にコピー・展開する
     /// バンドル内の zip の方が新しい場合、または Application Support にまだない場合に実行する。
     /// zip から展開することで、拡張属性（xattr）を含むオリジナルの状態を再現する。
@@ -1119,6 +1128,51 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // 既存の rtfd を削除して zip を展開（ditto で拡張属性を保持）
         try? fm.removeItem(at: destRtfdURL)
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
+        process.arguments = ["-x", "-k", destZipURL.path, destDir.path]
+        try? process.run()
+        process.waitUntilExit()
+    }
+
+    /// バンドル内の JeditTips.rtf.zip を Application Support にコピー・展開する
+    private func updateTipsFileIfNeeded() {
+        guard let bundleZipURL = Bundle.main.url(forResource: "JeditTips.rtf", withExtension: "zip"),
+              let destRtfURL = tipsFileURL else { return }
+
+        let fm = FileManager.default
+        let destDir = destRtfURL.deletingLastPathComponent()
+        let destZipURL = destDir.appendingPathComponent("JeditTips.rtf.zip")
+
+        // ディレクトリを作成
+        try? fm.createDirectory(at: destDir, withIntermediateDirectories: true)
+
+        // バンドルの zip とコピー先の zip の修正日付を比較
+        var needsUpdate = false
+        if fm.fileExists(atPath: destZipURL.path) {
+            if let bundleAttrs = try? fm.attributesOfItem(atPath: bundleZipURL.path),
+               let destAttrs = try? fm.attributesOfItem(atPath: destZipURL.path),
+               let bundleDate = bundleAttrs[.modificationDate] as? Date,
+               let destDate = destAttrs[.modificationDate] as? Date,
+               bundleDate > destDate {
+                needsUpdate = true
+            }
+        } else {
+            needsUpdate = true
+        }
+
+        guard needsUpdate else { return }
+
+        // zip をコピー先にコピー
+        try? fm.removeItem(at: destZipURL)
+        do {
+            try fm.copyItem(at: bundleZipURL, to: destZipURL)
+        } catch {
+            return
+        }
+
+        // 既存の rtf を削除して zip を展開（ditto で拡張属性を保持）
+        try? fm.removeItem(at: destRtfURL)
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ditto")
         process.arguments = ["-x", "-k", destZipURL.path, destDir.path]
@@ -1238,6 +1292,37 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             if !bpc.isPanelVisible {
                 bpc.showPanel()
             }
+        }
+    }
+
+    /// Help > Jedit's Tips メニューアクション
+    /// Application Support 内の Tips ファイルを開く
+    @IBAction func openJeditTips(_ sender: Any?) {
+        guard let tipsURL = tipsFileURL,
+              FileManager.default.fileExists(atPath: tipsURL.path) else { return }
+
+        NSDocumentController.shared.openDocument(withContentsOf: tipsURL, display: true) { document, _, error in
+            if let error = error {
+                NSApp.presentError(error)
+                return
+            }
+            guard let doc = document as? Document,
+                  let wc = doc.windowControllers.first as? EditorWindowController else { return }
+
+            // 初回オープン時のみ読み取り専用表示設定を適用
+            let isFirstOpen = doc.presetData?.view.preventEditing != true
+            if isFirstOpen {
+                doc.presetData?.view.preventEditing = true
+                wc.setAllTextViewsEditable(false)
+                wc.window?.toolbar?.isVisible = false
+                if doc.presetData?.view.showInspectorBar == true {
+                    wc.toggleInspectorBar(nil)
+                }
+                wc.setRulerHide(nil)
+                wc.hideLineNumbers(nil)
+            }
+
+            wc.window?.makeKeyAndOrderFront(nil)
         }
     }
 

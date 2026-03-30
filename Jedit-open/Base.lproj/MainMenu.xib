@@ -1086,6 +1086,12 @@
                                     <action selector="openJeditHelp:" target="-1" id="y7X-2Q-9no"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Jedit's Tips" id="tps-mn-item">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="openJeditTips:" target="-1" id="tps-ac-001"/>
+                                </connections>
+                            </menuItem>
                         </items>
                     </menu>
                 </menuItem>
