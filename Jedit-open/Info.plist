@@ -104,6 +104,8 @@
 	<string>AppIcon</string>
 	<key>NSAppleScriptEnabled</key>
 	<true/>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Jedit uses AppleScript to enable automation and scripting control of the application.</string>
 	<key>OSAScriptingDefinition</key>
 	<string>Jedit.sdef</string>
 	<key>NSQuitAlwaysKeepsWindows</key>
