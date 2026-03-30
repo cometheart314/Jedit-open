@@ -32,7 +32,7 @@ enum AppMessageChecker {
 
     // MARK: - Configuration
 
-    private static let messagesURL = URL(string: "https://raw.githubusercontent.com/cometheart314/Jedit-open/main/messages.json")!
+    private static let messagesURL = URL(string: "https://jedit-stats.cometheart.workers.dev/messages.json")!
 
     // MARK: - JSON Model
 

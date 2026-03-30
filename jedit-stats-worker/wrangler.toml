@@ -1,0 +1,7 @@
+name = "jedit-stats"
+main = "src/worker.js"
+compatibility_date = "2024-12-01"
+
+[[kv_namespaces]]
+binding = "STATS"
+id = "209eadb5278e4040bc12d74aaf9bc64e"
