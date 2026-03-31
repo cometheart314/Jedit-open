@@ -18,6 +18,9 @@ TODO.md
 
 # Help Manual
 HelpManual/
+fix_rtf_indent.py
+fix_en_rtf_indent.py
+generate_ja_help.py
 
 # AppleScripts
 AppleScripts/
