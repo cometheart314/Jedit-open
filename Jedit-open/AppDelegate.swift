@@ -1295,13 +1295,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         }
     }
 
-    /// Help > Jedit Open Project メニューアクション
-    /// ユーザーの言語設定に応じた Jedit Open Project の Web ページを開く
-    @IBAction func openJeditOpenProject(_ sender: Any?) {
+    /// Help > Jedit Support Page メニューアクション
+    /// ユーザーの言語設定に応じた Jedit サポートページを開く
+    @IBAction func openJeditSupportPage(_ sender: Any?) {
         let isJapanese = Locale.preferredLanguages.first?.hasPrefix("ja") ?? false
         let urlString = isJapanese
-            ? "https://www.artman21.com/jp/jedit-open-project.html"
-            : "https://www.artman21.com/en/jedit-open-project.html"
+            ? "https://cometheart314.github.io/Jedit-open/ja/"
+            : "https://cometheart314.github.io/Jedit-open/en/"
         if let url = URL(string: urlString) {
             NSWorkspace.shared.open(url)
         }

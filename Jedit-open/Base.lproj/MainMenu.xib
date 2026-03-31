@@ -1093,10 +1093,10 @@
                                 </connections>
                             </menuItem>
                             <menuItem isSeparatorItem="YES" id="hlp-sep-001"/>
-                            <menuItem title="Jedit Open Project" id="jop-mn-item">
+                            <menuItem title="Jedit Support Page" id="jop-mn-item">
                                 <modifierMask key="keyEquivalentModifierMask"/>
                                 <connections>
-                                    <action selector="openJeditOpenProject:" target="-1" id="jop-ac-001"/>
+                                    <action selector="openJeditSupportPage:" target="-1" id="jop-ac-001"/>
                                 </connections>
                             </menuItem>
                         </items>

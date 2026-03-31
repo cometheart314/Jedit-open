@@ -95,6 +95,12 @@
 /* Class = "NSMenuItem"; title = "Jedit Help"; ObjectID = "FKE-Sm-Kum"; */
 "FKE-Sm-Kum.title" = "Jedit Help";
 
+/* Class = "NSMenuItem"; title = "Jedit's Tips"; ObjectID = "tps-mn-item"; */
+"tps-mn-item.title" = "Jedit's Tips";
+
+/* Class = "NSMenuItem"; title = "Jedit Support Page"; ObjectID = "jop-mn-item"; */
+"jop-mn-item.title" = "Jedit Support Page";
+
 /* Class = "NSMenuItem"; title = "Text"; ObjectID = "Fal-I4-PZk"; */
 "Fal-I4-PZk.title" = "Text";
 
