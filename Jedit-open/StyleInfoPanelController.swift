@@ -1579,6 +1579,17 @@ class StyleInfoPanelController: NSObject {
                 return
             }
         }
+        // メニューに該当フォントがない場合、先頭に一時項目を挿入して選択する
+        let title = localizedFamilyName(forFamilyName: familyName)
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.representedObject = familyName
+        if let previewFont = representativeFont(forFamily: familyName, size: NSFont.systemFontSize) {
+            item.attributedTitle = NSAttributedString(
+                string: title,
+                attributes: [.font: previewFont])
+        }
+        menu.insertItem(item, at: 0)
+        fontFamilyPopup.selectItem(at: 0)
     }
 
     /// PostScript 名からスタイルポップアップ上で選択する
