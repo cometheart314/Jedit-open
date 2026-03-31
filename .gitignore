@@ -10,6 +10,9 @@ DerivedData/
 # macOS
 .DS_Store
 
+# Claude Code
+.claude/
+
 # Development
 TODO.md
 
