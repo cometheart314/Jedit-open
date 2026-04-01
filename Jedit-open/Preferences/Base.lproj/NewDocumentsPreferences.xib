@@ -761,13 +761,13 @@
                                             <menu key="menu" title="OtherViews" id="2jk-cT-BmA">
                                                 <items>
                                                     <menuItem title="Untitled #" state="on" id="aiL-6X-GUM"/>
-                                                    <menuItem title="YYYY-MM-DD hhmmss" tag="1" id="Jcv-qd-6RF"/>
+                                                    <menuItem title="YYYY-MM-DD hh-mm-ss" tag="1" id="Jcv-qd-6RF"/>
                                                     <menuItem title="YYYY-MM-DD-###" tag="2" id="teV-Ln-NFX">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
                                                     </menuItem>
                                                     <menuItem title="System Short Date #" tag="3" id="nW9-tt-UIs"/>
                                                     <menuItem title="System Long Date #" tag="4" id="SvD-If-uYb"/>
-                                                    <menuItem title="Preferences General Date #" tag="5" id="FuT-9U-pQU">
+                                                    <menuItem title="Settings General Date #" tag="5" id="FuT-9U-pQU">
                                                         <modifierMask key="keyEquivalentModifierMask"/>
                                                     </menuItem>
                                                 </items>

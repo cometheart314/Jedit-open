@@ -3231,6 +3231,9 @@ class Document: NSDocument {
             return untitledDocumentName ?? super.displayName
         }
         set {
+            // タイトルバーからのリネームや保存時に NSDocument が displayName を
+            // セットした場合、untitledDocumentName をクリアしてファイル名を優先する
+            untitledDocumentName = nil
             super.displayName = newValue
         }
     }
@@ -3263,9 +3266,9 @@ class Document: NSDocument {
             }
 
         case .dateTime:
-            // YYYY-MM-DD HHmmss
+            // YYYY-MM-DD HH-mm-ss
             let formatter = DateFormatter()
-            formatter.dateFormat = "yyyy-MM-dd HHmmss"
+            formatter.dateFormat = "yyyy-MM-dd HH-mm-ss"
             untitledDocumentName = formatter.string(from: Date())
 
         case .dateWithSerial:

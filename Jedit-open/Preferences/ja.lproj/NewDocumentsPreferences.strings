@@ -259,6 +259,21 @@
 /* Class = "NSMenuItem"; title = "Untitled #"; ObjectID = "aiL-6X-GUM"; */
 "aiL-6X-GUM.title" = "名称未設定 #";
 
+/* Class = "NSMenuItem"; title = "YYYY-MM-DD hh-mm-ss"; ObjectID = "Jcv-qd-6RF"; */
+"Jcv-qd-6RF.title" = "YYYY-MM-DD hh-mm-ss";
+
+/* Class = "NSMenuItem"; title = "YYYY-MM-DD-###"; ObjectID = "teV-Ln-NFX"; */
+"teV-Ln-NFX.title" = "YYYY-MM-DD-###";
+
+/* Class = "NSMenuItem"; title = "System Short Date #"; ObjectID = "nW9-tt-UIs"; */
+"nW9-tt-UIs.title" = "システム短い日付 #";
+
+/* Class = "NSMenuItem"; title = "System Long Date #"; ObjectID = "SvD-If-uYb"; */
+"SvD-If-uYb.title" = "システム長い日付 #";
+
+/* Class = "NSMenuItem"; title = "Settings General Date #"; ObjectID = "FuT-9U-pQU"; */
+"FuT-9U-pQU.title" = "設定一般の日付 #";
+
 /* Class = "NSMenuItem"; title = "Modification Date"; ObjectID = "bLQ-Ys-65L"; */
 "bLQ-Ys-65L.title" = "修正日付";
 
