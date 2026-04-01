@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jedit - リリースノート</title>
+<link rel="stylesheet" href="../style.css">
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+</head>
+<body>
+<nav>
+  <a href="../en/releasenotes.html">English</a>
+  <a href="index.html">ホーム</a>
+  <a href="privacy.html">プライバシーポリシー</a>
+</nav>
+<header>
+  <img src="../appicon.png" alt="Jedit" width="128" height="128" style="margin-bottom: 16px;">
+  <h1>リリースノート</h1>
+  <p>Jedit の更新履歴</p>
+</header>
+<main>
+  <div id="content" class="markdown-body"></div>
+</main>
+<footer>
+  <p>&copy; 2025 Satoshi Matsumoto. All rights reserved.</p>
+  <p><a href="privacy.html">プライバシーポリシー</a></p>
+</footer>
+<script>
+fetch('releasenotes.md')
+  .then(res => res.text())
+  .then(md => {
+    document.getElementById('content').innerHTML = marked.parse(md);
+  });
+</script>
+</body>
+</html>
