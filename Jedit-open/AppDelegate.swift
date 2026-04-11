@@ -198,6 +198,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
         }
+
+        // Pro版の機能プロバイダーを初期化
+        FeatureProviderRegistry.shared.editorProvider?.applicationDidFinishLaunching()
     }
 
     // MARK: - AppleScript Print Command

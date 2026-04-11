@@ -27,6 +27,8 @@ import Cocoa
 
 /// Pro版で追加のツールバー項目やメニュー項目を提供するプロトコル
 protocol EditorFeatureProvider {
+    /// アプリ起動時に呼ばれる（メニュー追加、初期設定など）
+    func applicationDidFinishLaunching()
     /// 追加のツールバー項目識別子
     func additionalToolbarItemIdentifiers() -> [NSToolbarItem.Identifier]
     /// 追加のメニュー項目
