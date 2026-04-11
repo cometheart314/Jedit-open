@@ -199,7 +199,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
         }
 
-        // Pro版の機能プロバイダーを初期化
+        // Pro版の機能プロバイダーを登録・初期化
+        #if JEDIT_PRO
+        registerProFeatures()
+        #endif
         FeatureProviderRegistry.shared.editorProvider?.applicationDidFinishLaunching()
     }
 
