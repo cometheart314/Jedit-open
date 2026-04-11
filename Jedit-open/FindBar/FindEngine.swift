@@ -299,7 +299,35 @@ class FindEngine {
             return replaceText
         }
 
-        return regex.replacementString(for: match, in: matched, offset: 0, template: replaceText)
+        let template = regex.replacementString(for: match, in: matched, offset: 0, template: replaceText)
+        return unescapeReplacement(template)
+    }
+
+    /// 置換文字列中のエスケープシーケンスを実際の文字に変換する
+    /// \t → タブ、\n → 改行(LF)、\r → 改行(CR)、\\ → バックスラッシュ
+    private func unescapeReplacement(_ string: String) -> String {
+        var result = ""
+        var iterator = string.makeIterator()
+        while let char = iterator.next() {
+            if char == "\\" {
+                if let next = iterator.next() {
+                    switch next {
+                    case "t": result.append("\t")
+                    case "n": result.append("\n")
+                    case "r": result.append("\r")
+                    case "\\": result.append("\\")
+                    default:
+                        result.append("\\")
+                        result.append(next)
+                    }
+                } else {
+                    result.append("\\")
+                }
+            } else {
+                result.append(char)
+            }
+        }
+        return result
     }
 
     // MARK: - Private: Helpers
