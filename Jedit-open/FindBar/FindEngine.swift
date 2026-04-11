@@ -299,24 +299,34 @@ class FindEngine {
             return replaceText
         }
 
-        let template = regex.replacementString(for: match, in: matched, offset: 0, template: replaceText)
-        return unescapeReplacement(template)
+        // \t, \n, \r を一時プレースホルダーに置換してから replacementString に渡す。
+        // replacementString は \n を後方参照として解釈するため、
+        // 先にエスケープシーケンスを保護する必要がある。
+        let protected = protectEscapeSequences(replaceText)
+        let template = regex.replacementString(for: match, in: matched, offset: 0, template: protected)
+        return restoreEscapeSequences(template)
     }
 
-    /// 置換文字列中のエスケープシーケンスを実際の文字に変換する
-    /// \t → タブ、\n → 改行(LF)、\r → 改行(CR)、\\ → バックスラッシュ
-    private func unescapeReplacement(_ string: String) -> String {
+    // Unicode Private Use Area の文字をプレースホルダーとして使用
+    private static let placeholderTab = "\u{F700}"
+    private static let placeholderLF  = "\u{F701}"
+    private static let placeholderCR  = "\u{F702}"
+    private static let placeholderBackslash = "\u{F703}"
+
+    /// \t, \n, \r, \\ をプレースホルダーに置換（replacementString に渡す前）
+    private func protectEscapeSequences(_ string: String) -> String {
         var result = ""
         var iterator = string.makeIterator()
         while let char = iterator.next() {
             if char == "\\" {
                 if let next = iterator.next() {
                     switch next {
-                    case "t": result.append("\t")
-                    case "n": result.append("\n")
-                    case "r": result.append("\r")
-                    case "\\": result.append("\\")
+                    case "t": result.append(Self.placeholderTab)
+                    case "n": result.append(Self.placeholderLF)
+                    case "r": result.append(Self.placeholderCR)
+                    case "\\": result.append(Self.placeholderBackslash)
                     default:
+                        // $1 等の後方参照はそのまま通す
                         result.append("\\")
                         result.append(next)
                     }
@@ -328,6 +338,15 @@ class FindEngine {
             }
         }
         return result
+    }
+
+    /// プレースホルダーを実際の文字に復元（replacementString の処理後）
+    private func restoreEscapeSequences(_ string: String) -> String {
+        return string
+            .replacingOccurrences(of: Self.placeholderTab, with: "\t")
+            .replacingOccurrences(of: Self.placeholderLF, with: "\n")
+            .replacingOccurrences(of: Self.placeholderCR, with: "\r")
+            .replacingOccurrences(of: Self.placeholderBackslash, with: "\\")
     }
 
     // MARK: - Private: Helpers
