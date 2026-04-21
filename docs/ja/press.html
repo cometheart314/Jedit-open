@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jedit - プレスキット</title>
+<link rel="stylesheet" href="../style.css">
+<style>
+  .factsheet { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .factsheet th, .factsheet td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid #e8e8e8;
+    font-size: 14px;
+    vertical-align: top;
+  }
+  .factsheet th {
+    width: 30%;
+    color: #0f3460;
+    font-weight: 600;
+    background: #f5f8fc;
+  }
+  .assets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 16px;
+  }
+  .asset-card {
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 12px;
+    padding: 16px;
+    text-align: center;
+  }
+  .asset-card img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 8px;
+    margin-bottom: 8px;
+  }
+  .asset-card h3 { font-size: 14px; margin-bottom: 6px; color: #0f3460; }
+  .asset-card p { font-size: 12px; color: #666; margin-bottom: 8px; }
+  .quote {
+    border-left: 4px solid #0f3460;
+    padding: 12px 20px;
+    margin: 16px 0;
+    background: #f5f8fc;
+    font-style: italic;
+    color: #333;
+  }
+  .quote-author {
+    display: block;
+    margin-top: 8px;
+    font-size: 13px;
+    font-style: normal;
+    color: #666;
+  }
+</style>
+</head>
+<body>
+<nav>
+  <a href="../en/press.html">English</a>
+  <a href="press-release.html">プレスリリース</a>
+  <a href="index.html">ホーム</a>
+</nav>
+<header>
+  <img src="../appicon.png" alt="Jedit" width="128" height="128" style="margin-bottom: 16px;">
+  <h1>プレスキット</h1>
+  <p>報道関係者の方向けの資料集</p>
+</header>
+<main>
+  <section>
+    <h2>概要</h2>
+    <p><strong>Jedit</strong> は、macOS 向けのフリーテキストエディタです。プレーンテキストからリッチテキスト（RTF / RTFD）、Microsoft Word、Markdown まで幅広いフォーマットに対応し、日本語環境での文書作成に最適化されています。かつて多くのユーザーに利用された <strong>Jedit Ω</strong> を原型とし、誰もが毎日必要とする機能に厳選して再設計された汎用テキストエディタです。</p>
+    <p>Mac App Store にて <strong>無料</strong>で提供され、ソースコードは GitHub にて <strong>GPLv3</strong> のもと公開されています。</p>
+  </section>
+
+  <section>
+    <h2>ファクトシート</h2>
+    <table class="factsheet">
+      <tr><th>製品名</th><td>Jedit</td></tr>
+      <tr><th>カテゴリ</th><td>macOS 向けテキストエディタ</td></tr>
+      <tr><th>バージョン</th><td>1.0</td></tr>
+      <tr><th>公開日</th><td>2026 年 4 月 19 日</td></tr>
+      <tr><th>対応 OS</th><td>macOS 15.6 以降</td></tr>
+      <tr><th>価格</th><td>無料</td></tr>
+      <tr><th>配布チャネル</th><td>Mac App Store</td></tr>
+      <tr><th>対応言語</th><td>日本語、英語</td></tr>
+      <tr><th>対応フォーマット</th><td>プレーンテキスト、RTF、RTFD、Microsoft Word (.doc / .docx)、Markdown (.md)、テキストクリッピング</td></tr>
+      <tr><th>ライセンス</th><td>GNU General Public License v3（App Store 例外条項付き）</td></tr>
+      <tr><th>発行元</th><td>合資会社アートマン弐壱（Artman21 Inc.）</td></tr>
+      <tr><th>開発者</th><td>松本慧（Satoshi Matsumoto、合資会社アートマン弐壱 代表）</td></tr>
+      <tr><th>バンドル ID</th><td>jp.co.artman21.Jedit-open</td></tr>
+      <tr><th>ソースコード</th><td><a href="https://github.com/cometheart314/Jedit-open">github.com/cometheart314/Jedit-open</a></td></tr>
+      <tr><th>公式サイト</th><td><a href="https://cometheart314.github.io/Jedit-open/ja/">cometheart314.github.io/Jedit-open/ja/</a></td></tr>
+      <tr><th>お問い合わせ</th><td>アートマン21 ユーザーサポート係 <a href="mailto:support@artman21.co.jp">support@artman21.co.jp</a></td></tr>
+    </table>
+  </section>
+
+  <section>
+    <h2>主な機能</h2>
+    <div class="features-grid">
+      <div class="feature-card">
+        <h3>多彩なフォーマット</h3>
+        <p>プレーンテキスト、RTF、RTFD、Microsoft Word、Markdown を単一のエディタで編集。</p>
+      </div>
+      <div class="feature-card">
+        <h3>日本語に最適化</h3>
+        <p>縦書き表示、豊富な日本語エンコーディングの自動判定、CJK タイポグラフィへの配慮。</p>
+      </div>
+      <div class="feature-card">
+        <h3>高度な検索・置換</h3>
+        <p>正規表現対応、マッチハイライト、検索履歴の永続化。</p>
+      </div>
+      <div class="feature-card">
+        <h3>iCloud Drive 統合</h3>
+        <p>複数の Mac 間で書類をシームレスに同期。</p>
+      </div>
+      <div class="feature-card">
+        <h3>執筆支援ツール</h3>
+        <p>文字数・単語数・段落数のリアルタイム統計、執筆目標の設定。</p>
+      </div>
+      <div class="feature-card">
+        <h3>階層ブックマーク</h3>
+        <p>長文構成管理に適した階層型ナビゲーション。</p>
+      </div>
+      <div class="feature-card">
+        <h3>AppleScript 対応</h3>
+        <p>完全な AppleScript 辞書を搭載し、ワークフロー自動化が可能。</p>
+      </div>
+      <div class="feature-card">
+        <h3>印刷機能</h3>
+        <p>ヘッダー・フッター、行番号、カラー印刷などきめ細かな設定。</p>
+      </div>
+      <div class="feature-card">
+        <h3>豊富な表示モード</h3>
+        <p>スプリットビュー、ページ表示、ルーラー、行番号、不可視文字表示。</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>開発者コメント</h2>
+    <div class="quote">
+      Jedit Ω は、Mac 用の高機能エディタとして多くのユーザーに愛用されてきましたが、2025 年 11 月末に販売とサポートを終了しました。これは、コードが古くなり、新しい macOS に対応できなくなったためです。そこで、AI（Claude Code）を全面的に採用し、Jedit Ω をベースに全くゼロから書き直すことで、新 Jedit が誕生しました。
+      <span class="quote-author">— 松本慧（合資会社アートマン弐壱 代表／Jedit 開発者）</span>
+    </div>
+  </section>
+
+  <section>
+    <h2>Jedit Ω との関係</h2>
+    <p>Jedit Ω は、Mac 用の高機能エディタとして多くのユーザーに愛用されてきましたが、コードベースが古くなり、新しい macOS への追従が困難になったため、<strong>2025 年 11 月末をもって販売およびサポートを終了</strong>しました。</p>
+    <p>新しい Jedit は、Jedit Ω をベースに、<strong>AI（Claude Code）を全面的に採用して全くゼロから書き直された</strong>後継エディタです。書き直しにあたっては、一部のユーザーしか使わない機能、稀にしか使われない機能はあえて再実装を見送り、誰もが日常的に必要とする機能に絞って汎用テキストエディタとして再構築しました。</p>
+    <h3>再実装が見送られた Jedit Ω の機能</h3>
+    <ul>
+      <li>マルチファイル検索 / 置換</li>
+      <li>文書ファイルの比較機能</li>
+      <li>Jedit Ω ツールメニューの各種機能</li>
+      <li>シンタックスカラーリング</li>
+      <li>スマートインデックス、自動補完</li>
+      <li>メニューショートカットのカスタマイズ</li>
+      <li>キーバインドのカスタマイズ</li>
+    </ul>
+    <p>これらの機能は、今後 <strong>Jedit Pro</strong> としてサポートが予定されています。</p>
+  </section>
+
+  <section>
+    <h2>プレス素材</h2>
+    <p>以下の素材は、Jedit に関する記事・レビュー・紹介での使用を目的として自由にご利用いただけます。画像の改変は極力避けていただくようお願いいたします。</p>
+    <div class="assets-grid">
+      <div class="asset-card">
+        <img src="../appicon.png" alt="Jedit アプリアイコン" width="128" height="128">
+        <h3>アプリアイコン</h3>
+        <p>PNG / 512 × 512 相当</p>
+        <a href="../appicon.png" download class="btn btn-secondary">ダウンロード</a>
+      </div>
+      <div class="asset-card">
+        <img src="../screenshot.png" alt="Jedit スクリーンショット">
+        <h3>スクリーンショット</h3>
+        <p>メインウィンドウ</p>
+        <a href="../screenshot.png" download class="btn btn-secondary">ダウンロード</a>
+      </div>
+      <div class="asset-card" style="display: flex; flex-direction: column; justify-content: center;">
+        <h3>プレスリリース本文</h3>
+        <p>Markdown / HTML で提供</p>
+        <div>
+          <a href="press-release.md" download class="btn btn-secondary" style="margin-bottom: 6px;">Markdown</a>
+          <a href="press-release.html" class="btn btn-secondary">HTML</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2>ライセンスと使用条件</h2>
+    <p>Jedit は <strong>GNU General Public License v3（GPLv3）</strong>のもとで公開されているフリーソフトウェアです。Mac App Store を通じた配布については、GPLv3 第 7 条に基づく追加許可が付与されています。</p>
+    <p>本プレスキットに含まれるアプリアイコン・スクリーンショットは、Jedit に関する報道・レビュー・紹介目的での使用を許諾します。Jedit、Jedit Ω の名称は松本慧（Satoshi Matsumoto）の商標または登録商標です。</p>
+    <p class="license-note">ライセンス詳細: <a href="https://github.com/cometheart314/Jedit-open/blob/main/LICENSE">LICENSE</a></p>
+  </section>
+
+  <section>
+    <h2>お問い合わせ</h2>
+    <p>取材・掲載に関するお問い合わせ、追加素材のご要望は下記までお願いいたします。</p>
+    <p style="margin-top: 8px;"><strong>アートマン21 ユーザーサポート係</strong><br>
+      Email: <a href="mailto:support@artman21.co.jp">support@artman21.co.jp</a></p>
+    <div style="margin-top: 12px;">
+      <a href="mailto:support@artman21.co.jp" class="btn">メールで問い合わせる</a>
+      <a href="press-release.html" class="btn btn-secondary">プレスリリースを読む</a>
+    </div>
+  </section>
+</main>
+<footer>
+  <p>&copy; 2026 Satoshi Matsumoto. All rights reserved.</p>
+  <p><a href="privacy.html">プライバシーポリシー</a></p>
+</footer>
+</body>
+</html>

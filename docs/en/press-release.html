@@ -1,32 +1,36 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Jedit - リリースノート</title>
+<title>Jedit - Press Release</title>
 <link rel="stylesheet" href="../style.css">
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
 <nav>
-  <a href="../en/releasenotes.html">English</a>
-  <a href="index.html">ホーム</a>
-  <a href="privacy.html">プライバシーポリシー</a>
+  <a href="../ja/press-release.html">日本語</a>
+  <a href="press.html">Press Kit</a>
+  <a href="index.html">Home</a>
 </nav>
 <header>
   <img src="../appicon.png" alt="Jedit" width="128" height="128" style="margin-bottom: 16px;">
-  <h1>リリースノート</h1>
-  <p>Jedit の更新履歴</p>
+  <h1>Press Release</h1>
+  <p>Announcing Jedit v1.0</p>
 </header>
 <main>
   <div id="content" class="markdown-body"></div>
+  <div style="margin-top: 32px;">
+    <a href="press-release.md" class="btn btn-secondary">Download Markdown</a>
+    <a href="press.html" class="btn">Go to Press Kit</a>
+  </div>
 </main>
 <footer>
   <p>&copy; 2026 Satoshi Matsumoto. All rights reserved.</p>
-  <p><a href="privacy.html">プライバシーポリシー</a></p>
+  <p><a href="privacy.html">Privacy Policy</a></p>
 </footer>
 <script>
-fetch('releasenotes.md')
+fetch('press-release.md')
   .then(res => res.text())
   .then(md => {
     document.getElementById('content').innerHTML = marked.parse(md);
