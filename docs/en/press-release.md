@@ -42,6 +42,8 @@ GitHub: <https://github.com/cometheart314/Jedit-open>
 | Supported OS | macOS 15.6 and later |
 | Price | Free |
 | Distribution | Mac App Store |
+| App Store (US) | <https://apps.apple.com/us/app/jedit/id6757590982?mt=12> |
+| App Store (Japan) | <https://apps.apple.com/jp/app/jedit/id6757590982?mt=12> |
 | License | GPLv3 (with App Store exception) |
 | Languages | Japanese, English |
 
