@@ -116,8 +116,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     var lineNumberWidthConstraint2: NSLayoutConstraint?
 
     // ページネーション関連
-    private var layoutManager1: NSLayoutManager?
-    private var layoutManager2: NSLayoutManager?
+    var layoutManager1: NSLayoutManager?
+    var layoutManager2: NSLayoutManager?
     var textContainers1: [NSTextContainer] = []
     var textViews1: [NSTextView] = []
     var textContainers2: [NSTextContainer] = []
@@ -2454,6 +2454,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var layoutCheckWorkItem: DispatchWorkItem?
     // レイアウト完了後のクールダウン期間終了時刻
     var layoutCooldownUntil: Date?
+    // 前回 addPage 時点でレイアウト済みだった文字位置
+    // （進捗せずに addPage が繰り返されるのを検出して無限ループを防ぐ安全網）
+    var lastAddPageLayoutedChar: Int = -1
+    // addPage が非同期スケジュール済みかどうか（多重登録防止）
+    var isAddPageScheduled: Bool = false
 
     func layoutManager(_ layoutManager: NSLayoutManager, didCompleteLayoutFor textContainer: NSTextContainer?, atEnd layoutFinishedFlag: Bool) {
         // デバッグ出力（必要時のみ有効化）
@@ -2509,11 +2514,30 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                         // すべてのテキストがレイアウト済みならクールダウンを設定
                         if lastLayoutedChar >= totalCharacters {
                             layoutCooldownUntil = Date().addingTimeInterval(0.5)
+                            lastAddPageLayoutedChar = -1
                             return
                         }
 
-                        // まだレイアウトされていない文字がある場合のみページを追加
-                        addPage(to: layoutManager, in: scrollView, for: target)
+                        // 前回 addPage 時から進捗しているかを確認（無限ループ防止の安全網）
+                        if lastAddPageLayoutedChar >= lastLayoutedChar {
+                            layoutCooldownUntil = Date().addingTimeInterval(0.5)
+                            lastAddPageLayoutedChar = -1
+                            return
+                        }
+                        lastAddPageLayoutedChar = lastLayoutedChar
+
+                        // addPage をデリゲート内で同期的に呼ぶと、addPage 中のプロパティ設定
+                        // （isSelectable 等）が setNeedsDisplayInRect 経由で fill-holes を
+                        // 再帰的に走らせ、NSLayoutManager の外側ループが進捗ゼロで
+                        // 回り続けてフリーズする。次のランループに defer することで断ち切る。
+                        if !isAddPageScheduled {
+                            isAddPageScheduled = true
+                            DispatchQueue.main.async { [weak self] in
+                                guard let self = self else { return }
+                                self.isAddPageScheduled = false
+                                self.addPage(to: layoutManager, in: scrollView, for: target)
+                            }
+                        }
                     }
                 }
                 return
@@ -2525,6 +2549,8 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // レイアウトが完了した場合、ページ数を確定し、フレームを更新
         if layoutFinishedFlag {
+            // レイアウト完了時は進捗トラッカーをリセット
+            lastAddPageLayoutedChar = -1
             // 再入防止（ここに到達した場合は isUpdatingPages は false）
             isUpdatingPages = true
             defer {

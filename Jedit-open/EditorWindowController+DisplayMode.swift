@@ -205,10 +205,46 @@ extension EditorWindowController {
             textStorage.setLineBreakingType(type.rawValue)
 
             // 禁則処理の変更は lineBreakBeforeIndex の結果に影響するため、
-            // 全レイアウトマネージャーに再レイアウトを指示する。
+            // 全レイアウトを無効化する。
+            //
+            // ただし invalidate の後にページ表示モードで addPage を呼ぶと、
+            // addPage 内の `textView.isSelectable = true` 等が setNeedsDisplayInRect
+            // 経由で `_glyphRangeForBoundingRect(... okToFillHoles:YES)` を走らせ、
+            // 無効化された範囲の穴埋めを試みてデリゲート addPage を無限に要求するため
+            // フリーズする。
+            //
+            // そこで順序を: ①事前に余分なページを追加（レイアウトがまだ有効なので穴埋め不要）
+            // → ②その後で invalidate → ③再描画時は既に十分なコンテナがあるので
+            // デリゲートが addPage を追加せずに済む、とする。
+
+            // ① 事前にページを多めに確保（この時点ではレイアウトは有効なので再入ループ無し）
+            if displayMode == .page {
+                let extraPages = 20
+                if let lm1 = layoutManager1, let sv1 = scrollView1 {
+                    for _ in 0..<extraPages {
+                        addPage(to: lm1, in: sv1, for: .scrollView1)
+                    }
+                }
+                if let lm2 = layoutManager2, let sv2 = scrollView2, !(sv2.isHidden) {
+                    for _ in 0..<extraPages {
+                        addPage(to: lm2, in: sv2, for: .scrollView2)
+                    }
+                }
+            }
+
+            // ② レイアウトを無効化
             let fullRange = NSRange(location: 0, length: textStorage.length)
             for layoutManager in textStorage.layoutManagers {
                 layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+            }
+            lastAddPageLayoutedChar = -1
+
+            // ③ ページフレームを更新（余剰ページは後続の checkForLayoutIssues で除去される）
+            if displayMode == .page {
+                updateAllTextViewFrames(for: .scrollView1)
+                if let sv2 = scrollView2, !sv2.isHidden {
+                    updateAllTextViewFrames(for: .scrollView2)
+                }
             }
         }
 
