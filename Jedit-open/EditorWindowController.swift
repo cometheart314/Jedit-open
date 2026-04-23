@@ -2420,6 +2420,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // ツールバー設定を保存
         saveToolbarConfiguration()
 
+        // self.printInfo を presetData に同期する。
+        // 読み込み時に applyLoadedDocumentAttributeViewSettings が RTF Document
+        // Attributes の paperSize で presetData.printInfo.paperWidth/Height を
+        // 上書きするが orientation は更新しないため、xattr の orientation と
+        // paperSize が不整合になることがある。保存せずに閉じた場合、その不整合な
+        // presetData がそのまま xattr に書き戻されて再オープン時に landscape が
+        // portrait に戻る問題を防ぐため、ここで self.printInfo（ユーザーが
+        // 実際に見ている値）から presetData を同期する。
+        document.presetData?.printInfo = NewDocData.PrintInfoData(from: document.printInfo)
+        document.presetData?.pageLayout.topMarginPoints = document.printInfo.topMargin
+        document.presetData?.pageLayout.leftMarginPoints = document.printInfo.leftMargin
+        document.presetData?.pageLayout.rightMarginPoints = document.printInfo.rightMargin
+        document.presetData?.pageLayout.bottomMarginPoints = document.printInfo.bottomMargin
+        document.presetData?.pageLayout.printScale = document.printInfo.scalingFactor
+
         // プリセットデータを拡張属性に保存（修正日付を保持）
         document.savePresetDataToExtendedAttribute(at: url)
     }
