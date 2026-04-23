@@ -204,35 +204,11 @@ extension EditorWindowController {
         if let textStorage = textDocument?.textStorage {
             textStorage.setLineBreakingType(type.rawValue)
 
-            if displayMode == .page {
-                // ページ表示モードでは、invalidateLayout が didCompleteLayoutFor デリゲートを
-                // 繰り返し呼び出し、ページ追加が無限ループになる問題を防ぐため、
-                // デリゲートコールバックを一時的に抑制してから再レイアウトを行う
-                isChangingLayoutOrientation = true
-                let fullRange = NSRange(location: 0, length: textStorage.length)
-                for layoutManager in textStorage.layoutManagers {
-                    layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
-                }
-                isChangingLayoutOrientation = false
-
-                // 遅延してレイアウトを再計算（didCompleteLayoutFor が正常に動作するタイミングで）
-                DispatchQueue.main.async { [weak self] in
-                    guard let self = self else { return }
-                    // クールダウンをリセットして再レイアウトを許可
-                    self.layoutCooldownUntil = nil
-                    // 各レイアウトマネージャーの最初のコンテナでレイアウトを再実行
-                    for layoutManager in textStorage.layoutManagers {
-                        if let firstContainer = layoutManager.textContainers.first {
-                            layoutManager.ensureLayout(for: firstContainer)
-                        }
-                    }
-                }
-            } else {
-                // Continuous モードでは直接 invalidateLayout を呼ぶ
-                let fullRange = NSRange(location: 0, length: textStorage.length)
-                for layoutManager in textStorage.layoutManagers {
-                    layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
-                }
+            // 禁則処理の変更は lineBreakBeforeIndex の結果に影響するため、
+            // 全レイアウトマネージャーに再レイアウトを指示する。
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            for layoutManager in textStorage.layoutManagers {
+                layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
             }
         }
 
@@ -389,9 +365,14 @@ extension EditorWindowController {
         // ImageResizeControllerを設定
         textView.imageResizeController = imageResizeController
 
-        // レイアウト方向を即座に設定（テキストがレイアウトされるために必要）
-        let orientation: NSLayoutManager.TextLayoutOrientation = isVerticalLayout ? .vertical : .horizontal
-        textView.setLayoutOrientation(orientation)
+        // レイアウト方向の設定は addPage 内では行わない。
+        // NSTextView.setLayoutOrientation は対象コンテナのレイアウトを無効化するため、
+        // 縦書きでページ表示の際、addPage が NSLayoutManager の fill-holes パス中に
+        // 呼ばれると「新コンテナに流し込み→orientation 変更で再無効化→もう一度流し込み」
+        // を外側ループが無限に繰り返してフリーズする（横書きや連続モードでは発生しない）。
+        //
+        // ここでは設定せず、addPage 完了後の updateAllTextViewFrames で
+        // レイアウトパスの外側で一括設定する。
 
         // 一時的に非表示（フレームはupdateAllTextViewFramesで更新される）
         textView.isHidden = true

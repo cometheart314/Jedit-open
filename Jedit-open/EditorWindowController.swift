@@ -2562,8 +2562,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 pagesView.setNumberOfPages(finalPageCount)
             }
 
-            // 全テキストビューのフレームとレイアウト方向を更新
-            updateAllTextViewFrames(for: target)
+            // 全テキストビューのフレームとレイアウト方向の更新はレイアウトパス外で行う。
+            // setLayoutOrientation はコンテナのレイアウトを無効化するため、
+            // デリゲート内で同期的に呼ぶと fill-holes の再入ループを誘発する。
+            DispatchQueue.main.async { [weak self] in
+                self?.updateAllTextViewFrames(for: target)
+            }
 
             // 余分なページの削除は遅延チェック（checkForLayoutIssues）でのみ行う
             // レイアウト中にremoveExcessPagesを呼ぶと同期ずれが発生する
