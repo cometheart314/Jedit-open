@@ -271,7 +271,10 @@ class Document: NSDocument {
     // → Moved to Document+AppleScript.swift
 
     var documentType: NSAttributedString.DocumentType = .plain
-    var containerInset = NSSize(width: 10, height: 10)
+    // textView の textContainerInset に適用される。
+    // JeditΩ はデフォルト 0 で、行末とウィンドウ枠の隙間は lineFragmentPadding (5pt) のみ。
+    // Jedit も同じ挙動にするため 0 にしている。
+    var containerInset = NSSize(width: 0, height: 0)
 
     /// ドキュメントのエンコーディング（プレーンテキスト用）
     var documentEncoding: String.Encoding = .utf8

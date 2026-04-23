@@ -301,6 +301,20 @@ extension EditorWindowController {
         if let scrollView = scrollView2, !scrollView.isHidden {
             updateTextViewSize(for: scrollView)
         }
+
+        // モード切り替え直後は NSScrollView のスクロールバー/contentView の再配置が
+        // まだ確定しておらず、縦書き + .noWrap → .windowWidth の切り替え時に
+        // 古い contentView.frame で計算されて行長がウィンドウを超える現象が起きる。
+        // 次のランループでもう一度計算し直して最終的なレイアウトに追従する。
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if let scrollView = self.scrollView1 {
+                self.updateTextViewSize(for: scrollView)
+            }
+            if let scrollView = self.scrollView2, !scrollView.isHidden {
+                self.updateTextViewSize(for: scrollView)
+            }
+        }
     }
 
     /// presetData の Document Width 設定を更新

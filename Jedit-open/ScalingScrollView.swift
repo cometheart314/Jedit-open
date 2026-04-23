@@ -692,25 +692,19 @@ class ScalingScrollView: NSScrollView {
 
         let isVertical = textView.layoutOrientation == .vertical
         let containerInset = textView.textContainerInset
-        let padding = textContainer.lineFragmentPadding
 
-        // macOS 26: ルーラー表示時はシステムがスクロールバー幅を追加するため、その分を補正
-        let rulerCompensation: CGFloat
-        if rulersVisible {
-            rulerCompensation = NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollerStyle)
-        } else {
-            rulerCompensation = 0
-        }
+        // 注: 以前「macOS 26 ルーラー補正」として scrollerWidth を追加減算していたが、
+        // contentView.frame は既にスクロールバー/ルーラー分が除外済みなので二重減算になり、
+        // 行末とウィンドウ枠の間に余分な隙間が出ていた。削除済み。
 
         if isVertical {
             // 縦書き時: 行の長さを調整
             // 縦書きでは containerSize.width が行の長さ（画面上の高さ方向）を表す
             // 水平スクロールは文章の進行に必要なので、textViewの幅は制限しない
-            var availableHeight = contentView.frame.height
-            // macOS 26: ルーラー表示時はシステムがスクロールバー幅を追加するため、その分を補正
-            availableHeight -= rulerCompensation
-            availableHeight = availableHeight / magnification
-            let expectedContainerWidth = availableHeight - (containerInset.height * 2) - (padding * 2)
+            let availableHeight = contentView.frame.height / magnification
+            // containerInset 分だけ引けば、lineFragmentPadding 分は
+            // コンテナ内部で処理されるため、ウィンドウ枠ぎりぎりまで行が伸びる。
+            let expectedContainerWidth = availableHeight - (containerInset.height * 2)
 
             if expectedContainerWidth > 0 {
                 textContainer.containerSize = NSSize(width: expectedContainerWidth, height: CGFloat.greatestFiniteMagnitude)
@@ -718,11 +712,10 @@ class ScalingScrollView: NSScrollView {
             }
         } else {
             // 横書き時: 幅を調整
-            var availableWidth = contentView.frame.width
-            // ルーラー表示時の補正を適用
-            availableWidth -= rulerCompensation
-            availableWidth = availableWidth / magnification
-            let expectedContainerWidth = availableWidth - (containerInset.width * 2) - (padding * 2)
+            let availableWidth = contentView.frame.width / magnification
+            // containerInset 分だけ引けば、lineFragmentPadding 分は
+            // コンテナ内部で処理されるため、ウィンドウ枠ぎりぎりまで行が伸びる。
+            let expectedContainerWidth = availableWidth - (containerInset.width * 2)
 
             if expectedContainerWidth > 0 {
                 textContainer.containerSize = NSSize(width: expectedContainerWidth, height: CGFloat.greatestFiniteMagnitude)

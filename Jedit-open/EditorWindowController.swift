@@ -2051,21 +2051,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
         }
 
-        // macOS 26: ルーラー表示時はシステムがcontentViewを広げるため、
-        // スクロールバー幅分を一括補正（全ての折り返しモードに適用）
-        if scrollView.rulersVisible {
-            let scrollerWidth = NSScroller.scrollerWidth(for: .regular, scrollerStyle: scrollView.scrollerStyle)
-            if !isVerticalLayout {
-                availableWidth -= scrollerWidth
-            } else {
-                availableHeight -= scrollerWidth
-            }
-        }
+        // 注: 以前「macOS 26 ルーラー補正」として scrollerWidth を追加減算していたが、
+        // contentView.frame は既にスクロールバー/ルーラー分が除外済みの実幅を返すため、
+        // 二重減算になり行末とウィンドウ枠の間に余分な隙間が出ていた。削除済み。
 
         // ズーム時の補正: availableWidth/HeightはcontentViewの座標系（表示座標）だが、
-        // テキストビューはmagnification前の座標系で動作するため、magnificationで割って変換する
-        // （windowWidthモードはScalingScrollView.updateTextContainerSizeが別途処理するため除外）
-        if lineWrapMode != .windowWidth, let scalingScrollView = scrollView as? ScalingScrollView,
+        // テキストビューはmagnification前の座標系で動作するため、magnificationで割って変換する。
+        // 全ての折り返しモードで適用する（以前 windowWidth は ScalingScrollView に任せる前提で
+        // 除外していたが、縦書き windowWidth では ScalingScrollView 側が走らないため、
+        // この updateTextViewSize が text 座標に正規化する必要がある）。
+        if let scalingScrollView = scrollView as? ScalingScrollView,
            scalingScrollView.magnification != 1.0 {
             let mag = scalingScrollView.magnification
             availableWidth = availableWidth / mag
@@ -2082,11 +2077,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // lineFragmentPadding分を加算して正確な用紙幅位置で折り返す
                 lineHeight = pageHeight - pageTopMargin - pageBottomMargin + (padding * 2)
             case .windowWidth:
-                // ウィンドウ高さを1行の高さとする
-                // lineFragmentPaddingが上下に追加されるので、その分を引いて正確にウィンドウ高さに収める
-                // ルーラー表示時のスクロールバー幅補正は availableHeight に既に適用済み
-                let adjustedHeight = availableHeight - (containerInset.height * 2) - (padding * 2)
-                lineHeight = adjustedHeight
+                // ウィンドウ高さを1行の高さとする。
+                // containerInset 分だけ引けば、lineFragmentPadding 分は
+                // コンテナ内部で処理されるため、ウィンドウ枠ぎりぎりまで行が伸びる。
+                lineHeight = availableHeight - (containerInset.height * 2)
             case .noWrap:
                 // 折り返さない（十分大きな値を使用）
                 lineHeight = 100000
@@ -2146,11 +2140,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // lineFragmentPadding分を加算して正確な用紙幅位置で折り返す
                 lineWidth = pageWidth - pageLeftMargin - pageRightMargin + (padding * 2)
             case .windowWidth:
-                // ウィンドウ幅に収める
-                // lineFragmentPaddingが左右に追加されるので、その分を引いて正確にウィンドウ幅に収める
-                // ルーラー表示時のスクロールバー幅補正は availableWidth に既に適用済み
-                let adjustedWidth = availableWidth - (containerInset.width * 2) - (padding * 2)
-                lineWidth = adjustedWidth
+                // ウィンドウ幅に収める。
+                // containerInset 分だけ引けば、lineFragmentPadding 分は
+                // コンテナ内部で処理されるため、ウィンドウ枠ぎりぎりまで行が伸びる。
+                lineWidth = availableWidth - (containerInset.width * 2)
             case .noWrap:
                 // 折り返さない（十分大きな値を使用）
                 lineWidth = 100000
@@ -2303,19 +2296,37 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         // Line wrap mode menu items validation
+        // ページ表示モードでは実際の動作は常に「用紙幅に合わせる」固定なので、
+        // 他の折り返しモードは選択不可にする（見かけ上選択できても動作しないのを防ぐ）。
         if menuItem.action == #selector(setLineWrapPaperWidth(_:)) {
-            menuItem.state = lineWrapMode == .paperWidth ? .on : .off
+            if displayMode == .page {
+                menuItem.state = .on
+            } else {
+                menuItem.state = lineWrapMode == .paperWidth ? .on : .off
+            }
         }
         if menuItem.action == #selector(setLineWrapWindowWidth(_:)) {
+            if displayMode == .page {
+                menuItem.state = .off
+                return false
+            }
             menuItem.state = lineWrapMode == .windowWidth ? .on : .off
         }
         if menuItem.action == #selector(setLineWrapNoWrap(_:)) {
+            if displayMode == .page {
+                menuItem.state = .off
+                return false
+            }
             menuItem.state = lineWrapMode == .noWrap ? .on : .off
         }
         if menuItem.action == #selector(setLineWrapFixedWidth(_:)) {
-            menuItem.state = lineWrapMode == .fixedWidth ? .on : .off
             // メニュータイトルに現在の文字数を表示
             menuItem.title = String(format: "Fixed Width (%dchars.)...".localized, fixedWrapWidthInChars)
+            if displayMode == .page {
+                menuItem.state = .off
+                return false
+            }
+            menuItem.state = lineWrapMode == .fixedWidth ? .on : .off
         }
 
         // Auto Indent menu item validation
