@@ -257,7 +257,13 @@ class MultiplePageView: NSView {
     var documentSizeInPage: NSSize {
         // lineFragmentPadding分を加算して、ContinuousモードのPaper Widthと同じ折り返し幅にする
         // TextContainerはlineFragmentPadding（デフォルト5.0）を内側余白として使用するため、
-        // その分をコンテナサイズに加算しないと実質的なテキスト描画幅が狭くなる
+        // その分をコンテナサイズに加算しないと実質的なテキスト描画幅が狭くなる。
+        //
+        // 縦書きでも height 側に padding*2 を加算しているのは意図的。swap 後の
+        // 行方向(列の長さ)も横書き同様に padding で削られるため、補正しないと
+        // 「可視テキスト = 用紙幅 - 余白」の規約が縦書きだけ約1文字分狭くなる。
+        // JeditΩ は縦書き側のこの補正が抜けていて 1 文字分狭くなっており、そちらが
+        // 実装漏れ。Jedit は縦横で一貫して規約を満たすように補正している。
         let padding: CGFloat = 5.0  // NSTextContainer.lineFragmentPadding のデフォルト値
         let width = pageWidth - leftMargin - rightMargin + (padding * 2)
         let height = pageHeight - topMargin - bottomMargin + (padding * 2)
