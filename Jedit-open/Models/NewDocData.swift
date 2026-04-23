@@ -653,10 +653,15 @@ struct NewDocData: Codable, Equatable {
 
         /// PrintInfoData を NSPrintInfo に適用
         func apply(to printInfo: NSPrintInfo) {
-            printInfo.paperSize = NSSize(width: paperWidth, height: paperHeight)
+            // 先に orientation を設定する。
+            // NSPrintInfo.orientation の setter は paperSize を向きに合わせて swap するため、
+            // paperSize を先にセットしてから orientation を設定すると、保存時の向きと
+            // 違う orientation がたまたま stale として残っていた場合に paperSize が
+            // 逆向きに swap されてしまう（保存→再オープンで landscape が portrait に戻る）。
             if let orientation = NSPrintInfo.PaperOrientation(rawValue: orientation) {
                 printInfo.orientation = orientation
             }
+            printInfo.paperSize = NSSize(width: paperWidth, height: paperHeight)
             printInfo.topMargin = topMargin
             printInfo.leftMargin = leftMargin
             printInfo.rightMargin = rightMargin

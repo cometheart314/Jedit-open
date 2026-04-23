@@ -839,6 +839,16 @@ class Document: NSDocument {
         // printInfo を presetData に保存
         presetData?.printInfo = NewDocData.PrintInfoData(from: self.printInfo)
 
+        // pageLayout のマージン・スケールを self.printInfo から同期する。
+        // システム標準の Page Setup ダイアログで変更された場合、self.printInfo にしか反映
+        // されず、保存時に使われる presetData?.pageLayout がデフォルト値のまま保存されて
+        // しまうため（再オープンでレイアウトがデフォルトに戻る原因）、ここで同期する。
+        presetData?.pageLayout.topMarginPoints = self.printInfo.topMargin
+        presetData?.pageLayout.leftMarginPoints = self.printInfo.leftMargin
+        presetData?.pageLayout.rightMarginPoints = self.printInfo.rightMargin
+        presetData?.pageLayout.bottomMarginPoints = self.printInfo.bottomMargin
+        presetData?.pageLayout.printScale = self.printInfo.scalingFactor
+
         // ブックマークツリーを presetData に保存
         serializeBookmarksToPresetData()
     }
