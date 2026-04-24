@@ -106,7 +106,7 @@ extension UserDefaults {
     static func registerDefaults() {
         UserDefaults.standard.register(defaults: [
             Keys.autoStartOption: false,
-            Keys.startupOption: 0,
+            Keys.startupOption: 1,
             Keys.appearanceOption: 0,
             Keys.richTextAlwaysUsesLightMode: false,
             Keys.scaleMenuArray: defaultScaleMenuArray,
