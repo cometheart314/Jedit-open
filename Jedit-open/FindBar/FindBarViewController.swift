@@ -147,6 +147,35 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         performIncrementalSearch()
     }
 
+    /// 外部（マルチ検索結果のジャンプ等）から検索文字列とオプションを設定し、
+    /// Find All（全件ハイライト）を実行する。
+    /// `wholeWord` を省略した場合は強制 OFF。Find バーに残った前回設定が
+    /// 紛れ込まないよう、関連トグルもまとめて上書きする。
+    func setSearchText(_ text: String,
+                       caseSensitive: Bool,
+                       useRegex: Bool,
+                       wholeWord: Bool = false) {
+        findEngine.options.caseSensitive = caseSensitive
+        caseSensitiveToggle.state = caseSensitive ? .on : .off
+        updateToggleAppearance(caseSensitiveToggle)
+
+        findEngine.options.useRegex = useRegex
+        regexToggle.state = useRegex ? .on : .off
+        updateToggleAppearance(regexToggle)
+
+        // 正規表現 ON の間は Whole Word を強制 OFF（Find バーの内部仕様）
+        let effectiveWholeWord = useRegex ? false : wholeWord
+        findEngine.options.wholeWord = effectiveWholeWord
+        wholeWordToggle.state = effectiveWholeWord ? .on : .off
+        wholeWordToggle.isEnabled = !useRegex
+        updateToggleAppearance(wholeWordToggle)
+
+        updateSearchFieldAppearance()
+
+        searchField.stringValue = text
+        performIncrementalSearch()
+    }
+
     /// 現在のマッチ位置へスクロールして選択・点滅表示する
     func scrollToCurrentMatch() {
         guard !currentResult.isEmpty, let textView = delegate?.findBarCurrentTextView() else { return }

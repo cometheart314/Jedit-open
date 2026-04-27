@@ -48,6 +48,21 @@ extension EditorWindowController {
         }
     }
 
+    /// Find バーを表示し、指定文字列とオプションで Find All（全件ハイライト）状態にする。
+    /// マルチ検索結果からのジャンプ等、外部からの呼び出し用。
+    func showFindBarAndFindAll(text: String,
+                               caseSensitive: Bool,
+                               useRegex: Bool,
+                               wholeWord: Bool = false) {
+        presentFindBar(replaceMode: false)
+        findBarViewController?.setSearchText(
+            text,
+            caseSensitive: caseSensitive,
+            useRegex: useRegex,
+            wholeWord: wholeWord
+        )
+    }
+
     @objc func showFindAndReplaceBar(_ sender: Any?) {
         presentFindBar(replaceMode: true)
     }

@@ -1093,4 +1093,73 @@ class JeditTextView: NSTextView {
     }
 
     // MARK: - Style Menu Actions — See JeditTextView+Styling.swift
+
+    // MARK: - Tag Jump (検索結果ファイルからのジャンプ)
+
+    /// 検索結果保存ファイルのリンクをクリックした時、URL の fragment に
+    /// 埋め込まれた `loc=N&len=N` を読み取り、ファイルを開いてその位置へ
+    /// ジャンプする。fragment が無いリンクは super に委譲する。
+    override func clicked(onLink link: Any, at charIndex: Int) {
+        if let url = resolveLinkURL(link),
+           url.isFileURL,
+           let range = parseTagJumpFragment(in: url) {
+            let cleanURL = stripFragment(from: url)
+            performTagJump(to: cleanURL, selecting: range)
+            return
+        }
+        super.clicked(onLink: link, at: charIndex)
+    }
+
+    /// .link の値（URL or String）から URL を取り出す。
+    private func resolveLinkURL(_ link: Any) -> URL? {
+        if let url = link as? URL { return url }
+        if let s = link as? String { return URL(string: s) }
+        return nil
+    }
+
+    /// URL の fragment から `loc=N&len=N` を抽出して NSRange を返す。
+    private func parseTagJumpFragment(in url: URL) -> NSRange? {
+        guard let frag = url.fragment, !frag.isEmpty else { return nil }
+        var loc: Int?
+        var len: Int?
+        for kv in frag.split(separator: "&") {
+            let parts = kv.split(separator: "=", maxSplits: 1)
+            guard parts.count == 2 else { continue }
+            switch parts[0] {
+            case "loc": loc = Int(parts[1])
+            case "len": len = Int(parts[1])
+            default: break
+            }
+        }
+        guard let l = loc, let n = len, l >= 0, n >= 0 else { return nil }
+        return NSRange(location: l, length: n)
+    }
+
+    /// fragment を取り除いた URL を返す。
+    private func stripFragment(from url: URL) -> URL {
+        var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        comps?.fragment = nil
+        return comps?.url ?? url
+    }
+
+    /// ファイルを開いて指定範囲を選択・スクロールする。
+    /// 初回オープン時は textStorage のロード完了を待ってから選択を反映する。
+    private func performTagJump(to url: URL, selecting range: NSRange) {
+        NSDocumentController.shared.openDocument(
+            withContentsOf: url, display: true
+        ) { document, _, error in
+            guard error == nil, let document = document else {
+                NSSound.beep()
+                return
+            }
+            guard let editor = document.windowControllers.first(
+                where: { $0 is EditorWindowController }
+            ) as? EditorWindowController else { return }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak editor] in
+                editor?.restoreSelectionAndScrollToVisible(range, delay: 0)
+            }
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
 }
