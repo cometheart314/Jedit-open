@@ -83,10 +83,6 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     private static let replaceRowHeight: CGFloat = 28
     private static let verticalPadding: CGFloat = 4
 
-    // MARK: - Help Window
-
-    private static var regexHelpPanel: NSPanel?
-
     // MARK: - Text Change Observation
 
     private var textStorageObserver: Any?
@@ -492,58 +488,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     }
 
     @objc private func showRegexHelp(_ sender: Any?) {
-        // 既にヘルプウィンドウが開いていたら前面に持ってくる
-        if let existingPanel = Self.regexHelpPanel, existingPanel.isVisible {
-            existingPanel.makeKeyAndOrderFront(nil)
-            return
-        }
-
-        guard let helpURL = Bundle.main.url(forResource: "RegExpHelp", withExtension: "rtf") else {
-            NSSound.beep()
-            return
-        }
-
-        // RTF ファイルを読み込み
-        guard let rtfData = try? Data(contentsOf: helpURL),
-              let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) else {
-            NSSound.beep()
-            return
-        }
-
-        // ヘルプパネルを作成（フローティング、閉じるボタンのみ）
-        let panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 600),
-            styleMask: [.titled, .closable, .resizable, .utilityWindow],
-            backing: .buffered,
-            defer: true
-        )
-        panel.title = "Regular Expression Help".localized
-        panel.isFloatingPanel = true
-        panel.becomesKeyOnlyIfNeeded = true
-        panel.isReleasedWhenClosed = false
-        panel.minSize = NSSize(width: 360, height: 300)
-
-        // スクロールビュー + テキストビュー
-        let scrollView = NSScrollView(frame: panel.contentView!.bounds)
-        scrollView.autoresizingMask = [.width, .height]
-        scrollView.hasVerticalScroller = true
-        scrollView.hasHorizontalScroller = false
-
-        let textView = NSTextView(frame: scrollView.contentView.bounds)
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.autoresizingMask = [.width]
-        textView.textContainerInset = NSSize(width: 12, height: 12)
-        textView.textStorage?.setAttributedString(attributedString)
-
-        scrollView.documentView = textView
-        panel.contentView = scrollView
-
-        // ウィンドウを画面中央に表示
-        panel.center()
-        panel.makeKeyAndOrderFront(nil)
-
-        Self.regexHelpPanel = panel
+        RegexHelpPresenter.show()
     }
 
     @objc private func toggleReplaceMode(_ sender: Any?) {
@@ -1393,5 +1338,61 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             button.contentTintColor = .secondaryLabelColor
             button.layer?.backgroundColor = nil
         }
+    }
+}
+
+// MARK: - Regex Help Presenter
+
+/// 正規表現ヘルプパネルを表示するヘルパー。FindBar・マルチ検索パネルなど
+/// 複数の場所から共通で使う。同じパネルを再利用する。
+enum RegexHelpPresenter {
+    private static var panel: NSPanel?
+
+    static func show() {
+        // 既にヘルプウィンドウが開いていたら前面に持ってくる
+        if let existing = panel, existing.isVisible {
+            existing.makeKeyAndOrderFront(nil)
+            return
+        }
+
+        guard let helpURL = Bundle.main.url(forResource: "RegExpHelp", withExtension: "rtf"),
+              let rtfData = try? Data(contentsOf: helpURL),
+              let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil)
+        else {
+            NSSound.beep()
+            return
+        }
+
+        let p = NSPanel(
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 600),
+            styleMask: [.titled, .closable, .resizable, .utilityWindow],
+            backing: .buffered,
+            defer: true
+        )
+        p.title = "Regular Expression Help".localized
+        p.isFloatingPanel = true
+        p.becomesKeyOnlyIfNeeded = true
+        p.isReleasedWhenClosed = false
+        p.minSize = NSSize(width: 360, height: 300)
+
+        let scrollView = NSScrollView(frame: p.contentView!.bounds)
+        scrollView.autoresizingMask = [.width, .height]
+        scrollView.hasVerticalScroller = true
+        scrollView.hasHorizontalScroller = false
+
+        let textView = NSTextView(frame: scrollView.contentView.bounds)
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.autoresizingMask = [.width]
+        textView.textContainerInset = NSSize(width: 12, height: 12)
+        textView.textStorage?.setAttributedString(attributedString)
+
+        scrollView.documentView = textView
+        p.contentView = scrollView
+
+        p.center()
+        p.makeKeyAndOrderFront(nil)
+
+        panel = p
     }
 }

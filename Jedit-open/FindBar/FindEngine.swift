@@ -313,7 +313,9 @@ class FindEngine {
     private static let placeholderCR  = "\u{F702}"
     private static let placeholderBackslash = "\u{F703}"
 
-    /// \t, \n, \r, \\ をプレースホルダーに置換（replacementString に渡す前）
+    /// \t, \n, \r, \\ をプレースホルダーに置換（replacementString に渡す前）。
+    /// また \0..\9 はバックリファレンスとして $0..$9 に変換する
+    /// （NSRegularExpression は $N しか認識しないため）。
     private func protectEscapeSequences(_ string: String) -> String {
         var result = ""
         var iterator = string.makeIterator()
@@ -325,8 +327,11 @@ class FindEngine {
                     case "n": result.append(Self.placeholderLF)
                     case "r": result.append(Self.placeholderCR)
                     case "\\": result.append(Self.placeholderBackslash)
+                    case "0", "1", "2", "3", "4", "5", "6", "7", "8", "9":
+                        // \N (数字) → $N（バックリファレンスとして扱う）
+                        result.append("$")
+                        result.append(next)
                     default:
-                        // $1 等の後方参照はそのまま通す
                         result.append("\\")
                         result.append(next)
                     }
