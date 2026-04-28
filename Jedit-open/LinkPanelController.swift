@@ -96,6 +96,12 @@ class LinkPanelController: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         linkPanel.isReleasedWhenClosed = false
         linkPanel.delegate = self
 
+        // 横方向のみリサイズ可能にする（高さを固定）
+        let currentHeight = linkPanel.contentView?.frame.height ?? 120
+        linkPanel.contentMinSize = NSSize(width: 320, height: currentHeight)
+        linkPanel.contentMaxSize = NSSize(width: .greatestFiniteMagnitude,
+                                          height: currentHeight)
+
         // パネルの背景色を設定（テキストフィールドとのコントラスト確保）
         if let contentView = linkPanel.contentView {
             contentView.wantsLayer = true

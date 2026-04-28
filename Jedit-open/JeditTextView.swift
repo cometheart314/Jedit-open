@@ -1097,14 +1097,17 @@ class JeditTextView: NSTextView {
     // MARK: - Tag Jump (検索結果ファイルからのジャンプ)
 
     /// 検索結果保存ファイルのリンクをクリックした時、URL の fragment に
-    /// 埋め込まれた `loc=N&len=N` を読み取り、ファイルを開いてその位置へ
-    /// ジャンプする。fragment が無いリンクは super に委譲する。
+    /// 埋め込まれた `loc=N&len=N&b=BASE64` を読み取り、bookmark を resolve
+    /// して security scope を獲得し、ファイルを開いてその位置へジャンプする。
+    /// fragment が無いリンクは super に委譲する。
     override func clicked(onLink link: Any, at charIndex: Int) {
         if let url = resolveLinkURL(link),
            url.isFileURL,
-           let range = parseTagJumpFragment(in: url) {
+           let parsed = parseTagJumpFragment(in: url) {
             let cleanURL = stripFragment(from: url)
-            performTagJump(to: cleanURL, selecting: range)
+            performTagJump(to: cleanURL,
+                           selecting: parsed.range,
+                           bookmark: parsed.bookmark)
             return
         }
         super.clicked(onLink: link, at: charIndex)
@@ -1117,22 +1120,26 @@ class JeditTextView: NSTextView {
         return nil
     }
 
-    /// URL の fragment から `loc=N&len=N` を抽出して NSRange を返す。
-    private func parseTagJumpFragment(in url: URL) -> NSRange? {
+    /// URL の fragment から `loc=N&len=N&b=BASE64` を抽出する。
+    /// bookmark は任意（旧フォーマットとの互換のため）。
+    private func parseTagJumpFragment(in url: URL)
+    -> (range: NSRange, bookmark: Data?)? {
         guard let frag = url.fragment, !frag.isEmpty else { return nil }
         var loc: Int?
         var len: Int?
+        var bookmark: Data?
         for kv in frag.split(separator: "&") {
-            let parts = kv.split(separator: "=", maxSplits: 1)
+            let parts = kv.split(separator: "=", maxSplits: 1).map(String.init)
             guard parts.count == 2 else { continue }
             switch parts[0] {
             case "loc": loc = Int(parts[1])
             case "len": len = Int(parts[1])
+            case "b": bookmark = Data(urlSafeBase64Encoded: parts[1])
             default: break
             }
         }
         guard let l = loc, let n = len, l >= 0, n >= 0 else { return nil }
-        return NSRange(location: l, length: n)
+        return (NSRange(location: l, length: n), bookmark)
     }
 
     /// fragment を取り除いた URL を返す。
@@ -1143,11 +1150,32 @@ class JeditTextView: NSTextView {
     }
 
     /// ファイルを開いて指定範囲を選択・スクロールする。
+    /// bookmark が付いている場合はサンドボックス対応として
+    /// `.withSecurityScope` で resolve し、access scope を獲得してから開く。
     /// 初回オープン時は textStorage のロード完了を待ってから選択を反映する。
-    private func performTagJump(to url: URL, selecting range: NSRange) {
+    private func performTagJump(to url: URL,
+                                selecting range: NSRange,
+                                bookmark: Data?) {
+        var openURL = url
+        var didStartAccess = false
+        if let bd = bookmark {
+            var stale = false
+            if let resolved = try? URL(
+                resolvingBookmarkData: bd,
+                options: [.withSecurityScope],
+                relativeTo: nil,
+                bookmarkDataIsStale: &stale
+            ) {
+                openURL = resolved
+                didStartAccess = resolved.startAccessingSecurityScopedResource()
+            }
+        }
+        let scopedURL = openURL
+
         NSDocumentController.shared.openDocument(
-            withContentsOf: url, display: true
+            withContentsOf: openURL, display: true
         ) { document, _, error in
+            if didStartAccess { scopedURL.stopAccessingSecurityScopedResource() }
             guard error == nil, let document = document else {
                 NSSound.beep()
                 return
@@ -1161,5 +1189,28 @@ class JeditTextView: NSTextView {
             }
             NSApp.activate(ignoringOtherApps: true)
         }
+    }
+}
+
+// MARK: - URL-safe Base64 (RFC 4648 §5)
+
+extension Data {
+    /// URL-safe Base64 文字列。`+` `/` `=` を `-` `_` 削除に置き換える。
+    /// URL の fragment 等にそのまま埋め込める。
+    var urlSafeBase64EncodedString: String {
+        return base64EncodedString()
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "=", with: "")
+    }
+
+    /// URL-safe Base64 文字列から Data を復元する。
+    init?(urlSafeBase64Encoded string: String) {
+        var s = string
+            .replacingOccurrences(of: "-", with: "+")
+            .replacingOccurrences(of: "_", with: "/")
+        let pad = (4 - s.count % 4) % 4
+        s += String(repeating: "=", count: pad)
+        self.init(base64Encoded: s)
     }
 }
