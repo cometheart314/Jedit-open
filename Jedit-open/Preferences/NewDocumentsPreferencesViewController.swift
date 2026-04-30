@@ -1384,6 +1384,12 @@ extension NewDocumentsPreferencesViewController {
     @objc func themeSelected(_ sender: NSMenuItem) {
         guard let theme = sender.representedObject as? ThemeColorData else { return }
 
+        // Option クリックでユーザーテーマを削除（デフォルトテーマは removable=false なので対象外）
+        if NSApp.currentEvent?.modifierFlags.contains(.option) == true && theme.removable {
+            confirmRemoveUserTheme(theme)
+            return
+        }
+
         // 9つのカラーウェルにテーマの色を設定
         textColorWell?.color = theme.characterColor.nsColor
         backgroundColorWell?.color = theme.backgroundColor.nsColor
@@ -1399,6 +1405,30 @@ extension NewDocumentsPreferencesViewController {
         saveCurrentPreset()
     }
 
+    /// 確認の上、ユーザーテーマを削除
+    private func confirmRemoveUserTheme(_ theme: ThemeColorData) {
+        let manager = ThemeColorManager.shared
+        guard let userIndex = manager.userThemes.firstIndex(where: { $0.themeName == theme.themeName }) else { return }
+        let actualIndex = manager.defaultThemes.count + userIndex
+
+        let alert = NSAlert()
+        alert.messageText = "Remove Theme".localized
+        alert.informativeText = String(format: "Are you sure you want to remove \"%@\"?".localized, theme.themeName)
+        alert.addButton(withTitle: "Remove".localized)
+        alert.addButton(withTitle: "Cancel".localized)
+        alert.alertStyle = .warning
+
+        if let window = view.window {
+            alert.beginSheetModal(for: window) { response in
+                if response == .alertFirstButtonReturn {
+                    manager.removeTheme(at: actualIndex)
+                }
+            }
+        } else if alert.runModal() == .alertFirstButtonReturn {
+            manager.removeTheme(at: actualIndex)
+        }
+    }
+
     /// テーマ追加ダイアログを表示
     @objc func addTheme(_ sender: NSMenuItem) {
         guard let window = view.window else { return }
@@ -1406,6 +1436,8 @@ extension NewDocumentsPreferencesViewController {
         let alert = NSAlert()
         alert.messageText = "Add Theme".localized
         alert.informativeText = "Enter a name for the new theme:".localized
+            + "\n\n"
+            + "Tip: Option-click a user theme in the menu to delete it.".localized
         alert.addButton(withTitle: "OK".localized)
         alert.addButton(withTitle: "Cancel".localized)
 

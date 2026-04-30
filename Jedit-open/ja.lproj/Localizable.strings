@@ -88,6 +88,7 @@
 "Save Search Pattern" = "検索パターンを保存";
 "Enter a name for this pattern:" = "パターンの名前を入力してください：";
 "Pattern name" = "パターン名";
+"Tip: Option-click a saved pattern in the menu to delete it." = "ヒント: 保存されたパターンは Option キーを押しながらクリックすると削除できます。";
 "Regular Expression Help" = "正規表現ヘルプ";
 "Insert Pattern" = "パターンを挿入";
 "No Recent Searches" = "最近の検索はありません";
@@ -281,6 +282,25 @@
 
 /* Special Characters */
 "Special Characters" = "特殊文字";
+"Tab" = "タブ";
+"Return" = "改行";
+"Line Break" = "行区切り";
+"Page Break" = "改ページ";
+
+/* Regex Patterns - Insert Pattern Menu */
+"Any" = "任意";
+"Any Characters" = "任意の文字";
+"Word" = "単語";
+"Any Word Characters" = "任意の単語文字";
+"Break" = "境界";
+"Word Break" = "単語境界";
+"White Space" = "空白文字";
+"Digits" = "数字";
+"Email" = "メール";
+"Email Address" = "メールアドレス";
+"Web Address" = "URL";
+"Phone" = "電話";
+"Phone Number" = "電話番号";
 
 /* Split View */
 "Split view horizontally." = "水平方向に分割する。";
@@ -342,6 +362,7 @@
 "Add Theme..." = "テーマを追加...";
 "New Theme" = "新規テーマ";
 "Enter a name for the new theme:" = "新しいテーマ名を入力してください：";
+"Tip: Option-click a user theme in the menu to delete it." = "ヒント: 追加したテーマは Option キーを押しながらクリックすると削除できます。";
 "Remove Theme" = "テーマを削除";
 "Are you sure you want to remove \"%@\"?" = "\"%@\" を削除してもよろしいですか？";
 

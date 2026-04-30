@@ -219,26 +219,10 @@ class JOThemeColorPopupButton: NSPopUpButton, NSMenuDelegate {
 
         menu.addItem(NSMenuItem.separator())
 
-        // テーマ追加メニュー
+        // テーマ追加メニュー（削除は ViewController 側で Option クリックを処理）
         let addItem = NSMenuItem(title: "Add Theme...".localized, action: #selector(addTheme(_:)), keyEquivalent: "")
         addItem.target = self.target
         menu.addItem(addItem)
-
-        // テーマ削除サブメニュー
-        if !manager.userThemes.isEmpty {
-            let removeItem = NSMenuItem(title: "Remove Theme".localized, action: nil, keyEquivalent: "")
-            let removeSubmenu = NSMenu()
-
-            for (index, theme) in manager.userThemes.enumerated() {
-                let subItem = NSMenuItem(title: theme.themeName, action: #selector(removeThemeSelected(_:)), keyEquivalent: "")
-                subItem.tag = index
-                subItem.target = self
-                removeSubmenu.addItem(subItem)
-            }
-
-            removeItem.submenu = removeSubmenu
-            menu.addItem(removeItem)
-        }
     }
 
     @objc func themeSelected(_ sender: NSMenuItem) {
@@ -247,38 +231,5 @@ class JOThemeColorPopupButton: NSPopUpButton, NSMenuDelegate {
 
     @objc func addTheme(_ sender: NSMenuItem) {
         // ViewControllerで処理
-    }
-
-    /// ユーザーテーマを削除
-    @objc func removeThemeSelected(_ sender: NSMenuItem) {
-        let index = sender.tag
-        let manager = ThemeColorManager.shared
-
-        guard index >= 0, index < manager.userThemes.count else { return }
-
-        let themeName = manager.userThemes[index].themeName
-
-        let alert = NSAlert()
-        alert.messageText = "Remove Theme".localized
-        alert.informativeText = String(format: "Are you sure you want to remove \"%@\"?".localized, themeName)
-        alert.addButton(withTitle: "Remove".localized)
-        alert.addButton(withTitle: "Cancel".localized)
-        alert.alertStyle = .warning
-
-        if let window = self.window {
-            alert.beginSheetModal(for: window) { response in
-                if response == .alertFirstButtonReturn {
-                    // デフォルトテーマ数 + ユーザーテーマのインデックス
-                    let actualIndex = manager.defaultThemes.count + index
-                    manager.removeTheme(at: actualIndex)
-                }
-            }
-        } else {
-            let response = alert.runModal()
-            if response == .alertFirstButtonReturn {
-                let actualIndex = manager.defaultThemes.count + index
-                manager.removeTheme(at: actualIndex)
-            }
-        }
     }
 }

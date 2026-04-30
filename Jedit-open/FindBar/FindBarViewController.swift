@@ -79,6 +79,9 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
     private var barHeightConstraint: NSLayoutConstraint!
     private var replaceRowHeightConstraint: NSLayoutConstraint!
+    /// 置換フィールドの leading 制約。検索フィールドのテキスト位置（虫眼鏡アイコン分内側）に
+    /// 揃えるため、レイアウト時に動的に更新する。
+    private var replaceFieldLeadingConstraint: NSLayoutConstraint!
     private static let findRowHeight: CGFloat = 28
     private static let replaceRowHeight: CGFloat = 28
     private static let verticalPadding: CGFloat = 4
@@ -107,6 +110,25 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
     override func viewDidLoad() {
         super.viewDidLoad()
+    }
+
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        alignReplaceFieldLeadingWithSearchField()
+    }
+
+    /// 検索フィールド（NSSearchField）の虫眼鏡アイコン分のテキスト先頭インセットを測定し、
+    /// 置換フィールドの leading オフセットに反映して両フィールドの先頭文字位置を揃える。
+    private func alignReplaceFieldLeadingWithSearchField() {
+        guard let cell = searchField.cell as? NSSearchFieldCell else { return }
+        let bounds = searchField.bounds
+        guard bounds.width > 0 else { return }
+        let searchTextX = cell.searchTextRect(forBounds: bounds).minX
+        let replaceTextX = replaceField.cell?.titleRect(forBounds: replaceField.bounds).minX ?? 0
+        let offset = searchTextX - replaceTextX
+        if abs(replaceFieldLeadingConstraint.constant - offset) > 0.5 {
+            replaceFieldLeadingConstraint.constant = offset
+        }
     }
 
     deinit {
@@ -357,7 +379,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         for item in specialCharacters {
             let menuItem = NSMenuItem()
-            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol, title: item.title)
+            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol, title: item.title.localized)
             menuItem.representedObject = item.insertion
             menuItem.target = self
             menuItem.action = #selector(insertRegexPatternFromMenu(_:))
@@ -381,7 +403,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         for item in regexPatterns {
             let menuItem = NSMenuItem()
-            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol, title: item.title)
+            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol.localized, title: item.title.localized)
             menuItem.representedObject = item.insertion
             menuItem.target = self
             menuItem.action = #selector(insertRegexPatternFromMenu(_:))
@@ -392,14 +414,14 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
 
         // --- 定型パターンセクション ---
         let templatePatterns: [(symbol: String, title: String, insertion: String)] = [
-            ("Email Address", "Email Address", "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"),
+            ("Email", "Email Address", "[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9.\\-]+\\.[a-zA-Z]{2,}"),
             ("URL", "Web Address", "https?://[\\w\\-]+(\\.[\\w\\-]+)+[\\w.,@?^=%&:/~+#\\-]*"),
-            ("Phone #", "Phone Number", "[\\d\\-().+\\s]{7,}"),
+            ("Phone", "Phone Number", "[\\d\\-().+\\s]{7,}"),
         ]
 
         for item in templatePatterns {
             let menuItem = NSMenuItem()
-            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol, title: item.title)
+            menuItem.attributedTitle = makePatternMenuTitle(symbol: item.symbol.localized, title: item.title.localized)
             menuItem.representedObject = item.insertion
             menuItem.target = self
             menuItem.action = #selector(insertRegexPatternFromMenu(_:))
@@ -514,6 +536,8 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         let alert = NSAlert()
         alert.messageText = "Save Search Pattern".localized
         alert.informativeText = "Enter a name for this pattern:".localized
+            + "\n\n"
+            + "Tip: Option-click a saved pattern in the menu to delete it.".localized
         alert.addButton(withTitle: "Save".localized)
         alert.addButton(withTitle: "Cancel".localized)
 
@@ -623,22 +647,6 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         historyManager.clearSearchHistory()
         historyManager.clearReplaceHistory()
         searchField.recentSearches = []
-        setupSearchFieldMenu()
-
-        // NSSearchField のメニューから呼ばれた場合、stringValue が上書きされるため復元
-        DispatchQueue.main.async { [weak self] in
-            guard let self = self else { return }
-            if self.searchField.stringValue != savedSearchText {
-                self.searchField.stringValue = savedSearchText
-                self.performIncrementalSearch()
-            }
-        }
-    }
-
-    @objc private func deleteSavedPattern(_ sender: NSMenuItem) {
-        let savedSearchText = searchField.stringValue
-        guard let name = sender.representedObject as? String else { return }
-        historyManager.deletePattern(named: name)
         setupSearchFieldMenu()
 
         // NSSearchField のメニューから呼ばれた場合、stringValue が上書きされるため復元
@@ -1202,8 +1210,9 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         replaceField.setContentHuggingPriority(.defaultLow, for: .horizontal)
         replaceField.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
 
+        replaceFieldLeadingConstraint = replaceField.leadingAnchor.constraint(equalTo: replaceRow.leadingAnchor)
         NSLayoutConstraint.activate([
-            replaceField.leadingAnchor.constraint(equalTo: replaceRow.leadingAnchor),
+            replaceFieldLeadingConstraint,
             replaceField.centerYAnchor.constraint(equalTo: replaceRow.centerYAnchor),
 
             replaceButton.trailingAnchor.constraint(equalTo: replaceAllButton.leadingAnchor, constant: -4),
@@ -1277,14 +1286,7 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
                 } else {
                     item.toolTip = "\(pattern.searchText) → \(pattern.replaceText)"
                 }
-                // サブメニューに削除オプション
-                let submenu = NSMenu()
-                let deleteItem = NSMenuItem(title: "", action: #selector(deleteSavedPattern(_:)), keyEquivalent: "")
-                deleteItem.image = NSImage(systemSymbolName: "xmark.circle", accessibilityDescription: "Delete")
-                deleteItem.target = self
-                deleteItem.representedObject = pattern.name
-                submenu.addItem(deleteItem)
-                item.submenu = submenu
+                // 削除は Option クリック（loadSavedPattern 側で処理）
                 menu.addItem(item)
             }
         }
