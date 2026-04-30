@@ -204,6 +204,70 @@ class RegexSyntaxHighlighter {
         return attributed
     }
 
+    /// 置換文字列のシンタックスカラーリング。
+    /// 置換側ではメタ文字の意味が異なる（() や * はリテラル）。
+    /// `\N`（FindEngine が `$N` に変換）/`$N`/`${name}` を後方参照、
+    /// `\n`/`\r`/`\t` 等を特殊文字、`\\`/`\$` をエスケープとして着色する。
+    static func highlightReplacement(_ pattern: String, font: NSFont, defaultColor: NSColor) -> NSAttributedString {
+        let attributed = NSMutableAttributedString(
+            string: pattern,
+            attributes: [
+                .font: font,
+                .foregroundColor: defaultColor
+            ]
+        )
+
+        let chars = Array(pattern)
+        let length = chars.count
+        var i = 0
+
+        while i < length {
+            let ch = chars[i]
+
+            if ch == "\\" && i + 1 < length {
+                let next = chars[i + 1]
+                let nsRange = nsRangeFor(pattern, charIndex: i, charLength: 2)
+                if next.isASCII && next.isNumber {
+                    // \0..\9 — バックリファレンス
+                    attributed.addAttribute(.foregroundColor, value: metaCharColor, range: nsRange)
+                } else if next == "n" || next == "r" || next == "t" || next == "f" || next == "v" {
+                    // 改行・タブ等の特殊文字
+                    attributed.addAttribute(.foregroundColor, value: metaCharColor, range: nsRange)
+                } else {
+                    // \\ や \$ などのエスケープ
+                    attributed.addAttribute(.foregroundColor, value: escapeColor, range: nsRange)
+                }
+                i += 2
+                continue
+            }
+
+            if ch == "$" && i + 1 < length {
+                let next = chars[i + 1]
+                if next.isASCII && next.isNumber {
+                    // $0..$9
+                    let nsRange = nsRangeFor(pattern, charIndex: i, charLength: 2)
+                    attributed.addAttribute(.foregroundColor, value: metaCharColor, range: nsRange)
+                    i += 2
+                    continue
+                }
+                if next == "{" {
+                    // ${name}
+                    var end = i + 2
+                    while end < length && chars[end] != "}" { end += 1 }
+                    if end < length { end += 1 } // closing }
+                    let nsRange = nsRangeFor(pattern, charIndex: i, charLength: end - i)
+                    attributed.addAttribute(.foregroundColor, value: metaCharColor, range: nsRange)
+                    i = end
+                    continue
+                }
+            }
+
+            i += 1
+        }
+
+        return attributed
+    }
+
     // MARK: - Private
 
     /// Character 単位のインデックスから NSRange（UTF-16 ベース）を計算

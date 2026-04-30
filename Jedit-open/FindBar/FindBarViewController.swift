@@ -659,6 +659,10 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         if field === searchField {
             updateSearchFieldAppearance()
             performIncrementalSearch()
+        } else if field === replaceField {
+            if findEngine.options.useRegex {
+                applyRegexSyntaxColoring(to: replaceField, isReplacement: true)
+            }
         }
     }
 
@@ -666,11 +670,22 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         guard let field = obj.object as? NSControl else { return }
 
         if field === searchField {
+            // フォーカスが外れた後も色を残すため attributedStringValue を更新
+            if findEngine.options.useRegex {
+                DispatchQueue.main.async { [weak self] in
+                    self?.applyRegexSyntaxColoring(to: self!.searchField, isReplacement: false)
+                }
+            }
             let text = searchField.stringValue
             if !text.isEmpty {
                 addToRecentSearches(text)
             }
         } else if field === replaceField {
+            if findEngine.options.useRegex {
+                DispatchQueue.main.async { [weak self] in
+                    self?.applyRegexSyntaxColoring(to: self!.replaceField, isReplacement: true)
+                }
+            }
             let text = replaceField.stringValue
             if !text.isEmpty {
                 historyManager.addReplaceTerm(text)
@@ -865,60 +880,73 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
             } else {
                 searchField.layer?.backgroundColor = nil
             }
-            // シンタックスカラーリングを適用
-            applyRegexSyntaxColoring()
+            // シンタックスカラーリングを適用（検索・置換両方）
+            applyRegexSyntaxColoring(to: searchField, isReplacement: false)
+            applyRegexSyntaxColoring(to: replaceField, isReplacement: true)
         } else {
             searchField.layer?.backgroundColor = nil
             // 通常モードではカラーリングをクリア
-            clearRegexSyntaxColoring()
+            clearRegexSyntaxColoring(field: searchField)
+            clearRegexSyntaxColoring(field: replaceField)
         }
     }
 
-    /// フィールドエディタの textStorage にシンタックスカラーリングを適用
-    private func applyRegexSyntaxColoring() {
-        guard let fieldEditor = searchField.currentEditor() as? NSTextView else { return }
-        let text = searchField.stringValue
-        guard !text.isEmpty else { return }
+    /// 指定フィールドにシンタックスカラーリングを適用。
+    /// フォーカス中は field editor の textStorage を直接書き換えてキャレット位置を保つ。
+    /// フォーカスが外れても色が残るよう、フィールド自身の attributedStringValue にも反映する。
+    private func applyRegexSyntaxColoring(to field: NSTextField, isReplacement: Bool) {
+        let text = field.stringValue
+        guard !text.isEmpty else {
+            clearRegexSyntaxColoring(field: field)
+            return
+        }
 
         let defaultColor: NSColor
-        if searchField.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
+        if field.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua {
             defaultColor = .white
         } else {
             defaultColor = .controlTextColor
         }
 
-        let highlighted = RegexSyntaxHighlighter.highlight(
-            text,
-            font: searchField.font ?? NSFont.systemFont(ofSize: 12),
-            defaultColor: defaultColor
-        )
+        let font = field.font ?? NSFont.systemFont(ofSize: 12)
+        let highlighted: NSAttributedString = isReplacement
+            ? RegexSyntaxHighlighter.highlightReplacement(text, font: font, defaultColor: defaultColor)
+            : RegexSyntaxHighlighter.highlight(text, font: font, defaultColor: defaultColor)
 
-        // フィールドエディタの textStorage に属性を適用
-        let storage = fieldEditor.textStorage!
-        let fullRange = NSRange(location: 0, length: storage.length)
-        storage.beginEditing()
-        // 先にforegroundColorだけクリア
-        storage.removeAttribute(.foregroundColor, range: fullRange)
-        // カラーリング属性を適用
-        highlighted.enumerateAttributes(in: NSRange(location: 0, length: highlighted.length)) { attrs, range, _ in
-            if let color = attrs[.foregroundColor] {
-                if range.location + range.length <= storage.length {
+        if let fieldEditor = field.currentEditor() as? NSTextView, let storage = fieldEditor.textStorage {
+            // フォーカス中: textStorage を編集中位置を崩さずに更新
+            let selectedRanges = fieldEditor.selectedRanges
+            let fullRange = NSRange(location: 0, length: storage.length)
+            storage.beginEditing()
+            storage.removeAttribute(.foregroundColor, range: fullRange)
+            highlighted.enumerateAttributes(in: NSRange(location: 0, length: highlighted.length)) { attrs, range, _ in
+                if let color = attrs[.foregroundColor], range.location + range.length <= storage.length {
                     storage.addAttribute(.foregroundColor, value: color, range: range)
                 }
             }
+            storage.endEditing()
+            fieldEditor.selectedRanges = selectedRanges
+        } else {
+            // 非フォーカス時: cell の attributedStringValue を更新するだけで描画される
+            field.attributedStringValue = highlighted
         }
-        storage.endEditing()
     }
 
-    /// フィールドエディタのカラーリングをクリア
-    private func clearRegexSyntaxColoring() {
-        guard let fieldEditor = searchField.currentEditor() as? NSTextView else { return }
-        let storage = fieldEditor.textStorage!
-        guard storage.length > 0 else { return }
-        let fullRange = NSRange(location: 0, length: storage.length)
-        storage.beginEditing()
-        storage.addAttribute(.foregroundColor, value: NSColor.controlTextColor, range: fullRange)
-        storage.endEditing()
+    /// 指定フィールドのカラーリングをクリア
+    private func clearRegexSyntaxColoring(field: NSTextField) {
+        if let fieldEditor = field.currentEditor() as? NSTextView, let storage = fieldEditor.textStorage,
+           storage.length > 0 {
+            let fullRange = NSRange(location: 0, length: storage.length)
+            storage.beginEditing()
+            storage.addAttribute(.foregroundColor, value: NSColor.controlTextColor, range: fullRange)
+            storage.endEditing()
+        } else {
+            // 非フォーカス時は attributedStringValue を素のテキストに戻す
+            let text = field.stringValue
+            if !text.isEmpty {
+                field.stringValue = text
+            }
+        }
     }
 
     private func updateReplaceRowVisibility(animated: Bool) {
