@@ -85,7 +85,25 @@ class LineNumberView: NSView {
     /// 現在の拡大率（ScalingScrollViewから取得）
     private var magnification: CGFloat = 1.0
 
-    private let minimumWidth: CGFloat = 40.0
+    /// 行番号ガターの最小幅。エディタ既定は 40pt。Pro の比較パネル等、より
+     /// タイトな幅にしたいケースでは外部から下げて使う。
+    var minimumWidth: CGFloat = 40.0 {
+        didSet {
+            if currentWidth < minimumWidth {
+                currentWidth = minimumWidth
+            }
+            updateSizeAsync()
+        }
+    }
+
+    /// 横書き時の行番号の水平アラインメント。既定は .right (右寄せ)。
+    /// 比較パネルの左ペイン用に .left を指定するなど、用途に応じて切替。
+    /// .center 等は未対応（描画上は left/right のみ判定）。
+    var numberAlignment: NSTextAlignment = .right {
+        didSet {
+            needsDisplay = true
+        }
+    }
     private let minimumHeight: CGFloat = 25.0
     private let rightMargin: CGFloat = 5.0
     private let leftMargin: CGFloat = 5.0
@@ -131,6 +149,20 @@ class LineNumberView: NSView {
     // 座標系を上から下に設定（NSTextViewと同じ）
     override var isFlipped: Bool {
         return true
+    }
+
+    /// Auto Layout が自然にガター幅 (横書き) ／ ガター高さ (縦書き) を
+    /// 計算できるよう intrinsic size を公開する。比較パネルなど明示的な
+    /// widthConstraint を使わずに widthAnchor.equalTo で両ガターを同期したい
+    /// ケースで、autolayout solver が compression resistance を尊重して
+    /// max(intrinsic) を選択できるようになる。エディタは引き続き明示的な
+    /// widthConstraint (priority .required) で driven されるので影響なし。
+    override var intrinsicContentSize: NSSize {
+        if isVerticalLayout {
+            return NSSize(width: NSView.noIntrinsicMetric, height: currentHeight)
+        } else {
+            return NSSize(width: currentWidth, height: NSView.noIntrinsicMetric)
+        }
     }
 
     // MARK: - パラグラフキャッシュ管理
@@ -286,9 +318,14 @@ class LineNumberView: NSView {
                 guard let ts = notification.object as? NSTextStorage else { return }
                 let editedMask = ts.editedMask
                 if editedMask.contains(.editedCharacters) {
-                    // テキスト変更時のみパラグラフキャッシュを再構築
+                    // テキスト変更時はパラグラフキャッシュを再構築し、
+                    // ガター幅も再計算する。NSText.didChangeNotification は
+                    // ユーザー編集時のみ発火するため、setString /
+                    // setAttributedString のような programmatic 変更でも
+                    // 幅が追従するよう、ここでも debounceUpdateSize を呼ぶ。
                     self?.invalidateParagraphCache()
                     self?.rebuildParagraphCacheIfNeeded()
+                    self?.debounceUpdateSize()
                 }
                 // 属性変更（フォントサイズ変更等）でも再描画は必要
                 self?.needsDisplay = true
@@ -393,6 +430,7 @@ class LineNumberView: NSView {
 
             if abs(self.currentHeight - newHeight) > 1.0 {
                 self.currentHeight = newHeight
+                self.invalidateIntrinsicContentSize()
                 NotificationCenter.default.post(name: LineNumberView.heightDidChangeNotification, object: self)
             }
         } else {
@@ -406,6 +444,7 @@ class LineNumberView: NSView {
 
             if abs(self.currentWidth - newWidth) > 1.0 {
                 self.currentWidth = newWidth
+                self.invalidateIntrinsicContentSize()
                 NotificationCenter.default.post(name: LineNumberView.widthDidChangeNotification, object: self)
             }
         }
@@ -534,8 +573,7 @@ class LineNumberView: NSView {
                 if yInLineNumberView >= dirtyRect.minY - 20 * mag && yInLineNumberView <= dirtyRect.maxY + 20 * mag {
                     let numberString = "\(paraNum)" as NSString
                     let size = numberString.size(withAttributes: attributes)
-                    let scaledRightMargin = self.rightMargin * mag
-                    let xPosition = self.currentWidth - size.width - scaledRightMargin
+                    let xPosition = self.numberXPosition(forNumberWidth: size.width, mag: mag)
                     // 行の中央に配置（スケーリングされた行の高さを使用）
                     let yCenter = yInLineNumberView + (scaledLineHeight - size.height) / 2
                     let drawPoint = NSPoint(x: xPosition, y: yCenter)
@@ -570,13 +608,28 @@ class LineNumberView: NSView {
 
                 let numberString = "\(rowNumber)" as NSString
                 let size = numberString.size(withAttributes: attributes)
-                let scaledRightMargin = self.rightMargin * mag
-                let xPosition = self.currentWidth - size.width - scaledRightMargin
+                let xPosition = self.numberXPosition(forNumberWidth: size.width, mag: mag)
                 // 行の中央に配置（スケーリングされた行の高さを使用）
                 let yCenter = yInLineNumberView + (scaledLineHeight - size.height) / 2
                 let drawPoint = NSPoint(x: xPosition, y: yCenter)
                 numberString.draw(at: drawPoint, withAttributes: attributes)
             }
+        }
+    }
+
+    /// 横書きレイアウトでの行番号 x 位置を numberAlignment に従って計算する。
+    /// 右寄せの基準は currentWidth ではなく `bounds.width` を使う。これにより、
+    /// 外部から widthConstraint で frame 幅を変更されても、currentWidth の
+    /// 更新タイミングに依存せず常に実フレーム内で正しい位置に描画される。
+    private func numberXPosition(forNumberWidth numberWidth: CGFloat, mag: CGFloat) -> CGFloat {
+        switch numberAlignment {
+        case .left:
+            return self.leftMargin * mag
+        case .right, .center, .justified, .natural:
+            // .center 等は実装簡略化のため右寄せ扱い (既定挙動)。
+            return self.bounds.width - numberWidth - self.rightMargin * mag
+        @unknown default:
+            return self.bounds.width - numberWidth - self.rightMargin * mag
         }
     }
 
