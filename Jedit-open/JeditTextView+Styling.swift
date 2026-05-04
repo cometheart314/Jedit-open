@@ -74,6 +74,20 @@ extension JeditTextView {
         super.changeAttributes(sender)
     }
 
+    /// List パネルを開く（Format > List…）
+    /// 空のリッチテキストドキュメントでは適用対象の段落が無く、パネルから List を
+    /// 選んでも何も起きないため、改行を1つ挿入してパラグラフを作っておく。
+    override func orderFrontListPanel(_ sender: Any?) {
+        if !isPlainText, let storage = textStorage, storage.length == 0,
+           shouldChangeText(in: NSRange(location: 0, length: 0), replacementString: "\n") {
+            storage.replaceCharacters(in: NSRange(location: 0, length: 0), with: "\n")
+            didChangeText()
+            // 挿入した改行の前にカーソルを置く（パネルから List 適用するとこの段落に反映される）
+            setSelectedRange(NSRange(location: 0, length: 0))
+        }
+        super.orderFrontListPanel(sender)
+    }
+
     /// プレーンテキストで色変更が許可されていないことを警告
     func showPlainTextColorChangeNotAllowedAlert() {
         let alert = NSAlert()

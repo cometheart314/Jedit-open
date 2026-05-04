@@ -61,6 +61,14 @@ extension JeditTextView {
             return
         }
 
+        // リッチテキストのリスト内では NSTextView 標準のリスト階層昇格に委ねる
+        // (リテラルなタブを挿入してしまうとマーカー文字列を壊し、Return 時に
+        //  マーカーが二重に挿入される等の不具合になる)
+        if isInRichTextListAtCaret() {
+            super.insertTab(sender)
+            return
+        }
+
         guard let windowController = window?.windowController as? EditorWindowController,
               let presetData = windowController.textDocument?.presetData else {
             super.insertTab(sender)
@@ -74,7 +82,26 @@ extension JeditTextView {
     /// Shift+Tab が押されたときの処理
     /// 複数行選択中はアンインデント
     override func insertBacktab(_ sender: Any?) {
+        // リッチテキストのリスト内では NSTextView 標準のリスト階層降格に委ねる
+        if isInRichTextListAtCaret() {
+            super.insertBacktab(sender)
+            return
+        }
         shiftLeft(sender)
+    }
+
+    /// カーソル位置がリッチテキストの NSTextList を持つ段落内にあるか判定
+    private func isInRichTextListAtCaret() -> Bool {
+        guard !isPlainText, let textStorage = textStorage, textStorage.length > 0 else {
+            return false
+        }
+        let loc = selectedRange().location
+        let checkIndex = min(max(loc, 0), textStorage.length - 1)
+        if let style = textStorage.attribute(.paragraphStyle, at: checkIndex, effectiveRange: nil) as? NSParagraphStyle,
+           !style.textLists.isEmpty {
+            return true
+        }
+        return false
     }
 
     /// 選択行をインデント（Shift Right / Cmd+]）
