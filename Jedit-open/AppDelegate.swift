@@ -1269,6 +1269,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             guard let doc = document as? Document,
                   let wc = doc.windowControllers.first as? EditorWindowController else { return }
 
+            // ヘルプはタブ化しない（システム設定が「書類をタブで開く」でも独立ウィンドウで開く）
+            if let helpWindow = wc.window {
+                helpWindow.tabbingMode = .disallowed
+                helpWindow.tabbingIdentifier = "JeditHelp"
+                // openDocument(display: true) のタイミングで既に他ウィンドウのタブとして
+                // 合流していた場合は切り離す
+                if helpWindow.tabbedWindows != nil, helpWindow.tabbedWindows!.count > 1 {
+                    helpWindow.moveTabToNewWindow(nil)
+                }
+                // タブ化スキップによって保存フレームが適用されなかった場合に備えて再適用する
+                wc.applyWindowFrameFromPreset()
+            }
+
             // 初回オープン時のみヘルプ用表示設定を適用
             let isFirstOpen = doc.presetData?.view.preventEditing != true
             if isFirstOpen {

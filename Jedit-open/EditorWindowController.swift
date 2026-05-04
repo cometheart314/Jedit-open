@@ -634,19 +634,22 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // ウィンドウフレームの自動保存を無効化（プリセットのフレームを優先）
             window.setFrameAutosaveName("")
 
-            let newFrame = NSRect(
-                x: viewData.windowX,
-                y: viewData.windowY,
-                width: viewData.windowWidth,
-                height: viewData.windowHeight
-            )
-            window.setFrame(newFrame, display: true)
+            // 既存ウィンドウにタブとして合流する場合は保存位置を適用しない
+            if !Self.shouldSkipPresetFrameForTabbing(window: window) {
+                let newFrame = NSRect(
+                    x: viewData.windowX,
+                    y: viewData.windowY,
+                    width: viewData.windowWidth,
+                    height: viewData.windowHeight
+                )
+                window.setFrame(newFrame, display: true)
 
-            // 次のランループで再適用（システムによる上書き対策）
-            DispatchQueue.main.async { [weak self] in
-                guard let window = self?.window else { return }
-                if window.frame != newFrame {
-                    window.setFrame(newFrame, display: true)
+                // 次のランループで再適用（システムによる上書き対策）
+                DispatchQueue.main.async { [weak self] in
+                    guard let window = self?.window else { return }
+                    if window.frame != newFrame {
+                        window.setFrame(newFrame, display: true)
+                    }
                 }
             }
         }
@@ -788,6 +791,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let viewData = presetData.view
         window.setFrameAutosaveName("")
 
+        // 既存ウィンドウにタブとして合流する場合は、保存位置を適用せず
+        // タブグループ側のフレームを尊重する
+        if Self.shouldSkipPresetFrameForTabbing(window: window) {
+            return
+        }
+
         let newFrame = NSRect(
             x: viewData.windowX,
             y: viewData.windowY,
@@ -799,6 +808,38 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         DispatchQueue.main.async { [weak self] in
             guard let window = self?.window else { return }
             window.setFrame(newFrame, display: true, animate: false)
+        }
+    }
+
+    /// システム設定「書類をタブで開く」が有効で、かつ既に他の Jedit ドキュメント
+    /// ウィンドウが表示中の場合、新規ウィンドウは既存タブグループに合流する。
+    /// その場合は保存されたフレームを適用すると合流先のウィンドウ位置を上書きしてしまうため、
+    /// 保存位置の適用をスキップして macOS のタブ合流に任せる。
+    static func shouldSkipPresetFrameForTabbing(window: NSWindow) -> Bool {
+        // タブ化が明示的に禁止されているウィンドウ（例: ヘルプ）はタブ合流しないので保存位置を尊重する
+        if window.tabbingMode == .disallowed { return false }
+
+        let prefersTabs: Bool
+        switch NSWindow.userTabbingPreference {
+        case .always:
+            prefersTabs = true
+        case .inFullScreen:
+            // フルスクリーン時のみタブ化される設定
+            prefersTabs = window.styleMask.contains(.fullScreen)
+        case .manual:
+            prefersTabs = false
+        @unknown default:
+            prefersTabs = false
+        }
+        guard prefersTabs else { return false }
+
+        // 自分以外に表示中の Jedit ドキュメントウィンドウがあるか
+        // タブ化が禁止されている他ウィンドウ（ヘルプ等）はタブ先になり得ないので除外する
+        return NSApplication.shared.windows.contains { other in
+            other !== window
+                && other.isVisible
+                && other.tabbingMode != .disallowed
+                && other.windowController is EditorWindowController
         }
     }
 

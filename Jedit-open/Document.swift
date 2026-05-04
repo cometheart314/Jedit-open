@@ -528,6 +528,11 @@ class Document: NSDocument {
             for windowController in windowControllers {
                 guard let window = windowController.window else { continue }
                 window.setFrameAutosaveName("")
+                // 既存ウィンドウにタブとして合流する場合は保存位置を適用しない
+                // （macOS が自動的に既存タブグループのフレームに合わせる）
+                if EditorWindowController.shouldSkipPresetFrameForTabbing(window: window) {
+                    continue
+                }
                 let newFrame = NSRect(
                     x: viewData.windowX,
                     y: viewData.windowY,
