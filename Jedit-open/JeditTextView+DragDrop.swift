@@ -1006,7 +1006,7 @@ extension JeditTextView {
               let windowController = window?.windowController as? EditorWindowController,
               let textStorage = textStorage else { return }
         DispatchQueue.main.async {
-            windowController.fixTextListRenderingIfNeeded(in: textStorage)
+            windowController.fixTextListRenderingIfNeeded(in: textStorage, preservingSelection: true)
         }
     }
 

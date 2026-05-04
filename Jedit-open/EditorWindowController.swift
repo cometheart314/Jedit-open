@@ -1529,11 +1529,19 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 1 度だけ実行する。
         // RTFD の場合、画像データの serialize/deserialize が重いため、
         // ウィンドウ表示後に非同期で実行する。
+        //
+        // 重要: `textStorage` をクロージャに直接キャプチャすると、書類クローズ後
+        // に block が遅延発火したとき textStorage が生き残り → textView の遅延
+        // dealloc を呼んでクラッシュする。クロージャは self を弱参照、textStorage
+        // はその時点で textDocument 経由で取得する。textDocument は書類クローズ
+        // 時に nil になるため安全な早期 return ができる。
         DispatchQueue.main.async { [weak self] in
-            guard let self else { return }
-            guard self.lastFixedListRenderingStorage !== textStorage else { return }
-            self.fixTextListRenderingIfNeeded(in: textStorage)
-            self.lastFixedListRenderingStorage = textStorage
+            guard let self,
+                  let currentStorage = self.textDocument?.textStorage,
+                  self.window != nil else { return }
+            guard self.lastFixedListRenderingStorage !== currentStorage else { return }
+            self.fixTextListRenderingIfNeeded(in: currentStorage)
+            self.lastFixedListRenderingStorage = currentStorage
         }
     }
 
@@ -1542,11 +1550,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// TextKit 1 の NSLayoutManager が RTF/RTFD 読み込み後に NSTextList 属性を
     /// 正しくレンダリングしないバグを回避する。
     /// RTF ラウンドトリップで再適用することでリスト表示を修復する。
-    func fixTextListRenderingIfNeeded(in textStorage: NSTextStorage) {
+    /// - Parameter preservingSelection: ラウンドトリップ前の選択範囲・スクロール
+    ///   位置を保存し、終了後に復元するか。ペーストの直後 (caret 位置を保ちたい
+    ///   ケース) は true、初回ロードや一括書き換えでは false (余計な
+    ///   setSelectedRange を発火させない)。
+    func fixTextListRenderingIfNeeded(in textStorage: NSTextStorage, preservingSelection: Bool = false) {
         // RTF/RTFD ドキュメントのみ対象
         guard let docType = textDocument?.documentType,
               (docType == .rtf || docType == .rtfd) else { return }
         guard textStorage.length > 0 else { return }
+        // 書類クローズ中 (window / document が外れている) なら触らない。
+        // setupTextViews から DispatchQueue.main.async で予約された呼び出しが
+        // ティアダウン直後に発火し、deallocating 中の textView に
+        // replaceCharacters(in:withRTF:) を投げて NSTextView dealloc 内で
+        // クラッシュするのを防ぐ。
+        guard window != nil, textDocument != nil else { return }
 
         // textStorage にリスト属性が含まれているか確認
         var hasTextLists = false
@@ -1581,11 +1599,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // ペースト直後に呼ばれた場合、replaceCharacters(in:withRTF:) は
             // 選択範囲を末尾にリセットしてしまう。両ペインの caret/visible rect
-            // を保存し、ラウンドトリップ後に復元する。
-            let textView2 = scrollView2?.documentView as? NSTextView
-            let savedSel1 = textView.selectedRange()
+            // を保存し、ラウンドトリップ後に復元する。preservingSelection が
+            // true のときだけ実施。初回ロード経路で余分な setSelectedRange を
+            // 発火させると selection 通知が遅延 dispatch され、書類クローズ時
+            // のクラッシュを誘発するため、必要なケース (paste) のみに限定する。
+            let textView2 = preservingSelection ? scrollView2?.documentView as? NSTextView : nil
+            let savedSel1 = preservingSelection ? textView.selectedRange() : nil
             let savedSel2 = textView2?.selectedRange()
-            let savedVisible1 = textView.visibleRect
+            let savedVisible1 = preservingSelection ? textView.visibleRect : nil
             let savedVisible2 = textView2?.visibleRect
 
             do {
@@ -1624,19 +1645,25 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 textStorage.endEditing()
             }
 
-            // 保存した選択範囲とスクロール位置を復元する。
+            // 保存した選択範囲とスクロール位置を復元する (preservingSelection=true の場合のみ)。
             // 文字数はラウンドトリップで保たれる想定だが念のため clamp する。
-            let newLength = textStorage.length
-            let clamped: (NSRange) -> NSRange = { sel in
-                let loc = min(sel.location, newLength)
-                let len = min(sel.length, newLength - loc)
-                return NSRange(location: loc, length: len)
-            }
-            textView.setSelectedRange(clamped(savedSel1))
-            textView.scrollToVisible(savedVisible1)
-            if let textView2, let savedSel2, let savedVisible2 {
-                textView2.setSelectedRange(clamped(savedSel2))
-                textView2.scrollToVisible(savedVisible2)
+            if preservingSelection {
+                let newLength = textStorage.length
+                let clamped: (NSRange) -> NSRange = { sel in
+                    let loc = min(sel.location, newLength)
+                    let len = min(sel.length, newLength - loc)
+                    return NSRange(location: loc, length: len)
+                }
+                if let savedSel1 {
+                    textView.setSelectedRange(clamped(savedSel1))
+                }
+                if let savedVisible1 {
+                    textView.scrollToVisible(savedVisible1)
+                }
+                if let textView2, let savedSel2, let savedVisible2 {
+                    textView2.setSelectedRange(clamped(savedSel2))
+                    textView2.scrollToVisible(savedVisible2)
+                }
             }
         }
         // scrollView2 は同じ textStorage を共有しているため、
