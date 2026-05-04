@@ -178,6 +178,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     private var textViewObservers: [Any] = []
     private var contentViewObservers: [Any] = []
 
+    /// fixTextListRenderingIfNeeded を既に適用した textStorage への弱参照。
+    /// 初回ロード時の RTF レンダリング修復は必要だが、display mode 切替 / split view
+    /// 切替などで setupTextViews が再呼出されたときの再ラウンドトリップは不要
+    /// (textStorage 内容を保ったまま replaceCharacters が走り、保存時のシリアライズ
+    /// 結果が変わってしまう = リストマーカー表現の drift などの原因になる)。
+    /// 同じ textStorage に対しては 1 度だけ走らせるためのキャッシュ。
+    private weak var lastFixedListRenderingStorage: NSTextStorage?
+
     deinit {
         // 保留中の統計計算をキャンセル
         statisticsWorkItem?.cancel()
@@ -1514,11 +1522,18 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textViewObservers.append(selectionObserver)
         }
 
-        // TextKit 1 リスト表示バグの回避策を適用
+        // TextKit 1 リスト表示バグの回避策を適用。
+        // 初回ロード時のみ必要で、display mode 切替などで setupTextViews が
+        // 再呼出されたときに再度走らせるとシリアライズ結果が変わり、ファイルの
+        // リストマーカー表現が drift する原因になる。同じ textStorage に対して
+        // 1 度だけ実行する。
         // RTFD の場合、画像データの serialize/deserialize が重いため、
-        // ウィンドウ表示後に非同期で実行する
+        // ウィンドウ表示後に非同期で実行する。
         DispatchQueue.main.async { [weak self] in
-            self?.fixTextListRenderingIfNeeded(in: textStorage)
+            guard let self else { return }
+            guard self.lastFixedListRenderingStorage !== textStorage else { return }
+            self.fixTextListRenderingIfNeeded(in: textStorage)
+            self.lastFixedListRenderingStorage = textStorage
         }
     }
 
