@@ -1564,6 +1564,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 }
             }
 
+            // ペースト直後に呼ばれた場合、replaceCharacters(in:withRTF:) は
+            // 選択範囲を末尾にリセットしてしまう。両ペインの caret/visible rect
+            // を保存し、ラウンドトリップ後に復元する。
+            let textView2 = scrollView2?.documentView as? NSTextView
+            let savedSel1 = textView.selectedRange()
+            let savedSel2 = textView2?.selectedRange()
+            let savedVisible1 = textView.visibleRect
+            let savedVisible2 = textView2?.visibleRect
+
             do {
                 if docType == .rtfd {
                     // RTFD: 添付ファイル（画像・図形）を保持するため RTFD フォーマットを使用
@@ -1598,6 +1607,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                     }
                 }
                 textStorage.endEditing()
+            }
+
+            // 保存した選択範囲とスクロール位置を復元する。
+            // 文字数はラウンドトリップで保たれる想定だが念のため clamp する。
+            let newLength = textStorage.length
+            let clamped: (NSRange) -> NSRange = { sel in
+                let loc = min(sel.location, newLength)
+                let len = min(sel.length, newLength - loc)
+                return NSRange(location: loc, length: len)
+            }
+            textView.setSelectedRange(clamped(savedSel1))
+            textView.scrollToVisible(savedVisible1)
+            if let textView2, let savedSel2, let savedVisible2 {
+                textView2.setSelectedRange(clamped(savedSel2))
+                textView2.scrollToVisible(savedVisible2)
             }
         }
         // scrollView2 は同じ textStorage を共有しているため、
