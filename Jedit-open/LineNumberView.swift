@@ -231,38 +231,36 @@ class LineNumberView: NSView {
 
     deinit {
         updateWorkItem?.cancel()
-        if let observer = scrollObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-        if let observer = textChangeObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-        if let observer = textStorageObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
-        if let observer = magnificationObserver {
-            NotificationCenter.default.removeObserver(observer)
-        }
+        // selector ベース observer は self が target なので一括除去で安全。
+        NotificationCenter.default.removeObserver(self)
     }
 
     private func setupScrollObserver() {
-        // 既存のobserverを削除
-        if let observer = scrollObserver {
-            NotificationCenter.default.removeObserver(observer)
-            scrollObserver = nil
-        }
-        if let observer = textChangeObserver {
-            NotificationCenter.default.removeObserver(observer)
-            textChangeObserver = nil
-        }
-        if let observer = textStorageObserver {
-            NotificationCenter.default.removeObserver(observer)
-            textStorageObserver = nil
-        }
-        if let observer = magnificationObserver {
-            NotificationCenter.default.removeObserver(observer)
-            magnificationObserver = nil
-        }
+        // 既存の observer を一括除去 (selector ベース、self が target)。
+        NotificationCenter.default.removeObserver(
+            self,
+            name: ScalingScrollView.magnificationDidChangeNotification,
+            object: nil
+        )
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSView.boundsDidChangeNotification,
+            object: nil
+        )
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSText.didChangeNotification,
+            object: nil
+        )
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSTextStorage.didProcessEditingNotification,
+            object: nil
+        )
+        scrollObserver = nil
+        textChangeObserver = nil
+        textStorageObserver = nil
+        magnificationObserver = nil
 
         guard let textView = textView,
               let scrollView = textView.enclosingScrollView else { return }
@@ -274,66 +272,37 @@ class LineNumberView: NSView {
             self.magnification = scalingScrollView.magnification
         }
 
-        // magnification変更通知を監視
-        magnificationObserver = NotificationCenter.default.addObserver(
-            forName: ScalingScrollView.magnificationDidChangeNotification,
-            object: scrollView,
-            queue: .main
-        ) { [weak self] notification in
-            if let mag = notification.userInfo?["magnification"] as? CGFloat {
-                self?.magnification = mag
-                // magnification変更時にサイズを再計算
-                self?.updateSizeAsync()
-                self?.needsDisplay = true
-            }
-        }
-
-        // スクロール時に再描画
-        scrollObserver = NotificationCenter.default.addObserver(
-            forName: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView,
-            queue: .main
-        ) { [weak self] _ in
-            self?.needsDisplay = true
-        }
-
-        // テキスト変更時に幅を再計算＋パラグラフキャッシュを再構築
-        textChangeObserver = NotificationCenter.default.addObserver(
-            forName: NSText.didChangeNotification,
-            object: textView,
-            queue: .main
-        ) { [weak self] _ in
-            self?.invalidateParagraphCache()
-            self?.rebuildParagraphCacheIfNeeded()
-            self?.debounceUpdateSize()
-        }
-
-        // テキストストレージの属性変更時（フォントサイズ変更など）に再描画
+        // 通知監視はすべて selector ベースで登録する。block + queue: .main の組合せ
+        // を使うと、書類クローズ後にも main queue 上に block が残り、その release が
+        // notification.object 経由で textView/scrollView/textStorage を保持し続ける。
+        // 結果として遅延 dealloc の連鎖が発生し、NSTextView dealloc 内で
+        // 解放済みオブジェクトに msgSend してクラッシュする。selector ベースなら
+        // 通知発火時に同期的に呼ばれるだけで、queue 上に block が残らない。
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleMagnificationDidChange(_:)),
+            name: ScalingScrollView.magnificationDidChangeNotification,
+            object: scrollView
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleClipViewBoundsDidChange(_:)),
+            name: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTextViewDidChange(_:)),
+            name: NSText.didChangeNotification,
+            object: textView
+        )
         if let textStorage = textView.textStorage {
-            textStorageObserver = NotificationCenter.default.addObserver(
-                forName: NSTextStorage.didProcessEditingNotification,
-                object: textStorage,
-                queue: .main
-            ) { [weak self] notification in
-                guard let ts = notification.object as? NSTextStorage else { return }
-                let editedMask = ts.editedMask
-                if editedMask.contains(.editedCharacters) {
-                    // テキスト変更時はパラグラフキャッシュを再構築し、
-                    // ガター幅も再計算する。NSText.didChangeNotification は
-                    // ユーザー編集時のみ発火するため、setString /
-                    // setAttributedString のような programmatic 変更でも
-                    // 幅が追従するよう、ここでも debounceUpdateSize を呼ぶ。
-                    self?.invalidateParagraphCache()
-                    self?.rebuildParagraphCacheIfNeeded()
-                    self?.debounceUpdateSize()
-                }
-                // 属性変更（フォントサイズ変更等）でも再描画は必要
-                self?.needsDisplay = true
-                // レイアウトが確定するまで待ってから再描画
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                    self?.needsDisplay = true
-                }
-            }
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleTextStorageDidProcessEditing(_:)),
+                name: NSTextStorage.didProcessEditingNotification,
+                object: textStorage
+            )
         }
 
         // 初期サイズを計算＋パラグラフキャッシュを構築
@@ -352,6 +321,54 @@ class LineNumberView: NSView {
         updateWorkItem = workItem
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3, execute: workItem)
+    }
+
+    // MARK: - Notification Handlers (selector-based)
+
+    /// magnification (拡大率) 変更通知の handler
+    @objc private func handleMagnificationDidChange(_ notification: Notification) {
+        guard let mag = notification.userInfo?["magnification"] as? CGFloat else { return }
+        magnification = mag
+        // magnification 変更時にサイズを再計算
+        updateSizeAsync()
+        needsDisplay = true
+    }
+
+    /// ClipView の bounds 変更 (スクロール) 通知の handler
+    @objc private func handleClipViewBoundsDidChange(_ notification: Notification) {
+        needsDisplay = true
+    }
+
+    /// テキスト変更 (NSText.didChangeNotification) の handler
+    /// 幅再計算とパラグラフキャッシュ再構築を行う。
+    @objc private func handleTextViewDidChange(_ notification: Notification) {
+        invalidateParagraphCache()
+        rebuildParagraphCacheIfNeeded()
+        debounceUpdateSize()
+    }
+
+    /// textStorage 編集処理完了 (NSTextStorage.didProcessEditingNotification) の handler
+    /// フォントサイズ変更などの属性変更でも幅 / 描画を更新する。
+    @objc private func handleTextStorageDidProcessEditing(_ notification: Notification) {
+        guard let ts = notification.object as? NSTextStorage else { return }
+        let editedMask = ts.editedMask
+        if editedMask.contains(.editedCharacters) {
+            // テキスト変更時はパラグラフキャッシュを再構築し、ガター幅も再計算する。
+            // NSText.didChangeNotification はユーザー編集時のみ発火するため、
+            // setString / setAttributedString のような programmatic 変更でも幅が
+            // 追従するよう、ここでも debounceUpdateSize を呼ぶ。
+            invalidateParagraphCache()
+            rebuildParagraphCacheIfNeeded()
+            debounceUpdateSize()
+        }
+        // 属性変更 (フォントサイズ変更等) でも再描画は必要
+        needsDisplay = true
+        // レイアウトが確定するまで待ってから再描画。
+        // この asyncAfter は self を [weak] でしか保持せず、textView/textStorage を
+        // 強参照しないので遅延 dealloc 経路には絡まない。
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.needsDisplay = true
+        }
     }
 
     private func updateSizeAsync() {

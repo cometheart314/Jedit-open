@@ -135,6 +135,8 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         if let observer = textStorageObserver {
             NotificationCenter.default.removeObserver(observer)
         }
+        // selector ベース observer は self が target なので一括除去で安全。
+        NotificationCenter.default.removeObserver(self)
     }
 
     // MARK: - Public Interface
@@ -742,29 +744,45 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
     // MARK: - Text Storage Observation
 
     func observeTextStorage(_ textStorage: NSTextStorage?) {
+        // 旧 block-based token のクリーンアップ (互換のため残す)。
         if let observer = textStorageObserver {
             NotificationCenter.default.removeObserver(observer)
             textStorageObserver = nil
         }
+        // 現行 (selector ベース) 登録の解除。
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSTextStorage.didProcessEditingNotification,
+            object: nil
+        )
 
         highlightManager.setTextStorage(textStorage)
 
         guard let textStorage = textStorage else { return }
 
-        textStorageObserver = NotificationCenter.default.addObserver(
-            forName: NSTextStorage.didProcessEditingNotification,
-            object: textStorage,
-            queue: .main
-        ) { [weak self] notification in
-            guard let self = self,
-                  let ts = notification.object as? NSTextStorage,
-                  ts.editedMask.contains(.editedCharacters) else { return }
-            // テキスト変更時にハイライトを再計算
-            // didProcessEditing 通知内では layoutManager の glyph ストレージが
-            // まだ同期されていないため、次のランループで実行する
-            DispatchQueue.main.async { [weak self] in
-                self?.performIncrementalSearch()
-            }
+        // selector ベースで登録し、main queue への async dispatch を回避する
+        // (block + queue: .main だと notification.object が textStorage を強参照
+        // し、textStorage は textView 関連を間接保持するため、書類クローズ時に
+        // 遅延 dealloc → クラッシュ経路の一因となる)。
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleTextStorageDidProcessEditing(_:)),
+            name: NSTextStorage.didProcessEditingNotification,
+            object: textStorage
+        )
+        textStorageObserver = nil  // selector ベースに移行 (token は使わない)
+    }
+
+    @objc private func handleTextStorageDidProcessEditing(_ notification: Notification) {
+        guard let ts = notification.object as? NSTextStorage,
+              ts.editedMask.contains(.editedCharacters) else { return }
+        // テキスト変更時にハイライトを再計算。
+        // didProcessEditing 通知内では layoutManager の glyph ストレージが
+        // まだ同期されていないため、次のランループで実行する。
+        // この asyncAfter は self を [weak] でしか保持せず textStorage/textView
+        // を強参照しないので遅延 dealloc 経路には絡まない。
+        DispatchQueue.main.async { [weak self] in
+            self?.performIncrementalSearch()
         }
     }
 

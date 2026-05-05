@@ -196,10 +196,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
         // NotificationCenter observerを解除
         NotificationCenter.default.removeObserver(self)
-        // contentViewObserversを解除
-        for observer in contentViewObservers {
-            NotificationCenter.default.removeObserver(observer)
-        }
+        // contentViewObservers (selector ベースに移行済み、token は持たない)。
+        // self が target なので removeObserver(self) で除去されるが、念のため
+        // 配列を空にしておく。
         contentViewObservers.removeAll()
     }
 
@@ -1173,16 +1172,23 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.usesInspectorBar = false
         }
 
-        // 既存のobserverを削除
-        for observer in textViewObservers {
-            NotificationCenter.default.removeObserver(observer)
-        }
+        // 既存の選択範囲変更 observer (selector ベース、self が target) を削除。
+        // textViewObservers 配列は旧 block ベース時代の残骸。selector ベースに
+        // 切り替え後は token を持たないので self+name で removeObserver する。
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSTextView.didChangeSelectionNotification,
+            object: nil
+        )
         textViewObservers.removeAll()
 
-        // contentViewObserversを削除
-        for observer in contentViewObservers {
-            NotificationCenter.default.removeObserver(observer)
-        }
+        // contentViewObservers (selector ベース) を name+self で除去。
+        // setupTextViews 再呼出時に古い clipView 向けの登録を一括クリアする。
+        NotificationCenter.default.removeObserver(
+            self,
+            name: NSView.frameDidChangeNotification,
+            object: nil
+        )
         contentViewObservers.removeAll()
 
         // 既存のLayoutManagerを削除
@@ -1378,27 +1384,30 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // lineNumberViewにtextViewを設定
             lineNumberView1?.textView = textView
 
-            // contentViewのフレーム変更を監視
+            // contentView のフレーム変更を監視。selector ベースで登録し、main queue
+            // への async dispatch を回避する (block 版だと notification.object が
+            // NSClipView を強参照、NSClipView は documentView (NSTextView) を強参照
+            // するため、書類クローズ後に block release が遅延発火 → textView の
+            // 遅延 dealloc → クラッシュという経路を作っていた)。
             scrollView.contentView.postsFrameChangedNotifications = true
-            let observer = NotificationCenter.default.addObserver(
-                forName: NSView.frameDidChangeNotification,
-                object: scrollView.contentView,
-                queue: .main
-            ) { [weak self, weak scrollView] _ in
-                guard let self = self, let scrollView = scrollView else { return }
-                self.updateTextViewSize(for: scrollView)
-            }
-            contentViewObservers.append(observer)
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleClipViewFrameDidChange(_:)),
+                name: NSView.frameDidChangeNotification,
+                object: scrollView.contentView
+            )
 
-            // 選択範囲変更を監視してルーラーのキャレット位置を更新
-            let selectionObserver = NotificationCenter.default.addObserver(
-                forName: NSTextView.didChangeSelectionNotification,
-                object: textView,
-                queue: .main
-            ) { [weak self] notification in
-                self?.textViewSelectionDidChange(notification)
-            }
-            textViewObservers.append(selectionObserver)
+            // 選択範囲変更を監視してルーラーのキャレット位置を更新。
+            // selector ベースの observer を使い、main queue への async dispatch を
+            // 回避する (block 版で queue: .main を使うと、書類クローズ後に block の
+            // release が遅延し notification.object 経由で textView の dealloc を
+            // 引き起こしてクラッシュする原因になっていた)。
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(textViewSelectionDidChange(_:)),
+                name: NSTextView.didChangeSelectionNotification,
+                object: textView
+            )
         }
 
         // TextView2の設定（サブビューが2つ以上の場合のみ）
@@ -1499,27 +1508,30 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // lineNumberViewにtextViewを設定
             lineNumberView2?.textView = textView
 
-            // contentViewのフレーム変更を監視
+            // contentView のフレーム変更を監視。selector ベースで登録し、main queue
+            // への async dispatch を回避する (block 版だと notification.object が
+            // NSClipView を強参照、NSClipView は documentView (NSTextView) を強参照
+            // するため、書類クローズ後に block release が遅延発火 → textView の
+            // 遅延 dealloc → クラッシュという経路を作っていた)。
             scrollView.contentView.postsFrameChangedNotifications = true
-            let observer = NotificationCenter.default.addObserver(
-                forName: NSView.frameDidChangeNotification,
-                object: scrollView.contentView,
-                queue: .main
-            ) { [weak self, weak scrollView] _ in
-                guard let self = self, let scrollView = scrollView else { return }
-                self.updateTextViewSize(for: scrollView)
-            }
-            contentViewObservers.append(observer)
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleClipViewFrameDidChange(_:)),
+                name: NSView.frameDidChangeNotification,
+                object: scrollView.contentView
+            )
 
-            // 選択範囲変更を監視してルーラーのキャレット位置を更新
-            let selectionObserver = NotificationCenter.default.addObserver(
-                forName: NSTextView.didChangeSelectionNotification,
-                object: textView,
-                queue: .main
-            ) { [weak self] notification in
-                self?.textViewSelectionDidChange(notification)
-            }
-            textViewObservers.append(selectionObserver)
+            // 選択範囲変更を監視してルーラーのキャレット位置を更新。
+            // selector ベースの observer を使い、main queue への async dispatch を
+            // 回避する (block 版で queue: .main を使うと、書類クローズ後に block の
+            // release が遅延し notification.object 経由で textView の dealloc を
+            // 引き起こしてクラッシュする原因になっていた)。
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(textViewSelectionDidChange(_:)),
+                name: NSTextView.didChangeSelectionNotification,
+                object: textView
+            )
         }
 
         // TextKit 1 リスト表示バグの回避策を適用。
@@ -2059,16 +2071,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textViews2 = textViews
         }
 
-        // 各テキストビューの選択範囲変更を監視
+        // 各テキストビューの選択範囲変更を監視 (selector ベース、main queue への
+        // async dispatch 回避)。
         for textView in textViews {
-            let selectionObserver = NotificationCenter.default.addObserver(
-                forName: NSTextView.didChangeSelectionNotification,
-                object: textView,
-                queue: .main
-            ) { [weak self] notification in
-                self?.textViewSelectionDidChange(notification)
-            }
-            textViewObservers.append(selectionObserver)
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(textViewSelectionDidChange(_:)),
+                name: NSTextView.didChangeSelectionNotification,
+                object: textView
+            )
         }
     }
 
@@ -2122,6 +2133,15 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     var needsPageFrameUpdate: Bool = false
 
     // MARK: - Text View Size Management
+
+    /// NSClipView の frameDidChangeNotification ハンドラ (selector ベース)。
+    /// notification.object から clipView を取得し、その親 NSScrollView を解決して
+    /// updateTextViewSize に渡す。
+    @objc internal func handleClipViewFrameDidChange(_ notification: Notification) {
+        guard let clipView = notification.object as? NSClipView,
+              let scrollView = clipView.enclosingScrollView else { return }
+        updateTextViewSize(for: scrollView)
+    }
 
     func updateTextViewSize(for scrollView: NSScrollView) {
         guard let textView = scrollView.documentView as? NSTextView,
@@ -2544,6 +2564,40 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // プリセットデータを拡張属性に保存（修正日付を保持）
         document.savePresetDataToExtendedAttribute(at: url)
+
+        // page mode の textViews1[i] / textViews2[i] が window 経由のテアダウンで
+        // 共有 layoutManager との解放順序が崩れて NSTextView dealloc 内で
+        // クラッシュする現象 (特にカーソルがページ 2 以降にある場合) を回避するため、
+        // ここで明示的に first responder を辞退させ、また page mode の場合は
+        // 各 textView を superview から外して layoutManager との結合を弱める。
+        if let win = self.window, win.firstResponder is NSTextView {
+            win.makeFirstResponder(nil)
+        }
+        if displayMode == .page {
+            detachPageModeTextViewsForTeardown()
+        }
+    }
+
+    /// page mode のテアダウン直前に、textViews1 / textViews2 を superview と
+    /// layoutManager から切り離して、window 経由の自動 release 連鎖でクラッシュ
+    /// しないようにする防御的クリーンアップ。
+    private func detachPageModeTextViewsForTeardown() {
+        let allPageTextViews = textViews1 + textViews2
+        for tv in allPageTextViews {
+            // textContainer を layoutManager から外す。これで layoutManager は
+            // この textView/textContainer を参照しなくなる。
+            if let lm = tv.layoutManager,
+               let tc = tv.textContainer,
+               let idx = lm.textContainers.firstIndex(of: tc) {
+                lm.removeTextContainer(at: idx)
+            }
+            // view 階層からも外す。
+            tv.removeFromSuperview()
+        }
+        textViews1.removeAll()
+        textViews2.removeAll()
+        textContainers1.removeAll()
+        textContainers2.removeAll()
     }
 
     func windowDidResize(_ notification: Notification) {

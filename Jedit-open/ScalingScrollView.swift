@@ -131,19 +131,24 @@ class ScalingScrollView: NSScrollView {
         // フレーム変更通知を有効にする
         postsFrameChangedNotifications = true
 
-        // フレーム変更時にテキストコンテナサイズを更新
-        // ただしライブリサイズ中は処理しない（viewDidEndLiveResizeで処理）
-        frameObserver = NotificationCenter.default.addObserver(
-            forName: NSView.frameDidChangeNotification,
-            object: self,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self = self else { return }
-            // ライブリサイズ中は更新しない
-            if !self.inLiveResize {
-                self.updateTextContainerSize()
-            }
-        }
+        // フレーム変更時にテキストコンテナサイズを更新。
+        // selector ベースで登録し、main queue への async dispatch を回避する
+        // (block + queue: .main だと notification.object が self (NSScrollView) を
+        // 強参照、scrollView は documentView (NSTextView) を強参照するため、
+        // 書類クローズ後に block release が遅延し textView の遅延 dealloc を
+        // 引き起こすクラッシュ経路の一因となる)。
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleFrameDidChange(_:)),
+            name: NSView.frameDidChangeNotification,
+            object: self
+        )
+    }
+
+    @objc private func handleFrameDidChange(_ notification: Notification) {
+        // ライブリサイズ中は更新しない
+        guard !inLiveResize else { return }
+        updateTextContainerSize()
     }
 
     private func setupSplitButtons() {
