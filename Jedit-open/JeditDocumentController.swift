@@ -25,6 +25,14 @@
 
 import Cocoa
 
+extension Notification.Name {
+    /// 開いている書類のリスト (NSDocumentController.documents) が変化した時に投げる通知。
+    /// NSDocumentController の KVO は信頼性が低い (内部の追加/削除経路によっては
+    /// 発火しない) ため、addDocument/removeDocument のオーバーライドから明示的に
+    /// 投げて、購読側 (例: 比較パネル) が確実に追従できるようにする。
+    static let jeditDocumentsListChanged = Notification.Name("JeditDocumentsListChanged")
+}
+
 class JeditDocumentController: NSDocumentController {
 
     // MARK: - Properties
@@ -37,6 +45,18 @@ class JeditDocumentController: NSDocumentController {
 
     /// 起動処理が完了するまで openDocument を抑制するフラグ
     var suppressOpenPanel = true
+
+    // MARK: - Document List Change Notification
+
+    override func addDocument(_ document: NSDocument) {
+        super.addDocument(document)
+        NotificationCenter.default.post(name: .jeditDocumentsListChanged, object: self)
+    }
+
+    override func removeDocument(_ document: NSDocument) {
+        super.removeDocument(document)
+        NotificationCenter.default.post(name: .jeditDocumentsListChanged, object: self)
+    }
 
     // MARK: - Open Document Override
 
