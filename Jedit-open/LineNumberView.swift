@@ -68,6 +68,16 @@ class LineNumberView: NSView {
 
     weak var scrollView: NSScrollView?
 
+    /// textView の textStorage が外部から付け替えられた時に呼ぶ。比較パネル等が
+    /// textView は維持しつつ layoutManager の textStorage を doc.textStorage に
+    /// 切り替えるユースケースで使う。observer を新しい textStorage に張り直し、
+    /// パラグラフキャッシュを破棄して再構築をスケジュールする。
+    func reattachToCurrentTextStorage() {
+        invalidateParagraphCache()
+        setupScrollObserver()
+        needsDisplay = true
+    }
+
     /// 行番号の文字色
     var lineNumberColor: NSColor = NSColor.secondaryLabelColor {
         didSet {
