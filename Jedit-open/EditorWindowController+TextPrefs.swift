@@ -823,6 +823,12 @@ extension EditorWindowController {
             textView.isEditable = editable
         }
         updateEditLockButtons()
+        if let doc = textDocument {
+            NotificationCenter.default.post(
+                name: .jeditDocumentEditableDidChange,
+                object: doc
+            )
+        }
     }
 
     /// 編集ロック状態を実際に変更する
@@ -848,6 +854,13 @@ extension EditorWindowController {
 
         // 編集ロックボタンを更新
         updateEditLockButtons()
+
+        if let doc = textDocument {
+            NotificationCenter.default.post(
+                name: .jeditDocumentEditableDidChange,
+                object: doc
+            )
+        }
     }
 
     // MARK: - Wrapped Line Indent

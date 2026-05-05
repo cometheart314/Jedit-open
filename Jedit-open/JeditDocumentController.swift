@@ -31,6 +31,12 @@ extension Notification.Name {
     /// 発火しない) ため、addDocument/removeDocument のオーバーライドから明示的に
     /// 投げて、購読側 (例: 比較パネル) が確実に追従できるようにする。
     static let jeditDocumentsListChanged = Notification.Name("JeditDocumentsListChanged")
+
+    /// 書類の編集ロック状態 (preventEditing) が変化した時に投げる通知。
+    /// object に対象の Document を渡す。Prevent Editing メニュー切替や Finder
+    /// ロックファイル検出で textView.isEditable を変えた直後に post し、
+    /// 比較パネルなど別 UI に追従させるために使う。
+    static let jeditDocumentEditableDidChange = Notification.Name("JeditDocumentEditableDidChange")
 }
 
 class JeditDocumentController: NSDocumentController {
