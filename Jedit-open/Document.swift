@@ -298,7 +298,18 @@ class Document: NSDocument {
     var presetData: NewDocData?
 
     /// presetData が変更されたかどうか（保存時に拡張属性を更新するためのフラグ）
-    var presetDataEdited: Bool = false
+    /// false→true への遷移時に NSDocument の dirty も同時に立てる。これにより
+    /// 行送り・タブ幅・表示モード・ツールバー設定・執筆目標・印刷設定など、
+    /// 「プリセットだけ変更したケース」でも書類が dirty 扱いになり、autosave /
+    /// 保存プロンプトの対象になって変更が永続化される。
+    /// (true→false は拡張属性書き込み成功後のリセットなので何もしない)
+    var presetDataEdited: Bool = false {
+        didSet {
+            if presetDataEdited && !oldValue {
+                updateChangeCount(.changeDone)
+            }
+        }
+    }
 
     /// Finder ロックファイルの処理済みフラグ（updateChangeCount での重複処理防止用）
     private var isLockedFileHandled: Bool = false
@@ -561,6 +572,13 @@ class Document: NSDocument {
             MarkdownParser.loadRemoteImages(in: textStorage) { [weak self] in
                 guard let self = self,
                       let markdownText = self.originalMarkdownText else { return }
+                // ユーザがこの非同期読み込みを待っている間に編集を始めていた場合、
+                // 原本 markdown で textStorage を上書きすると編集内容が消える。
+                // isDocumentEdited が立っていたら再パースをスキップして編集を保護する。
+                // (初期ロード中の changeDone は scheduleFinishInitialLoading の
+                //  changeCleared でリセットされるため、画像読み込み完了時点で
+                //  isDocumentEdited=true ならユーザの実編集とみなしてよい)
+                guard !self.isDocumentEdited else { return }
                 let baseURL = self.fileURL?.deletingLastPathComponent()
                 let refreshed = MarkdownParser.attributedString(from: markdownText, baseURL: baseURL)
                 self.textStorage.setAttributedString(refreshed)

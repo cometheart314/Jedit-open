@@ -86,6 +86,12 @@ class ReplaceCommand: NSScriptCommand {
         }
         textStorage.endEditing()
 
+        // textStorage 直接編集は NSTextView の shouldChangeText/didChangeText を
+        // 経由しないため、NSDocument の dirty 追跡が走らない。明示的に
+        // updateChangeCount(.changeDone) を呼ばないと「保存しますか？」プロンプト
+        // が出ないまま閉じられて、変更が捨てられてしまう。
+        document.updateChangeCount(.changeDone)
+
         return NSNumber(value: ranges.count)
     }
 
