@@ -314,6 +314,14 @@ class ImageResizeController: NSObject {
         textStorage.replaceCharacters(in: range, with: attachmentString)
         textStorage.endEditing()
 
+        // textStorage 直接編集は NSTextView の shouldChangeText/didChangeText を
+        // 経由しないため、NSDocument の dirty 追跡が走らない。明示的に
+        // updateChangeCount(.changeDone) を呼ばないと、画像リサイズだけが
+        // 直前の変更となったケースで autosave / 保存プロンプトが発動せず、
+        // リサイズ結果がファイルに書き込まれない。
+        (textView.window?.windowController?.document as? NSDocument)?
+            .updateChangeCount(.changeDone)
+
         // Update the range for undo (it's still length 1)
         currentAttachmentRange = NSRange(location: range.location, length: 1)
 
@@ -379,6 +387,10 @@ class ImageResizeController: NSObject {
             textStorage.beginEditing()
             textStorage.replaceCharacters(in: range, with: attachmentString)
             textStorage.endEditing()
+
+            // dirty 追跡: undo/redo 経路でも NSDocument の dirty を立てる必要がある。
+            (textView.window?.windowController?.document as? NSDocument)?
+                .updateChangeCount(.changeDone)
 
             // Force layout update
             for layoutManager in textStorage.layoutManagers {

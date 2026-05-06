@@ -910,6 +910,7 @@ extension EditorWindowController {
     internal func removeAttachments(from textStorage: NSTextStorage) {
         var loc = 0
         let textView = currentTextView() ?? (scrollView1?.documentView as? NSTextView)
+        var didModifyOutsideTextViewCycle = false
 
         textStorage.beginEditing()
         while loc < textStorage.length {
@@ -924,6 +925,7 @@ extension EditorWindowController {
                         textView.didChangeText()
                     } else {
                         textStorage.replaceCharacters(in: NSRange(location: loc, length: 1), with: "")
+                        didModifyOutsideTextViewCycle = true
                     }
                     // lengthが変わったのでlocは進めない
                 } else {
@@ -934,6 +936,14 @@ extension EditorWindowController {
             }
         }
         textStorage.endEditing()
+
+        // shouldChangeText が false を返した / textView が無いケースでは、
+        // 上の textStorage 直接編集が NSDocument の dirty 追跡から漏れている。
+        // 明示的に dirty を立てて、リッチ→プレーン変換時にアタッチメントだけ
+        // 削除されて変更が保存されない問題を防ぐ。
+        if didModifyOutsideTextViewCycle {
+            textDocument?.updateChangeCount(.changeDone)
+        }
     }
 
     // MARK: - Layout Orientation Actions
