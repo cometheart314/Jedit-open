@@ -395,6 +395,19 @@ class Document: NSDocument {
     /// 新規ドキュメントの表示名（fileURLがない場合に使用）
     var untitledDocumentName: String?
 
+    /// ユーザが明示的に保存 (Save / Save As) を完了した、または既存ファイルを
+    /// 開いて読み込み済みの書類かどうか。
+    /// 初期値 false。以下で true になる:
+    ///   - read(from:ofType:) 系で既存ファイルを読み込んだ
+    ///   - save(to:ofType:for:) で saveOperation == .saveOperation /
+    ///     .saveAsOperation が成功した
+    /// これは autosave (autosaveInPlaceOperation 等) では true にならない。
+    /// → 「サービスメニューから新規書類として開いた直後で、まだ手動保存して
+    ///    いない状態」を確実に false として判定できる
+    /// (untitledDocumentName / fileURL は autosave 経路で書き換わるため、
+    ///  これらだけで判定すると不安定になる)。
+    var hasBeenUserSaved: Bool = false
+
     /// 新規ドキュメントのシリアル番号管理（日付別）
     private static var dailySerialNumbers: [String: Int] = [:]
     /// 新規ドキュメントの通し番号（Untitled用）
@@ -738,6 +751,13 @@ class Document: NSDocument {
                 // ファイルシステム競合を避けるため、実際の fileURL に対して書き込む
                 if let actualURL = self.fileURL {
                     self.writePresetDataToExtendedAttribute(at: actualURL)
+                }
+                // ユーザ操作の保存 (Save / Save As) が成功したらフラグを立てる。
+                // 以降の Save As の保存ダイアログでは内容ヘッド提案ではなく既存
+                // ファイル名が出るようにするため。autosave (= autosaveInPlaceOperation
+                // 等) ではフラグを変えない (ユーザはまだ保存していない扱い)。
+                if saveOperation == .saveOperation || saveOperation == .saveAsOperation {
+                    self.hasBeenUserSaved = true
                 }
             } else {
                 // 保存失敗時は untitledDocumentName を復元
@@ -1119,8 +1139,17 @@ class Document: NSDocument {
         if url.lastPathComponent.hasPrefix("JeditShare-") {
             MainActor.assumeIsolated {
                 self.fileURL = nil
+                // Share Extension 由来は新規書類扱い (= まだユーザ保存していない)。
+                self.hasBeenUserSaved = false
             }
             try? FileManager.default.removeItem(at: url)
+        } else {
+            // 通常のファイルオープン: 既存ファイルから読み込んだので、
+            // 「ユーザが意識して扱っているファイル」として扱う。
+            // 保存ダイアログで内容ヘッドが提案されるのは新規書類だけにしたい。
+            MainActor.assumeIsolated {
+                self.hasBeenUserSaved = true
+            }
         }
     }
 

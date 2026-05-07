@@ -967,7 +967,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     ///   - isRTFD: true の場合 RTFD（添付ファイルを含む）として作成
     private func createRichTextDocument(with attributedString: NSAttributedString, isRTFD: Bool = false) {
         do {
-            guard let document = try NSDocumentController.shared.makeUntitledDocument(ofType: "public.plain-text") as? Document else { return }
+            // NSDocument の fileType を最初から正しい UTI で作る。
+            // "public.plain-text" で作ると fileType が plain text のままになり、
+            // autosave のファイル名や保存ダイアログの拡張子候補が .txt に
+            // なってしまう (内容はリッチテキストなのに .txt が提案される)。
+            let typeName = isRTFD ? "com.apple.rtfd" : "public.rtf"
+            guard let document = try NSDocumentController.shared.makeUntitledDocument(ofType: typeName) as? Document else { return }
 
             document.applyPresetData(NewDocData.richText)
             // RTFD の場合はドキュメントタイプを rtfd に変更（添付ファイルを保持するため）

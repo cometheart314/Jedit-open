@@ -232,10 +232,17 @@ extension Document {
         savePanelLineEndingPopUp = lineEndingPopUp
         savePanelBOMCheckbox = bomCheckbox
 
-        // 新規ドキュメント（まだユーザーが明示的に保存していない）の場合、ファイル名を提案
-        // autosavesInPlace により fileURL が設定済みの場合があるため、
-        // untitledDocumentName の有無で判定する
-        if let customName = untitledDocumentName {
+        // super を先に呼んでパネル既定値を確定させてから、こちらで上書きする。
+        // NSDocument の super.prepareSavePanel は nameFieldStringValue を
+        // displayName ベース ("名称未設定 N.rtfd" 等) に設定してくる。先に
+        // セットしても super に上書きされてしまうので、必ず super 後に書く。
+        let superResult = super.prepareSavePanel(savePanel)
+
+        // 「ユーザがまだ明示的に保存していない書類」のときだけファイル名を提案する。
+        // hasBeenUserSaved は read() / save() 経路で確実に管理されており、
+        // autosave で fileURL や untitledDocumentName が書き換わっても影響しない
+        // ので、ここの判定はそれらの状態に依存しない。
+        if !hasBeenUserSaved {
             let nameType = presetData?.format.newDocNameType ?? .untitled
             if nameType == .untitled {
                 // Untitled の場合は先頭テキストの要約をファイル名として提案
@@ -243,13 +250,13 @@ extension Document {
                 if !suggestedName.isEmpty {
                     savePanel.nameFieldStringValue = suggestedName
                 }
-            } else {
+            } else if let customName = untitledDocumentName {
                 // 日付系などカスタム名の場合はそのカスタム名をファイル名として使用
                 savePanel.nameFieldStringValue = customName
             }
         }
 
-        return super.prepareSavePanel(savePanel)
+        return superResult
     }
 
     @objc func saveFormatPopUpChanged(_ sender: Any?) {
@@ -682,15 +689,29 @@ extension Document {
         // 空の場合は空文字を返す
         guard !content.isEmpty else { return "" }
 
-        // 最初の行を取得（改行で分割）
-        let firstLine = content.components(separatedBy: .newlines).first ?? ""
+        // ファイル名として使えない / 表示できない文字を最初に除去する。
+        // 改行は行分割に使うので残す。対象:
+        //   - U+FFFC (Object Replacement Character: 添付ファイルのプレースホルダ)
+        //   - C0 / C1 制御文字 (改行を除く)
+        // Mail.app などのリッチテキストを Service 経由で開いた場合、文頭が
+        // 添付プレースホルダや制御文字だけの行から始まることがあり、これらが
+        // 残っていると先頭行が事実上空になる / NSSavePanel に弾かれて結果的に
+        // displayName ("新規書類") にフォールバックする。
+        let stripCharSet = CharacterSet.controlCharacters
+            .union(CharacterSet(charactersIn: "\u{FFFC}"))
+            .subtracting(.newlines)
+        let cleanedContent = content.components(separatedBy: stripCharSet).joined()
 
-        // 空白をトリム
-        var suggestion = firstLine.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        // 空の場合は全体から空白以外の文字を取得
-        if suggestion.isEmpty {
-            suggestion = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        // 最初の「中身がある行」を探す。先頭に空行や空白だけの行が連なる
+        // ケース (引用が空行から始まる Mail のリッチテキスト等) でも、
+        // 実テキストの行を拾えるようにする。
+        var suggestion = ""
+        for line in cleanedContent.components(separatedBy: .newlines) {
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                suggestion = trimmed
+                break
+            }
         }
 
         // 空の場合は空文字を返す
