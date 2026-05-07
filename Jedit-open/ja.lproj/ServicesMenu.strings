@@ -1,3 +1,7 @@
 /* Services Menu */
 "Jedit: Open Selected Text" = "Jedit: 選択テキストを開く";
 "Open with Jedit" = "Jedit で開く";
+
+/* Jedit Pro variant (referenced from Jedit-Pro Info.plist; ignored by Jedit-open) */
+"Jedit Pro: Open Selected Text" = "Jedit Pro: 選択テキストを開く";
+"Open with Jedit Pro" = "Jedit Pro で開く";
