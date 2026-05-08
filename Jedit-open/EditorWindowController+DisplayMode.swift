@@ -571,14 +571,11 @@ extension EditorWindowController {
         // レイアウトマネージャに実際に存在するコンテナのセットを取得
         let validContainers = Set(layoutManager.textContainers)
 
-        // 一時的な「未レイアウト = 空」状態に騙されないため、全コンテナのレイアウトを
-        // 確定させてから判定する。layoutFinishedFlag 後でも非同期な
-        // updateAllTextViewFrames とのレース等で末尾コンテナが未配置のまま見える
-        // ケースがあり、その状態で removeExcessPages を呼ぶと書類末尾ページが
-        // 削除されてしまっていた。
-        for container in currentContainers where validContainers.contains(container) {
-            layoutManager.ensureLayout(for: container)
-        }
+        // 注: 以前ここで各 container に ensureLayout(for:) を流していたが、
+        // 末尾編集後の checkForLayoutIssues 経路で c[N-1] の再フローを誘発し、
+        // 「ページ境目をまたぐ行が次ページに 1 行押し出される」現象の原因になって
+        // いたため撤去した (260508)。removeExcessPages 側の保護
+        // (書類末尾を含むコンテナは絶対削除しない) で十分にカバーできる。
 
         // 全コンテナの文字範囲を確認
         var totalLayoutedChars = 0

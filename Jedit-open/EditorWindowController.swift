@@ -2647,6 +2647,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // addPage が非同期スケジュール済みかどうか（多重登録防止）
     var isAddPageScheduled: Bool = false
 
+    // 各 container の前回 layoutFinished 時の charRange キャッシュ
+    // (キーは container を保持する layoutManager のオブジェクト ID)
+    // 編集後にレイアウトが再フローして glyph がコンテナ間を移動したとき、
+    // 影響を受けた container の textView を再描画させるための差分検出用。
+    private var lastContainerCharRanges: [ObjectIdentifier: [NSRange]] = [:]
+
     func layoutManager(_ layoutManager: NSLayoutManager, didCompleteLayoutFor textContainer: NSTextContainer?, atEnd layoutFinishedFlag: Bool) {
         // デバッグ出力（必要時のみ有効化）
         // print("didCompleteLayoutFor: layoutFinishedFlag=\(layoutFinishedFlag), isUpdatingPages=\(isUpdatingPages)")
@@ -2774,6 +2780,30 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             if let pagesView = (target == .scrollView1 ? pagesView1 : pagesView2) {
                 pagesView.setNumberOfPages(finalPageCount)
             }
+
+            // 各 container の現在の charRange を計算し、前回キャッシュと比較。
+            // glyph がコンテナ間を移動した container (= charRange が変動した container)
+            // の textView を再描画させる。NSLayoutManager は glyph をコンテナ間で
+            // 再配分しても、各 textView の display invalidation までは面倒見ないため、
+            // 例えば見出し段落の paragraph keep-together で line が前ページから次ページに
+            // 押し出されたとき、前ページ側に旧描画が残る (ゴースト) 問題が発生する。
+            // それを防ぐためここで差分検出して needsDisplay を立てる。
+            let lmKey = ObjectIdentifier(layoutManager)
+            let prevRanges = lastContainerCharRanges[lmKey] ?? []
+            var newRanges: [NSRange] = []
+            let currentTextViews = target == .scrollView1 ? textViews1 : textViews2
+            for (i, container) in currentContainers.enumerated() {
+                let glyphRange = layoutManager.glyphRange(for: container)
+                let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+                newRanges.append(charRange)
+
+                // 前回と異なる範囲を持つ container は再描画
+                let prev = i < prevRanges.count ? prevRanges[i] : NSRange(location: NSNotFound, length: 0)
+                if !NSEqualRanges(prev, charRange), i < currentTextViews.count {
+                    currentTextViews[i].needsDisplay = true
+                }
+            }
+            lastContainerCharRanges[lmKey] = newRanges
 
             // 全テキストビューのフレームとレイアウト方向の更新はレイアウトパス外で行う。
             // setLayoutOrientation はコンテナのレイアウトを無効化するため、
