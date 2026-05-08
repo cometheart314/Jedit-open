@@ -17,6 +17,7 @@
                 <outlet property="dateFormatPopupButton" destination="juc-dQ-EgR" id="dfp-out-con"/>
                 <outlet property="openMarkdownAsPlainTextCheckBox" destination="chk-md-plain-001" id="out-md-plain-001"/>
                 <outlet property="useSaveAsCheckBox" destination="chk-saveas-001" id="out-saveas-001"/>
+                <outlet property="lineCursorCheckBox" destination="chk-linecur-001" id="out-linecur-001"/>
                 <outlet property="richTextAlwaysUsesLightModeCheckBox" destination="chk-rtlm-001" id="out-rtlm-001"/>
                 <outlet property="richTextSubstitutionsCheckBox" destination="chk-rich-001" id="out-rich-001"/>
                 <outlet property="smartCopyPasteCheckBox" destination="chk-copy-001" id="out-copy-001"/>
@@ -393,6 +394,17 @@
                                         </buttonCell>
                                         <connections>
                                             <action selector="useSaveAsClicked:" target="-2" id="act-saveas-001"/>
+                                        </connections>
+                                    </button>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-linecur-001">
+                                        <rect key="frame" x="18" y="288" width="400" height="18"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="check" title="Show line cursor (highlight current line)" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-linecur-001">
+                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
+                                            <font key="font" metaFont="system"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="lineCursorClicked:" target="-2" id="act-linecur-001"/>
                                         </connections>
                                     </button>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-export-all">

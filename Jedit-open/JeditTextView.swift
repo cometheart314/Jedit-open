@@ -49,6 +49,10 @@ class JeditTextView: NSTextView {
     /// updateRuler()の再入防止フラグ
     private var isUpdatingRuler: Bool = false
 
+    /// 直前に描画したラインカーソル矩形 (再描画時の dirty rect 計算に使う)。
+    /// JeditTextView+LineCursor.swift から参照する。
+    var lineCursorLastDrawnRect: NSRect?
+
     /// ドラッグ開始時のソース選択範囲（ドロップ時に selectedRange() が変わっている場合の保護）
     var dragSourceRange: NSRange?
 
@@ -88,6 +92,37 @@ class JeditTextView: NSTextView {
     /// SmartLanguageSeparation インスタンスへのアクセス
     var smartLanguageSeparation: SmartLanguageSeparation? {
         return (textStorage?.delegate as? FontFallbackRecoveryDelegate)?.smartLanguageSeparation
+    }
+
+    // MARK: - Drawing
+
+    /// 標準の背景描画に加えてラインカーソル (現在行ハイライト) を描く。
+    override func drawBackground(in rect: NSRect) {
+        super.drawBackground(in: rect)
+        drawLineCursorHighlight(in: rect)
+    }
+
+    // MARK: - First Responder (line cursor 切替)
+
+    /// First responder 化したらラインカーソル更新 (前 firstResponder のクリア + 自分の描画)。
+    override func becomeFirstResponder() -> Bool {
+        let result = super.becomeFirstResponder()
+        if result {
+            invalidateLineCursorAcrossWindow()
+        }
+        return result
+    }
+
+    /// First responder を抜けたら、自分が持っていたハイライトをクリアする。
+    /// 同ウィンドウ内で次の firstResponder がまだ確定していない瞬間でも自分の旧矩形だけは
+    /// 確実に消すように invalidateLineCursorRegion を呼ぶ (中で activeCursorRange は
+    /// firstResponder ベースなので nil 化されて旧矩形だけ dirty になる)。
+    override func resignFirstResponder() -> Bool {
+        let result = super.resignFirstResponder()
+        if result {
+            invalidateLineCursorAcrossWindow()
+        }
+        return result
     }
 
     /// 同期的にdocumentTypeをRTFDに昇格させる（アラートなし）
@@ -270,6 +305,12 @@ class JeditTextView: NSTextView {
     /// カーソルを移動してもカスタム属性が持ち越されてしまう問題を防止する。
     override func setSelectedRanges(_ ranges: [NSValue], affinity: NSSelectionAffinity, stillSelecting: Bool) {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
+
+        // ラインカーソル (現在行ハイライト) の再描画。stillSelecting 中も矩形変化の
+        // 可能性があるので毎回呼ぶ。中で UserDefaults を見てオフ時は何もしない。
+        // ページ表示モードで複数 textView が同じ layoutManager を共有するため、
+        // 自分だけでなく同ウィンドウの全 textView を invalidate する (旧位置クリア + 新位置描画)。
+        invalidateLineCursorAcrossWindow()
 
         // ドラッグ中（stillSelecting）は更新しない
         guard !stillSelecting else { return }

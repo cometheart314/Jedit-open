@@ -37,10 +37,39 @@ extension EditorWindowController {
             name: .textEditingPreferencesDidChange,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(lineCursorPreferenceDidChange(_:)),
+            name: .lineCursorPreferenceDidChange,
+            object: nil
+        )
     }
 
     @objc internal func textEditingPreferencesDidChange(_ notification: Notification) {
         applyTextEditingPreferences()
+    }
+
+    /// ラインカーソル設定の変更通知ハンドラ。すべてのテキストビューに再描画を促す。
+    @objc internal func lineCursorPreferenceDidChange(_ notification: Notification) {
+        invalidateAllLineCursors()
+    }
+
+    /// 同ウィンドウ内のすべての JeditTextView でラインカーソル領域を無効化する。
+    /// ページ表示モードで「旧 first responder のハイライトをクリア」「新 first responder の
+    /// container 上に新ハイライトを描画」を一度に行うため、選択変更/responder 変化のたびに呼ぶ。
+    func invalidateAllLineCursors() {
+        forEachJeditTextView { tv in
+            tv.invalidateLineCursorRegion()
+        }
+    }
+
+    /// このウィンドウに属するすべての JeditTextView を列挙する。
+    /// Continuous モード (scrollView1/2 の documentView) と Page モード (textViews1/2) の両方を網羅。
+    private func forEachJeditTextView(_ body: (JeditTextView) -> Void) {
+        if let tv = scrollView1?.documentView as? JeditTextView { body(tv) }
+        if let tv = scrollView2?.documentView as? JeditTextView { body(tv) }
+        for case let tv as JeditTextView in textViews1 { body(tv) }
+        for case let tv as JeditTextView in textViews2 { body(tv) }
     }
 
     /// テキスト編集設定をすべてのテキストビューに適用

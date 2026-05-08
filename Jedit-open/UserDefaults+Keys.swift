@@ -76,6 +76,9 @@ extension UserDefaults {
         // Save As
         static let useSaveAs = "useSaveAs"
 
+        // Line Cursor (現在行ハイライト)
+        static let lineCursorEnabled = "lineCursorEnabled"
+
         // Line Breaking
         static let cantBeTopChars = "CantBeTopChars"
         static let cantBeEndChars = "CantBeEndChars"
@@ -150,6 +153,8 @@ extension UserDefaults {
             Keys.openMarkdownAsPlainText: false,
             // Save As
             Keys.useSaveAs: false,
+            // Line Cursor
+            Keys.lineCursorEnabled: false,
             // Line Breaking
             Keys.cantBeTopChars: "、。，．・：；？！゛゜´｀¨ヽヾゝゞ々ー）］｝〕〉》」』】°′″℃¢％‰",
             Keys.cantBeEndChars: "（［｛〔〈《「『【",

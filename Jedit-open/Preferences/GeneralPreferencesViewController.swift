@@ -43,6 +43,7 @@ class GeneralPreferencesViewController: NSViewController {
     // Advanced Options
     @IBOutlet weak var openMarkdownAsPlainTextCheckBox: NSButton!
     @IBOutlet weak var useSaveAsCheckBox: NSButton!
+    @IBOutlet weak var lineCursorCheckBox: NSButton!
 
     // Text Editing Options
     @IBOutlet weak var checkSpellingAsYouTypeCheckBox: NSButton!
@@ -140,6 +141,10 @@ class GeneralPreferencesViewController: NSViewController {
         // Save As
         let useSaveAs = defaults.bool(forKey: UserDefaults.Keys.useSaveAs)
         useSaveAsCheckBox?.state = useSaveAs ? .on : .off
+
+        // Line Cursor
+        let lineCursor = defaults.bool(forKey: UserDefaults.Keys.lineCursorEnabled)
+        lineCursorCheckBox?.state = lineCursor ? .on : .off
 
         // Auto Start at Login
         let autoStart = defaults.bool(forKey: UserDefaults.Keys.autoStartOption)
@@ -361,6 +366,14 @@ class GeneralPreferencesViewController: NSViewController {
         defaults.set(isOn, forKey: UserDefaults.Keys.useSaveAs)
     }
 
+    @IBAction func lineCursorClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: UserDefaults.Keys.lineCursorEnabled)
+        // 開いているすべてのテキストビューを再描画させる。
+        NotificationCenter.default.post(name: .lineCursorPreferenceDidChange, object: nil)
+    }
+
     // MARK: - Revert to Defaults Actions
 
     @IBAction func revertEditToDefaults(_ sender: Any) {
@@ -462,6 +475,8 @@ class GeneralPreferencesViewController: NSViewController {
             "Encodings",  // EncodingManager のエンコーディングリスト
             // Markdown
             UserDefaults.Keys.openMarkdownAsPlainText,
+            // Line Cursor
+            UserDefaults.Keys.lineCursorEnabled,
             // 禁則処理
             UserDefaults.Keys.cantBeTopChars,
             UserDefaults.Keys.cantBeEndChars,
