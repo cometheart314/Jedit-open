@@ -255,22 +255,27 @@ class MultiplePageView: NSView {
     /// テキストコンテナのサイズ
     /// 縦書き時は幅と高さを入れ替える（テキストの流れる方向が変わるため）
     var documentSizeInPage: NSSize {
-        // lineFragmentPadding分を加算して、ContinuousモードのPaper Widthと同じ折り返し幅にする
-        // TextContainerはlineFragmentPadding（デフォルト5.0）を内側余白として使用するため、
-        // その分をコンテナサイズに加算しないと実質的なテキスト描画幅が狭くなる。
+        // NSTextContainer.lineFragmentPadding (デフォルト 5.0) は **行方向**
+        // (= container の width 軸。横書きでは画面横、縦書きでは回転後の縦) の
+        // 各 lineFragmentRect の前後に挿入される。よって行方向の長さを「用紙幅 - 余白」に
+        // 揃えるには container.width 側だけに padding*2 を加算する。
         //
-        // 縦書きでも height 側に padding*2 を加算しているのは意図的。swap 後の
-        // 行方向(列の長さ)も横書き同様に padding で削られるため、補正しないと
-        // 「可視テキスト = 用紙幅 - 余白」の規約が縦書きだけ約1文字分狭くなる。
-        // JeditΩ は縦書き側のこの補正が抜けていて 1 文字分狭くなっており、そちらが
-        // 実装漏れ。Jedit は縦横で一貫して規約を満たすように補正している。
+        // 行直交方向 (= container.height 軸) には padding は効かないため、ここに
+        // padding*2 を加算すると container が textView frame より大きくなり、
+        // 「container には収まるが textView frame からはみ出る境界行」が発生して
+        // 末尾の行がクリップされたり、編集後のページ再フローでページ境界の行が
+        // 移動して見える現象の原因になっていた。height 側の補正は廃止する。
         let padding: CGFloat = 5.0  // NSTextContainer.lineFragmentPadding のデフォルト値
-        let width = pageWidth - leftMargin - rightMargin + (padding * 2)
-        let height = pageHeight - topMargin - bottomMargin + (padding * 2)
+        let pageContentWidth = pageWidth - leftMargin - rightMargin
+        let pageContentHeight = pageHeight - topMargin - bottomMargin
         if isVerticalLayout {
-            return NSSize(width: height, height: width)
+            // swap 後: container.width = ページ縦方向 (行方向、+padding*2)
+            //          container.height = ページ横方向 (行直交方向、+0)
+            return NSSize(width: pageContentHeight + padding * 2, height: pageContentWidth)
         } else {
-            return NSSize(width: width, height: height)
+            // 横書き: container.width = ページ横方向 (行方向、+padding*2)
+            //         container.height = ページ縦方向 (行直交方向、+0)
+            return NSSize(width: pageContentWidth + padding * 2, height: pageContentHeight)
         }
     }
 
