@@ -384,6 +384,23 @@ extension EditorWindowController {
         // LayoutManagerにTextContainerを追加
         layoutManager.addTextContainer(textContainer)
 
+        // textContainers 配列を「TextView を作る前」に更新する。
+        //
+        // 理由: 直後の textView 構築 + isSelectable/isEditable などのプロパティ設定は
+        // setNeedsDisplayInRect → fill-holes 経由で同期的に layoutManager デリゲート
+        // (didCompleteLayoutFor:atEnd:) を発火させ得る。そこから layoutFinishedFlag=true
+        // 経路に入ると `setNumberOfPages(currentContainers.count)` が走る。配列更新が
+        // 関数末尾だと、ここで参照される `textContainers1.count` がまだ古い値のため
+        // 「実際は N+1 ページなのに setNumberOfPages(N) で確定」となり、最後のページが
+        // 認識されない (ランドスケープで顕在化していた "2/2" バグ)。
+        textContainers.append(textContainer)
+        switch target {
+        case .scrollView1:
+            textContainers1 = textContainers
+        case .scrollView2:
+            textContainers2 = textContainers
+        }
+
         // 一時的なフレームでTextViewを作成（後でupdateAllTextViewFramesで更新される、画像クリック対応）
         let tempFrame = NSRect(x: 0, y: 0, width: textContainerSize.width, height: textContainerSize.height)
         let textView = JeditTextView(frame: tempFrame, textContainer: textContainer)
@@ -427,20 +444,17 @@ extension EditorWindowController {
         // 一時的に非表示（フレームはupdateAllTextViewFramesで更新される）
         textView.isHidden = true
 
-        // 配列に追加
-        textContainers.append(textContainer)
+        // textViews を append (textContainers は上で前倒し済み)
         textViews.append(textView)
 
         // pagesViewにTextViewを追加（まだ表示位置は未設定）
         pagesView.addSubview(textView)
 
-        // 配列をプロパティに戻す
+        // textViews1/2 を更新 (textContainers1/2 は上で更新済み)
         switch target {
         case .scrollView1:
-            textContainers1 = textContainers
             textViews1 = textViews
         case .scrollView2:
-            textContainers2 = textContainers
             textViews2 = textViews
         }
 
@@ -467,45 +481,42 @@ extension EditorWindowController {
         guard let textStorage = layoutManager.textStorage else { return }
         let textLength = textStorage.length
 
-        // 最初の空のコンテナを見つける（それ以降はすべて削除対象）
-        var firstEmptyIndex = textContainers.count  // デフォルトは削除なし
-
-        // 前方から探索して、最初の空または無効なコンテナを見つける
+        // 「途中の一時的な空コンテナで break する」と、書類末尾の有効ページまで巻き込んで
+        // 削除されるバグがあったため、全コンテナを走査して「最後の有効コンテナのインデックス」
+        // と「書類末尾 (textLength) を含むコンテナのインデックス」を求め、それより後だけを
+        // 削除対象とする。書類末尾を含むコンテナは絶対に削除しない。
         let totalGlyphs = layoutManager.numberOfGlyphs
         let validContainers = Set(layoutManager.textContainers)
+
+        var lastUsefulIndex: Int = -1
+        var tailContainerIndex: Int = -1
+
         for index in 0..<textContainers.count {
             let container = textContainers[index]
-            // コンテナがレイアウトマネージャに存在しない場合は無効として削除対象
-            guard validContainers.contains(container) else {
-                firstEmptyIndex = index
-                break
-            }
+            guard validContainers.contains(container) else { continue }
             let glyphRange = layoutManager.glyphRange(for: container)
+            guard glyphRange.length > 0 else { continue }
 
-            if glyphRange.length == 0 {
-                // グリフがない - このコンテナ以降を削除
-                firstEmptyIndex = index
-                break
-            } else {
-                // グリフがある場合、文字範囲とグリフ範囲が有効かチェック
-                let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
-                // 文字範囲の終端がテキスト長を超えている場合は無効（古いデータ）
-                if NSMaxRange(charRange) > textLength {
-                    firstEmptyIndex = index
-                    break
-                }
-                // グリフ範囲の開始位置が総グリフ数以上の場合は無効（古いデータ）
-                if glyphRange.location >= totalGlyphs {
-                    firstEmptyIndex = index
-                    break
-                }
+            let charRange = layoutManager.characterRange(forGlyphRange: glyphRange, actualGlyphRange: nil)
+
+            // 不正データ (古いレイアウト残骸) はスキップ
+            if NSMaxRange(charRange) > textLength { continue }
+            if glyphRange.location >= totalGlyphs { continue }
+
+            lastUsefulIndex = index
+            // 書類末尾 (最終文字位置) を含むなら、ここが「末尾コンテナ」
+            if NSMaxRange(charRange) >= textLength {
+                tailContainerIndex = index
             }
         }
 
-        // 最初の空コンテナ以降を削除対象にする（ただし最低1ページは残す）
+        // 削除を始めるインデックス: 「末尾コンテナのインデックス + 1」と
+        // 「最後の有効コンテナのインデックス + 1」のうち大きい方。
+        // 書類末尾を含むコンテナを巻き込まないこと、最低 1 ページは残すことを保証する。
+        let firstRemoveIndex = max(1, max(tailContainerIndex, lastUsefulIndex) + 1)
+
         var indicesToRemove: [Int] = []
-        let startIndex = max(1, firstEmptyIndex)  // 最初のページは残す
-        for index in startIndex..<textContainers.count {
+        for index in firstRemoveIndex..<textContainers.count {
             indicesToRemove.append(index)
         }
 
@@ -559,6 +570,15 @@ extension EditorWindowController {
 
         // レイアウトマネージャに実際に存在するコンテナのセットを取得
         let validContainers = Set(layoutManager.textContainers)
+
+        // 一時的な「未レイアウト = 空」状態に騙されないため、全コンテナのレイアウトを
+        // 確定させてから判定する。layoutFinishedFlag 後でも非同期な
+        // updateAllTextViewFrames とのレース等で末尾コンテナが未配置のまま見える
+        // ケースがあり、その状態で removeExcessPages を呼ぶと書類末尾ページが
+        // 削除されてしまっていた。
+        for container in currentContainers where validContainers.contains(container) {
+            layoutManager.ensureLayout(for: container)
+        }
 
         // 全コンテナの文字範囲を確認
         var totalLayoutedChars = 0
