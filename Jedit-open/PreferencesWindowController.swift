@@ -32,6 +32,9 @@ class PreferencesWindowController: NSWindowController {
     private var contentView: NSView!
     private var preferenceItems: [PreferenceCategory] = []
     private var currentViewController: NSViewController?
+    /// Pro 拡張ポイント経由で注入された設定ペインのファクトリ
+    /// identifier → ViewController 生成クロージャ
+    private var extensionPaneFactories: [String: () -> NSViewController] = [:]
     
     convenience init() {
         let window = NSWindow(
@@ -82,6 +85,18 @@ class PreferencesWindowController: NSWindowController {
                 identifier: "contextMenu"
             )
         ]
+
+        // Pro 拡張ポイント経由で追加される設定ペインを末尾に追加
+        if let provider = FeatureProviderRegistry.shared.editorProvider {
+            for descriptor in provider.additionalPreferencePanes() {
+                preferenceItems.append(PreferenceCategory(
+                    title: descriptor.title,
+                    icon: descriptor.icon,
+                    identifier: descriptor.identifier
+                ))
+                extensionPaneFactories[descriptor.identifier] = descriptor.makeViewController
+            }
+        }
     }
     
     private func setupUI() {
@@ -172,6 +187,10 @@ class PreferencesWindowController: NSWindowController {
         case "contextMenu":
             return ContextMenuPreferencesViewController()
         default:
+            // Pro 拡張ポイント経由で登録されたペインを生成
+            if let factory = extensionPaneFactories[identifier] {
+                return factory()
+            }
             return NSViewController()
         }
     }

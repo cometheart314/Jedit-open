@@ -25,6 +25,19 @@
 
 import Cocoa
 
+/// Pro 版が注入する追加設定ペインの記述子
+struct PreferencePaneDescriptor {
+    /// ペインの一意識別子（PreferencesWindowController#selectCategory(identifier:) で使用）
+    let identifier: String
+    /// サイドバーに表示するタイトル
+    let title: String
+    /// サイドバーに表示するアイコン
+    let icon: NSImage
+    /// ペイン表示時に NSViewController を生成するファクトリ
+    /// （表示の度に新規生成することで状態の取り回しを単純化）
+    let makeViewController: () -> NSViewController
+}
+
 /// Pro版で追加のツールバー項目やメニュー項目を提供するプロトコル
 protocol EditorFeatureProvider {
     /// アプリ起動時に呼ばれる（メニュー追加、初期設定など）
@@ -33,8 +46,8 @@ protocol EditorFeatureProvider {
     func additionalToolbarItemIdentifiers() -> [NSToolbarItem.Identifier]
     /// 追加のメニュー項目
     func additionalMenuItems(for menu: NSMenu) -> [NSMenuItem]
-    /// 追加の設定パネル
-    func additionalPreferencePanes() -> [NSViewController]
+    /// 追加の設定ペイン
+    func additionalPreferencePanes() -> [PreferencePaneDescriptor]
 }
 
 /// Pro版で追加のドキュメント機能を提供するプロトコル
