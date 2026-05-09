@@ -40,6 +40,8 @@
 "Make Rich Text" = "リッチテキストにする";
 "Convert this document to plain text?" = "この書類をプレーンテキストに変換しますか？";
 "Making a rich text document plain will lose all text styles (such as fonts and colors), and images." = "リッチテキストをプレーンテキストにすると、フォントやカラーなどのテキストスタイル、および画像がすべて失われます。";
+"Switch to plain text?" = "プレーンテキストにしますか?";
+"Switching to plain text will show the Markdown source (with # and ** etc. visible)." = "プレーンテキストにすると、Markdown ソース表示（# や ** などの記法が見える状態）に切り替わります。";
 "Convert this document to RTFD format?" = "この書類をRTFDフォーマットに変換しますか？";
 "This document contains graphics or attachments and will be saved in RTFD format (RTF with graphics). RTFD documents may not be compatible with some applications. Do you want to convert?" = "この書類にはグラフィックスまたは添付ファイルが含まれているため、RTFD（グラフィックス付きRTF）フォーマットで保存されます。RTFD書類は一部のアプリケーションと互換性がない場合があります。変換しますか？";
 "This document was imported from a format with limited compatibility. Some formatting may not be fully preserved when saved." = "この書類は互換性が限定的なフォーマットから読み込まれました。保存時に一部のフォーマットが完全に保持されない場合があります。";

@@ -649,8 +649,13 @@ extension EditorWindowController {
         // Rich → Plain で情報が失われる場合はアラートを表示
         if isRich && toggleRichWillLoseInformation() {
             let alert = NSAlert()
-            alert.messageText = "Convert this document to plain text?".localized
-            alert.informativeText = "Making a rich text document plain will lose all text styles (such as fonts and colors), and images.".localized
+            if document.isMarkdownDocument {
+                alert.messageText = "Switch to plain text?".localized
+                alert.informativeText = "Switching to plain text will show the Markdown source (with # and ** etc. visible).".localized
+            } else {
+                alert.messageText = "Convert this document to plain text?".localized
+                alert.informativeText = "Making a rich text document plain will lose all text styles (such as fonts and colors), and images.".localized
+            }
             alert.addButton(withTitle: "OK".localized)
             alert.addButton(withTitle: "Cancel".localized)
             alert.beginSheetModal(for: self.window!) { response in
@@ -847,8 +852,12 @@ extension EditorWindowController {
         // 通常はテキストタイプが変わるため fileURL をクリアして名称未設定にする。
         // ただし Markdown ⇄ プレーンの相互変換は同じ .md ファイルをそのまま編集
         // し続けられるようにファイルパスを保持する。
+        // また Markdown→プレーン切替で fileType を public.plain-text に変えると、
+        // サンドボックスが「開いた時点の (URL, fileType) ペア」に書き込み権限を
+        // 紐付けているため保存時に権限エラーになる。Markdown ファイルを編集している
+        // 間は fileType を net.daringfireball.markdown に保つ。
         let targetFileType: String
-        if isPlainToRichMarkdown {
+        if isPlainToRichMarkdown || isMarkdownToPlain {
             targetFileType = "net.daringfireball.markdown"
         } else {
             targetFileType = newFileType ?? (isRich ? "public.plain-text" : "public.rtf")
