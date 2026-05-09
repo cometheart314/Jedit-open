@@ -708,6 +708,16 @@ extension EditorWindowController {
         guard let document = textDocument else { return }
         let isRich = document.documentType != .plain
         let textStorage = document.textStorage
+        // Markdown を「プレーンテキストにする」ケースは、レンダリング済みの内容を
+        // 平坦化するのではなく、元の Markdown ソース (# 見出し、**太字** 等) に戻す。
+        let isMarkdownToPlain = isRich && document.isMarkdownDocument
+        // .md ファイルを「リッチテキストにする」ケースは、現在のプレーンテキスト
+        // 内容を Markdown ソースとみなしてリッチテキストにレンダリングする。
+        let isPlainToRichMarkdown: Bool = {
+            guard !isRich else { return false }
+            guard let url = document.fileURL else { return false }
+            return Document.isMarkdownFile(url: url)
+        }()
 
         guard let undoManager = document.undoManager else { return }
         undoManager.beginUndoGrouping()
@@ -727,10 +737,79 @@ extension EditorWindowController {
         // テキストビューのリッチテキスト関連プロパティを更新
         updateForRichTextState(!isRich)
 
-        // テキスト属性を変換
-        convertTextForRichTextState(!isRich, removeAttachments: isRich)
+        // Markdown → プレーン: 先に readonly を解除した上で textStorage を
+        // Markdown ソースで置き換える。convertTextForRichTextState は
+        // textView.shouldChangeText が真でないと属性適用をスキップしてしまうため、
+        // 編集可能にしておかないと中央寄せ等の paragraph style が残ってしまう。
+        if isMarkdownToPlain {
+            // 順序が重要:
+            //   1. originalMarkdownText を捕まえる (performSetPreventEditing がクリアするため)
+            //   2. Markdown 由来フラグを下ろす
+            //   3. preventEditing を解除して編集可能状態にする
+            //   4. textStorage を Markdown ソースで置換
+            let markdownSource = document.originalMarkdownText
+                ?? MarkdownParser.markdownString(from: textStorage)
+            document.isMarkdownDocument = false
+            document.isImportedDocument = false
+            performSetPreventEditing(editable: true)
 
-        // ドキュメントタイプを切り替え
+            let range = NSRange(location: 0, length: textStorage.length)
+            let textView = currentTextView() ?? (scrollView1?.documentView as? NSTextView)
+            if let tv = textView,
+               tv.shouldChangeText(in: range, replacementString: markdownSource) {
+                textStorage.replaceCharacters(in: range, with: markdownSource)
+                tv.didChangeText()
+            } else {
+                textStorage.replaceCharacters(in: range, with: markdownSource)
+            }
+        }
+
+        // Plain → Rich Markdown: 現在のプレーンテキストを Markdown ソースとみなして
+        // レンダリングする。順序が重要:
+        //   1. 状態フラグ（documentType, isMarkdownDocument 等）を先にセット。
+        //      setAttributedString → textStorage 編集通知 → 他のオブザーバ
+        //      （シンタックスハイライタ等）が走る前に書類状態を一貫させる。
+        //   2. textStorage を NSAttributedString で置換
+        //   3. 編集ロックをかける
+        if isPlainToRichMarkdown {
+            let markdownText = textStorage.string
+            let baseURL = document.fileURL?.deletingLastPathComponent()
+            let renderedAttr = MarkdownParser.attributedString(from: markdownText,
+                                                                baseURL: baseURL)
+
+            // 状態を先にセット
+            document.documentType = .rtf
+            document.isMarkdownDocument = true
+            document.isImportedDocument = true
+            document.originalMarkdownText = markdownText
+            document.presetData?.format.richText = true
+            document.presetData?.format.lineHeightMultiple = 1.8
+
+            // textStorage を置換
+            textStorage.setAttributedString(renderedAttr)
+
+            // 編集ロック
+            performSetPreventEditing(editable: false)
+
+            // リモート画像を非同期に読み込んでからキャッシュ済みで再パースし直す
+            // （readMarkdownDocument 経由の初回オープンと同じ後処理）
+            MarkdownParser.loadRemoteImages(in: textStorage) { [weak document] in
+                guard let document = document,
+                      let markdownText = document.originalMarkdownText else { return }
+                let baseURL = document.fileURL?.deletingLastPathComponent()
+                let refreshed = MarkdownParser.attributedString(
+                    from: markdownText,
+                    baseURL: baseURL)
+                document.textStorage.setAttributedString(refreshed)
+            }
+        }
+
+        // テキスト属性を変換（Markdown レンダリング時は属性を壊さないようにスキップ）
+        if !isPlainToRichMarkdown {
+            convertTextForRichTextState(!isRich, removeAttachments: isRich)
+        }
+
+        // ドキュメントタイプを切り替え（Markdown レンダリング時は上で済ませた）
         if isRich {
             // Rich → Plain
             document.documentType = .plain
@@ -743,8 +822,8 @@ extension EditorWindowController {
             // presetDataを更新
             document.presetData?.format.richText = false
             document.presetData?.format.fileExtension = "txt"
-        } else {
-            // Plain → Rich
+        } else if !isPlainToRichMarkdown {
+            // Plain → Rich (非 Markdown)
             let type = newFileType ?? "public.rtf"
             document.documentType = (type == "com.apple.rtfd") ? .rtfd : .rtf
 
@@ -765,10 +844,16 @@ extension EditorWindowController {
         undoManager.endUndoGrouping()
 
         // ファイルタイプを更新
-        // テキストタイプが変わるため、元のfileURLへのautosaveは行わず
-        // fileURLをクリアして新規ドキュメント扱いにする（ユーザーが「名前を付けて保存」で保存する）
-        let targetFileType = newFileType ?? (isRich ? "public.plain-text" : "public.rtf")
-        if document.fileURL != nil {
+        // 通常はテキストタイプが変わるため fileURL をクリアして名称未設定にする。
+        // ただし Markdown ⇄ プレーンの相互変換は同じ .md ファイルをそのまま編集
+        // し続けられるようにファイルパスを保持する。
+        let targetFileType: String
+        if isPlainToRichMarkdown {
+            targetFileType = "net.daringfireball.markdown"
+        } else {
+            targetFileType = newFileType ?? (isRich ? "public.plain-text" : "public.rtf")
+        }
+        if document.fileURL != nil && !isMarkdownToPlain && !isPlainToRichMarkdown {
             document.fileURL = nil
         }
         document.fileType = targetFileType

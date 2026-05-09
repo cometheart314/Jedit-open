@@ -822,7 +822,23 @@ extension EditorWindowController {
             }
         } else {
             // 読み取り専用 → 編集可能にする
-            if textDocument?.isImportedDocument == true {
+            if textDocument?.isMarkdownDocument == true {
+                // Markdown 書類: ソース表示に切り替えて編集可能にすることを案内する。
+                // OK ならリッチ→プレーンの変換経路 (performToggleRichText) を再利用して
+                // textStorage を Markdown ソースで置換し、readonly を解除する。
+                guard let window = self.window else { return }
+                let alert = NSAlert()
+                alert.messageText = "Allow Editing?".localized
+                alert.informativeText = "Editing will switch this Markdown document to plain text source view.".localized
+                alert.addButton(withTitle: "Allow Editing".localized)
+                alert.addButton(withTitle: "Cancel".localized)
+                alert.beginSheetModal(for: window) { [weak self] response in
+                    if response == .alertFirstButtonReturn {
+                        // isMarkdownToPlain 経路でソース展開＋readonly 解除を行う
+                        self?.performToggleRichText(newFileType: nil)
+                    }
+                }
+            } else if textDocument?.isImportedDocument == true {
                 // Word/ODTからインポートした書類の場合は互換性に関する警告を表示
                 guard let window = self.window else { return }
                 let alert = NSAlert()

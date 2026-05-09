@@ -807,12 +807,19 @@ extension Document {
     }
 
     override nonisolated func read(from data: Data, ofType typeName: String) throws {
-        // Markdown タイプの場合は RTF として扱う
+        // Markdown タイプの場合は通常 RTF として扱う
         // （Duplicate 時に data(ofType:) が RTF を返すため、
         //  read(from data:) でも RTF として読み込む必要がある）
+        // ただし「Markdown をプレーンテキストで開く」が ON の時は、
+        // RTF パスで documentAttributes[.readOnly] が読み取り専用として
+        // 適用されてしまうのを避けるため、プレーンテキストとして読み込む。
         let effectiveTypeName: String
         if Self.isMarkdownType(typeName) {
-            effectiveTypeName = "public.rtf"
+            if UserDefaults.standard.bool(forKey: "openMarkdownAsPlainText") {
+                effectiveTypeName = "public.plain-text"
+            } else {
+                effectiveTypeName = "public.rtf"
+            }
         } else if typeName == "public.plain-text" && Self.dataIsRTF(data) {
             // autosave 復元時: .txt 拡張子だが実際のデータが RTF の場合は RTF として読み込む
             // （data(ofType:) は documentType に基づいて RTF データを生成するが、
