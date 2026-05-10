@@ -1059,6 +1059,23 @@ class Document: NSDocument {
                     // RTFとして通常フローで読み込む
                 } else {
                     try readMarkdownDocument(from: url)
+                    // Markdown 書類でも presetData (ツールバー項目識別子等) を
+                    // xattr から復元する。readMarkdownDocument 内で設定した
+                    // Markdown 用デフォルト (preventEditing, lineHeightMultiple)
+                    // は xattr 由来の値で上書きしつつ、欠落していれば再設定する。
+                    if let jsonData = Document.readPresetDataRaw(at: url) {
+                        MainActor.assumeIsolated {
+                            if let loadedPresetData = Document.decodePresetData(from: jsonData) {
+                                self.presetData = loadedPresetData
+                                // Markdown 固有の固定設定を保証
+                                self.presetData?.view.preventEditing = true
+                                if self.presetData?.format.lineHeightMultiple == 0 {
+                                    self.presetData?.format.lineHeightMultiple = 1.8
+                                }
+                                self.applyPrintInfoFromPresetData()
+                            }
+                        }
+                    }
                     return
                 }
             }
