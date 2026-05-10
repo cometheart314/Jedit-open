@@ -37,6 +37,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // NSDocumentController の init が自身を shared として登録する。
         _ = JeditDocumentController()
 
+        // Pro版の機能プロバイダーを登録する。
+        // applicationDidFinishLaunching より前に実行する必要がある:
+        //   ・前回開いていた書類の復元 (state restoration) は applicationDidFinishLaunching の
+        //     完了前後で発生し、その過程で各ウィンドウの NSToolbar が再構築される
+        //   ・toolbar(_:itemForItemIdentifier:) で SidebarPaneProvider の識別子を解決するため、
+        //     プロバイダーが登録済みでないとツールバー項目が破棄されてしまう
+        // 登録はデータ初期化のみで副作用が小さいため、will-finish フェーズに置いて安全。
+        #if JEDIT_PRO
+        registerProFeatures()
+        #endif
+
         // macOS が "Help" タイトルのメニューにシステム検索フィールドを追加するのを防ぐ。
         // nib ロード直後（メニューバーの構築前）にダミーを設定する。
         NSApp.helpMenu = NSMenu(title: "DummyHelp")
@@ -199,14 +210,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             (NSDocumentController.shared as? JeditDocumentController)?.suppressOpenPanel = false
         }
 
-        // Pro版の機能プロバイダーを登録・初期化
-        #if JEDIT_PRO
-        registerProFeatures()
-        #endif
+        // Pro版の機能プロバイダーは applicationWillFinishLaunching で登録済み。
+        // ここでは applicationDidFinishLaunching ライフサイクルフックを呼ぶ。
         FeatureProviderRegistry.shared.editorProvider?.applicationDidFinishLaunching()
 
-        // SidebarPaneProvider の登録は Pro 側で行うため、
-        // View メニュー項目の追加はプロバイダー登録の後に行う必要がある。
+        // View メニューの SidebarPane 表示切替項目を追加（プロバイダー登録済みの状態で実行）
         setupSidebarPaneMenuItems()
     }
 
