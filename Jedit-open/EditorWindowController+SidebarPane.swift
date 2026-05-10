@@ -89,26 +89,6 @@ extension EditorWindowController {
             widthConstraint,
         ])
 
-        // sidebar の右端にドラッグ可能なハンドルを配置。
-        // 視覚的には 1pt の境界線、ヒット領域は 5pt 確保してリサイズ操作を受け付ける。
-        let handle = SidebarPaneDragHandle()
-        handle.translatesAutoresizingMaskIntoConstraints = false
-        sidebar.addSubview(handle)
-        NSLayoutConstraint.activate([
-            handle.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor),
-            handle.topAnchor.constraint(equalTo: sidebar.topAnchor),
-            handle.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
-            handle.widthAnchor.constraint(equalToConstant: 5),
-        ])
-        handle.onDrag = { [weak self] deltaX in
-            self?.adjustSidebarPaneWidth(by: deltaX)
-        }
-        handle.onDragEnd = { [weak self] in
-            guard let self = self,
-                  let constraint = self.sidebarPaneWidthConstraint else { return }
-            EditorWindowController.setPersistedSidebarPaneWidth(constraint.constant)
-        }
-
         existingLeading?.isActive = false
         splitView.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor).isActive = true
 
@@ -137,6 +117,28 @@ extension EditorWindowController {
         // 最後のビューの bottom を sidebar の bottom に揃える
         // （複数プロバイダーがある場合は最後のビューが残り領域を埋める）
         lastView?.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor).isActive = true
+
+        // sidebar の右端にドラッグ可能なハンドルを配置。
+        // 視覚的には 1pt の境界線、ヒット領域は 5pt 確保。
+        // プロバイダーの NSOutlineView 等よりも z-order を上にするため、
+        // プロバイダー追加の後に addSubview する。
+        let handle = SidebarPaneDragHandle()
+        handle.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.addSubview(handle)
+        NSLayoutConstraint.activate([
+            handle.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor),
+            handle.topAnchor.constraint(equalTo: sidebar.topAnchor),
+            handle.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
+            handle.widthAnchor.constraint(equalToConstant: 5),
+        ])
+        handle.onDrag = { [weak self] deltaX in
+            self?.adjustSidebarPaneWidth(by: deltaX)
+        }
+        handle.onDragEnd = { [weak self] in
+            guard let self = self,
+                  let constraint = self.sidebarPaneWidthConstraint else { return }
+            EditorWindowController.setPersistedSidebarPaneWidth(constraint.constant)
+        }
 
         sidebarPaneContainer = sidebar
         sidebarPaneWidthConstraint = widthConstraint
