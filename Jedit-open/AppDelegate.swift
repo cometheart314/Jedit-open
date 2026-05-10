@@ -89,9 +89,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // Edit > Import from iPhone or iPad メニューを設定
         setupImportFromDeviceMenuItem()
 
-        // View メニューに SidebarPaneProvider の表示切替項目を追加
-        setupSidebarPaneMenuItems()
-
         // Script メニューを設定
         ScriptMenuController.shared.setupMenu()
 
@@ -207,6 +204,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         registerProFeatures()
         #endif
         FeatureProviderRegistry.shared.editorProvider?.applicationDidFinishLaunching()
+
+        // SidebarPaneProvider の登録は Pro 側で行うため、
+        // View メニュー項目の追加はプロバイダー登録の後に行う必要がある。
+        setupSidebarPaneMenuItems()
     }
 
     // MARK: - AppleScript Print Command
