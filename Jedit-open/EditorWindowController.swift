@@ -105,8 +105,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     var sidebarPaneProviders: [String: SidebarPaneProvider] = [:]
     /// 設置済みフラグ（重複インストール防止）。
     var isSidebarPaneInstalled: Bool = false
-    /// 表示時の既定幅。
-    let sidebarPaneVisibleWidth: CGFloat = 220
 
     // MARK: - Properties
 

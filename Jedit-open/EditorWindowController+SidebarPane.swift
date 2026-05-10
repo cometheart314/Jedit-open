@@ -37,6 +37,25 @@ extension EditorWindowController {
     static let sidebarPaneVisibilityDidChangeNotification =
         Notification.Name("SidebarPaneVisibilityDidChange")
 
+    // MARK: - Width persistence
+
+    private static let widthDefaultsKey = "SidebarPaneWidth.v1"
+    private static let widthMin: CGFloat = 120
+    private static let widthMax: CGFloat = 500
+    private static let widthDefault: CGFloat = 220
+
+    /// UserDefaults に保存された幅 (なければ widthDefault)
+    static var persistedSidebarPaneWidth: CGFloat {
+        let raw = UserDefaults.standard.double(forKey: widthDefaultsKey)
+        if raw <= 0 { return widthDefault }
+        return min(max(CGFloat(raw), widthMin), widthMax)
+    }
+
+    static func setPersistedSidebarPaneWidth(_ width: CGFloat) {
+        let clamped = min(max(width, widthMin), widthMax)
+        UserDefaults.standard.set(Double(clamped), forKey: widthDefaultsKey)
+    }
+
     // MARK: - Install
 
     /// 起動時、windowDidLoad の最後で呼ぶ。
@@ -70,18 +89,25 @@ extension EditorWindowController {
             widthConstraint,
         ])
 
-        // sidebar の右端に 1pt の境界線（行番号ガター/ルーラーとの境を視認しやすく）
-        let separator = NSView()
-        separator.translatesAutoresizingMaskIntoConstraints = false
-        separator.wantsLayer = true
-        separator.layer?.backgroundColor = NSColor.separatorColor.cgColor
-        sidebar.addSubview(separator)
+        // sidebar の右端にドラッグ可能なハンドルを配置。
+        // 視覚的には 1pt の境界線、ヒット領域は 5pt 確保してリサイズ操作を受け付ける。
+        let handle = SidebarPaneDragHandle()
+        handle.translatesAutoresizingMaskIntoConstraints = false
+        sidebar.addSubview(handle)
         NSLayoutConstraint.activate([
-            separator.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor),
-            separator.topAnchor.constraint(equalTo: sidebar.topAnchor),
-            separator.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
-            separator.widthAnchor.constraint(equalToConstant: 1),
+            handle.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor),
+            handle.topAnchor.constraint(equalTo: sidebar.topAnchor),
+            handle.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
+            handle.widthAnchor.constraint(equalToConstant: 5),
         ])
+        handle.onDrag = { [weak self] deltaX in
+            self?.adjustSidebarPaneWidth(by: deltaX)
+        }
+        handle.onDragEnd = { [weak self] in
+            guard let self = self,
+                  let constraint = self.sidebarPaneWidthConstraint else { return }
+            EditorWindowController.setPersistedSidebarPaneWidth(constraint.constant)
+        }
 
         existingLeading?.isActive = false
         splitView.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor).isActive = true
@@ -174,8 +200,17 @@ extension EditorWindowController {
     private func updateSidebarContainerWidth() {
         guard let widthConstraint = sidebarPaneWidthConstraint else { return }
         let anyVisible = sidebarPaneViews.values.contains { !$0.isHidden }
-        widthConstraint.constant = anyVisible ? sidebarPaneVisibleWidth : 0
+        widthConstraint.constant = anyVisible ? Self.persistedSidebarPaneWidth : 0
         sidebarPaneContainer?.isHidden = !anyVisible
+    }
+
+    /// ドラッグハンドルの移動量に応じて sidebar 幅を更新する。永続化はドラッグ終了時。
+    fileprivate func adjustSidebarPaneWidth(by deltaX: CGFloat) {
+        guard let constraint = sidebarPaneWidthConstraint else { return }
+        // 非表示状態でのドラッグは無視
+        guard sidebarPaneContainer?.isHidden == false else { return }
+        let newWidth = min(max(constraint.constant + deltaX, Self.widthMin), Self.widthMax)
+        constraint.constant = newWidth
     }
 
     /// 起動直後にストアから初期状態を復元する。
@@ -221,5 +256,89 @@ extension EditorWindowController {
         }
         let currently = isSidebarPaneVisible(providerIdentifier: resolvedID)
         setSidebarPaneVisible(!currently, providerIdentifier: resolvedID)
+    }
+}
+
+// MARK: - Drag handle
+
+/// サイドバーの右端に重ねるドラッグハンドル。
+/// 視覚的には trailing 1pt にセパレーター線を描画し、ヒット領域は 5pt 確保。
+/// マウスドラッグの dx を `onDrag` で渡し、ドラッグ終了時に `onDragEnd` を呼ぶ。
+final class SidebarPaneDragHandle: NSView {
+
+    var onDrag: ((CGFloat) -> Void)?
+    var onDragEnd: (() -> Void)?
+
+    private var trackingArea: NSTrackingArea?
+    private var lastWindowLocation: NSPoint = .zero
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        wantsLayer = true
+        // 透過背景。境界線は draw(_:) で 1pt 描画する。
+        layer?.backgroundColor = NSColor.clear.cgColor
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.clear.cgColor
+    }
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let ta = trackingArea {
+            removeTrackingArea(ta)
+        }
+        let ta = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInKeyWindow, .cursorUpdate, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(ta)
+        trackingArea = ta
+    }
+
+    override func cursorUpdate(with event: NSEvent) {
+        NSCursor.resizeLeftRight.set()
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        NSCursor.resizeLeftRight.set()
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        NSCursor.arrow.set()
+    }
+
+    override func resetCursorRects() {
+        super.resetCursorRects()
+        addCursorRect(bounds, cursor: .resizeLeftRight)
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        lastWindowLocation = event.locationInWindow
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        let current = event.locationInWindow
+        let dx = current.x - lastWindowLocation.x
+        lastWindowLocation = current
+        if dx != 0 {
+            onDrag?(dx)
+        }
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        onDragEnd?()
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        // 右端 1pt にセパレーター線を描画
+        NSColor.separatorColor.setFill()
+        let line = NSRect(x: bounds.maxX - 1, y: 0, width: 1, height: bounds.height)
+        line.fill()
     }
 }
