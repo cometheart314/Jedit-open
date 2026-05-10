@@ -58,11 +58,33 @@ protocol DocumentFeatureProvider {
     func additionalExportFormats() -> [String]
 }
 
+/// エディタウィンドウのサイドバー（split view 左ペイン）に
+/// Pro 版が独自のビューを差し込むための拡張点。
+///
+/// 例: スマートインデックス、ブックマーク一覧、検索結果一覧など。
+/// 同一ウィンドウに複数のプロバイダーを並べることを想定して
+/// レジストリは配列で保持する。
+protocol SidebarPaneProvider {
+    /// 一意識別子（複数 Provider 区別用、UserDefaults キー、ツールバー項目識別子の生成に使用）
+    var identifier: String { get }
+    /// メニュー項目やツールバーチップに表示する名前
+    var displayName: String { get }
+    /// 表示切替ボタンに使うアイコン（SF Symbol 推奨）
+    var icon: NSImage { get }
+    /// 既定の幅（pt）
+    var defaultWidth: CGFloat { get }
+    /// 書類ごとに新規生成する NSViewController を返す。
+    /// ウィンドウ 1 つにつき 1 インスタンスを保持する想定。
+    func makeViewController(for document: Document) -> NSViewController
+}
+
 /// 機能プロバイダーのレジストリ（シングルトン）
 /// Pro版は起動時にプロバイダーを登録する
 class FeatureProviderRegistry {
     static let shared = FeatureProviderRegistry()
     var editorProvider: EditorFeatureProvider?
     var documentProvider: DocumentFeatureProvider?
+    /// サイドバーに差し込むプロバイダー一覧。先頭から順に上から並ぶ。
+    var sidebarPaneProviders: [SidebarPaneProvider] = []
     private init() {}
 }
