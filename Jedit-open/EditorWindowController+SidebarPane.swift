@@ -270,7 +270,6 @@ final class SidebarPaneDragHandle: NSView {
     var onDragEnd: (() -> Void)?
 
     private var trackingArea: NSTrackingArea?
-    private var lastWindowLocation: NSPoint = .zero
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -318,20 +317,38 @@ final class SidebarPaneDragHandle: NSView {
     }
 
     override func mouseDown(with event: NSEvent) {
-        lastWindowLocation = event.locationInWindow
-    }
+        // AppKit のドラッグ処理は mouseDown 内でモーダルに nextEvent を回す
+        // パターンが安定。mouseDragged を別メソッドで受けるとレイアウト
+        // 更新と event の取り回しでカーソルが追随しなくなる。
+        guard let window = window else { return }
+        NSCursor.resizeLeftRight.set()
+        var lastLocation = event.locationInWindow
+        var keepTracking = true
 
-    override func mouseDragged(with event: NSEvent) {
-        let current = event.locationInWindow
-        let dx = current.x - lastWindowLocation.x
-        lastWindowLocation = current
-        if dx != 0 {
-            onDrag?(dx)
+        while keepTracking {
+            guard let next = window.nextEvent(
+                matching: [.leftMouseDragged, .leftMouseUp]
+            ) else { break }
+
+            switch next.type {
+            case .leftMouseDragged:
+                let current = next.locationInWindow
+                let dx = current.x - lastLocation.x
+                lastLocation = current
+                if dx != 0 {
+                    onDrag?(dx)
+                    // ドラッグ中もカーソル形状を維持（イベントループで再設定）
+                    NSCursor.resizeLeftRight.set()
+                    // 制約変更をその場で反映してハンドルが追随するようにする
+                    window.contentView?.layoutSubtreeIfNeeded()
+                }
+            case .leftMouseUp:
+                keepTracking = false
+                onDragEnd?()
+            default:
+                break
+            }
         }
-    }
-
-    override func mouseUp(with event: NSEvent) {
-        onDragEnd?()
     }
 
     override func draw(_ dirtyRect: NSRect) {
