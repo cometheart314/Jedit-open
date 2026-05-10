@@ -2354,6 +2354,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         if menuItem.action == #selector(toggleInspectorBar(_:)) {
             menuItem.title = isInspectorBarVisible ? "Hide Inspector Bar".localized : "Show Inspector Bar".localized
         }
+        if menuItem.action == #selector(toggleSidebarPane(_:)),
+           let providerID = menuItem.representedObject as? String,
+           let provider = sidebarPaneProviders[providerID]
+                ?? FeatureProviderRegistry.shared.sidebarPaneProviders.first(where: { $0.identifier == providerID }) {
+            let visible = isSidebarPaneVisible(providerIdentifier: providerID)
+            let key = visible ? "Hide %@" : "Show %@"
+            menuItem.title = String(format: key.localized, provider.displayName)
+        }
         if menuItem.action == #selector(toggleDisplayMode(_:)) {
             menuItem.title = displayMode == .continuous ? "Wrap to Page".localized : "Wrap to Window".localized
         }

@@ -580,3 +580,5 @@
 
 /* Sidebar Pane (View menu / toolbar) */
 "Show/Hide %@" = "%@を表示・隠す";
+"Show %@" = "%@を表示・隠す";
+"Hide %@" = "%@を表示・隠す";

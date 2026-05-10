@@ -70,6 +70,19 @@ extension EditorWindowController {
             widthConstraint,
         ])
 
+        // sidebar の右端に 1pt の境界線（行番号ガター/ルーラーとの境を視認しやすく）
+        let separator = NSView()
+        separator.translatesAutoresizingMaskIntoConstraints = false
+        separator.wantsLayer = true
+        separator.layer?.backgroundColor = NSColor.separatorColor.cgColor
+        sidebar.addSubview(separator)
+        NSLayoutConstraint.activate([
+            separator.trailingAnchor.constraint(equalTo: sidebar.trailingAnchor),
+            separator.topAnchor.constraint(equalTo: sidebar.topAnchor),
+            separator.bottomAnchor.constraint(equalTo: sidebar.bottomAnchor),
+            separator.widthAnchor.constraint(equalToConstant: 1),
+        ])
+
         existingLeading?.isActive = false
         splitView.leadingAnchor.constraint(equalTo: sidebar.trailingAnchor).isActive = true
 
@@ -156,10 +169,13 @@ extension EditorWindowController {
     }
 
     /// 設置済みプロバイダーのうち少なくとも 1 つでも表示なら sidebar を広げる。
+    /// 完全に非表示の時はコンテナごと isHidden=true にして、右端の境界線も
+    /// エディタ領域に染み出さないようにする。
     private func updateSidebarContainerWidth() {
         guard let widthConstraint = sidebarPaneWidthConstraint else { return }
         let anyVisible = sidebarPaneViews.values.contains { !$0.isHidden }
         widthConstraint.constant = anyVisible ? sidebarPaneVisibleWidth : 0
+        sidebarPaneContainer?.isHidden = !anyVisible
     }
 
     /// 起動直後にストアから初期状態を復元する。

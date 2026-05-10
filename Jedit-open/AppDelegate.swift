@@ -657,7 +657,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         insertIndex += 1
 
         for provider in providers {
-            let title = String(format: "Show/Hide %@".localized, provider.displayName)
+            // 初期 title は "Show <displayName>"（書類が無い時の静的表示用）。
+            // 開いている書類がある時は EditorWindowController.validateMenuItem で
+            // 表示状態に応じて "Show <displayName>" / "Hide <displayName>" に切替わる。
+            let title = String(format: "Show %@".localized, provider.displayName)
             let item = NSMenuItem(
                 title: title,
                 action: #selector(EditorWindowController.toggleSidebarPane(_:)),
