@@ -619,6 +619,12 @@ class Document: NSDocument {
             editorWC.applyPresetData()
         }
 
+        // SidebarPaneProvider のサイドバー差し込みを試みる
+        // （windowDidLoad で document 未関連付けだったケースの保険）
+        if let editorWC = windowController as? EditorWindowController {
+            editorWC.installSidebarPaneIfNeeded()
+        }
+
         // ウィンドウ復元のために復元状態を保存対象としてマーク
         invalidateRestorableState()
         windowController.window?.invalidateRestorableState()

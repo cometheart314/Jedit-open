@@ -577,3 +577,6 @@
 "Recent Fonts" = "最近使ったフォント";
 "More Fonts…" = "その他のフォント…";
 "%@ Fonts" = "%@フォント";
+
+/* Sidebar Pane (View menu / toolbar) */
+"Show/Hide %@" = "%@を表示・隠す";

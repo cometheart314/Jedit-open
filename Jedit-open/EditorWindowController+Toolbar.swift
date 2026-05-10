@@ -681,11 +681,32 @@ extension EditorWindowController {
         if itemIdentifier == Self.bookmarkToolbarItemIdentifier {
             return createBookmarkToolbarItem()
         }
+        // SidebarPaneProvider の識別子と一致するか確認
+        if let provider = FeatureProviderRegistry.shared.sidebarPaneProviders
+            .first(where: { $0.identifier == itemIdentifier.rawValue }) {
+            return createSidebarPaneToolbarItem(for: provider, identifier: itemIdentifier)
+        }
         return nil
     }
 
+    /// SidebarPaneProvider 用のツールバー項目を生成する。
+    /// itemIdentifier.rawValue == provider.identifier の運用なので、
+    /// アクション送信時は EditorWindowController.toggleSidebarPane(_:) 内で
+    /// itemIdentifier から識別子を逆引きできる。
+    internal func createSidebarPaneToolbarItem(for provider: SidebarPaneProvider,
+                                               identifier: NSToolbarItem.Identifier) -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: identifier)
+        item.label = provider.displayName
+        item.paletteLabel = provider.displayName
+        item.toolTip = String(format: "Show/Hide %@".localized, provider.displayName)
+        item.image = provider.icon
+        item.target = nil  // レスポンダチェーンを通じて送信
+        item.action = #selector(EditorWindowController.toggleSidebarPane(_:))
+        return item
+    }
+
     func toolbarAllowedItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {
-        return [
+        var ids: [NSToolbarItem.Identifier] = [
             .flexibleSpace,
             .space,
             .showColors,
@@ -697,6 +718,10 @@ extension EditorWindowController {
             Self.writingProgressToolbarItemIdentifier,
             Self.bookmarkToolbarItemIdentifier
         ]
+        for provider in FeatureProviderRegistry.shared.sidebarPaneProviders {
+            ids.append(NSToolbarItem.Identifier(provider.identifier))
+        }
+        return ids
     }
 
     func toolbarDefaultItemIdentifiers(_ toolbar: NSToolbar) -> [NSToolbarItem.Identifier] {

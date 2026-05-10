@@ -88,6 +88,26 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         return findBarViewController?.currentResult.ranges ?? []
     }
 
+    // MARK: - Sidebar Pane
+
+    /// SidebarPaneProvider が描画する左サイドバーのコンテナ。
+    /// 設置済みかは `isSidebarPaneInstalled` で判定する。
+    var sidebarPaneContainer: NSView?
+    /// 左サイドバーの幅制約。表示時は `sidebarPaneVisibleWidth`、非表示時は 0。
+    var sidebarPaneWidthConstraint: NSLayoutConstraint?
+    /// プロバイダー識別子 → 各プロバイダーのビュー（サイドバー内に縦積み）。
+    var sidebarPaneViews: [String: NSView] = [:]
+    /// プロバイダー識別子 → 各プロバイダーが生成した NSViewController（保持用）。
+    var sidebarPaneViewControllers: [String: NSViewController] = [:]
+    /// プロバイダー識別子の表示順（縦積みの上から下）。
+    var sidebarPaneOrder: [String] = []
+    /// プロバイダー識別子 → プロバイダー定義。
+    var sidebarPaneProviders: [String: SidebarPaneProvider] = [:]
+    /// 設置済みフラグ（重複インストール防止）。
+    var isSidebarPaneInstalled: Bool = false
+    /// 表示時の既定幅。
+    let sidebarPaneVisibleWidth: CGFloat = 220
+
     // MARK: - Properties
 
     var textDocument: Document? {
@@ -327,6 +347,11 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // _endTopLevelGroupings 経由で changeDone が発火して "Edited" マークがつくため、
         // 次のイベントループで UndoManager をクリアし、変更カウントもリセットする。
         (document as? Document)?.scheduleFinishInitialLoading()
+
+        // SidebarPaneProvider があれば左サイドバーを差し込む
+        // （windowDidLoad の時点では document が未関連付けの場合があるため、
+        //   Document.windowControllerDidLoadNib からも再呼出される）
+        installSidebarPaneIfNeeded()
     }
 
     override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {

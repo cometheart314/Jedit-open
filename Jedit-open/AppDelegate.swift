@@ -89,6 +89,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // Edit > Import from iPhone or iPad メニューを設定
         setupImportFromDeviceMenuItem()
 
+        // View メニューに SidebarPaneProvider の表示切替項目を追加
+        setupSidebarPaneMenuItems()
+
         // Script メニューを設定
         ScriptMenuController.shared.setupMenu()
 
@@ -614,6 +617,49 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             keyEquivalent: ""
         )
         fontSubmenu.addItem(basicFontItem)
+    }
+
+    // MARK: - Sidebar Pane Menu Items
+
+    /// View メニューに、登録された SidebarPaneProvider ごとの表示切替項目を追加する。
+    /// 表示位置: "Show Inspector Bar" の直後（区切り線を挟む）。
+    private func setupSidebarPaneMenuItems() {
+        let providers = FeatureProviderRegistry.shared.sidebarPaneProviders
+        guard !providers.isEmpty,
+              let mainMenu = NSApp.mainMenu,
+              let viewMenu = (mainMenu.item(withTitle: "View") ?? mainMenu.item(withTitle: "表示"))?.submenu else {
+            return
+        }
+
+        // "Show Inspector Bar" のインデックスを探す（見つからなければ末尾）
+        var insertIndex = viewMenu.numberOfItems
+        for i in 0..<viewMenu.numberOfItems {
+            let title = viewMenu.items[i].title
+            if title == "Show Inspector Bar" || title == "Hide Inspector Bar"
+                || title == "インスペクタバーを表示" || title == "インスペクタバーを隠す" {
+                insertIndex = i + 1
+                break
+            }
+        }
+
+        // 区切り線
+        let separator = NSMenuItem.separator()
+        viewMenu.insertItem(separator, at: insertIndex)
+        insertIndex += 1
+
+        for provider in providers {
+            let title = String(format: "Show/Hide %@".localized, provider.displayName)
+            let item = NSMenuItem(
+                title: title,
+                action: #selector(EditorWindowController.toggleSidebarPane(_:)),
+                keyEquivalent: ""
+            )
+            item.representedObject = provider.identifier
+            // target を nil にしてレスポンダチェーン経由で EditorWindowController に届ける
+            item.target = nil
+            viewMenu.insertItem(item, at: insertIndex)
+            insertIndex += 1
+        }
     }
 
     // MARK: - Import from iPhone or iPad
