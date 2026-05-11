@@ -91,8 +91,10 @@ class LinkPanelController: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         isLoaded = true
 
         // パネル設定
+        // 書類ウィンドウのシートとして提示する（Jedit Ω と同じ挙動）ので
+        // フローティングにはしない。
+        linkPanel.isFloatingPanel = false
         linkPanel.becomesKeyOnlyIfNeeded = false
-        linkPanel.level = .floating
         linkPanel.isReleasedWhenClosed = false
         linkPanel.delegate = self
 
@@ -180,19 +182,54 @@ class LinkPanelController: NSObject, NSTextFieldDelegate, NSWindowDelegate {
 
     // MARK: - Public Methods
 
-    /// パネルを表示し、現在の選択範囲の情報で初期化する
+    /// パネルを表示し、現在の選択範囲の情報で初期化する。
+    /// 書類ウィンドウのシートとして提示する（書類に従属させる）。
     func showPanel() {
         loadPanelIfNeeded()
         guard let panel = linkPanel else { return }
 
         updateFieldsFromSelection()
         updateClearButtonVisibility()
-        panel.orderFront(nil)
+
+        if let docWindow = currentDocumentWindow() {
+            // 既に同じ書類のシートとして表示済みなら何もしない
+            if panel.sheetParent === docWindow {
+                return
+            }
+            // 別の書類のシートとして表示中なら一旦閉じる
+            if let oldParent = panel.sheetParent {
+                oldParent.endSheet(panel)
+            }
+            docWindow.beginSheet(panel, completionHandler: nil)
+        } else {
+            // 書類ウィンドウが見つからない場合のフォールバック
+            panel.orderFront(nil)
+        }
     }
 
     /// パネルが表示中かどうか
     var isPanelVisible: Bool {
         return isLoaded && (linkPanel?.isVisible ?? false)
+    }
+
+    /// パネルを閉じる（シート/通常表示の両方に対応）
+    private func dismissPanel() {
+        guard isLoaded, let panel = linkPanel else { return }
+        if let parent = panel.sheetParent {
+            parent.endSheet(panel)
+        } else if panel.isVisible {
+            panel.orderOut(nil)
+        }
+    }
+
+    /// Escape キーでシートを閉じるためのレスポンダチェーン用アクション
+    @objc func cancelOperation(_ sender: Any?) {
+        dismissPanel()
+    }
+
+    /// Cancel ボタン: シートを閉じるだけ（リンクは変更しない）
+    @IBAction func cancel(_ sender: Any?) {
+        dismissPanel()
     }
 
     // MARK: - IBActions
@@ -244,7 +281,7 @@ class LinkPanelController: NSObject, NSTextFieldDelegate, NSWindowDelegate {
         }
 
         // リンク設定後にパネルを閉じる
-        linkPanel?.orderOut(nil)
+        dismissPanel()
     }
 
     /// 「Delete」ボタン: 選択範囲からリンク属性を削除する
@@ -334,6 +371,18 @@ class LinkPanelController: NSObject, NSTextFieldDelegate, NSWindowDelegate {
             if let windowController = window.windowController,
                let document = windowController.document as? Document {
                 return document
+            }
+        }
+        return nil
+    }
+
+    /// 現在のメインドキュメントのウィンドウを取得する（シート提示先）
+    private func currentDocumentWindow() -> NSWindow? {
+        for window in NSApp.orderedWindows {
+            if isLoaded && window === linkPanel { continue }
+            if window is NSPanel { continue }
+            if window.windowController?.document is Document {
+                return window
             }
         }
         return nil

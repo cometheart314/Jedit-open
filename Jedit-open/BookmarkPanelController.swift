@@ -94,7 +94,9 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
         // パネル設定
         bookmarkPanel.becomesKeyOnlyIfNeeded = false
-        bookmarkPanel.level = .floating
+        // 自アプリがアクティブな時だけ floating、非アクティブ時は normal に下げて
+        // 他アプリのウィンドウの背面に回るようにする（applicationDid{Resign,Become}Active で切替）
+        bookmarkPanel.level = NSApp.isActive ? .floating : .normal
         bookmarkPanel.isReleasedWhenClosed = false
 
         // アウトラインビュー設定
@@ -130,6 +132,22 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
             self,
             selector: #selector(documentWindowWillClose(_:)),
             name: NSWindow.willCloseNotification,
+            object: nil
+        )
+
+        // アプリのアクティブ状態に応じてパネルレベルを切り替える。
+        // active 時のみ .floating にして書類ウィンドウより上に保ち、
+        // 非 active 時は .normal に下げて他アプリのウィンドウの背面に回す。
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationDidBecomeActive(_:)),
+            name: NSApplication.didBecomeActiveNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(applicationDidResignActive(_:)),
+            name: NSApplication.didResignActiveNotification,
             object: nil
         )
     }
@@ -583,6 +601,17 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
                 reloadOutlineView(for: document)
             }
         }
+    }
+
+    /// 自アプリがアクティブになった時にパネルを再び書類ウィンドウより上に出す
+    @objc private func applicationDidBecomeActive(_ notification: Notification) {
+        bookmarkPanel?.level = .floating
+    }
+
+    /// 自アプリが非アクティブになった時にパネルを通常レベルに下げ、
+    /// 他アプリのウィンドウの背面に回るようにする
+    @objc private func applicationDidResignActive(_ notification: Notification) {
+        bookmarkPanel?.level = .normal
     }
 
     /// ドキュメントウィンドウが閉じられる時の処理
