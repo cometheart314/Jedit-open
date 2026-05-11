@@ -145,7 +145,10 @@ class PreferencesWindowController: NSWindowController {
         splitView.setPosition(240, ofDividerAt: 0)
         
         // Select first item
+        // ただし、selectCategory が外部から先に呼ばれてペインを切り替え済みなら上書きしない
+        // (例: 「設定…」メニューから特定カテゴリを指定して開いた直後)
         DispatchQueue.main.async {
+            guard self.currentViewController == nil else { return }
             self.outlineView.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
             self.showPreferencePane(at: 0)
         }
@@ -198,8 +201,15 @@ class PreferencesWindowController: NSWindowController {
     /// 指定されたidentifierのカテゴリを選択して表示
     func selectCategory(identifier: String) {
         guard let index = preferenceItems.firstIndex(where: { $0.identifier == identifier }) else { return }
-        outlineView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
-        showPreferencePane(at: index)
+        // 既に対象行が選択済みなら selectRowIndexes が delegate を発火させないため
+        // ここで明示的に showPreferencePane を呼ぶ。
+        // 行が違う場合は selectRowIndexes だけで delegate (outlineViewSelectionDidChange)
+        // 経由で showPreferencePane が呼ばれるので、ここでは二重呼び出ししない。
+        if outlineView.selectedRow == index {
+            showPreferencePane(at: index)
+        } else {
+            outlineView.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
+        }
     }
 }
 
