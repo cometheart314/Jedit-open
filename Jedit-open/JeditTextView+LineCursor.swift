@@ -127,7 +127,14 @@ extension JeditTextView {
     /// drawBackground(in:) からフックされる現在行ハイライト描画。
     /// JeditTextView.draw(_:) からも呼べるよう internal にしておく。
     @objc internal func drawLineCursorHighlight(in dirtyRect: NSRect) {
-        guard let lineRect = fullWidthLineCursorRect() else { return }
+        guard let lineRect = fullWidthLineCursorRect() else {
+            // 描画対象なし。dirtyRect が旧 highlight を完全に覆っていれば
+            // super.drawBackground が既にビットマップを消去済みなので追跡をクリア。
+            if let old = lineCursorLastDrawnRect, dirtyRect.contains(old) {
+                lineCursorLastDrawnRect = nil
+            }
+            return
+        }
         let drawRect = lineRect.intersection(dirtyRect)
         guard !drawRect.isEmpty else { return }
 
@@ -136,10 +143,26 @@ extension JeditTextView {
         let baseColor = self.insertionPointColor ?? NSColor.textColor
         baseColor.withAlphaComponent(0.10).setFill()
         drawRect.fill()
+
+        // lineRect 全体が dirtyRect でカバーされた場合は「実際にビットマップに
+        // 描かれている矩形」が確定するので追跡を更新する。スクロール等で
+        // 部分描画になった場合は、cursor 位置が変わっていない限り
+        // lineCursorLastDrawnRect は既に同じ値のはずなので、上書きしない。
+        if dirtyRect.contains(lineRect) {
+            lineCursorLastDrawnRect = lineRect
+        }
     }
 
     /// 選択変更や設定変更で「直前のハイライト矩形」と「新しいハイライト矩形」の
     /// 和集合に対して再描画を予約する。
+    ///
+    /// 旧実装は最後に `lineCursorLastDrawnRect = newRect` で無条件に更新していたが、
+    /// トラックパッドのタップ等で setSelectedRanges が一瞬 length>0 の中間状態を
+    /// 経由するケースで newRect が nil になり、ビットマップ上に残っている旧
+    /// highlight 矩形の追跡が失われていた。結果として後続 invalidate で旧位置の
+    /// クリア命令が出ず、画面に残像が累積する。
+    /// 現在は draw 側で「実際に描いた矩形」を追跡し、ここでは
+    /// `setNeedsDisplay` だけ行う。
     @objc internal func invalidateLineCursorRegion() {
         let newRect = fullWidthLineCursorRect()
 
@@ -153,7 +176,6 @@ extension JeditTextView {
         if !dirty.isEmpty {
             setNeedsDisplay(dirty)
         }
-        lineCursorLastDrawnRect = newRect
     }
 
     /// 同ウィンドウのすべての JeditTextView で invalidateLineCursorRegion を呼ぶ。
