@@ -582,3 +582,8 @@
 "Show/Hide %@" = "%@を表示・隠す";
 "Show %@" = "%@を表示";
 "Hide %@" = "%@を隠す";
+
+/* Markdown read-only edit attempt prompt */
+"Markdown documents are read-only in rich text mode." = "Markdown 書類はリッチテキストモードでは編集できません。";
+"Markdown documents are kept read-only while shown as rich text so the original Markdown source is preserved. To edit, switch to plain text." = "Markdown 書類は元のソースを保つため、リッチテキスト表示中は編集ロックされています。編集するには「プレーンテキストに切り替え」を選んでください。";
+"Switch to Plain Text" = "プレーンテキストに切り替え";
