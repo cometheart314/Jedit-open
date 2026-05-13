@@ -26,10 +26,15 @@ extension JeditTextView {
 
     /// keyDown を奪って Markdown 編集ロック状態を判定する。
     /// 編集ロック中の Markdown リッチテキストに typing 系のキー入力が来た場合のみ
-    /// アラートを表示し、それ以外は super に流す。
+    /// アラートを表示し、それ以外は Pro フックを経由して super に流す。
     override func keyDown(with event: NSEvent) {
         if shouldPromptForMarkdownReadOnlyEdit(event: event) {
             presentMarkdownReadOnlyEditPrompt()
+            return
+        }
+        // Pro 拡張: カスタムキーバインドの処理。true なら処理済みとして打ち切る。
+        if FeatureProviderRegistry.shared.editorProvider?
+            .handleTextViewKeyDown(event, in: self) == true {
             return
         }
         super.keyDown(with: event)

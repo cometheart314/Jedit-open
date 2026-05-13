@@ -48,6 +48,17 @@ protocol EditorFeatureProvider {
     func additionalMenuItems(for menu: NSMenu) -> [NSMenuItem]
     /// 追加の設定ペイン
     func additionalPreferencePanes() -> [PreferencePaneDescriptor]
+    /// JeditTextView の keyDown を Pro 側でフックする拡張点。
+    /// Pro のカスタムキーバインド設定がこの event を処理した場合は true を返し、
+    /// その場合 Open 側は super.keyDown を呼ばずに終わる。
+    /// 既定実装は false (= 何もしない)。
+    func handleTextViewKeyDown(_ event: NSEvent, in textView: NSTextView) -> Bool
+}
+
+extension EditorFeatureProvider {
+    func handleTextViewKeyDown(_ event: NSEvent, in textView: NSTextView) -> Bool {
+        return false
+    }
 }
 
 /// Pro版で追加のドキュメント機能を提供するプロトコル
