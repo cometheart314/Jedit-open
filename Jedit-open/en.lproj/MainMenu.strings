@@ -500,6 +500,9 @@
 /* Class = "NSMenuItem"; title = "Shift Left"; ObjectID = "shift-left-001"; */
 "shift-left-001.title" = "Shift Left";
 
+/* Class = "NSMenuItem"; title = "Matching Brackets"; ObjectID = "bracket-match-001"; */
+"bracket-match-001.title" = "Matching Brackets";
+
 /* Class = "NSMenuItem"; title = "Shift Right"; ObjectID = "shift-right-001"; */
 "shift-right-001.title" = "Shift Right";
 

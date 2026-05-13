@@ -254,6 +254,12 @@
                                     <action selector="shiftLeft:" target="-1" id="shift-left-act"/>
                                 </connections>
                             </menuItem>
+                            <menuItem title="Matching Brackets" identifier="menu.edit.matchingBrackets" id="bracket-match-001">
+                                <modifierMask key="keyEquivalentModifierMask"/>
+                                <connections>
+                                    <action selector="selectMatchingBrackets:" target="-1" id="bracket-match-act"/>
+                                </connections>
+                            </menuItem>
                             <menuItem isSeparatorItem="YES" id="shift-sep-002"/>
                             <menuItem title="Attach Files…" identifier="menu.edit.attachFiles" id="attach-files-001">
                                 <modifierMask key="keyEquivalentModifierMask"/>
