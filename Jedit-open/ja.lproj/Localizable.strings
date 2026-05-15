@@ -587,3 +587,9 @@
 "Markdown documents are read-only in rich text mode." = "Markdown 書類はリッチテキストモードでは編集できません。";
 "Markdown documents are kept read-only while shown as rich text so the original Markdown source is preserved. To edit, switch to plain text." = "Markdown 書類は元のソースを保つため、リッチテキスト表示中は編集ロックされています。編集するには「プレーンテキストに切り替え」を選んでください。";
 "Switch to Plain Text" = "プレーンテキストに切り替え";
+
+/* Toolbar speak (read-aloud) item */
+"Speak" = "読み上げ";
+"Stop" = "停止";
+"Start Speaking" = "読み上げを開始";
+"Stop Speaking" = "読み上げを停止";

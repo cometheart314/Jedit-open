@@ -153,6 +153,14 @@ extension EditorWindowController {
             name: NSNotification.Name("NSToolbarDidRemoveItemNotification"),
             object: toolbar
         )
+
+        // 読み上げ状態の変更に追従して Speak ツールバーアイテムの見た目を更新する。
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(speechStateDidChange(_:)),
+            name: .jeditSpeechStateDidChange,
+            object: nil
+        )
     }
 
     /// ツールバー変更時の通知ハンドラ
@@ -663,6 +671,85 @@ extension EditorWindowController {
         return item
     }
 
+    // MARK: - Speak Toolbar Item
+
+    /// 読み上げトグルツールバーアイテム。
+    /// 発話中は停止アイコン / 停止アクション、非発話中は再生アイコン / 開始アクションに切り替わる。
+    internal func createSpeakToolbarItem() -> NSToolbarItem {
+        let item = NSToolbarItem(itemIdentifier: Self.speakToolbarItemIdentifier)
+        item.paletteLabel = "Speak".localized
+        item.target = self
+        item.action = #selector(toggleSpeaking(_:))
+        applySpeakItemAppearance(item, speaking: currentTextViewIsSpeaking())
+        return item
+    }
+
+    /// 現在のテキストビューが発話中かどうか (アクティブでないテキストビューも含めて検査)。
+    /// 連続表示モードでは textView は scrollView{1,2}.documentView、
+    /// ページ表示モードでは textViews{1,2} 配列に格納される。両方をチェック。
+    private func currentTextViewIsSpeaking() -> Bool {
+        if let tv = scrollView1?.documentView as? JeditTextView, tv.isSpeechActive { return true }
+        if let tv = scrollView2?.documentView as? JeditTextView, tv.isSpeechActive { return true }
+        for tv in textViews1 where (tv as? JeditTextView)?.isSpeechActive == true { return true }
+        for tv in textViews2 where (tv as? JeditTextView)?.isSpeechActive == true { return true }
+        return false
+    }
+
+    /// 状態に応じてアイコン/ラベル/ツールチップを切り替える。
+    private func applySpeakItemAppearance(_ item: NSToolbarItem, speaking: Bool) {
+        if speaking {
+            item.label = "Stop".localized
+            item.toolTip = "Stop Speaking".localized
+            item.image = NSImage(systemSymbolName: "stop.fill",
+                                 accessibilityDescription: "Stop Speaking")
+        } else {
+            item.label = "Speak".localized
+            item.toolTip = "Start Speaking".localized
+            item.image = NSImage(systemSymbolName: "speaker.wave.2",
+                                 accessibilityDescription: "Start Speaking")
+        }
+    }
+
+    /// ツールバーアイテムから呼ばれるトグルアクション。
+    /// 現状に応じて startSpeaking: / stopSpeaking: をアクティブテキストビューに送る。
+    @IBAction func toggleSpeaking(_ sender: Any?) {
+        // 既に発話中のテキストビューがあればそれを最優先 (停止対象)。
+        // そうでなければアクティブな text view (continuous モードでは scrollView.documentView)
+        // を採用する。
+        let targetView: JeditTextView? = {
+            if let tv = scrollView1?.documentView as? JeditTextView, tv.isSpeechActive { return tv }
+            if let tv = scrollView2?.documentView as? JeditTextView, tv.isSpeechActive { return tv }
+            for tv in textViews1 where (tv as? JeditTextView)?.isSpeechActive == true {
+                return tv as? JeditTextView
+            }
+            for tv in textViews2 where (tv as? JeditTextView)?.isSpeechActive == true {
+                return tv as? JeditTextView
+            }
+            if let tv = currentTextView() as? JeditTextView { return tv }
+            if let tv = scrollView1?.documentView as? JeditTextView { return tv }
+            if let tv = scrollView2?.documentView as? JeditTextView,
+               !(scrollView2?.isHidden ?? true) { return tv }
+            for tv in textViews1 { if let jt = tv as? JeditTextView { return jt } }
+            for tv in textViews2 { if let jt = tv as? JeditTextView { return jt } }
+            return nil
+        }()
+        guard let textView = targetView else { return }
+        if textView.isSpeechActive {
+            textView.stopSpeaking(sender)
+        } else {
+            textView.startSpeaking(sender)
+        }
+    }
+
+    /// 読み上げ状態変更通知ハンドラ。ツールバー上の Speak アイテムを更新する。
+    @objc internal func speechStateDidChange(_ notification: Notification) {
+        guard let toolbar = cachedToolbar else { return }
+        let speaking = currentTextViewIsSpeaking()
+        for item in toolbar.items where item.itemIdentifier == Self.speakToolbarItemIdentifier {
+            applySpeakItemAppearance(item, speaking: speaking)
+        }
+    }
+
     // MARK: - NSToolbarDelegate
 
     func toolbar(_ toolbar: NSToolbar, itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier, willBeInsertedIntoToolbar flag: Bool) -> NSToolbarItem? {
@@ -680,6 +767,9 @@ extension EditorWindowController {
         }
         if itemIdentifier == Self.bookmarkToolbarItemIdentifier {
             return createBookmarkToolbarItem()
+        }
+        if itemIdentifier == Self.speakToolbarItemIdentifier {
+            return createSpeakToolbarItem()
         }
         // SidebarPaneProvider の識別子と一致するか確認
         if let provider = FeatureProviderRegistry.shared.sidebarPaneProviders
@@ -716,7 +806,8 @@ extension EditorWindowController {
             Self.encodingToolbarItemIdentifier,
             Self.lineEndingToolbarItemIdentifier,
             Self.writingProgressToolbarItemIdentifier,
-            Self.bookmarkToolbarItemIdentifier
+            Self.bookmarkToolbarItemIdentifier,
+            Self.speakToolbarItemIdentifier
         ]
         for provider in FeatureProviderRegistry.shared.sidebarPaneProviders {
             ids.append(NSToolbarItem.Identifier(provider.identifier))

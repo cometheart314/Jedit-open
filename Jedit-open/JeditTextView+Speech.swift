@@ -32,6 +32,13 @@ import Cocoa
 import AVFoundation
 import NaturalLanguage
 
+extension Notification.Name {
+    /// 読み上げの開始/停止のタイミングで送信される。
+    /// object には対象の JeditTextView が入る。
+    /// ツールバーの読み上げトグルアイテムが状態を更新するために購読する。
+    static let jeditSpeechStateDidChange = Notification.Name("jeditSpeechStateDidChange")
+}
+
 extension JeditTextView {
 
     // MARK: - Associated Object Keys
@@ -61,11 +68,12 @@ extension JeditTextView {
         set { objc_setAssociatedObject(self, &Self.baseLocationKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC) }
     }
 
-    /// 自前 synthesizer で現在発話中（または一時停止中）か。
-    /// メニュー検証 (validateMenuItem) から参照される。
+    /// 自前 synthesizer で読み上げセッションを所有しているか。
+    /// メニュー検証 (validateMenuItem) とツールバー Speak アイテムの状態判定から参照される。
+    /// `synth.isSpeaking` は speak() 呼出し直後ではまだ false のため、セッション所有を
+    /// 表す `speechDelegate` の存在で判定する。
     var isSpeechActive: Bool {
-        guard let synth = speechSynthesizer else { return false }
-        return synth.isSpeaking || synth.isPaused
+        return speechDelegate != nil
     }
 
     /// 現在ハイライト中の textStorage 上の単語範囲 (なければ nil)。
@@ -169,6 +177,8 @@ extension JeditTextView {
             delegate.utteranceBases[ObjectIdentifier(u)] = base
             synthesizer.speak(u)
         }
+
+        NotificationCenter.default.post(name: .jeditSpeechStateDidChange, object: self)
     }
 
     /// 段落区切りで挟む無音時間 (秒)。
@@ -194,6 +204,7 @@ extension JeditTextView {
         speechSynthesizer = nil
         speechDelegate = nil
         speechBaseLocation = 0
+        NotificationCenter.default.post(name: .jeditSpeechStateDidChange, object: self)
     }
 
     /// 発話開始時に畳んだ選択範囲を復元する (現在の選択がこちらが畳んだキャレットのままなら)。

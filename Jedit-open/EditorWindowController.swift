@@ -58,6 +58,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     static let lineEndingToolbarItemIdentifier = NSToolbarItem.Identifier("LineEndingItem")
     static let writingProgressToolbarItemIdentifier = NSToolbarItem.Identifier("WritingProgressItem")
     static let bookmarkToolbarItemIdentifier = NSToolbarItem.Identifier("BookmarkItem")
+    static let speakToolbarItemIdentifier = NSToolbarItem.Identifier("SpeakItem")
 
     // MARK: - IBOutlets
 
