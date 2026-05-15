@@ -1049,6 +1049,16 @@ class JeditTextView: NSTextView {
     override func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         let action = menuItem.action
 
+        // 読み上げ: 自前 AVSpeechSynthesizer の状態でバリデート。
+        // NSTextView 既定の stopSpeaking: は内部 NSSpeechSynthesizer を見るため、
+        // ここで明示的に上書きしないと「停止」メニューが常に disabled になる。
+        if action == #selector(stopSpeaking(_:)) {
+            return isSpeechActive
+        }
+        if action == #selector(startSpeaking(_:)) {
+            return (textStorage?.length ?? 0) > 0
+        }
+
         // スタイルメニュー項目のバリデーション
         if action == #selector(applyTextStyle(_:)) {
             return !isPlainText
@@ -1120,6 +1130,14 @@ class JeditTextView: NSTextView {
     }
 
     override func validateUserInterfaceItem(_ item: NSValidatedUserInterfaceItem) -> Bool {
+        // 読み上げ: 自前 AVSpeechSynthesizer の状態でバリデート (validateMenuItem と同じ理由)。
+        if item.action == #selector(stopSpeaking(_:)) {
+            return isSpeechActive
+        }
+        if item.action == #selector(startSpeaking(_:)) {
+            return (textStorage?.length ?? 0) > 0
+        }
+
         // リッチテキスト書類でクリップボードに画像がある場合、Pasteを有効化
         if item.action == #selector(paste(_:)) {
             if !isPlainText {
