@@ -2497,6 +2497,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // Layout orientation menu item validation
         if menuItem.action == #selector(toggleLayoutOrientation(_:)) {
             menuItem.title = isVerticalLayout ? "Make Horizontal Layout".localized : "Make Vertical Layout".localized
+            // Markdown 書類 (リッチ表示中・プレーン編集中いずれも) では縦書きを許可しない。
+            // Markdown ソース内の記号・URL は縦書きと相性が悪く、また rich/plain 切替で
+            // textStorage を差し替える際に縦書きレイアウトが破綻するため。
+            if let document = textDocument,
+               document.isMarkdownDocument
+                || (document.fileURL.map { Document.isMarkdownFile(url: $0) } ?? false) {
+                return false
+            }
         }
 
         // Line wrap mode menu items validation

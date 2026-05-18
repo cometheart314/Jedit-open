@@ -742,6 +742,16 @@ extension EditorWindowController {
         // テキストビューのリッチテキスト関連プロパティを更新
         updateForRichTextState(!isRich)
 
+        // Markdown 関連の変換 (rich↔plain どちらの方向でも) では縦書きを許可しない。
+        // 縦書きのまま textStorage を差し替えると、最初のキー入力で表示が破綻する
+        // (layoutManager が中途半端な状態のまま編集を受けるため)。
+        // 変換前に強制的に横書きへ戻し、レイアウトを確定させてから差し替えに入る。
+        if (isMarkdownToPlain || isPlainToRichMarkdown) && isVerticalLayout {
+            isVerticalLayout = false
+            applyLayoutOrientation()
+            document.presetData?.format.editingDirection = .leftToRight
+        }
+
         // Markdown → プレーン: 先に readonly を解除した上で textStorage を
         // Markdown ソースで置き換える。convertTextForRichTextState は
         // textView.shouldChangeText が真でないと属性適用をスキップしてしまうため、
