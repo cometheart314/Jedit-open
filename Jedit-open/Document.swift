@@ -765,6 +765,19 @@ class Document: NSDocument {
                 if saveOperation == .saveOperation || saveOperation == .saveAsOperation {
                     self.hasBeenUserSaved = true
                 }
+                // 縦書きの連続モードで Cmd+S 直後に textView の右半分が白紙になる
+                // 不具合の対応。保存処理 (data(ofType:) → .textLayoutSections の処理)
+                // で textContainer サイズが暗黙的に変化するが、縦書き時は
+                // ScalingScrollView の自動調整が無効化されているため
+                // frameDidChange 経由の再計算がかからない。
+                // 同期で呼ぶと AppKit のレイアウトパスがまだ走っていないため効かない。
+                // 次の runloop に遅延させて、layoutManager を強制的に
+                // 再レイアウトしてから textView frame を再計算する。
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self,
+                          let wc = self.windowControllers.first as? EditorWindowController else { return }
+                    wc.refreshTextViewLayoutAfterSave()
+                }
             } else {
                 // 保存失敗時は untitledDocumentName を復元
                 if saveOperation == .saveOperation || saveOperation == .saveAsOperation {

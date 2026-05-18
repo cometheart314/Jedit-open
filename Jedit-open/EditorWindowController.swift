@@ -1352,7 +1352,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.isHorizontallyResizable = isVerticalLayout
             textView.isVerticallyResizable = !isVerticalLayout
             textView.autoresizingMask = []
-            textView.usesInspectorBar = isInspectorBarVisible
+            // setLayoutOrientation 前に true にすると、AppKit が横書きコンテキストで
+            // インスペクターバーをインストールしてしまい、後で usesInspectorBar = false
+            // にしても外せなくなる (縦書き書類を開いた時にバーをオフにできない現象の原因)。
+            // ここでは false に保ち、setup 完了後の updateInspectorBarVisibility() で
+            // isInspectorBarVisible を反映する。
+            textView.usesInspectorBar = false
             textView.usesRuler = true
             textView.usesFindBar = false
             textView.isIncrementalSearchingEnabled = true
@@ -1476,7 +1481,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             textView.isHorizontallyResizable = isVerticalLayout
             textView.isVerticallyResizable = !isVerticalLayout
             textView.autoresizingMask = []
-            textView.usesInspectorBar = isInspectorBarVisible
+            // setLayoutOrientation 前に true にすると、AppKit が横書きコンテキストで
+            // インスペクターバーをインストールしてしまい、後で usesInspectorBar = false
+            // にしても外せなくなる (縦書き書類を開いた時にバーをオフにできない現象の原因)。
+            // ここでは false に保ち、setup 完了後の updateInspectorBarVisibility() で
+            // isInspectorBarVisible を反映する。
+            textView.usesInspectorBar = false
             textView.usesRuler = true
             textView.usesFindBar = false
             textView.isIncrementalSearchingEnabled = true
@@ -2071,7 +2081,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             }
             textView.minSize = NSSize(width: 0, height: 0)
             textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
-            textView.usesInspectorBar = isInspectorBarVisible
+            // setLayoutOrientation 前に true にすると、AppKit が横書きコンテキストで
+            // インスペクターバーをインストールしてしまい、後で usesInspectorBar = false
+            // にしても外せなくなる (縦書き書類を開いた時にバーをオフにできない現象の原因)。
+            // ここでは false に保ち、setup 完了後の updateInspectorBarVisibility() で
+            // isInspectorBarVisible を反映する。
+            textView.usesInspectorBar = false
             textView.usesRuler = true
             textView.usesFindBar = false
             textView.isIncrementalSearchingEnabled = true
@@ -2165,6 +2180,36 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         guard let clipView = notification.object as? NSClipView,
               let scrollView = clipView.enclosingScrollView else { return }
         updateTextViewSize(for: scrollView)
+    }
+
+    /// 保存処理後にレイアウトを修復する。
+    /// 縦書きの連続モードで Cmd+S 直後、textView の右半分 (= 古い表示領域側) が
+    /// 白紙になる現象に対応。updateTextViewSize は `max(textView.frame.width, ...)`
+    /// で縮みを防ぐ設計なので、保存時に layoutManager 側の状態が変わって textView が
+    /// 描画されなくなったケースを単独では救えない。
+    /// ウィンドウリサイズで直る = AppKit のレイアウトパスが走れば直るため、
+    /// 同等の効果を得るために layoutManager を明示的に再レイアウトしてから
+    /// textView を再描画する。layout 再計算でスクロール位置がリセットされるのを
+    /// 防ぐため、ここで明示的に保存・復元する。
+    func refreshTextViewLayoutAfterSave() {
+        let scrollViews = [scrollView1, scrollView2].compactMap { $0 }
+        for scrollView in scrollViews where !scrollView.isHidden {
+            let savedOrigin = scrollView.contentView.bounds.origin
+            updateTextViewSize(for: scrollView)
+            guard let textView = scrollView.documentView as? NSTextView,
+                  let layoutManager = textView.layoutManager,
+                  let textContainer = textView.textContainer else { continue }
+            // 全レイアウトを無効化 → ensure で再計算 → textView を再描画
+            let fullRange = NSRange(location: 0, length: layoutManager.numberOfGlyphs)
+            layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+            layoutManager.invalidateDisplay(forCharacterRange: fullRange)
+            layoutManager.ensureLayout(for: textContainer)
+            textView.needsDisplay = true
+            scrollView.contentView.needsDisplay = true
+            // スクロール位置を復元
+            scrollView.contentView.scroll(to: savedOrigin)
+            scrollView.reflectScrolledClipView(scrollView.contentView)
+        }
     }
 
     func updateTextViewSize(for scrollView: NSScrollView) {
