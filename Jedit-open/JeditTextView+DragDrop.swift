@@ -849,6 +849,19 @@ extension JeditTextView {
     override func paste(_ sender: Any?) {
         let pasteboard = NSPasteboard.general
 
+        #if JEDIT_PRO
+        // 青空文庫ルビ記法のペースト後パース用に、ペースト前の選択範囲と
+        // textStorage 長さを記録する。defer は宣言順の逆に発火するため、
+        // Smart Language Separation の defer より「後 (= 先に宣言した方が後)」
+        // にこの defer を置けば、テキスト編集が完了した状態で hook が走る。
+        let rubyPrePasteRange = selectedRange()
+        let rubyPrePasteLength = textStorage?.length ?? 0
+        defer {
+            handleRubyParseAfterPaste(preRange: rubyPrePasteRange,
+                                       oldLength: rubyPrePasteLength)
+        }
+        #endif
+
         // Smart Language Separation のペースト中フラグを設定
         smartLanguageSeparation?.isPasting = true
         defer {
