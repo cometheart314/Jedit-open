@@ -1187,6 +1187,20 @@ class Document: NSDocument {
                 self.hasBeenUserSaved = true
             }
         }
+
+        #if JEDIT_PRO
+        // 青空文庫記法のルビ (`漢字《かんじ》` / `|親文字《ルビ》`) をパースして
+        // rubyAnnotation 属性に変換する。Markdown/インポート書類はスキップ。
+        MainActor.assumeIsolated {
+            guard !self.isMarkdownDocument, !self.isImportedDocument else { return }
+            switch self.documentType {
+            case .plain, .rtf, .rtfd:
+                AozoraRubyParser.applyAnnotations(to: self.textStorage)
+            default:
+                break
+            }
+        }
+        #endif
     }
 
     // MARK: - Word / OpenDocument Support

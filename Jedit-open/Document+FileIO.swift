@@ -197,7 +197,16 @@ extension Document {
             // RTFD 保存前にアンカー属性をリンク属性に変換
             let savedAnchorData = convertAnchorsToLinksForSave()
 
-            guard let fileWrapper = textStorage.rtfdFileWrapper(from: range, documentAttributes: documentAttributes) else {
+            #if JEDIT_PRO
+            // rubyAnnotation 属性を青空文庫記法に展開してから RTFD 化する (クローンに対して展開)。
+            let storageForSave = NSMutableAttributedString(attributedString: textStorage)
+            AozoraRubyParser.embedAnnotationsAsAozora(in: storageForSave)
+            let saveRange = NSRange(location: 0, length: storageForSave.length)
+            let fileWrapperOpt = storageForSave.rtfdFileWrapper(from: saveRange, documentAttributes: documentAttributes)
+            #else
+            let fileWrapperOpt = textStorage.rtfdFileWrapper(from: range, documentAttributes: documentAttributes)
+            #endif
+            guard let fileWrapper = fileWrapperOpt else {
                 // エラー時も復元
                 restoreAnchorsAfterSave(savedAnchorData)
                 throw NSError(domain: NSOSStatusErrorDomain, code: unimpErr, userInfo: [
@@ -551,7 +560,16 @@ extension Document {
             let savedAnchorData = convertAnchorsToLinksForSave()
 
             do {
+                #if JEDIT_PRO
+                // rubyAnnotation 属性を青空文庫記法に展開してから RTF/RTFD 化する。
+                // 元の textStorage は変更しない (クローンに対して展開)。
+                let storageForSave = NSMutableAttributedString(attributedString: textStorage)
+                AozoraRubyParser.embedAnnotationsAsAozora(in: storageForSave)
+                let saveRange = NSRange(location: 0, length: storageForSave.length)
+                let data = try storageForSave.data(from: saveRange, documentAttributes: options)
+                #else
                 let data = try textStorage.data(from: range, documentAttributes: options)
+                #endif
                 // 保存後にリンク属性をアンカー属性に復元
                 restoreAnchorsAfterSave(savedAnchorData)
                 return data
@@ -622,7 +640,14 @@ extension Document {
         }
 
         // 4. テキストを取得し、改行コードを変換
+        #if JEDIT_PRO
+        // rubyAnnotation 属性を青空文庫記法に展開してから保存する。
+        let storageForSave = NSMutableAttributedString(attributedString: textStorage)
+        AozoraRubyParser.embedAnnotationsAsAozora(in: storageForSave)
+        var string = storageForSave.string
+        #else
         var string = textStorage.string
+        #endif
         string = convertLineEndings(in: string, to: saveLineEnding)
 
         // 4.5. 保存時のエンコーディング変換（読み込み時の逆変換）
