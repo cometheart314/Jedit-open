@@ -44,6 +44,8 @@ class GeneralPreferencesViewController: NSViewController {
     @IBOutlet weak var openMarkdownAsPlainTextCheckBox: NSButton!
     @IBOutlet weak var useSaveAsCheckBox: NSButton!
     @IBOutlet weak var lineCursorCheckBox: NSButton!
+    /// 青空文庫ルビ記法のパース ON/OFF (Pro 専用)
+    @IBOutlet weak var parseAozoraRubyCheckBox: NSButton!
 
     // Text Editing Options
     @IBOutlet weak var checkSpellingAsYouTypeCheckBox: NSButton!
@@ -145,6 +147,16 @@ class GeneralPreferencesViewController: NSViewController {
         // Line Cursor
         let lineCursor = defaults.bool(forKey: UserDefaults.Keys.lineCursorEnabled)
         lineCursorCheckBox?.state = lineCursor ? .on : .off
+
+        // 青空文庫ルビ記法のパース (Pro 専用機能)
+        // UserDefaults キーは Pro の AozoraRubyParser.isEnabledUserDefaultsKey と一致
+        // させる: "JeditPro.ParseAozoraRuby"
+        let parseAozoraRuby = defaults.bool(forKey: "JeditPro.ParseAozoraRuby")
+        parseAozoraRubyCheckBox?.state = parseAozoraRuby ? .on : .off
+        #if !JEDIT_PRO
+        // Open ビルドではこの機能はパーサーが無効なので、UI を隠して混乱を避ける。
+        parseAozoraRubyCheckBox?.isHidden = true
+        #endif
 
         // Auto Start at Login
         let autoStart = defaults.bool(forKey: UserDefaults.Keys.autoStartOption)
@@ -372,6 +384,31 @@ class GeneralPreferencesViewController: NSViewController {
         defaults.set(isOn, forKey: UserDefaults.Keys.lineCursorEnabled)
         // 開いているすべてのテキストビューを再描画させる。
         NotificationCenter.default.post(name: .lineCursorPreferenceDidChange, object: nil)
+    }
+
+    /// 青空文庫ルビ記法のパース ON/OFF (Pro 専用機能)
+    /// 設定は次に開く書類から有効化/無効化される (開いている書類は触らない)。
+    @IBAction func parseAozoraRubyClicked(_ sender: Any) {
+        guard let button = sender as? NSButton else { return }
+        let isOn = button.state == .on
+        defaults.set(isOn, forKey: "JeditPro.ParseAozoraRuby")
+
+        // 設定変更を反映するには書類を開き直す必要がある旨をアラートで案内する。
+        let alert = NSAlert()
+        alert.alertStyle = .informational
+        if isOn {
+            alert.messageText = NSLocalizedString("Aozora ruby parsing enabled", comment: "")
+            alert.informativeText = NSLocalizedString("Plain text and RTF documents opened from now on will have Aozora ruby notation (《》, |, ｜) parsed. Documents already open are not affected; reopen them to apply.", comment: "")
+        } else {
+            alert.messageText = NSLocalizedString("Aozora ruby parsing disabled", comment: "")
+            alert.informativeText = NSLocalizedString("Aozora ruby notation will be treated as literal text in documents opened from now on. Documents already open are not affected.", comment: "")
+        }
+        alert.addButton(withTitle: NSLocalizedString("OK", comment: ""))
+        if let window = self.view.window {
+            alert.beginSheetModal(for: window, completionHandler: nil)
+        } else {
+            alert.runModal()
+        }
     }
 
     // MARK: - Revert to Defaults Actions

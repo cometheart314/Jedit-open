@@ -46,6 +46,9 @@
 /* Class = "NSButtonCell"; title = "Show line cursor (highlight current line)"; ObjectID = "cel-linecur-001"; */
 "cel-linecur-001.title" = "ラインカーソルを表示 (現在行をハイライト)";
 
+/* Class = "NSButtonCell"; title = "Parse Aozora ruby notation (《》, ｜) in plain text and RTF"; ObjectID = "cel-aozora-ruby-001"; */
+"cel-aozora-ruby-001.title" = "プレーンテキストと RTF で青空文庫ルビ記法 (《》, ｜) をパースする";
+
 /* Class = "NSButtonCell"; title = "Smart quotes"; ObjectID = "cel-quot-001"; */
 "cel-quot-001.title" = "スマート引用符";
 
