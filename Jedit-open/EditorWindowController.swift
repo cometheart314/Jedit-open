@@ -1307,6 +1307,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             guard let textStorage = textStorage else { return }
             RubyEditingHints.shared.applyAll(in: textStorage)
         }
+
+        // 縦書きビューでルビツールチップを縦に積むため、delegate を割り当てる
+        // (Phase 4 拡張)。NSTextView の delegate は weak 参照、シングルトンは
+        // 強保持で安全。現状 JeditTextView の delegate は未設定なので衝突なし。
+        for tv in textViews1 { tv.delegate = RubyTooltipDelegate.shared }
+        for tv in textViews2 { tv.delegate = RubyTooltipDelegate.shared }
+        if let tv = scrollView1?.documentView as? NSTextView { tv.delegate = RubyTooltipDelegate.shared }
+        if let tv = scrollView2?.documentView as? NSTextView { tv.delegate = RubyTooltipDelegate.shared }
         #endif
     }
 
