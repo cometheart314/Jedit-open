@@ -380,6 +380,16 @@ class PrintPageView: NSView {
                 layoutManager.drawBackground(forGlyphRange: glyphRange, at: textOrigin)
                 layoutManager.drawGlyphs(forGlyphRange: glyphRange, at: textOrigin)
 
+                #if JEDIT_PRO
+                // ルビ描画 (Phase 5 後半 Step 1 は縦書きを未対応にしているので
+                // ここでは何もしない。Step 2 で縦書きを実装する際に有効化する)
+                RubyPrintRenderer.drawRubyAnnotations(
+                    in: glyphRange,
+                    layoutManager: layoutManager,
+                    textOrigin: textOrigin,
+                    isVertical: true)
+                #endif
+
                 NSGraphicsContext.current?.restoreGraphicsState()
 
                 // 2. 添付画像を復元
@@ -392,6 +402,17 @@ class PrintPageView: NSView {
                 let textOrigin = NSPoint(x: docRect.minX - padding, y: docRect.minY - padding)
                 layoutManager.drawBackground(forGlyphRange: glyphRange, at: textOrigin)
                 layoutManager.drawGlyphs(forGlyphRange: glyphRange, at: textOrigin)
+
+                #if JEDIT_PRO
+                // ルビを親文字の上に重ね描き (Phase 5 後半 Step 1)。
+                // rubyAnnotation 属性が無い書類では enumerateAttribute が
+                // 空ループになるだけで、印刷出力は従来と同一。
+                RubyPrintRenderer.drawRubyAnnotations(
+                    in: glyphRange,
+                    layoutManager: layoutManager,
+                    textOrigin: textOrigin,
+                    isVertical: false)
+                #endif
             }
         }
 
