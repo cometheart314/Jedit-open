@@ -1292,6 +1292,22 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // テキスト編集設定を適用
         applyTextEditingPreferences()
+
+        #if JEDIT_PRO
+        // ルビ親文字に下線ヒントを引く (Phase 4)。setupTextViews で
+        // layoutManager が付け替えられた直後はヒントが消えているため、
+        // 全文を走査して temporary attribute を再構築する。
+        // (以降の編集は RubyEditingHints.shared が
+        //  NSTextStorage.didProcessEditingNotification 経由で自動追随)
+        //
+        // ウィンドウ初回 layout pass のさなかに addTemporaryAttribute を呼ぶと
+        // 再入で例外 (NSInternalInconsistencyException) が出てクラッシュする
+        // ことがあったため、次の runloop に逃がす。
+        DispatchQueue.main.async { [weak textStorage] in
+            guard let textStorage = textStorage else { return }
+            RubyEditingHints.shared.applyAll(in: textStorage)
+        }
+        #endif
     }
 
     private func setupContinuousMode(with textStorage: NSTextStorage) {
