@@ -1293,29 +1293,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // テキスト編集設定を適用
         applyTextEditingPreferences()
 
-        #if JEDIT_PRO
-        // ルビ親文字に下線ヒントを引く (Phase 4)。setupTextViews で
-        // layoutManager が付け替えられた直後はヒントが消えているため、
-        // 全文を走査して temporary attribute を再構築する。
-        // (以降の編集は RubyEditingHints.shared が
-        //  NSTextStorage.didProcessEditingNotification 経由で自動追随)
-        //
-        // ウィンドウ初回 layout pass のさなかに addTemporaryAttribute を呼ぶと
-        // 再入で例外 (NSInternalInconsistencyException) が出てクラッシュする
-        // ことがあったため、次の runloop に逃がす。
-        DispatchQueue.main.async { [weak textStorage] in
-            guard let textStorage = textStorage else { return }
-            RubyEditingHints.shared.applyAll(in: textStorage)
-        }
-
-        // 縦書きビューでルビツールチップを縦に積むため、delegate を割り当てる
-        // (Phase 4 拡張)。NSTextView の delegate は weak 参照、シングルトンは
-        // 強保持で安全。現状 JeditTextView の delegate は未設定なので衝突なし。
-        for tv in textViews1 { tv.delegate = RubyTooltipDelegate.shared }
-        for tv in textViews2 { tv.delegate = RubyTooltipDelegate.shared }
-        if let tv = scrollView1?.documentView as? NSTextView { tv.delegate = RubyTooltipDelegate.shared }
-        if let tv = scrollView2?.documentView as? NSTextView { tv.delegate = RubyTooltipDelegate.shared }
-        #endif
     }
 
     private func setupContinuousMode(with textStorage: NSTextStorage) {
