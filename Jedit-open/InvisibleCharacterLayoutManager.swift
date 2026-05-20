@@ -45,6 +45,16 @@ struct InvisibleCharacterOptions: OptionSet {
 /// 不可視文字を描画するカスタムLayoutManager
 class InvisibleCharacterLayoutManager: NSLayoutManager {
 
+    // MARK: - Factory hook
+
+    /// エディタが新規 LayoutManager を作るときに呼ばれるファクトリ。
+    /// Pro ビルドが起動時 (registerProFeatures) に派生クラス (RubyLayoutManager) を
+    /// 返すように差し替える。Open ビルドではこの既定値のまま使われる。
+    /// 印刷用 (PrintPageView) ではこのフックは経由せず、直接インスタンス化する。
+    static var editorFactory: () -> InvisibleCharacterLayoutManager = {
+        InvisibleCharacterLayoutManager()
+    }
+
     // MARK: - Properties
 
     /// 表示する不可視文字のオプション

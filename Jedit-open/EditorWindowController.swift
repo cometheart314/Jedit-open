@@ -1325,9 +1325,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let numberOfViews = visibleSubviews.count
 
         // 必要な数のLayoutManagerを作成（不可視文字表示対応）
+        // editorFactory 経由で Pro ビルドでは RubyLayoutManager を返す。
         var layoutManagers: [InvisibleCharacterLayoutManager] = []
         for _ in 0..<numberOfViews {
-            let layoutManager = InvisibleCharacterLayoutManager()
+            let layoutManager = InvisibleCharacterLayoutManager.editorFactory()
             layoutManager.invisibleCharacterOptions = invisibleCharacterOptions
             layoutManager.allowsNonContiguousLayout = true
             textStorage.addLayoutManager(layoutManager)
@@ -1820,9 +1821,10 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         let estimatedPages = max(1, (textStorage.length + charsPerPage - 1) / charsPerPage)
 
         // 必要な数のLayoutManagerを作成（不可視文字表示対応）
+        // editorFactory 経由で Pro ビルドでは RubyLayoutManager を返す。
         var layoutManagers: [InvisibleCharacterLayoutManager] = []
         for _ in 0..<numberOfViews {
-            let layoutManager = InvisibleCharacterLayoutManager()
+            let layoutManager = InvisibleCharacterLayoutManager.editorFactory()
             layoutManager.invisibleCharacterOptions = invisibleCharacterOptions
             // 非連続レイアウトを有効にしてパフォーマンス向上
             layoutManager.allowsNonContiguousLayout = true
