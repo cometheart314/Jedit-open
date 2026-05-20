@@ -409,6 +409,42 @@ class JeditTextView: NSTextView {
         suppressScrollRangeToVisible = false
     }
 
+    /// 指定位置 (キャレット位置) が visibleRect 内に見えているかを判定する。
+    /// `scrollRangeToVisible` の length=0 ガード、および `scrollToVisible(_:)` の
+    /// IME / ルーラー自動補正抑制で共有する。
+    ///
+    /// - 縦書きでは `boundingRect(forGlyphRange: length=0)` が `width=0, height=行高さ` の細い rect を返すため、
+    ///   `NSRect.isEmpty` (片軸 0 で true) ではガードが効かない。width/height 両方が 0 のときだけ無効とみなす。
+    /// - origin 1 点でなく rect 全体と visibleRect の軸別重なりで判定する。
+    ///   `NSRect.intersects` は片軸 0 の rect で false を返すため使わない。
+    private func isLocationAlreadyVisible(_ location: Int) -> Bool {
+        guard let layoutManager = layoutManager, let textContainer = textContainer else {
+            return false
+        }
+        let glyphCount = layoutManager.numberOfGlyphs
+        let clamped = min(location, glyphCount)
+        let endRect: NSRect
+        if clamped < glyphCount {
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: NSRange(location: clamped, length: 0),
+                actualCharacterRange: nil
+            )
+            endRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+        } else {
+            endRect = layoutManager.extraLineFragmentRect
+        }
+        let hasArea = endRect.width > 0 || endRect.height > 0
+        guard hasArea else { return false }
+        let cursorRect = endRect.offsetBy(dx: textContainerOrigin.x, dy: textContainerOrigin.y)
+        // ズーム時のサブピクセル座標精度問題に対応するため、visibleRect に少しマージンを持たせる
+        let marginedVisibleRect = visibleRect.insetBy(dx: -2, dy: -2)
+        let xOverlap = cursorRect.maxX >= marginedVisibleRect.minX
+            && cursorRect.minX <= marginedVisibleRect.maxX
+        let yOverlap = cursorRect.maxY >= marginedVisibleRect.minY
+            && cursorRect.minY <= marginedVisibleRect.maxY
+        return xOverlap && yOverlap
+    }
+
     override func scrollRangeToVisible(_ range: NSRange) {
         if suppressScrollRangeToVisible { return }
         // レイアウト中の再帰呼び出しを防止（テーブル挿入後のペースト等で
@@ -416,50 +452,34 @@ class JeditTextView: NSTextView {
         // 無限ループが発生する問題を回避）
         if isInsideScrollRangeToVisible { return }
 
-        // rangeの末尾（＝操作後のカーソル位置）が既にvisibleRect内に見えている
-        // 場合のみ不要なスクロールを抑制する。NSTextViewのinsertText等が内部的に
-        // scrollRangeToVisibleを呼ぶが、カーソルが見えているのに強制スクロールが
-        // 発生する問題を防止する。
-        // ペースト等でrangeの末尾がウィンドウ外に出る場合はスクロールを実行する。
-        if let layoutManager = layoutManager, let textContainer = textContainer {
-            let glyphCount = layoutManager.numberOfGlyphs
-            let endLocation = min(range.location + range.length, glyphCount)
-
-            var endRect: NSRect
-            if endLocation < glyphCount {
-                let endGlyphRange = layoutManager.glyphRange(
-                    forCharacterRange: NSRange(location: endLocation, length: 0),
-                    actualCharacterRange: nil
-                )
-                endRect = layoutManager.boundingRect(
-                    forGlyphRange: endGlyphRange, in: textContainer
-                )
-            } else {
-                // 文書末尾の場合: boundingRectが空rectを返す可能性があるため
-                // extraLineFragmentRectを使用してカーソル位置を正確に取得
-                endRect = layoutManager.extraLineFragmentRect
-            }
-
-            // endRectが有効（非空）な場合のみ可視チェックを行う
-            // 空の場合はガードをスキップしてsuper実行（安全側に倒す）
-            if !endRect.isEmpty {
-                // textContainerOriginを加算してビュー座標に変換
-                let endCursorRect = endRect.offsetBy(
-                    dx: textContainerOrigin.x,
-                    dy: textContainerOrigin.y
-                )
-                // ズーム時のサブピクセル座標精度問題に対応するため、
-                // visibleRectに少しマージンを持たせる
-                let marginedVisibleRect = visibleRect.insetBy(dx: -2, dy: -2)
-                if marginedVisibleRect.contains(endCursorRect.origin) {
-                    return
-                }
-            }
+        // length == 0 の単独キャレット位置スクロール要求 (NSTextView の insertText 等が
+        // 内部的に呼ぶもの) のみ、キャレットが既に見えていればガードする。
+        // length > 0 はペースト範囲全体や検索ヒット範囲を見せるための正当な要求なので
+        // 末尾だけ可視でも先頭側が画面外でありうる。常に super に渡す。
+        if range.length == 0, isLocationAlreadyVisible(range.location) {
+            return
         }
 
         isInsideScrollRangeToVisible = true
         super.scrollRangeToVisible(range)
         isInsideScrollRangeToVisible = false
+    }
+
+    /// ルーラー描画 → `textContainerOrigin` → `usedRectForTextContainer` →
+    /// `_resizeTextViewForTextContainer:` のパスで AppKit が自動的にこのメソッドを呼び、
+    /// 入力毎に画面が勝手にスクロールする (特に日本語 IME 入力中、縦書きで顕著)。
+    /// キャレットが既に画面内なら不要な自動補正とみなして抑制する。
+    override func scrollToVisible(_ rect: NSRect) -> Bool {
+        // scrollRangeToVisible(length>0) の内部処理由来 (super.scrollRangeToVisible の
+        // 中から呼ばれる) は通す。これがペースト範囲を見せる本来のスクロールを担う。
+        if isInsideScrollRangeToVisible {
+            return super.scrollToVisible(rect)
+        }
+        let selection = selectedRange()
+        if selection.length == 0, isLocationAlreadyVisible(selection.location) {
+            return false
+        }
+        return super.scrollToVisible(rect)
     }
 
     /// 指定座標にあるNSTextAttachmentを取得
