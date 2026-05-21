@@ -876,6 +876,54 @@ extension EditorWindowController {
         }
     }
 
+    /// 「複製して別の書類で編集」: 現在のインポート書類を複製し、新しい書類を
+    /// 編集可能状態で開く。Word/ODT 書類の編集ロック中キー入力プロンプトから呼ばれる。
+    ///
+    /// `Document.duplicate()` は元書類の presetData をコピーする（`preventEditing = true`
+    /// を含む）ため、複製後に明示的に解除して編集可能にする。
+    /// また、複製は untitled になりタイトルが「名称未設定（名称未設定）」のように
+    /// 紛らわしくなるので、「元書類名のコピー」を明示的に設定する。
+    func duplicateImportedDocumentForEditing() {
+        guard let doc = textDocument else { return }
+
+        // 元書類名を複製前に取得 (Word/ODT の場合は fileURL ベースの基本名)
+        let sourceBaseName: String = {
+            if let url = doc.fileURL {
+                return url.deletingPathExtension().lastPathComponent
+            }
+            if let name = doc.displayName, !name.isEmpty {
+                return name
+            }
+            return "Untitled".localized
+        }()
+
+        let newDoc: NSDocument
+        do {
+            newDoc = try doc.duplicate()
+        } catch {
+            NSApp.presentError(error)
+            return
+        }
+        guard let newDocument = newDoc as? Document else { return }
+
+        // 複製は素の RTF として開く: 互換インポートフラグと編集ロックを解除
+        newDocument.isImportedDocument = false
+        newDocument.presetData?.view.preventEditing = false
+
+        for wc in newDocument.windowControllers {
+            if let editorWC = wc as? EditorWindowController {
+                editorWC.setAllTextViewsEditable(true)
+            }
+        }
+
+        // タイトルを「元書類名のコピー」(Finder と同じ) に上書きする
+        let duplicateName = String(format: "%@ copy".localized, sourceBaseName)
+        newDocument.untitledDocumentName = duplicateName
+        for wc in newDocument.windowControllers {
+            wc.synchronizeWindowTitleWithDocumentName()
+        }
+    }
+
     /// 編集ロック状態を実際に変更する
     internal func performSetPreventEditing(editable: Bool) {
         var views: [NSTextView] = []

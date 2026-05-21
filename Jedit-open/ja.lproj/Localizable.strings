@@ -588,6 +588,12 @@
 "Markdown documents are kept read-only while shown as rich text so the original Markdown source is preserved. To edit, switch to plain text." = "Markdown 書類は元のソースを保つため、リッチテキスト表示中は編集ロックされています。編集するには「プレーンテキストに切り替え」を選んでください。";
 "Switch to Plain Text" = "プレーンテキストに切り替え";
 
+/* Imported (Word/ODT) read-only edit attempt prompt */
+"This document is read-only." = "この書類は書き込み禁止です。";
+"Unlock and Edit" = "書き込み禁止を解除して編集";
+"Duplicate and Edit in New Document" = "複製して別の書類で編集";
+"%@ copy" = "%@のコピー";
+
 /* Toolbar speak (read-aloud) item */
 "Speak" = "読み上げ";
 "Stop" = "停止";
