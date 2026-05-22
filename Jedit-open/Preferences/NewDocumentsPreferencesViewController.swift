@@ -1155,15 +1155,13 @@ extension NewDocumentsPreferencesViewController: NSTableViewDelegate {
         let cellIdentifier = NSUserInterfaceItemIdentifier("PresetCell")
         var cellView = tableView.makeView(withIdentifier: cellIdentifier, owner: self) as? NSTableCellView
 
+        // 以前は組み込みプリセット (preset.isBuiltIn) を示すため lock.fill アイコンを
+        // 表示していたが、「プリセットの内容自体がロックされている」と誤解されやすい
+        // フィードバックを受けてアイコンと余白ごと除去した。組み込みかどうかは
+        // Edit/Remove ボタンの有効状態と、テーブル下のセパレータで区別される。
         if cellView == nil {
             cellView = NSTableCellView()
             cellView?.identifier = cellIdentifier
-
-            let imageView = NSImageView()
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            imageView.imageScaling = .scaleProportionallyDown
-            cellView?.addSubview(imageView)
-            cellView?.imageView = imageView
 
             let textField = NSTextField(labelWithString: "")
             textField.translatesAutoresizingMaskIntoConstraints = false
@@ -1171,26 +1169,13 @@ extension NewDocumentsPreferencesViewController: NSTableViewDelegate {
             cellView?.textField = textField
 
             NSLayoutConstraint.activate([
-                imageView.leadingAnchor.constraint(equalTo: cellView!.leadingAnchor, constant: 4),
-                imageView.centerYAnchor.constraint(equalTo: cellView!.centerYAnchor),
-                imageView.widthAnchor.constraint(equalToConstant: 14),
-                imageView.heightAnchor.constraint(equalToConstant: 14),
-                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 3),
+                textField.leadingAnchor.constraint(equalTo: cellView!.leadingAnchor, constant: 4),
                 textField.trailingAnchor.constraint(equalTo: cellView!.trailingAnchor, constant: -4),
                 textField.centerYAnchor.constraint(equalTo: cellView!.centerYAnchor)
             ])
         }
 
         cellView?.textField?.stringValue = preset.displayName
-
-        if preset.isBuiltIn {
-            cellView?.imageView?.image = NSImage(systemSymbolName: "lock.fill", accessibilityDescription: "Built-in")
-            cellView?.imageView?.contentTintColor = .secondaryLabelColor
-            cellView?.imageView?.isHidden = false
-        } else {
-            cellView?.imageView?.image = nil
-            cellView?.imageView?.isHidden = true
-        }
 
         return cellView
     }
