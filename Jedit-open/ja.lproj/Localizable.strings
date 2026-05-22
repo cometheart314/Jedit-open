@@ -599,10 +599,3 @@
 "Stop" = "停止";
 "Start Speaking" = "読み上げを開始";
 "Stop Speaking" = "読み上げを停止";
-
-/* General Preferences - Advanced - Aozora ruby parsing (Pro feature) */
-"Parse Aozora ruby notation (《》, ｜) in plain text and RTF" = "プレーンテキストと RTF で青空文庫ルビ記法 (《》, ｜) をパースする";
-"Aozora ruby parsing enabled" = "青空文庫ルビ記法のパースを有効化しました";
-"Aozora ruby parsing disabled" = "青空文庫ルビ記法のパースを無効化しました";
-"Plain text and RTF documents opened from now on will have Aozora ruby notation (《》, |, ｜) parsed. Documents already open are not affected; reopen them to apply." = "以降に開くプレーンテキスト・RTF 書類で青空文庫ルビ記法 (《》, |, ｜) が解釈されます。すでに開いている書類は影響を受けません。反映するには書類を開き直してください。";
-"Aozora ruby notation will be treated as literal text in documents opened from now on. Documents already open are not affected." = "以降に開く書類では青空文庫ルビ記法は通常の文字として扱われます。すでに開いている書類は影響を受けません。";

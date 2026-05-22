@@ -16,7 +16,6 @@
                 <outlet property="dateFormatField" destination="VTJ-q7-DRs" id="dff-out-con"/>
                 <outlet property="dateFormatPopupButton" destination="juc-dQ-EgR" id="dfp-out-con"/>
                 <outlet property="openMarkdownAsPlainTextCheckBox" destination="chk-md-plain-001" id="out-md-plain-001"/>
-                <outlet property="parseAozoraRubyCheckBox" destination="chk-aozora-ruby-001" id="out-aozora-ruby-001"/>
                 <outlet property="useSaveAsCheckBox" destination="chk-saveas-001" id="out-saveas-001"/>
                 <outlet property="lineCursorCheckBox" destination="chk-linecur-001" id="out-linecur-001"/>
                 <outlet property="richTextAlwaysUsesLightModeCheckBox" destination="chk-rtlm-001" id="out-rtlm-001"/>
@@ -406,17 +405,6 @@
                                         </buttonCell>
                                         <connections>
                                             <action selector="lineCursorClicked:" target="-2" id="act-linecur-001"/>
-                                        </connections>
-                                    </button>
-                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="chk-aozora-ruby-001">
-                                        <rect key="frame" x="18" y="262" width="500" height="18"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <buttonCell key="cell" type="check" title="Parse Aozora ruby notation (《》, ｜) in plain text and RTF" bezelStyle="regularSquare" imagePosition="left" inset="2" id="cel-aozora-ruby-001">
-                                            <behavior key="behavior" changeContents="YES" doesNotDimImage="YES" lightByContents="YES"/>
-                                            <font key="font" metaFont="system"/>
-                                        </buttonCell>
-                                        <connections>
-                                            <action selector="parseAozoraRubyClicked:" target="-2" id="act-aozora-ruby-001"/>
                                         </connections>
                                     </button>
                                     <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="btn-export-all">
