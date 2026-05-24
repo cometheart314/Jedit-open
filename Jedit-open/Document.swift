@@ -752,11 +752,19 @@ class Document: NSDocument {
             }
 
             if error == nil {
-                // 保存成功後にプリセットデータを拡張属性に書き込む
-                // NSDocument の内部処理（autosave 一時ファイルのクリーンアップ等）との
-                // ファイルシステム競合を避けるため、実際の fileURL に対して書き込む
-                if let actualURL = self.fileURL {
-                    self.writePresetDataToExtendedAttribute(at: actualURL)
+                // 保存成功後にプリセットデータを拡張属性に書き込む。
+                // - 通常の保存 / Save As / autosaveInPlace: self.fileURL に書き込む
+                //   (super.save の内部で一時ファイル → final URL への atomic rename が
+                //    完了しているため、final URL に xattr を載せて安全)
+                // - autosaveElsewhere (未保存書類の autosave): fileURL は nil なので、
+                //   autosavedContentsFileURL (= autosave 先 URL) に書き込む。これがないと
+                //   再起動後の復元で preset が失われ、組み込み default にフォールバックする
+                //   (rich text なのに plain text の設定で開く等の不具合になる)。
+                let xattrURL: URL? = (saveOperation == .autosaveElsewhereOperation)
+                    ? (self.autosavedContentsFileURL ?? url)
+                    : self.fileURL
+                if let xattrURL = xattrURL {
+                    self.writePresetDataToExtendedAttribute(at: xattrURL)
                 }
                 // ユーザ操作の保存 (Save / Save As) が成功したらフラグを立てる。
                 // 以降の Save As の保存ダイアログでは内容ヘッド提案ではなく既存
