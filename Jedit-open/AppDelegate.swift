@@ -31,6 +31,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     private var preferencesWindowController: PreferencesWindowController?
     private var hasHandledStartup = false
     private var isTerminating = false
+    fileprivate var customShareSubmenu: NSMenu?
 
     func applicationWillFinishLaunching(_ notification: Notification) {
         // NSDocumentController.shared が初めてアクセスされる前にサブクラスをインスタンス化する。
@@ -858,9 +859,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
     // MARK: - File Menu (Save As / Duplicate 切り替え)
 
-    /// File メニューのデリゲートを設定（不要になったため空実装）
+    /// File メニューのデリゲートを設定する。
+    /// macOS が File メニューに自動追加する Share サブメニューは、未保存書類を
+    /// テキストデータとして渡してしまい、メモ帳等で RTF ソースのまま貼られる。
+    /// menuWillOpen で自前の Share 項目に差し替えて、適切な拡張子を持つ
+    /// 一時ファイルを書き出してから NSSharingServicePicker を出す方式にする。
     private func setupFileMenuDelegate() {
-        // Save As / Duplicate の切り替えは Document.validateUserInterfaceItem で処理
+        guard let mainMenu = NSApp.mainMenu,
+              let fileMenu = (mainMenu.item(withTitle: "File") ?? mainMenu.item(withTitle: "ファイル"))?.submenu else {
+            return
+        }
+        fileMenu.delegate = self
     }
 
     // MARK: - New Document Submenu
@@ -1444,6 +1453,142 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             return true
         }
         return true
+    }
+}
+
+// MARK: - NSMenuDelegate (Share 差し替え)
+
+/// Share サブメニュー項目の representedObject。
+/// NSSharingService と一時ファイル URL のペア。
+private final class ShareInvocation {
+    let service: NSSharingService
+    let fileURL: URL
+    init(service: NSSharingService, fileURL: URL) {
+        self.service = service
+        self.fileURL = fileURL
+    }
+}
+
+extension AppDelegate: NSMenuDelegate {
+    private static let customShareItemID = "menu.file.share.custom"
+
+    /// 2 つの menuWillOpen をハンドルする:
+    ///   1. File メニュー: macOS 自動追加 Share を自前項目に差し替え
+    ///   2. 自前 Share サブメニュー: 一時ファイルを書き出して NSSharingService を列挙
+    func menuWillOpen(_ menu: NSMenu) {
+        if menu === customShareSubmenu {
+            populateCustomShareSubmenu(menu)
+            return
+        }
+        guard let mainMenu = NSApp.mainMenu,
+              let fileMenu = (mainMenu.item(withTitle: "File") ?? mainMenu.item(withTitle: "ファイル"))?.submenu,
+              menu === fileMenu else { return }
+        replaceAutoShareMenuItem(in: fileMenu)
+    }
+
+    private func replaceAutoShareMenuItem(in fileMenu: NSMenu) {
+        for item in fileMenu.items {
+            if item.identifier?.rawValue == AppDelegate.customShareItemID { return }
+        }
+        for (index, item) in fileMenu.items.enumerated() {
+            let title = item.submenu?.title ?? item.title
+            guard title == "Share" || title == "Share…" || title == "Share..." ||
+                  title == "共有" || title == "共有…" || title == "共有..." else { continue }
+            fileMenu.removeItem(at: index)
+            let customItem = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+            customItem.image = NSImage(systemSymbolName: "square.and.arrow.up.on.square",
+                                       accessibilityDescription: nil)
+            customItem.identifier = NSUserInterfaceItemIdentifier(AppDelegate.customShareItemID)
+            let submenu = NSMenu(title: title)
+            submenu.autoenablesItems = false
+            submenu.delegate = self
+            customItem.submenu = submenu
+            customShareSubmenu = submenu
+            fileMenu.insertItem(customItem, at: index)
+            return
+        }
+    }
+
+    /// 自前 Share サブメニューを毎回ビルドする。
+    /// 現在書類を一時ファイルに書き出し、その URL に対する NSSharingService を列挙する。
+    private func populateCustomShareSubmenu(_ menu: NSMenu) {
+        menu.removeAllItems()
+        guard let document = NSDocumentController.shared.currentDocument as? Document else {
+            addDisabledPlaceholder(menu, title: "No Document".localized)
+            return
+        }
+        let tempURL: URL
+        do {
+            tempURL = try writeShareableTempFile(for: document)
+        } catch {
+            addDisabledPlaceholder(menu, title: error.localizedDescription)
+            return
+        }
+        let services = NSSharingService.sharingServices(forItems: [tempURL])
+        if services.isEmpty {
+            addDisabledPlaceholder(menu, title: "No Sharing Services Available".localized)
+            return
+        }
+        for service in services {
+            let item = NSMenuItem(title: service.title,
+                                  action: #selector(performSharingService(_:)),
+                                  keyEquivalent: "")
+            item.target = self
+            item.image = service.image
+            item.representedObject = ShareInvocation(service: service, fileURL: tempURL)
+            menu.addItem(item)
+        }
+    }
+
+    private func addDisabledPlaceholder(_ menu: NSMenu, title: String) {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = false
+        menu.addItem(item)
+    }
+
+    @objc func performSharingService(_ sender: NSMenuItem) {
+        guard let invocation = sender.representedObject as? ShareInvocation else { return }
+        invocation.service.perform(withItems: [invocation.fileURL])
+    }
+
+    /// 書類の documentType に応じた拡張子で一時ファイルを書き出す。
+    /// 一時ディレクトリは Jedit-Share-<UUID>/<displayName>.<ext>。
+    private func writeShareableTempFile(for document: Document) throws -> URL {
+        let typeName: String
+        let pathExtension: String
+        switch document.documentType {
+        case .rtf:
+            typeName = "public.rtf"
+            pathExtension = "rtf"
+        case .rtfd:
+            typeName = "com.apple.rtfd"
+            pathExtension = "rtfd"
+        case .plain:
+            typeName = "public.plain-text"
+            pathExtension = document.presetData?.format.fileExtension.isEmpty == false
+                ? document.presetData!.format.fileExtension : "txt"
+        default:
+            typeName = "public.rtf"
+            pathExtension = "rtf"
+        }
+        let rawName = document.displayName ?? "Untitled"
+        let baseName = (rawName as NSString).deletingPathExtension
+        let safeName = baseName.isEmpty ? "Untitled" : baseName
+        let fileName = safeName + "." + pathExtension
+
+        let tempDir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("Jedit-Share-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let tempURL = tempDir.appendingPathComponent(fileName)
+
+        if document.documentType == .rtfd {
+            let wrapper = try document.fileWrapper(ofType: typeName)
+            try wrapper.write(to: tempURL, options: [], originalContentsURL: nil)
+        } else {
+            let data = try document.data(ofType: typeName)
+            try data.write(to: tempURL)
+        }
+        return tempURL
     }
 }
 
