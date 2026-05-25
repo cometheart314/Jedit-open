@@ -2185,14 +2185,20 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         updateTextViewSize(for: scrollView)
     }
 
-    /// 保存処理後にレイアウトを修復する。
-    /// 縦書きの連続モードで Cmd+S 直後、textView の右半分 (= 古い表示領域側) が
-    /// 白紙になる現象に対応。updateTextViewSize は `max(textView.frame.width, ...)`
-    /// で縮みを防ぐ設計なので、保存時に layoutManager 側の状態が変わって textView が
-    /// 描画されなくなったケースを単独では救えない。
-    /// ウィンドウリサイズで直る = AppKit のレイアウトパスが走れば直るため、
-    /// 同等の効果を得るために layoutManager を明示的に再レイアウトしてから
-    /// textView を再描画する。
+    /// 縦書きで textView のレイアウトが暗黙的に変動 (保存処理、ルビ属性追加で
+    /// 行高変化、等) した直後にだけ呼ぶレイアウト修復処理。
+    ///
+    /// 経緯: 縦書きの連続モードで Cmd+S 直後、textView の右半分 (= 古い表示
+    /// 領域側) が白紙になる現象に対応するために導入した。updateTextViewSize は
+    /// `max(textView.frame.width, ...)` で縮みを防ぐ設計なので、保存時に
+    /// layoutManager 側の状態が変わって textView が描画されなくなったケースを
+    /// 単独では救えない。ウィンドウリサイズで直る = AppKit のレイアウトパスが
+    /// 走れば直るため、同等の効果を得るために layoutManager を明示的に再
+    /// レイアウトしてから textView を再描画する。
+    ///
+    /// 同じ症状は「縦書きでルビを追加すると、ルビ分の行高が増えるのに
+    /// textView frame が追従せず右側に空行が出る」ケースでも発生するので、
+    /// Pro のルビ追加/削除フローからもこの関数を呼ぶ。
     ///
     /// 横書きでは元々この症状が発生しないため isVerticalLayout でガード。
     /// また、`scroll(to: savedOrigin)` で位置復元すると、invalidate → ensureLayout
@@ -2203,7 +2209,7 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// no-op」になるため、ユーザが編集していなければ実質スクロールしない。
     /// 連続モード以外 (ページ表示等) では documentView が NSTextView でない場合が
     /// あり、guard で自動的にスキップされる。
-    func refreshTextViewLayoutAfterSave() {
+    func refreshVerticalLayoutIfNeeded() {
         guard isVerticalLayout else { return }
         let scrollViews = [scrollView1, scrollView2].compactMap { $0 }
         for scrollView in scrollViews where !scrollView.isHidden {
@@ -2222,6 +2228,27 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             let caretRange = NSRange(location: textView.selectedRange().location, length: 0)
             textView.scrollRangeToVisible(caretRange)
         }
+    }
+
+    /// 旧名互換のため残置 (Document.save の呼び出しコメントで言及している都合)。
+    /// 中身は refreshVerticalLayoutIfNeeded() に統一。
+    func refreshTextViewLayoutAfterSave() {
+        refreshVerticalLayoutIfNeeded()
+    }
+
+    /// 縦書きで「属性追加によって列幅が変わった」直後のレイアウト修復。
+    /// ルビ追加/削除のように、文字数は変わらず属性だけが変化するケースで使う。
+    ///
+    /// 経緯: 軽量版 (updateTextViewSize + needsDisplay のみ) では、属性変更後の
+    /// 内部状態が完全に同期しきれず、クリック位置とキャレット表示がズレる事象
+    /// が出る (実測で約 8 秒後 = autosave 発火時に refreshVerticalLayoutIfNeeded が
+    /// 呼ばれた結果ようやく直る)。したがって、ルビ追加/削除の直後にも保存時と
+    /// 同じ重い refresh を同期で呼ぶ。
+    ///
+    /// 旧版で発生していた稀なレースは `DispatchQueue.main.async` 遅延が原因
+    /// だった可能性が高いため、ここでは同期で実行する。
+    func refreshVerticalLayoutAfterAttributeChange() {
+        refreshVerticalLayoutIfNeeded()
     }
 
     func updateTextViewSize(for scrollView: NSScrollView) {
@@ -2317,7 +2344,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             // テキストビューの現在の幅を保持しつつ、高さだけ更新
             // レイアウトを強制的に更新してからフレームサイズを設定
             textView.layoutManager?.ensureLayout(for: textContainer)
-            let currentWidth = max(textView.frame.width, availableWidth)
+            // 縦書きでは「ルビ追加で列幅 (= textView frame の横方向) が増える」
+            // ケースを救うため、layoutManager の usedRect に基づく必要幅も
+            // max() に加える。これがないと、追加したルビが描画領域に収まらず
+            // 右側に空白が残ったまま frame が拡大せず、クリック位置と表示位置が
+            // ズレてしまう。縮みは依然として防ぐ (利用者のスクロール位置温存)。
+            let used = textView.layoutManager?.usedRect(for: textContainer) ?? .zero
+            let neededContentWidth = ceil(used.width + containerInset.width * 2)
+            let currentWidth = max(textView.frame.width, availableWidth, neededContentWidth)
             if lineWrapMode == .windowWidth {
                 // windowWidthモード: テキストビューの高さをウインドウに合わせる（垂直スクロール不要）
                 textView.setFrameSize(NSSize(width: currentWidth, height: textViewHeight))
