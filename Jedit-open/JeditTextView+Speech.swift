@@ -39,7 +39,9 @@ import NaturalLanguage
 /// - ルビ範囲は `isOpaque = true`: 読み (ふりがな) のどこを発話していても、
 ///   親文字 (base) の範囲全体を一塊でハイライトする。
 /// - 通常範囲は `isOpaque = false`: speechRange と docRange は同じ長さの 1:1 対応。
-fileprivate struct SpeechSegment {
+///
+/// Google TTS 経路 (GoogleTTSService) からも参照するため internal にしてある。
+struct SpeechSegment {
     let speechRange: NSRange
     let docRange: NSRange
     let isOpaque: Bool
@@ -84,9 +86,14 @@ extension JeditTextView {
     /// 自前 synthesizer で読み上げセッションを所有しているか。
     /// メニュー検証 (validateMenuItem) とツールバー Speak アイテムの状態判定から参照される。
     /// `synth.isSpeaking` は speak() 呼出し直後ではまだ false のため、セッション所有を
-    /// 表す `speechDelegate` の存在で判定する。
+    /// 表す `speechDelegate` の存在で判定する。Pro 提供の別エンジン (Google TTS 等) が
+    /// 発話中の場合は SpeechEngineProvider.isSpeaking を参照して合算する。
     var isSpeechActive: Bool {
-        return speechDelegate != nil
+        if speechDelegate != nil { return true }
+        if FeatureProviderRegistry.shared.speechEngineProvider?.isSpeaking == true {
+            return true
+        }
+        return false
     }
 
     /// 現在ハイライト中の textStorage 上の単語範囲 (なければ nil)。
@@ -141,6 +148,28 @@ extension JeditTextView {
 
         // 既存の発話があれば破棄。
         stopAndCleanupSpeech()
+
+        // Pro 版で代替エンジン (Google Cloud TTS 等) が登録されていれば、
+        // そちらに引き継いでもらう。Provider が false を返したら Apple 経路を続行。
+        // 全範囲を 1 本の (speechText, segments) にまとめてから渡す。
+        // ルビ置換は Open 側で適用されるので Provider は受け取った speechText を
+        // そのまま合成に流せばよい。
+        if let provider = FeatureProviderRegistry.shared.speechEngineProvider {
+            let nsBase = baseString as NSString
+            let fullRange = NSRange(location: 0, length: nsBase.length)
+            let built = Self.buildSpeechSegments(from: attrSubstring,
+                                                  paragraphRange: fullRange,
+                                                  docBase: safeRange.location)
+            if !built.speechText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               provider.startSpeaking(on: self,
+                                      speechText: built.speechText,
+                                      segments: built.segments,
+                                      safeRange: safeRange,
+                                      hadSelection: selRange.length > 0) {
+                NotificationCenter.default.post(name: .jeditSpeechStateDidChange, object: self)
+                return
+            }
+        }
 
         let synthesizer = AVSpeechSynthesizer()
         let delegate = SpeechHighlightDelegate(owner: self)
@@ -222,7 +251,7 @@ extension JeditTextView {
     /// ルビ読みを発話するため、speech 文字数と doc 文字数が一致しないことが
     /// ある。それを後段 (willSpeakRange ハンドラ) で扱えるよう、対応関係を
     /// セグメント単位で保持する。
-    fileprivate static func buildSpeechSegments(
+    static func buildSpeechSegments(
         from attrStr: NSAttributedString,
         paragraphRange: NSRange,
         docBase: Int
@@ -283,8 +312,15 @@ extension JeditTextView {
 
     /// 発話を停止し、ハイライトと保持オブジェクトをすべて破棄する。
     /// stopSpeaking → didCancel → 本メソッド の再入を防ぐため synthesizer nil で早期 return。
+    /// Pro 提供エンジンが動作中なら、そちらにも停止を伝える。
     fileprivate func stopAndCleanupSpeech() {
-        guard speechSynthesizer != nil else { return }
+        let provider = FeatureProviderRegistry.shared.speechEngineProvider
+        let providerActive = provider?.isSpeaking == true
+        guard speechSynthesizer != nil || providerActive else { return }
+
+        if providerActive {
+            provider?.stopSpeaking(silently: true)
+        }
         if let synth = speechSynthesizer, synth.isSpeaking || synth.isPaused {
             synth.stopSpeaking(at: .immediate)
         }
@@ -342,6 +378,36 @@ extension JeditTextView {
         speechHighlightedRange = docRange
 
         self.scrollRangeToVisible(docRange)
+    }
+
+    // MARK: - External Speech Engine (Pro) Hooks
+
+    /// Pro 提供の代替読み上げエンジン (Google TTS 等) がセッション開始時に呼ぶ。
+    /// 選択範囲をキャレット位置に畳んで保存し、ハイライト解除・終了通知を行えるよう
+    /// 状態を整える。
+    func beginExternalSpeechSession(safeRange: NSRange, hadSelection: Bool) {
+        speechBaseLocation = safeRange.location
+        speechHighlightedRange = nil
+        if hadSelection {
+            speechSavedSelectedRanges = selectedRanges
+            setSelectedRange(NSRange(location: safeRange.location, length: 0))
+        } else {
+            speechSavedSelectedRanges = nil
+        }
+    }
+
+    /// Pro 提供エンジンの再生中、現在発話している textStorage 範囲を反映するために呼ぶ。
+    func updateExternalSpeechHighlight(docRange: NSRange) {
+        applySpeechHighlight(docRange: docRange)
+    }
+
+    /// Pro 提供エンジンが正常終了・キャンセル・エラーで停止したときに呼ぶ。
+    /// ハイライト解除と選択範囲復元を行い、状態変更通知を出す。
+    func endExternalSpeechSession() {
+        clearSpeechHighlight()
+        restoreSelectionIfUntouched()
+        speechBaseLocation = 0
+        NotificationCenter.default.post(name: .jeditSpeechStateDidChange, object: self)
     }
 
     /// 発話テキストから優勢言語を判定し、その言語で利用可能な「最も品質の高い」声を返す。

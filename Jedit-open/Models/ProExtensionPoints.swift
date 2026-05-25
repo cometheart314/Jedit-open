@@ -89,6 +89,38 @@ protocol SidebarPaneProvider {
     func makeViewController(for document: Document) -> NSViewController
 }
 
+/// Pro 版が提供する代替の読み上げエンジン (例: Google Cloud Text-to-Speech)。
+///
+/// Open の `startSpeaking(_:)` 内で、発話対象の attributed string から speechText
+/// (ルビ置換適用済み) と SpeechSegment 列を組み立てた後、本プロトコルが登録されて
+/// いれば `startSpeaking(...)` に渡して引き継ぐ。Provider が true を返したら
+/// Open は AVSpeechSynthesizer 経路を走らせず、Pro 側に発話を委任する。
+/// false を返した場合は従来の Apple 経路にフォールバックする。
+///
+/// 発話進行時のハイライトや、終了時の選択範囲復元は、Provider から
+/// `JeditTextView.beginExternalSpeechSession(...)` /
+/// `updateExternalSpeechHighlight(docRange:)` /
+/// `endExternalSpeechSession()` を呼び出すことで Open 側に反映する。
+protocol SpeechEngineProvider {
+    /// この Provider が現在発話セッションを所有しているか。
+    /// JeditTextView.isSpeechActive 判定で参照される。
+    var isSpeaking: Bool { get }
+
+    /// 発話開始。Open 側で組み立てた speechText (ルビ置換適用済み) と
+    /// SpeechSegment 列を受け取って、自前エンジンで再生する。
+    /// 成功した (= 引き受けた) 場合は true を返す。false を返した場合、
+    /// 呼び出し側 (Open) は Apple フォールバックを実行する。
+    func startSpeaking(on textView: NSTextView,
+                       speechText: String,
+                       segments: [SpeechSegment],
+                       safeRange: NSRange,
+                       hadSelection: Bool) -> Bool
+
+    /// 発話を停止する。stopSpeaking(_:) や cleanup から呼ばれる。
+    /// silently=true なら UI への通知をスキップ (再入防止用)。
+    func stopSpeaking(silently: Bool)
+}
+
 /// 機能プロバイダーのレジストリ（シングルトン）
 /// Pro版は起動時にプロバイダーを登録する
 class FeatureProviderRegistry {
@@ -97,5 +129,7 @@ class FeatureProviderRegistry {
     var documentProvider: DocumentFeatureProvider?
     /// サイドバーに差し込むプロバイダー一覧。先頭から順に上から並ぶ。
     var sidebarPaneProviders: [SidebarPaneProvider] = []
+    /// 代替読み上げエンジン (Google TTS 等)。Pro が起動時に注入する。
+    var speechEngineProvider: SpeechEngineProvider?
     private init() {}
 }
