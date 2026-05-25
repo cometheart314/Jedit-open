@@ -30,7 +30,20 @@
 
 import Cocoa
 import AVFoundation
+import CoreText
 import NaturalLanguage
+
+/// 発話用 utterance 文字列の 1 セグメント。
+/// utterance 文字列のある範囲が、textStorage のどの範囲に対応するかを保持し、
+/// 発話進行時の単語ハイライトに使う。
+/// - ルビ範囲は `isOpaque = true`: 読み (ふりがな) のどこを発話していても、
+///   親文字 (base) の範囲全体を一塊でハイライトする。
+/// - 通常範囲は `isOpaque = false`: speechRange と docRange は同じ長さの 1:1 対応。
+fileprivate struct SpeechSegment {
+    let speechRange: NSRange
+    let docRange: NSRange
+    let isOpaque: Bool
+}
 
 extension Notification.Name {
     /// 読み上げの開始/停止のタイミングで送信される。
@@ -119,8 +132,12 @@ extension JeditTextView {
         let safeRange = NSIntersectionRange(speakRange, NSRange(location: 0, length: storage.length))
         guard safeRange.length > 0 else { return }
 
-        let utteranceString = storage.attributedSubstring(from: safeRange).string
-        guard !utteranceString.isEmpty else { return }
+        // 発話用文字列を組み立てる際、ルビが付いた範囲は親文字ではなく
+        // ルビ読みを発話する。基となる base 文字列は preferredVoice の
+        // 言語推定にも使うので先に確保しておく。
+        let attrSubstring = storage.attributedSubstring(from: safeRange)
+        let baseString = attrSubstring.string
+        guard !baseString.isEmpty else { return }
 
         // 既存の発話があれば破棄。
         stopAndCleanupSpeech()
@@ -146,39 +163,112 @@ extension JeditTextView {
         // 段落ごとに utterance を作り、各段落末に短いポーズを入れる。
         // 段落区切りは NSString.enumerateSubstrings の .byParagraphs を採用
         // (\n, \r\n, \r, U+2028, U+2029 を網羅)。
-        let voice = preferredVoice(for: utteranceString)
-        let nsFull = utteranceString as NSString
-        let fullRange = NSRange(location: 0, length: nsFull.length)
-        var utterances: [(AVSpeechUtterance, Int)] = []
+        // 言語推定の base text には親文字側を渡す (ルビ読みは通常かな・ひらがな
+        // で、本文全体の言語推定にバイアスをかけないため)。
+        let voice = preferredVoice(for: baseString)
+        let nsBase = baseString as NSString
+        let fullRange = NSRange(location: 0, length: nsBase.length)
+        var utterances: [(AVSpeechUtterance, [SpeechSegment])] = []
 
-        nsFull.enumerateSubstrings(in: fullRange, options: .byParagraphs) {
+        nsBase.enumerateSubstrings(in: fullRange, options: .byParagraphs) {
             substring, paraRange, _, _ in
             guard let substring = substring,
                   !substring.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
                 return
             }
-            let u = AVSpeechUtterance(string: substring)
+            let built = Self.buildSpeechSegments(
+                from: attrSubstring,
+                paragraphRange: paraRange,
+                docBase: safeRange.location)
+            guard !built.speechText.isEmpty else { return }
+            let u = AVSpeechUtterance(string: built.speechText)
             if let voice = voice { u.voice = voice }
             u.postUtteranceDelay = Self.paragraphPauseSeconds
-            utterances.append((u, safeRange.location + paraRange.location))
+            utterances.append((u, built.segments))
         }
 
         if utterances.isEmpty {
             // 段落区切りが見つからない/全部空白なら単一 utterance にフォールバック。
-            let u = AVSpeechUtterance(string: utteranceString)
-            if let voice = voice { u.voice = voice }
-            utterances.append((u, safeRange.location))
+            let built = Self.buildSpeechSegments(
+                from: attrSubstring,
+                paragraphRange: fullRange,
+                docBase: safeRange.location)
+            if !built.speechText.isEmpty {
+                let u = AVSpeechUtterance(string: built.speechText)
+                if let voice = voice { u.voice = voice }
+                utterances.append((u, built.segments))
+            }
         } else {
             // 最後の段落の後にポーズは不要。
             utterances[utterances.count - 1].0.postUtteranceDelay = 0
         }
 
-        for (u, base) in utterances {
-            delegate.utteranceBases[ObjectIdentifier(u)] = base
+        guard !utterances.isEmpty else {
+            // base text が空白のみ等で発話する内容が無い場合は中断。
+            stopAndCleanupSpeech()
+            return
+        }
+
+        for (u, segments) in utterances {
+            delegate.utteranceSegments[ObjectIdentifier(u)] = segments
             synthesizer.speak(u)
         }
 
         NotificationCenter.default.post(name: .jeditSpeechStateDidChange, object: self)
+    }
+
+    /// 指定された段落範囲について、発話用文字列とハイライト用セグメント表を
+    /// 組み立てる。ルビ (CTRubyAnnotation) が付いている範囲は親文字ではなく
+    /// ルビ読みを発話するため、speech 文字数と doc 文字数が一致しないことが
+    /// ある。それを後段 (willSpeakRange ハンドラ) で扱えるよう、対応関係を
+    /// セグメント単位で保持する。
+    fileprivate static func buildSpeechSegments(
+        from attrStr: NSAttributedString,
+        paragraphRange: NSRange,
+        docBase: Int
+    ) -> (speechText: String, segments: [SpeechSegment]) {
+        var speechText = ""
+        var segments: [SpeechSegment] = []
+        let rubyKey = NSAttributedString.Key(kCTRubyAnnotationAttributeName as String)
+        let nsBase = attrStr.string as NSString
+
+        attrStr.enumerateAttribute(rubyKey, in: paragraphRange, options: []) {
+            value, range, _ in
+            let docRange = NSRange(location: docBase + range.location, length: range.length)
+            let speechStart = (speechText as NSString).length
+
+            // CTRubyAnnotation が付いていればルビ読みで置換
+            if let cf = value as CFTypeRef?,
+               CFGetTypeID(cf) == CTRubyAnnotationGetTypeID() {
+                let ruby = cf as! CTRubyAnnotation
+                if let cfRubyText = CTRubyAnnotationGetTextForPosition(ruby, .before) {
+                    let rubyText = cfRubyText as String
+                    if !rubyText.isEmpty {
+                        speechText += rubyText
+                        let speechEnd = (speechText as NSString).length
+                        segments.append(SpeechSegment(
+                            speechRange: NSRange(location: speechStart,
+                                                 length: speechEnd - speechStart),
+                            docRange: docRange,
+                            isOpaque: true))
+                        return
+                    }
+                }
+                // ルビ読みが取れない/空の場合は base text にフォールバック。
+            }
+
+            // 非ルビ範囲: base text を 1:1 で speechText に積む。
+            let baseSubstr = nsBase.substring(with: range)
+            speechText += baseSubstr
+            let speechEnd = (speechText as NSString).length
+            segments.append(SpeechSegment(
+                speechRange: NSRange(location: speechStart,
+                                     length: speechEnd - speechStart),
+                docRange: docRange,
+                isOpaque: false))
+        }
+
+        return (speechText, segments)
     }
 
     /// 段落区切りで挟む無音時間 (秒)。
@@ -292,9 +382,11 @@ private final class SpeechHighlightDelegate: NSObject, AVSpeechSynthesizerDelega
 
     weak var owner: JeditTextView?
 
-    /// utterance ごとの textStorage 上の base location。
+    /// utterance ごとの「speech 文字範囲 → textStorage 文字範囲」マップ。
     /// 段落分割した発話の進行に合わせて willSpeakRangeOfSpeechString で参照する。
-    var utteranceBases: [ObjectIdentifier: Int] = [:]
+    /// ルビ範囲は SpeechSegment.isOpaque = true で、読みのどこを発話していても
+    /// 親文字の docRange 全体をハイライトする。
+    var utteranceSegments: [ObjectIdentifier: [SpeechSegment]] = [:]
 
     init(owner: JeditTextView) {
         self.owner = owner
@@ -312,9 +404,26 @@ private final class SpeechHighlightDelegate: NSObject, AVSpeechSynthesizerDelega
                            willSpeakRangeOfSpeechString characterRange: NSRange,
                            utterance: AVSpeechUtterance) {
         // 登録外の utterance (ウォームアップ) はハイライト対象外。
-        guard let base = utteranceBases[ObjectIdentifier(utterance)] else { return }
-        let docRange = NSRange(location: base + characterRange.location,
-                               length: characterRange.length)
+        guard let segments = utteranceSegments[ObjectIdentifier(utterance)] else { return }
+
+        let speechStart = characterRange.location
+        // 発話中のセグメントを線形検索 (1 段落あたりせいぜい数十~数百セグメントなので十分)。
+        guard let segment = segments.first(where: { seg in
+            speechStart >= seg.speechRange.location
+                && speechStart < seg.speechRange.location + seg.speechRange.length
+        }) else { return }
+
+        let docRange: NSRange
+        if segment.isOpaque {
+            // ルビ範囲: 読みのどこを発話していても親文字全体をハイライト。
+            docRange = segment.docRange
+        } else {
+            // 1:1 セグメント。speechRange と docRange は同じ長さの想定。
+            let offset = speechStart - segment.speechRange.location
+            let available = segment.speechRange.length - offset
+            let length = min(characterRange.length, max(0, available))
+            docRange = NSRange(location: segment.docRange.location + offset, length: length)
+        }
         onMain { [weak owner] in
             owner?.applySpeechHighlight(docRange: docRange)
         }
@@ -322,10 +431,10 @@ private final class SpeechHighlightDelegate: NSObject, AVSpeechSynthesizerDelega
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                            didFinish utterance: AVSpeechUtterance) {
-        utteranceBases.removeValue(forKey: ObjectIdentifier(utterance))
+        utteranceSegments.removeValue(forKey: ObjectIdentifier(utterance))
         // 段落分割しているので didFinish はキューの utterance ごとに発火する。
         // 全部終わったら最終クリーンアップ。
-        guard utteranceBases.isEmpty else { return }
+        guard utteranceSegments.isEmpty else { return }
         onMain { [weak owner] in
             owner?.stopAndCleanupSpeech()
         }
@@ -334,8 +443,8 @@ private final class SpeechHighlightDelegate: NSObject, AVSpeechSynthesizerDelega
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer,
                            didCancel utterance: AVSpeechUtterance) {
         // stopSpeaking はキュー全体を一括キャンセルする。キューがあった場合のみ最終クリーンアップ。
-        let hadAny = !utteranceBases.isEmpty
-        utteranceBases.removeAll()
+        let hadAny = !utteranceSegments.isEmpty
+        utteranceSegments.removeAll()
         guard hadAny else { return }
         onMain { [weak owner] in
             owner?.stopAndCleanupSpeech()
