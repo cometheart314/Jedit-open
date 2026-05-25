@@ -308,6 +308,17 @@ extension JeditTextView {
         stopAndCleanupSpeech()
     }
 
+    /// 書類ウィンドウが閉じられる等で textView が window から外されるときに、
+    /// 残っている発話セッションを必ず止める。これがないと Apple 経路では
+    /// AVSpeechSynthesizer がプロセスに残って読み上げが続いてしまうし、
+    /// Google TTS 経路ではバックグラウンドの AVAudioPlayer が再生し続ける。
+    override func viewWillMove(toWindow newWindow: NSWindow?) {
+        super.viewWillMove(toWindow: newWindow)
+        if newWindow == nil, self.window != nil, isSpeechActive {
+            stopAndCleanupSpeech()
+        }
+    }
+
     // MARK: - Internal Helpers
 
     /// 発話を停止し、ハイライトと保持オブジェクトをすべて破棄する。
