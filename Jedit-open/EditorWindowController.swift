@@ -2192,19 +2192,21 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// 描画されなくなったケースを単独では救えない。
     /// ウィンドウリサイズで直る = AppKit のレイアウトパスが走れば直るため、
     /// 同等の効果を得るために layoutManager を明示的に再レイアウトしてから
-    /// textView を再描画する。layout 再計算でスクロール位置がリセットされるのを
-    /// 防ぐため、ここで明示的に保存・復元する。
+    /// textView を再描画する。
     ///
-    /// 横書きでは元々この症状が発生しないうえ、ある程度大きなファイル (36K 文字程度)
-    /// で文末付近にカーソルがあると、invalidate → ensureLayout の最中に textView frame
-    /// が一時的に縮み、`scroll(to: savedOrigin)` が現コンテンツサイズにクランプされて
-    /// 結果として中央付近までスクロールアップする副作用がある。そのため縦書きのとき
-    /// だけ実行する。
+    /// 横書きでは元々この症状が発生しないため isVerticalLayout でガード。
+    /// また、`scroll(to: savedOrigin)` で位置復元すると、invalidate → ensureLayout
+    /// の最中に textView frame が一時的に縮み、savedOrigin が現コンテンツサイズに
+    /// クランプされて意図しない場所 (中央や文末付近) にスクロールしてしまう。
+    /// そのため、カーソル位置 (selectedRange) を anchor にして scrollRangeToVisible
+    /// で再可視化する方式に変える。JeditTextView の override 側で「既に見えていれば
+    /// no-op」になるため、ユーザが編集していなければ実質スクロールしない。
+    /// 連続モード以外 (ページ表示等) では documentView が NSTextView でない場合が
+    /// あり、guard で自動的にスキップされる。
     func refreshTextViewLayoutAfterSave() {
         guard isVerticalLayout else { return }
         let scrollViews = [scrollView1, scrollView2].compactMap { $0 }
         for scrollView in scrollViews where !scrollView.isHidden {
-            let savedOrigin = scrollView.contentView.bounds.origin
             updateTextViewSize(for: scrollView)
             guard let textView = scrollView.documentView as? NSTextView,
                   let layoutManager = textView.layoutManager,
@@ -2216,9 +2218,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             layoutManager.ensureLayout(for: textContainer)
             textView.needsDisplay = true
             scrollView.contentView.needsDisplay = true
-            // スクロール位置を復元
-            scrollView.contentView.scroll(to: savedOrigin)
-            scrollView.reflectScrolledClipView(scrollView.contentView)
+            // カーソル位置を anchor にして可視範囲を復元
+            let caretRange = NSRange(location: textView.selectedRange().location, length: 0)
+            textView.scrollRangeToVisible(caretRange)
         }
     }
 
