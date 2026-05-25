@@ -371,6 +371,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
         // 保存されたURLリストをクリア（復元は一度だけ）
         UserDefaults.standard.removeObject(forKey: UserDefaults.Keys.openDocumentURLs)
 
+        // システム設定「デスクトップとDock > アプリケーションを終了したときにウィンドウを閉じる」
+        // がオンの場合は復元しない。当該設定はグローバルドメインの
+        // NSQuitAlwaysKeepsWindows に false として書かれる。
+        // 明示的に false のときだけ抑制し、未設定のときは従来通り復元する。
+        if let keepsWindows = UserDefaults.standard.object(forKey: "NSQuitAlwaysKeepsWindows") as? Bool,
+           keepsWindows == false {
+            return false
+        }
+
         // Shiftキーが押されている場合は復元をスキップ（壊れたファイルによるフリーズ対策）
         if NSEvent.modifierFlags.contains(.shift) {
             return false
