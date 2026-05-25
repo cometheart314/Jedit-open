@@ -877,7 +877,16 @@ extension JeditTextView {
             if hasRTFD || hasImage {
                 upgradeToRTFDIfNeeded { [weak self] proceed in
                     guard let self = self, proceed else { return }
-                    self.performSuperPaste(sender)
+                    // RTFD は自前で NSAttributedString に展開し、色を正規化してから
+                    // 差し込む。これにより super.paste 経路でも、ダークモード非対応
+                    // アプリ由来のハードコード黒文字色がダイナミック色に置き換わる。
+                    // 画像のみ (RTFD なし) のときは従来通り super.paste に委譲する。
+                    if hasRTFD, let normalized = self.readNormalizedRTFD(from: pasteboard) {
+                        self.replaceString(in: self.selectedRange(), with: normalized)
+                        self.fixTextListRenderingAfterPaste()
+                    } else {
+                        self.performSuperPaste(sender)
+                    }
                     self.smartLanguageSeparation?.isPasting = false
                 }
                 return
@@ -992,6 +1001,14 @@ extension JeditTextView {
             if !rtfdUpgradeHandled {
                 performUpgradeToRTFD()
             }
+            // RTFD タイプは自前で NSAttributedString に展開し、色を正規化してから
+            // 差し込む (super 委譲だとダークモード非対応アプリ由来の黒文字が
+            // そのまま入る)。画像のみのドロップは従来通り super に委譲する。
+            if let normalized = readNormalizedRTFD(from: pboard) {
+                replaceString(in: selectedRange(), with: normalized)
+                fixTextListRenderingAfterPaste()
+                return true
+            }
             return super.readSelection(from: pboard, type: type)
         }
 
@@ -1000,8 +1017,15 @@ extension JeditTextView {
             let convertedString = applyTextConversions(string)
             insertText(convertedString, replacementRange: selectedRange())
             return true
-        } else if type == .rtf, let rtfData = pboard.data(forType: .rtf),
-                  let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+        }
+
+        // RTF データ。NSTextView が D&D 時に渡してくる型は実環境では
+        // .rtf (public.rtf) ではなく "NeXT Rich Text Format v1.0 pasteboard type"
+        // のことが多いので、両方を RTF として扱う。
+        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
+        if (type == .rtf || type == nextRTFType),
+           let rtfData = pboard.data(forType: type) ?? pboard.data(forType: .rtf),
+           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
             let convertedString = applyTextConversionsToAttributedString(attributedString)
             // insertText ではなく replaceString を使用（書式を保持するため）
             replaceString(in: selectedRange(), with: convertedString)
@@ -1097,6 +1121,77 @@ extension JeditTextView {
             }
         }
 
+        // ペースト元がダークモード非対応の場合に備えて色をダイナミック化
+        normalizePastedColorsForAppearance(in: mutable)
+
         return mutable
+    }
+
+    /// ペーストボードから RTFD / flat-RTFD データを NSAttributedString として読み、
+    /// 文字変換と色正規化を適用して返す。RTFD タイプが無い (画像のみ等) 場合は
+    /// nil を返し、呼び出し側で super フォールバックする想定。
+    func readNormalizedRTFD(from pasteboard: NSPasteboard) -> NSAttributedString? {
+        let rtfdTypes: [NSPasteboard.PasteboardType] = [
+            .rtfd,
+            NSPasteboard.PasteboardType("com.apple.flat-rtfd"),
+            NSPasteboard.PasteboardType("NeXT RTFD pasteboard type"),
+        ]
+        for type in rtfdTypes {
+            guard let data = pasteboard.data(forType: type) else { continue }
+            if let attr = try? NSAttributedString(
+                data: data,
+                options: [.documentType: NSAttributedString.DocumentType.rtfd],
+                documentAttributes: nil
+            ) {
+                return applyTextConversionsToAttributedString(attr)
+            }
+        }
+        return nil
+    }
+
+    /// ペースト/ドロップで取り込まれた属性付き文字列の色を、現在のアピアランス
+    /// に追従するダイナミックカラーに正規化する。
+    ///
+    /// 非ダークモード対応のアプリからコピーされた RTF にはテキスト色として
+    /// 純黒、背景色として純白がハードコードされていることが多く、ダークモード
+    /// の Jedit Pro に貼り付けると黒い背景に黒文字となり文字が見えなくなる。
+    /// TextEdit と同様の対処として、「ほぼ純黒」の前景色はダイナミックな
+    /// `textColor` に置き換え、「ほぼ純白」の背景色は削除して書類のダイナミック
+    /// 背景を透過させる。
+    ///
+    /// 有彩色や中間グレーはユーザーが意図して指定したものとみなし保持する。
+    private func normalizePastedColorsForAppearance(in attributedString: NSMutableAttributedString) {
+        let range = NSRange(location: 0, length: attributedString.length)
+
+        attributedString.enumerateAttribute(.foregroundColor, in: range, options: []) { value, subrange, _ in
+            guard let color = value as? NSColor, isNearPureBlack(color) else { return }
+            attributedString.addAttribute(.foregroundColor, value: NSColor.textColor, range: subrange)
+        }
+
+        attributedString.enumerateAttribute(.backgroundColor, in: range, options: []) { value, subrange, _ in
+            guard let color = value as? NSColor, isNearPureWhite(color) else { return }
+            attributedString.removeAttribute(.backgroundColor, range: subrange)
+        }
+    }
+
+    /// グレースケール (R≈G≈B) で、十分暗い色を「デフォルト黒テキスト」とみなす。
+    /// 単に純黒判定だと、外部アプリが解決済みの labelColor (例: 0.12) を取りこぼす。
+    private func isNearPureBlack(_ color: NSColor) -> Bool {
+        guard let rgb = color.usingColorSpace(.sRGB) else { return false }
+        let r = rgb.redComponent, g = rgb.greenComponent, b = rgb.blueComponent
+        let isGrayscale = abs(r - g) < 0.03 && abs(g - b) < 0.03
+        let maxComponent = max(r, g, b)
+        let isDark = maxComponent < 0.35
+        return isGrayscale && isDark && rgb.alphaComponent > 0.95
+    }
+
+    /// グレースケールで十分明るい色を「デフォルト白背景」とみなす。
+    private func isNearPureWhite(_ color: NSColor) -> Bool {
+        guard let rgb = color.usingColorSpace(.sRGB) else { return false }
+        let r = rgb.redComponent, g = rgb.greenComponent, b = rgb.blueComponent
+        let isGrayscale = abs(r - g) < 0.03 && abs(g - b) < 0.03
+        let minComponent = min(r, g, b)
+        let isLight = minComponent > 0.65
+        return isGrayscale && isLight && rgb.alphaComponent > 0.95
     }
 }
