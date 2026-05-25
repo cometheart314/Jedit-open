@@ -2194,7 +2194,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     /// 同等の効果を得るために layoutManager を明示的に再レイアウトしてから
     /// textView を再描画する。layout 再計算でスクロール位置がリセットされるのを
     /// 防ぐため、ここで明示的に保存・復元する。
+    ///
+    /// 横書きでは元々この症状が発生しないうえ、ある程度大きなファイル (36K 文字程度)
+    /// で文末付近にカーソルがあると、invalidate → ensureLayout の最中に textView frame
+    /// が一時的に縮み、`scroll(to: savedOrigin)` が現コンテンツサイズにクランプされて
+    /// 結果として中央付近までスクロールアップする副作用がある。そのため縦書きのとき
+    /// だけ実行する。
     func refreshTextViewLayoutAfterSave() {
+        guard isVerticalLayout else { return }
         let scrollViews = [scrollView1, scrollView2].compactMap { $0 }
         for scrollView in scrollViews where !scrollView.isHidden {
             let savedOrigin = scrollView.contentView.bounds.origin
