@@ -772,6 +772,15 @@ class Document: NSDocument {
                 // 等) ではフラグを変えない (ユーザはまだ保存していない扱い)。
                 if saveOperation == .saveOperation || saveOperation == .saveAsOperation {
                     self.hasBeenUserSaved = true
+                    // AppKit 内部の noteNewRecentDocumentURL 呼び出しに頼ると、
+                    // autosavesInPlace + 新規 untitled 書類 + 保存直後の close で
+                    // Open Recent に登録されない症状が出る (macOS 15 で再現)。
+                    // 防御的に保存完了時点で明示的に登録する。
+                    // autosaveInPlace 系では発火させない (まだユーザが saveAs
+                    // していない一時状態の URL を recents に入れたくないため)。
+                    if let savedURL = self.fileURL {
+                        NSDocumentController.shared.noteNewRecentDocumentURL(savedURL)
+                    }
                 }
                 // 縦書きの連続モードで Cmd+S 直後に textView の右半分が白紙になる
                 // 不具合の対応。保存処理 (data(ofType:) → .textLayoutSections の処理)
