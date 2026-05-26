@@ -1445,23 +1445,29 @@ class Document: NSDocument {
 
     override var displayName: String! {
         get {
-            // untitledDocumentName が設定されている場合は、autosave で fileURL が
-            // 設定されていてもカスタム名を優先する（ユーザーが明示的に保存するまで）
-            if let customName = untitledDocumentName {
-                return customName
+            // ユーザが明示的に保存していない (= まだ untitled 扱い) 間は、
+            // AppKit が autosavesInPlace の autosave で fileURL を autosave 先 URL
+            // (例: iCloud Documents/名称未設定 N.txt) にセットしてきても、
+            // プリセット由来のカスタム名 (例: yyyy-MM-dd HH-mm-ss) を最優先で返す。
+            if !hasBeenUserSaved {
+                if let customName = untitledDocumentName {
+                    return customName
+                }
+                // 新規ドキュメントでまだ名前が未生成: 遅延生成
+                generateUntitledDocumentName()
+                return untitledDocumentName ?? super.displayName
             }
-            // ファイルがある場合は通常の表示名
-            if fileURL != nil {
-                return super.displayName
-            }
-            // 新規ドキュメントの場合はカスタム名を使用（遅延生成）
-            generateUntitledDocumentName()
-            return untitledDocumentName ?? super.displayName
+            // ユーザが明示的に保存済み → 通常のファイル名を返す
+            return super.displayName
         }
         set {
-            // タイトルバーからのリネームや保存時に NSDocument が displayName を
-            // セットした場合、untitledDocumentName をクリアしてファイル名を優先する
-            untitledDocumentName = nil
+            // タイトルバーからのリネームや明示的保存時に NSDocument が displayName を
+            // セットした場合は、untitledDocumentName をクリアしてファイル名を優先する。
+            // 一方、ユーザがまだ保存していない (autosave 由来の setDisplayName) のときは
+            // クリアしないことで、プリセット由来のユーザ向け名前を保持する。
+            if hasBeenUserSaved {
+                untitledDocumentName = nil
+            }
             super.displayName = newValue
         }
     }
