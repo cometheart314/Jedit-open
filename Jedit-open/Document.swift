@@ -1453,6 +1453,15 @@ class Document: NSDocument {
                 if let customName = untitledDocumentName {
                     return customName
                 }
+                // untitledDocumentName が nil の状態。save() の冒頭で untitledDocumentName
+                // を nil にした直後の super.save 実行中に displayName が読まれるケースが
+                // 該当する。このとき fileURL がセットされていれば (= 既に書き込み先 URL が
+                // 決まっている) それを使う。ここで generateUntitledDocumentName() を
+                // 呼んでしまうと現在時刻で新しい名前が生成され、タイトルバーが一瞬
+                // 「新しい日時」→「保存名」と切り替わってちらつく不具合になる。
+                if fileURL != nil {
+                    return super.displayName
+                }
                 // 新規ドキュメントでまだ名前が未生成: 遅延生成
                 generateUntitledDocumentName()
                 return untitledDocumentName ?? super.displayName
