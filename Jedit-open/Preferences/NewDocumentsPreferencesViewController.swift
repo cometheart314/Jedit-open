@@ -725,6 +725,88 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
 
     // MARK: - Tab-specific Revert to Defaults
 
+    /// View タブの「Get Current Toolbar Items As Default」ボタン。
+    /// 最前面の書類ウィンドウのツールバー構成 (項目と表示モード) を取得し、
+    /// 編集中プリセットの View データに書き込む。これ以降に作成される新規書類は
+    /// この構成を継承する。
+    @IBAction func getCurrentToolbarItemsAsDefault(_ sender: Any) {
+        guard let toolbar = frontmostDocumentToolbar() else {
+            let alert = NSAlert()
+            alert.messageText = "No Document Window".localized
+            alert.informativeText = "Open a document, customize its toolbar, then click this button.".localized
+            alert.addButton(withTitle: "OK".localized)
+            if let window = view.window {
+                alert.beginSheetModal(for: window, completionHandler: nil)
+            } else {
+                alert.runModal()
+            }
+            return
+        }
+        guard let preset = presetManager.preset(at: selectedPresetIndex) else { return }
+
+        let identifiers = toolbar.items.map { $0.itemIdentifier.rawValue }
+        let displayNames = toolbar.items.map { displayName(for: $0) }
+        let listText = displayNames.enumerated()
+            .map { "\($0.offset + 1). \($0.element)" }
+            .joined(separator: "\n")
+
+        let alert = NSAlert()
+        alert.messageText = String(format: "Set toolbar items as default for \"%@\"?".localized,
+                                   preset.displayName)
+        alert.informativeText = listText.isEmpty
+            ? "(no items)".localized
+            : listText
+        alert.addButton(withTitle: "Set".localized)
+        alert.addButton(withTitle: "Cancel".localized)
+
+        let handler: (NSApplication.ModalResponse) -> Void = { [weak self] response in
+            guard response == .alertFirstButtonReturn,
+                  let self = self,
+                  var preset = self.presetManager.preset(at: self.selectedPresetIndex) else {
+                return
+            }
+            preset.data.view.toolbarItemIdentifiers = identifiers
+            preset.data.view.toolbarDisplayMode = Int(toolbar.displayMode.rawValue)
+            self.presetManager.updatePreset(preset)
+        }
+
+        if let window = view.window {
+            alert.beginSheetModal(for: window, completionHandler: handler)
+        } else {
+            handler(alert.runModal())
+        }
+    }
+
+    /// ツールバー項目を確認ダイアログ用の人間可読な名前に変換する。
+    /// 既定では label を使い、空ならスペース/フレキシブルスペース等を別名表示し、
+    /// それでも空なら識別子をそのまま返す。
+    private func displayName(for item: NSToolbarItem) -> String {
+        let label = item.label.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !label.isEmpty { return label }
+        let palette = item.paletteLabel.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !palette.isEmpty { return palette }
+        switch item.itemIdentifier {
+        case .flexibleSpace:    return "(flexible space)".localized
+        case .space:            return "(space)".localized
+        default:                return item.itemIdentifier.rawValue
+        }
+    }
+
+    /// 環境設定ウィンドウ自身を除いた最前面の書類ウィンドウのツールバーを返す。
+    /// BookmarkPanelController の currentDocument() と同じパターン。
+    private func frontmostDocumentToolbar() -> NSToolbar? {
+        let myWindow = view.window
+        for window in NSApp.orderedWindows {
+            if window === myWindow { continue }
+            if window is NSPanel { continue }
+            guard window.windowController?.document is Document else { continue }
+            if let toolbar = window.toolbar {
+                return toolbar
+            }
+        }
+        return nil
+    }
+
     /// View タブのみをデフォルト値にリセット
     @IBAction func revertViewToDefaults(_ sender: Any) {
         guard var preset = presetManager.preset(at: selectedPresetIndex) else { return }

@@ -1,5 +1,13 @@
 /* Japanese Localization for Jedit */
 
+/* Alerts for "Get Current Toolbar Items As Default" button */
+"No Document Window" = "開いている書類がありません";
+"Open a document, customize its toolbar, then click this button." = "書類を開き、ツールバーをカスタマイズしてからこのボタンを押してください。";
+"Set toolbar items as default for \"%@\"?" = "次のツールバー項目をプリセット「%@」のデフォルトに設定します。";
+"(no items)" = "(項目なし)";
+"(flexible space)" = "(可変スペース)";
+"(space)" = "(スペース)";
+
 /* Common Buttons */
 "OK" = "OK";
 "Cancel" = "キャンセル";

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
+<document type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="3.0" toolsVersion="24765" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" customObjectInstantitationMethod="direct">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24765"/>
         <capability name="System colors introduced in macOS 10.14" minToolsVersion="10.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -432,7 +432,7 @@
                                         </connections>
                                     </button>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Xzx-4O-Boa">
-                                        <rect key="frame" x="20" y="212" width="114" height="14"/>
+                                        <rect key="frame" x="17" y="194" width="114" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Document Width:" id="wUd-1y-hBP">
                                             <font key="font" metaFont="smallSystem"/>
@@ -441,7 +441,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RYu-Ro-UEN">
-                                        <rect key="frame" x="137" y="207" width="218" height="22"/>
+                                        <rect key="frame" x="134" y="189" width="218" height="22"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <popUpButtonCell key="cell" type="push" title="Follows Paper Width" bezelStyle="rounded" alignment="left" controlSize="small" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" selectedItem="r0Q-v1-nic" id="wPQ-ux-IYS">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
@@ -539,7 +539,7 @@
                                         </connections>
                                     </button>
                                     <box autoresizesSubviews="NO" fixedFrame="YES" borderType="line" title="Show Invisibles" translatesAutoresizingMaskIntoConstraints="NO" id="3qX-zp-sOi">
-                                        <rect key="frame" x="22" y="93" width="437" height="106"/>
+                                        <rect key="frame" x="19" y="75" width="437" height="106"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <view key="contentView" id="gT4-Vp-S4D">
                                             <rect key="frame" x="0.0" y="0.0" width="437" height="94"/>
@@ -659,7 +659,7 @@
                                         </view>
                                     </box>
                                     <textField focusRingType="none" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Za2-Mk-Pbf">
-                                        <rect key="frame" x="27" y="239" width="98" height="14"/>
+                                        <rect key="frame" x="24" y="221" width="98" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Window / Page:" id="l5X-dA-155">
                                             <font key="font" metaFont="smallSystem"/>
@@ -668,7 +668,7 @@
                                         </textFieldCell>
                                     </textField>
                                     <matrix verticalHuggingPriority="750" fixedFrame="YES" allowsEmptySelection="NO" translatesAutoresizingMaskIntoConstraints="NO" id="Cb4-qe-HEM">
-                                        <rect key="frame" x="131" y="237" width="288" height="17"/>
+                                        <rect key="frame" x="128" y="219" width="288" height="17"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                         <size key="cellSize" width="142" height="17"/>
@@ -695,6 +695,17 @@
                                             <action selector="controlValueChanged:" target="-2" id="pgm-act-001"/>
                                         </connections>
                                     </matrix>
+                                    <button verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="deP-K7-IbG">
+                                        <rect key="frame" x="207" y="245" width="242" height="24"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                                        <buttonCell key="cell" type="push" title="Get Current Toolbar Items As Default" bezelStyle="rounded" alignment="center" borderStyle="border" imageScaling="proportionallyDown" inset="2" id="A3d-GT-bzQ">
+                                            <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                            <font key="font" metaFont="smallSystem"/>
+                                        </buttonCell>
+                                        <connections>
+                                            <action selector="getCurrentToolbarItemsAsDefault:" target="-2" id="get-toolbar-act"/>
+                                        </connections>
+                                    </button>
                                 </subviews>
                                 <constraints>
                                     <constraint firstItem="wDi-0p-k5J" firstAttribute="leading" secondItem="hAA-cf-kqa" secondAttribute="leading" constant="22" id="7Ve-7e-6sY"/>
