@@ -183,6 +183,36 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
     private func setupHeaderFooterTextViews() {
         headerTextView?.delegate = self
         footerTextView?.delegate = self
+        // Dark Mode 追随: 動的システムカラーを明示的に設定する。
+        // XIB でも textBackgroundColor を指定しているが、後段で setAttributedString
+        // による全置換を繰り返すため、ここで明示しておく。
+        for textView in [headerTextView, footerTextView].compactMap({ $0 }) {
+            textView.drawsBackground = true
+            textView.backgroundColor = .textBackgroundColor
+            textView.textColor = .textColor
+            textView.insertionPointColor = .textColor
+        }
+    }
+
+    /// RTF から読み込んだ NSAttributedString の前景色を動的な .textColor に差し替える。
+    /// RTF をシリアライズする時点で固定 RGB の前景色 (典型的には黒) が焼き込まれるため、
+    /// そのまま表示すると Dark Mode で黒文字 × 黒背景になって読めなくなる。
+    /// 背景色は header/footer プレビューの色プレビュー用に固定色のまま保持する。
+    private func normalizeForegroundForDarkMode(_ attrString: NSAttributedString) -> NSAttributedString {
+        let mutable = NSMutableAttributedString(attributedString: attrString)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+        mutable.removeAttribute(.foregroundColor, range: fullRange)
+        mutable.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
+        return mutable
+    }
+
+    /// 保存前に前景色属性を取り除く。表示用にセットした動的 .textColor が現在のモードの
+    /// 具体 RGB として RTF に焼き込まれるのを防ぐため。
+    private func stripForegroundColor(_ attrString: NSAttributedString) -> NSAttributedString {
+        let mutable = NSMutableAttributedString(attributedString: attrString)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+        mutable.removeAttribute(.foregroundColor, range: fullRange)
+        return mutable
     }
 
     /// 用紙サイズの定義
@@ -442,14 +472,14 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         updateMarginFieldsDisplay()
 
         // Header/Footer Tab
-        // AttributedStringを読み込み
+        // AttributedStringを読み込み (Dark Mode 追随のため前景色を動的色に正規化)
         if let textStorage = headerTextView?.textStorage {
             let headerAttrString = NewDocData.HeaderFooterData.attributedString(from: data.headerFooter.headerRTFData)
-            textStorage.setAttributedString(headerAttrString)
+            textStorage.setAttributedString(normalizeForegroundForDarkMode(headerAttrString))
         }
         if let textStorage = footerTextView?.textStorage {
             let footerAttrString = NewDocData.HeaderFooterData.attributedString(from: data.headerFooter.footerRTFData)
-            textStorage.setAttributedString(footerAttrString)
+            textStorage.setAttributedString(normalizeForegroundForDarkMode(footerAttrString))
         }
 
         // Properties Tab
@@ -625,12 +655,19 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         preset.data.pageLayout.bottomMarginPoints = bottomMarginPoints
 
         // Header/Footer Tab
-        // AttributedStringをRTFデータとして保存
+        // AttributedStringをRTFデータとして保存。
+        // 表示用に動的な .textColor をセットしているので、保存前に前景色を取り除いて
+        // 現在のモード固有の RGB が RTF に焼き込まれるのを防ぐ
+        // (印刷時の文字色は headerColor / footerColor で別途決まる)。
         if let textStorage = headerTextView?.textStorage {
-            preset.data.headerFooter.headerRTFData = NewDocData.HeaderFooterData.rtfData(from: textStorage)
+            preset.data.headerFooter.headerRTFData = NewDocData.HeaderFooterData.rtfData(
+                from: stripForegroundColor(textStorage)
+            )
         }
         if let textStorage = footerTextView?.textStorage {
-            preset.data.headerFooter.footerRTFData = NewDocData.HeaderFooterData.rtfData(from: textStorage)
+            preset.data.headerFooter.footerRTFData = NewDocData.HeaderFooterData.rtfData(
+                from: stripForegroundColor(textStorage)
+            )
         }
 
         // Properties Tab

@@ -297,8 +297,16 @@ class StylesPreferencesViewController: NSViewController {
         previewTextView = NSTextView(frame: NSRect(x: 0, y: 0, width: 340, height: 60))
         previewTextView.isEditable = false
         previewTextView.isSelectable = false
+        // Dark Mode 追随: 明示的に動的システムカラーを使う。
+        // NSTextView の既定値は同じだが、後段で setAttributedString による全置換を
+        // 繰り返すため、この箇所で明示しておくほうが意図が伝わる。
+        previewTextView.drawsBackground = true
+        previewTextView.backgroundColor = .textBackgroundColor
+        previewTextView.textColor = .textColor
         previewTextView.string = "The quick brown fox jumps over the lazy dog. 素早い茶色の狐が怠けた犬を飛び越える。"
         previewScroll.documentView = previewTextView
+        previewScroll.drawsBackground = true
+        previewScroll.backgroundColor = .textBackgroundColor
         editorContentView.addSubview(previewScroll)
         y -= 80
 
@@ -871,15 +879,18 @@ class StylesPreferencesViewController: NSViewController {
         guard let style = selectedStyle else { return }
 
         let text = "The quick brown fox jumps over the lazy dog. 素早い茶色の狐が怠けた犬を飛び越える。"
+        let fullRange = NSRange(location: 0, length: (text as NSString).length)
         let attrString = NSMutableAttributedString(string: text)
 
-        // デフォルト属性
+        // デフォルト属性。前景色には動的な .textColor を入れて Dark Mode に追随させる
+        // (スタイルが前景色を指定していればこの上から上書きされる)。
         let defaultFont = NSFont.systemFont(ofSize: 14)
-        attrString.addAttribute(.font, value: defaultFont, range: NSRange(location: 0, length: attrString.length))
+        attrString.addAttribute(.font, value: defaultFont, range: fullRange)
+        attrString.addAttribute(.foregroundColor, value: NSColor.textColor, range: fullRange)
 
         // スタイルを適用
         let attrs = style.attributes()
-        attrString.addAttributes(attrs, range: NSRange(location: 0, length: attrString.length))
+        attrString.addAttributes(attrs, range: fullRange)
 
         previewTextView.textStorage?.setAttributedString(attrString)
     }

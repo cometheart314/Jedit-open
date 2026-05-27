@@ -435,6 +435,9 @@ struct TextStyle: Codable, Identifiable, Equatable {
         style.fontFamily = "Menlo"
         style.fontSize = 12
         style.backgroundColor = CodableColor(red: 0.95, green: 0.95, blue: 0.95)
+        // 背景が固定の薄グレーなので前景も固定の黒にする。未指定だと Dark Mode では
+        // 既定の .textColor (白) と組み合わさって白文字 × 薄グレー背景で読めなくなる。
+        style.foregroundColor = CodableColor(red: 0, green: 0, blue: 0)
         return style
     }
 
