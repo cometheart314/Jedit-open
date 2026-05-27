@@ -1150,22 +1150,32 @@ extension JeditTextView {
     }
 
     /// ペースト/ドロップで取り込まれた属性付き文字列の色を、現在のアピアランス
-    /// に追従するダイナミックカラーに正規化する。
+    /// で読める色に正規化する。TextEdit の挙動に近づける:
     ///
-    /// 非ダークモード対応のアプリからコピーされた RTF にはテキスト色として
-    /// 純黒、背景色として純白がハードコードされていることが多く、ダークモード
-    /// の Jedit Pro に貼り付けると黒い背景に黒文字となり文字が見えなくなる。
-    /// TextEdit と同様の対処として、「ほぼ純黒」の前景色はダイナミックな
-    /// `textColor` に置き換え、「ほぼ純白」の背景色は削除して書類のダイナミック
-    /// 背景を透過させる。
-    ///
-    /// 有彩色や中間グレーはユーザーが意図して指定したものとみなし保持する。
+    /// - 「ほぼ純黒 (低彩度の暗色)」 → 動的な `.textColor` に置き換える
+    /// - ダークモード時、「彩度のある暗色」 → 色相と彩度を保ったまま明度だけ
+    ///   上げる (例: ダークネイビー → ライトブルー、ダークレッド → ピンク調)
+    /// - 鮮やかな色や明色 → そのまま保持
+    /// - 「ほぼ純白」の背景色 → 削除して書類の動的背景を透過させる
     private func normalizePastedColorsForAppearance(in attributedString: NSMutableAttributedString) {
         let range = NSRange(location: 0, length: attributedString.length)
+        let isDark = isViewAppearanceDark()
 
         attributedString.enumerateAttribute(.foregroundColor, in: range, options: []) { value, subrange, _ in
-            guard let color = value as? NSColor, isNearPureBlack(color) else { return }
-            attributedString.addAttribute(.foregroundColor, value: NSColor.textColor, range: subrange)
+            guard let color = value as? NSColor else { return }
+            if isNearPureBlack(color) {
+                // 低彩度の暗色は「デフォルトの黒文字」とみなして動的色に。
+                attributedString.addAttribute(.foregroundColor,
+                                              value: NSColor.textColor,
+                                              range: subrange)
+            } else if isDark, let lightened = lightenedForDarkMode(color) {
+                // ダークモード時のみ、彩度のある暗色を明度反転して見えるようにする。
+                // 色相と彩度は保つので、紺色は薄水色、暗赤は薄ピンク、になる。
+                attributedString.addAttribute(.foregroundColor,
+                                              value: lightened,
+                                              range: subrange)
+            }
+            // それ以外 (元から明るい色 / 鮮やかな色) は保持。
         }
 
         attributedString.enumerateAttribute(.backgroundColor, in: range, options: []) { value, subrange, _ in
@@ -1174,24 +1184,74 @@ extension JeditTextView {
         }
     }
 
-    /// グレースケール (R≈G≈B) で、十分暗い色を「デフォルト黒テキスト」とみなす。
-    /// 単に純黒判定だと、外部アプリが解決済みの labelColor (例: 0.12) を取りこぼす。
-    private func isNearPureBlack(_ color: NSColor) -> Bool {
-        guard let rgb = color.usingColorSpace(.sRGB) else { return false }
-        let r = rgb.redComponent, g = rgb.greenComponent, b = rgb.blueComponent
-        let isGrayscale = abs(r - g) < 0.03 && abs(g - b) < 0.03
-        let maxComponent = max(r, g, b)
-        let isDark = maxComponent < 0.35
-        return isGrayscale && isDark && rgb.alphaComponent > 0.95
+    /// この view の現在の実効アピアランスがダーク (darkAqua) かを返す。
+    private func isViewAppearanceDark() -> Bool {
+        return effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
     }
 
-    /// グレースケールで十分明るい色を「デフォルト白背景」とみなす。
+    /// 彩度がある暗色を「白側にブレンドする」ことで、色相を残しつつ自然に
+    /// 脱彩度・明色化した色を返す。鮮やかな青ではなく、うっすら青みがかった
+    /// パステル調になる。既に明るい色や、彩度がほぼ無い色は対象外として nil。
+    private func lightenedForDarkMode(_ color: NSColor) -> NSColor? {
+        guard let rgb = rgbComponents(of: color) else { return nil }
+        let maxC = max(rgb.r, rgb.g, rgb.b)
+        let minC = min(rgb.r, rgb.g, rgb.b)
+        // 既に明るい色は触らない
+        if maxC >= 0.55 { return nil }
+        // ほぼ無彩色は isNearPureBlack 側で処理されるべきなのでスキップ
+        let saturation = maxC > 0.01 ? (maxC - minC) / maxC : 0
+        if saturation < 0.15 { return nil }
+        // 白に向かって線形ブレンド: result = color * (1 - t) + white * t
+        // t を大きくするほど明るく / 脱彩度的になる。
+        // 0.55 はやや穏やか。鮮やかな青→淡い水色、暗赤→薄ピンク、相当。
+        let t: CGFloat = 0.55
+        let r = rgb.r + (1.0 - rgb.r) * t
+        let g = rgb.g + (1.0 - rgb.g) * t
+        let b = rgb.b + (1.0 - rgb.b) * t
+        return NSColor(srgbRed: r, green: g, blue: b, alpha: rgb.a)
+    }
+
+    /// 複数のカラースペースを試し、最初に得られた sRGB 相当の RGBA を返す。
+    /// 外部アプリ由来の RTF/RTFD では色が deviceRGB やキャリブレーション付き空間で
+    /// 来ることがあるため、sRGB だけで諦めずにフォールバックする。
+    private func rgbComponents(of color: NSColor)
+        -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? {
+        let candidates: [NSColorSpace] = [
+            .sRGB, .deviceRGB, .genericRGB, .extendedSRGB
+        ]
+        for cs in candidates {
+            if let c = color.usingColorSpace(cs) {
+                return (c.redComponent, c.greenComponent, c.blueComponent, c.alphaComponent)
+            }
+        }
+        return nil
+    }
+
+    /// 「ユーザーが意図しない暗いデフォルト文字色」かどうかの判定。
+    /// 厳密にグレースケールでなくても、彩度が十分低くて暗い色は本文/見出しの
+    /// デフォルトテキストとみなして動的色に置き換える。
+    /// (例: 純黒 0x000000、Web 由来の本文色 0x1F1F1F、
+    ///  わずかに青みがかった黒 0x16182A 等もまとめてカバーする)
+    private func isNearPureBlack(_ color: NSColor) -> Bool {
+        guard let rgb = rgbComponents(of: color) else { return false }
+        let maxC = max(rgb.r, rgb.g, rgb.b)
+        let minC = min(rgb.r, rgb.g, rgb.b)
+        // HSV 彩度: max が極端に小さい時 (= 真黒近傍) はゼロ扱い
+        let saturation = maxC > 0.01 ? (maxC - minC) / maxC : 0
+        let isDark = maxC < 0.55
+        let isLowSaturation = saturation < 0.3
+        return isDark && isLowSaturation && rgb.a > 0.5
+    }
+
+    /// 「ユーザーが意図しない明るいデフォルト背景色」かどうかの判定。
+    /// 同様に彩度ベースで、明るくて彩度が低ければデフォルト白背景とみなす。
     private func isNearPureWhite(_ color: NSColor) -> Bool {
-        guard let rgb = color.usingColorSpace(.sRGB) else { return false }
-        let r = rgb.redComponent, g = rgb.greenComponent, b = rgb.blueComponent
-        let isGrayscale = abs(r - g) < 0.03 && abs(g - b) < 0.03
-        let minComponent = min(r, g, b)
-        let isLight = minComponent > 0.65
-        return isGrayscale && isLight && rgb.alphaComponent > 0.95
+        guard let rgb = rgbComponents(of: color) else { return false }
+        let maxC = max(rgb.r, rgb.g, rgb.b)
+        let minC = min(rgb.r, rgb.g, rgb.b)
+        let saturation = maxC > 0.01 ? (maxC - minC) / maxC : 0
+        let isLight = minC > 0.6
+        let isLowSaturation = saturation < 0.3
+        return isLight && isLowSaturation && rgb.a > 0.5
     }
 }
