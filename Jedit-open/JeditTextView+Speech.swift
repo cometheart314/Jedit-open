@@ -421,12 +421,50 @@ extension JeditTextView {
         NotificationCenter.default.post(name: .jeditSpeechStateDidChange, object: self)
     }
 
-    /// 発話テキストから優勢言語を判定し、その言語で利用可能な「最も品質の高い」声を返す。
+    /// 発話に使う声を決める。
+    /// まずシステム設定 (アクセシビリティ > 読み上げ > システムの声) で選ばれている
+    /// 声を最優先で使う。解決できない場合は、テキストの優勢言語を判定して
+    /// その言語で利用可能な「最も品質の高い」声にフォールバックする。
+    private func preferredVoice(for text: String) -> AVSpeechSynthesisVoice? {
+        if let systemVoice = systemDefaultVoice() {
+            return systemVoice
+        }
+        return bestQualityVoice(for: text)
+    }
+
+    /// システム設定 (アクセシビリティ > 読み上げ > システムの声) で選ばれている
+    /// デフォルト音声を AVSpeechSynthesisVoice として解決する。
+    /// AVFoundation にはシステム選択音声を直接返す API がないため、AppKit の
+    /// NSSpeechSynthesizer.defaultVoice を取得し、対応する声を探す。
+    /// 注: Spoken Content で Siri 系の声を選んでいる場合、サードパーティアプリからは
+    /// 合成に使えないため解決に失敗 (nil) し、bestQualityVoice にフォールバックする。
+    private func systemDefaultVoice() -> AVSpeechSynthesisVoice? {
+        let defaultName = NSSpeechSynthesizer.defaultVoice.rawValue
+
+        // 近年の macOS では NSSpeechSynthesizer と AVSpeechSynthesisVoice の識別子が
+        // 揃っている (例: com.apple.voice.compact.ja-JP.Kyoko) ため、まず識別子で直接照合。
+        if let v = AVSpeechSynthesisVoice(identifier: defaultName) {
+            return v
+        }
+
+        // 識別子が一致しない古い声などのため、名前 + ロケールで照合するフォールバック。
+        let attrs = NSSpeechSynthesizer.attributes(forVoice: NSSpeechSynthesizer.defaultVoice)
+        guard let name = attrs[.name] as? String else { return nil }
+        let locale = (attrs[.localeIdentifier] as? String)?.replacingOccurrences(of: "_", with: "-")
+        let byName = AVSpeechSynthesisVoice.speechVoices().filter {
+            $0.name.caseInsensitiveCompare(name) == .orderedSame
+        }
+        if let locale = locale,
+           let v = byName.first(where: { $0.language == locale }) {
+            return v
+        }
+        return byName.first
+    }
+
+    /// テキストから優勢言語を判定し、その言語で利用可能な「最も品質の高い」声を返す。
     /// AVSpeechSynthesisVoice(language:) は Default 品質の標準音声を返してしまうため、
     /// インストール済みボイスを列挙して Premium > Enhanced > Default の順に選ぶ。
-    /// （TextEdit がシステム設定の声で読むとき高品質なのは Premium / Enhanced の音声を
-    /// 使っているため。)
-    private func preferredVoice(for text: String) -> AVSpeechSynthesisVoice? {
+    private func bestQualityVoice(for text: String) -> AVSpeechSynthesisVoice? {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
         guard let lang = recognizer.dominantLanguage else { return nil }
