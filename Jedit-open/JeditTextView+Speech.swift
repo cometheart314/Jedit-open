@@ -422,14 +422,28 @@ extension JeditTextView {
     }
 
     /// 発話に使う声を決める。
-    /// まずシステム設定 (アクセシビリティ > 読み上げ > システムの声) で選ばれている
-    /// 声を最優先で使う。解決できない場合は、テキストの優勢言語を判定して
-    /// その言語で利用可能な「最も品質の高い」声にフォールバックする。
+    /// 本文の優勢言語を判定し、システム設定 (アクセシビリティ > 読み上げ >
+    /// システムの声) の声がその言語を読めるなら、そのシステムの声を優先する。
+    /// 言語が合わない場合 (例: 日本語のシステム音声で英文を読む場合) は、
+    /// 本文言語で利用可能な「最も品質の高い」声に切り替える。これにより、
+    /// 英文を日本語ボイスでカタカナ読みしてしまう問題を避ける。
     private func preferredVoice(for text: String) -> AVSpeechSynthesisVoice? {
+        let dominant = dominantLanguageCode(for: text)
+
         if let systemVoice = systemDefaultVoice() {
-            return systemVoice
+            // 言語判定できない場合はシステムの声をそのまま使う。
+            guard let dominant = dominant else { return systemVoice }
+            // システムの声が本文の言語を読めるなら、それを優先。
+            if systemVoice.language.hasPrefix(dominant) {
+                return systemVoice
+            }
+            // 言語が合わない場合は本文言語の最高品質ボイス。無ければシステムの声に戻す。
+            return bestQualityVoice(forLanguage: dominant) ?? systemVoice
         }
-        return bestQualityVoice(for: text)
+
+        // システムの声が解決できない場合は従来どおり本文言語の最高品質ボイス。
+        guard let dominant = dominant else { return nil }
+        return bestQualityVoice(forLanguage: dominant)
     }
 
     /// システム設定 (アクセシビリティ > 読み上げ > システムの声) で選ばれている
@@ -461,20 +475,23 @@ extension JeditTextView {
         return byName.first
     }
 
-    /// テキストから優勢言語を判定し、その言語で利用可能な「最も品質の高い」声を返す。
-    /// AVSpeechSynthesisVoice(language:) は Default 品質の標準音声を返してしまうため、
-    /// インストール済みボイスを列挙して Premium > Enhanced > Default の順に選ぶ。
-    private func bestQualityVoice(for text: String) -> AVSpeechSynthesisVoice? {
+    /// テキストの優勢言語コード ("ja", "en" 等) を返す。判定できなければ nil。
+    private func dominantLanguageCode(for text: String) -> String? {
         let recognizer = NLLanguageRecognizer()
         recognizer.processString(text)
-        guard let lang = recognizer.dominantLanguage else { return nil }
+        return recognizer.dominantLanguage?.rawValue
+    }
 
-        // 例: dominantLanguage = "ja" のとき、voice.language は "ja-JP"。前方一致で絞る。
+    /// 指定言語で利用可能な「最も品質の高い」声を返す。
+    /// AVSpeechSynthesisVoice(language:) は Default 品質の標準音声を返してしまうため、
+    /// インストール済みボイスを列挙して Premium > Enhanced > Default の順に選ぶ。
+    private func bestQualityVoice(forLanguage lang: String) -> AVSpeechSynthesisVoice? {
+        // 例: lang = "ja" のとき、voice.language は "ja-JP"。前方一致で絞る。
         let candidates = AVSpeechSynthesisVoice.speechVoices().filter {
-            $0.language.hasPrefix(lang.rawValue)
+            $0.language.hasPrefix(lang)
         }
         if candidates.isEmpty {
-            return AVSpeechSynthesisVoice(language: lang.rawValue)
+            return AVSpeechSynthesisVoice(language: lang)
         }
 
         // 品質順 (Premium → Enhanced → Default) に最初に見つかったものを採用。
