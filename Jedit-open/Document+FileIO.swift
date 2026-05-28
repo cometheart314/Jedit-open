@@ -877,6 +877,19 @@ extension Document {
             // BOMの有無を検出
             let bomDetected = EncodingDetector.shared.hasBOM(data)
 
+            // PDF・画像などテキストでないファイルを開こうとした場合、
+            // エンコーディングをどう選んでも意味のあるテキストにはならない。
+            // 無駄なエンコーディング選択ダイアログを出さず、テキストでない旨のエラーにする。
+            if EncodingDetector.shared.dataLooksBinary(data) {
+                #if DEBUG
+                Swift.print("Result: NOT A TEXT FILE (binary data detected)")
+                Swift.print("=== Encoding Detection End ===\n")
+                #endif
+                throw NSError(domain: NSCocoaErrorDomain, code: NSFileReadCorruptFileError, userInfo: [
+                    NSLocalizedDescriptionKey: "This file is not a text file and cannot be opened.".localized
+                ])
+            }
+
             // Preferencesの Opening Encoding 設定を取得（直接キー文字列を使用）
             let preferredEncodingInt = UserDefaults.standard.integer(forKey: "JOPlainTextEncoding")
             let preferredEncoding: String.Encoding? = preferredEncodingInt <= 0 ? nil : String.Encoding(rawValue: UInt(preferredEncodingInt))

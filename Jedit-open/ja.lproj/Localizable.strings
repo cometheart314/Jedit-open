@@ -66,6 +66,7 @@
 "Converting to %@ may result in data loss. Do you want to continue?" = "%@ への変換でデータが失われる可能性があります。続けますか？";
 "Cannot Convert" = "変換できません";
 "Could not decode text file. No valid encoding found." = "テキストファイルをデコードできませんでした。有効なエンコーディングが見つかりません。";
+"This file is not a text file and cannot be opened." = "このファイルはテキストファイルではないため開けません。";
 "Could not decode text file." = "テキストファイルをデコードできませんでした。";
 "Could not read Markdown document." = "Markdown書類を読み込めませんでした。";
 "Could not read %@ document." = "%@ 書類を読み込めませんでした。";

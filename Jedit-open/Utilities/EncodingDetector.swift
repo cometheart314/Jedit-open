@@ -155,6 +155,57 @@ final class EncodingDetector: Sendable {
         return .needsUserSelection(candidates: results)
     }
 
+    // MARK: - Binary Detection
+
+    /// データがテキストではなくバイナリファイル (PDF・画像・圧縮データ等) と
+    /// 思われるかを判定する。
+    /// テキストエンコーディングをどう選んでも意味のあるテキストにならないファイルを、
+    /// エンコーディング選択ダイアログを出す前に弾くために使う。
+    /// - Returns: バイナリの疑いが強い場合 true
+    nonisolated func dataLooksBinary(_ data: Data) -> Bool {
+        guard !data.isEmpty else { return false }
+
+        // BOM があれば Unicode テキストと確定。
+        if detectEncodingFromBOM(data) != nil { return false }
+
+        // 既知のバイナリ形式のマジックナンバー (先頭が ASCII でも中身はバイナリ)。
+        if data.starts(with: [0x25, 0x50, 0x44, 0x46, 0x2D]) { return true }  // "%PDF-"
+
+        // 先頭部分を走査して NUL / 非テキスト制御バイトを数える。
+        // (TAB, LF, CR, FF は通常のテキストにも現れるため除外)
+        let scanLength = min(data.count, 65536)
+        var nulCount = 0
+        var controlCount = 0
+        data.prefix(scanLength).withUnsafeBytes { (raw: UnsafeRawBufferPointer) in
+            for byte in raw {
+                if byte == 0x00 {
+                    nulCount += 1
+                } else if byte < 0x20, byte != 0x09, byte != 0x0A, byte != 0x0D, byte != 0x0C {
+                    controlCount += 1
+                }
+            }
+        }
+
+        // NUL も非テキスト制御バイトも無ければテキスト。
+        if nulCount == 0 && controlCount == 0 { return false }
+
+        // NUL があるか、非テキスト制御バイトが多い場合はバイナリの疑いが強い。
+        let controlRatio = Double(controlCount) / Double(scanLength)
+        let suspicious = nulCount > 0 || controlRatio > 0.1
+        if !suspicious { return false }
+
+        // ただし BOM 無しの UTF-16 / UTF-32 テキストは NUL を多く含むため、
+        // ワイド Unicode として綺麗にデコードできるならバイナリと誤判定しない。
+        for enc: String.Encoding in [.utf16LittleEndian, .utf16BigEndian,
+                                     .utf32LittleEndian, .utf32BigEndian] {
+            if let s = String(data: data, encoding: enc),
+               calculateConfidence(string: s, data: data, encoding: enc) >= Self.confidenceThreshold {
+                return false
+            }
+        }
+        return true
+    }
+
     // MARK: - BOM Detection
 
     /// データにBOM（Byte Order Mark）が含まれているかどうかを判定
