@@ -195,6 +195,9 @@ extension JeditTextView {
         // 言語推定の base text には親文字側を渡す (ルビ読みは通常かな・ひらがな
         // で、本文全体の言語推定にバイアスをかけないため)。
         let voice = preferredVoice(for: baseString)
+        // システム設定 > アクセシビリティ > 読み上げコンテンツ で、その言語に
+        // 設定された速度・音量を AVSpeechUtterance に反映するための言語コード。
+        let speechLang = dominantLanguageCode(for: baseString)
         let nsBase = baseString as NSString
         let fullRange = NSRange(location: 0, length: nsBase.length)
         var utterances: [(AVSpeechUtterance, [SpeechSegment])] = []
@@ -212,6 +215,7 @@ extension JeditTextView {
             guard !built.speechText.isEmpty else { return }
             let u = AVSpeechUtterance(string: built.speechText)
             if let voice = voice { u.voice = voice }
+            self.applySpokenContentParameters(forLanguage: speechLang, to: u)
             u.postUtteranceDelay = Self.paragraphPauseSeconds
             utterances.append((u, built.segments))
         }
@@ -225,6 +229,7 @@ extension JeditTextView {
             if !built.speechText.isEmpty {
                 let u = AVSpeechUtterance(string: built.speechText)
                 if let voice = voice { u.voice = voice }
+                self.applySpokenContentParameters(forLanguage: speechLang, to: u)
                 utterances.append((u, built.segments))
             }
         } else {
@@ -422,13 +427,21 @@ extension JeditTextView {
     }
 
     /// 発話に使う声を決める。
-    /// 本文の優勢言語を判定し、システム設定 (アクセシビリティ > 読み上げ >
-    /// システムの声) の声がその言語を読めるなら、そのシステムの声を優先する。
-    /// 言語が合わない場合 (例: 日本語のシステム音声で英文を読む場合) は、
-    /// 本文言語で利用可能な「最も品質の高い」声に切り替える。これにより、
-    /// 英文を日本語ボイスでカタカナ読みしてしまう問題を避ける。
+    /// 本文の優勢言語を判定し、まず「システム設定 > アクセシビリティ > 読み上げ
+    /// コンテンツ」で**その言語に対して**選ばれているシステムの声を最優先で使う。
+    /// (ユーザは言語ごとに別の声を選べるため。例: 英語=Nora / 日本語=Kyoko。)
+    /// 取得できない/その声が AVSpeechSynthesizer で使えない場合は、旧来の
+    /// Text-to-Speech 既定音声 (NSSpeechSynthesizer.defaultVoice) を試し、
+    /// それも本文言語に合わなければ本文言語で利用可能な「最も品質の高い」声に
+    /// 切り替える。これにより、英文を日本語ボイスでカタカナ読みする問題を避ける。
     private func preferredVoice(for text: String) -> AVSpeechSynthesisVoice? {
         let dominant = dominantLanguageCode(for: text)
+
+        // 1) アクセシビリティ > 読み上げコンテンツ の言語別「システムの声」を最優先。
+        if let dominant = dominant,
+           let v = spokenContentVoice(forLanguage: dominant) {
+            return v
+        }
 
         if let systemVoice = systemDefaultVoice() {
             // 言語判定できない場合はシステムの声をそのまま使う。
@@ -444,6 +457,80 @@ extension JeditTextView {
         // システムの声が解決できない場合は従来どおり本文言語の最高品質ボイス。
         guard let dominant = dominant else { return nil }
         return bestQualityVoice(forLanguage: dominant)
+    }
+
+    /// 「システム設定 > アクセシビリティ > 読み上げコンテンツ」で言語別に選ばれた
+    /// システムの声を解決する。設定は com.apple.Accessibility ドメインの
+    /// `SpokenContentDefaultVoiceSelectionsByLanguage` に
+    ///   [ "en", { voiceId = ... }, "ja", { voiceId = ... }, ... ]
+    /// というフラットな (言語コード, 選択辞書) の並びで保存されている。
+    ///
+    /// 注: サンドボックス下でこのドメインを読むには Pro 側 entitlement
+    /// `com.apple.security.temporary-exception.shared-preference.read-only`
+    /// (値: com.apple.Accessibility) が必要。entitlement が無い / 値が無い /
+    /// 指定の voiceId が AVSpeechSynthesizer で生成できない (ニューラルや Siri 系
+    /// 音声はサードパーティから使えないことがある) 場合は nil を返し、
+    /// 呼び出し側が従来のフォールバックに進む。
+    private func spokenContentVoice(forLanguage lang: String) -> AVSpeechSynthesisVoice? {
+        guard let dict = spokenContentSelection(forLanguage: lang),
+              let voiceId = dict["voiceId"] as? String else { return nil }
+        return AVSpeechSynthesisVoice(identifier: voiceId)
+    }
+
+    /// `SpokenContentDefaultVoiceSelectionsByLanguage` から、指定言語の選択辞書
+    /// (voiceId / rate / volume 等を含む) を取り出す。値は
+    ///   [ "en", { … }, "ja", { … }, … ]
+    /// という (言語コード, 辞書) 交互のフラット配列。読めない場合は nil。
+    private func spokenContentSelection(forLanguage lang: String) -> [String: Any]? {
+        let domain = "com.apple.Accessibility" as CFString
+        let key = "SpokenContentDefaultVoiceSelectionsByLanguage" as CFString
+        guard let raw = CFPreferencesCopyAppValue(key, domain),
+              let array = raw as? [Any] else { return nil }
+
+        var i = 0
+        while i + 1 < array.count {
+            if let code = array[i] as? String, code == lang,
+               let dict = array[i + 1] as? [String: Any] {
+                return dict
+            }
+            i += 2
+        }
+        return nil
+    }
+
+    /// 「システム設定 > アクセシビリティ > 読み上げコンテンツ」でその言語に
+    /// 設定された速度 (rate)・音量 (volume)・ピッチ (pitch) を AVSpeechUtterance
+    /// に反映する。既定値から変更されたものだけが保存されるため、保存があるキー
+    /// だけ上書きし、無ければ AVSpeechUtterance の既定値のままにする。
+    ///
+    /// - rate:   保存値・AVSpeechUtterance ともに 0...1 (中立 0.5) なので直接。
+    /// - volume: 保存値・AVSpeechUtterance ともに 0...1 なので直接。
+    /// - pitch:  保存値は 0...1 (中立 0.5)。pitchMultiplier は 0.5...2.0 (中立 1.0)
+    ///           なので、中立 0.5→1.0 を保つ指数マッピング 2^((p-0.5)*2) で変換。
+    ///
+    /// 注: 「声の高低 (voiceSettings.timbre)」と「文と文の間の休止
+    /// (voiceSettings.sentencePause)」は AVSpeechSynthesizer に対応 API が無い/
+    /// 文単位分割を要するため、ここでは反映しない。
+    private func applySpokenContentParameters(forLanguage lang: String?,
+                                              to u: AVSpeechUtterance) {
+        guard let lang = lang,
+              let dict = spokenContentSelection(forLanguage: lang) else { return }
+        let floatValue: (String) -> Float? = { k in
+            if let n = dict[k] as? NSNumber { return n.floatValue }
+            if let s = dict[k] as? String, let v = Float(s) { return v }
+            return nil
+        }
+        if let rate = floatValue("rate") {
+            u.rate = min(AVSpeechUtteranceMaximumSpeechRate,
+                         max(AVSpeechUtteranceMinimumSpeechRate, rate))
+        }
+        if let volume = floatValue("volume") {
+            u.volume = min(1.0, max(0.0, volume))
+        }
+        if let pitch = floatValue("pitch") {
+            let mult = Float(pow(2.0, Double(pitch - 0.5) * 2.0))
+            u.pitchMultiplier = min(2.0, max(0.5, mult))
+        }
     }
 
     /// システム設定 (アクセシビリティ > 読み上げ > システムの声) で選ばれている
