@@ -871,8 +871,16 @@ extension JeditTextView {
 
         // リッチテキスト書類の場合
         if !isPlainText {
-            // RTFDデータまたは画像データがある場合はRTFDに昇格してsuperに委譲
-            let hasRTFD = pasteboard.availableType(from: [.rtfd]) != nil
+            // RTFDデータまたは画像データがある場合はRTFDに昇格してsuperに委譲。
+            // RTFD は外部アプリ/レガシー型 (com.apple.flat-rtfd /
+            // "NeXT RTFD pasteboard type") で載ることもあるので、readNormalizedRTFD
+            // が扱う型をすべて検出対象にする。
+            let rtfdTypes: [NSPasteboard.PasteboardType] = [
+                .rtfd,
+                NSPasteboard.PasteboardType("com.apple.flat-rtfd"),
+                NSPasteboard.PasteboardType("NeXT RTFD pasteboard type"),
+            ]
+            let hasRTFD = pasteboard.availableType(from: rtfdTypes) != nil
             let hasImage = pasteboard.availableType(from: [.tiff, .png]) != nil
             if hasRTFD || hasImage {
                 upgradeToRTFDIfNeeded { [weak self] proceed in
@@ -892,13 +900,28 @@ extension JeditTextView {
                 return
             }
 
-            // RTFデータがある場合はリッチテキストとしてペースト（書式を保持）
+            // RTFデータがある場合はリッチテキストとしてペースト（書式を保持）。
+            // 外部アプリは RTF を .rtf (public.rtf) ではなく
+            // "NeXT Rich Text Format v1.0 pasteboard type" で載せることがある。
+            // ドラッグ経路 (readSelection) と同様、両方を RTF として扱わないと
+            // 書式が見つからずプレーンテキストにフォールバックしてしまう。
             // insertText ではなく replaceString を使用する
             // （insertText は typingAttributes を適用してしまい書式が失われるため）
-            if let rtfData = pasteboard.data(forType: .rtf),
+            let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
+            if let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
+               let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
                let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
                 let convertedString = applyTextConversionsToAttributedString(attributedString)
                 replaceString(in: selectedRange(), with: convertedString)
+                fixTextListRenderingAfterPaste()
+                return
+            }
+
+            // RTF/RTFD が無く HTML がある場合 (ブラウザ等からのコピー) は、
+            // HTML をリッチテキストとして取り込む。これが無いと書式が見つからず
+            // プレーンテキストにフォールバックしてしまう。
+            if let normalizedHTML = readNormalizedHTML(from: pasteboard) {
+                replaceString(in: selectedRange(), with: normalizedHTML)
                 fixTextListRenderingAfterPaste()
                 return
             }
@@ -924,7 +947,9 @@ extension JeditTextView {
         }
 
         let pasteboard = NSPasteboard.general
-        if let rtfData = pasteboard.data(forType: .rtf),
+        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
+        if let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
+           let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
            let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
             let convertedString = applyTextConversionsToAttributedString(attributedString)
             // insertText ではなく replaceString を使用（書式を保持するため）
@@ -1032,6 +1057,14 @@ extension JeditTextView {
             fixTextListRenderingAfterPaste()
             return true
         }
+
+        // HTML (ブラウザ等からのリッチテキスト)。RTF が無くてもリッチとして取り込み、
+        // ペースト経路と同じく色正規化・文字変換を適用する。
+        if !isPlainText, let normalizedHTML = readNormalizedHTML(from: pboard) {
+            replaceString(in: selectedRange(), with: normalizedHTML)
+            fixTextListRenderingAfterPaste()
+            return true
+        }
         return super.readSelection(from: pboard, type: type)
     }
 
@@ -1127,6 +1160,31 @@ extension JeditTextView {
         return mutable
     }
 
+    /// ペーストボードから HTML データを NSAttributedString として読み、文字変換と
+    /// 色正規化を適用して返す。ブラウザ等は RTF ではなく HTML でリッチテキストを
+    /// 載せるため、RTF/RTFD が無くてもこの経路で書式を保持できる。HTML タイプが
+    /// 無い/解釈できない場合は nil を返し、呼び出し側でフォールバックする想定。
+    func readNormalizedHTML(from pasteboard: NSPasteboard) -> NSAttributedString? {
+        let htmlTypes: [NSPasteboard.PasteboardType] = [
+            .html,
+            NSPasteboard.PasteboardType("Apple HTML pasteboard type"),
+        ]
+        for type in htmlTypes {
+            guard let data = pasteboard.data(forType: type) else { continue }
+            if let attr = try? NSAttributedString(
+                data: data,
+                options: [
+                    .documentType: NSAttributedString.DocumentType.html,
+                    .characterEncoding: String.Encoding.utf8.rawValue
+                ],
+                documentAttributes: nil
+            ) {
+                return applyTextConversionsToAttributedString(attr)
+            }
+        }
+        return nil
+    }
+
     /// ペーストボードから RTFD / flat-RTFD データを NSAttributedString として読み、
     /// 文字変換と色正規化を適用して返す。RTFD タイプが無い (画像のみ等) 場合は
     /// nil を返し、呼び出し側で super フォールバックする想定。
@@ -1152,6 +1210,10 @@ extension JeditTextView {
     /// ペースト/ドロップで取り込まれた属性付き文字列の色を、現在のアピアランス
     /// で読める色に正規化する。TextEdit の挙動に近づける:
     ///
+    /// - 「前景色属性が無い」 → 動的な `.textColor` を明示付与する。
+    ///   (NSAttributedString の .foregroundColor 既定値は純黒であり、HTML 取り込み
+    ///    では本文に色が付かないことが多い。そのままだとダークモードで黒文字になって
+    ///    読めないため、明示的に動的色を入れる。)
     /// - 「ほぼ純黒 (低彩度の暗色)」 → 動的な `.textColor` に置き換える
     /// - ダークモード時、「彩度のある暗色」 → 色相と彩度を保ったまま明度だけ
     ///   上げる (例: ダークネイビー → ライトブルー、ダークレッド → ピンク調)
@@ -1159,28 +1221,45 @@ extension JeditTextView {
     /// - 「ほぼ純白」の背景色 → 削除して書類の動的背景を透過させる
     private func normalizePastedColorsForAppearance(in attributedString: NSMutableAttributedString) {
         let range = NSRange(location: 0, length: attributedString.length)
+        guard range.length > 0 else { return }
         let isDark = isViewAppearanceDark()
 
+        // 列挙中に属性を書き換えると run 構造が変わって不安定になるため、
+        // 一旦適用先を収集してから後でまとめて適用する。
+        var toTextColor: [NSRange] = []
+        var toLightened: [(NSRange, NSColor)] = []
+
         attributedString.enumerateAttribute(.foregroundColor, in: range, options: []) { value, subrange, _ in
-            guard let color = value as? NSColor else { return }
+            guard let color = value as? NSColor else {
+                // 前景色属性が無い run。既定の純黒を避けて動的色を付与する。
+                toTextColor.append(subrange)
+                return
+            }
             if isNearPureBlack(color) {
                 // 低彩度の暗色は「デフォルトの黒文字」とみなして動的色に。
-                attributedString.addAttribute(.foregroundColor,
-                                              value: NSColor.textColor,
-                                              range: subrange)
+                toTextColor.append(subrange)
             } else if isDark, let lightened = lightenedForDarkMode(color) {
                 // ダークモード時のみ、彩度のある暗色を明度反転して見えるようにする。
                 // 色相と彩度は保つので、紺色は薄水色、暗赤は薄ピンク、になる。
-                attributedString.addAttribute(.foregroundColor,
-                                              value: lightened,
-                                              range: subrange)
+                toLightened.append((subrange, lightened))
             }
             // それ以外 (元から明るい色 / 鮮やかな色) は保持。
         }
+        for r in toTextColor {
+            attributedString.addAttribute(.foregroundColor, value: NSColor.textColor, range: r)
+        }
+        for (r, color) in toLightened {
+            attributedString.addAttribute(.foregroundColor, value: color, range: r)
+        }
 
+        var toRemoveBackground: [NSRange] = []
         attributedString.enumerateAttribute(.backgroundColor, in: range, options: []) { value, subrange, _ in
-            guard let color = value as? NSColor, isNearPureWhite(color) else { return }
-            attributedString.removeAttribute(.backgroundColor, range: subrange)
+            if let color = value as? NSColor, isNearPureWhite(color) {
+                toRemoveBackground.append(subrange)
+            }
+        }
+        for r in toRemoveBackground {
+            attributedString.removeAttribute(.backgroundColor, range: r)
         }
     }
 
