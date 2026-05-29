@@ -116,7 +116,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
 
         // Continuity Camera用: アプリが画像を受け取れることをServicesに登録
         let imageReturnTypes = NSImage.imageTypes.map { NSPasteboard.PasteboardType($0) }
-        NSApp.registerServicesMenuSendTypes([.string, .rtf, .rtfd], returnTypes: imageReturnTypes + [.tiff, .png])
+        NSApp.registerServicesMenuSendTypes([.string, .rtf, .rtfd, .html], returnTypes: imageReturnTypes + [.tiff, .png])
 
         // サービスメニューの「Jedit: Open Selected Text」用にプロバイダを登録
         NSApp.servicesProvider = self
@@ -1063,12 +1063,20 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             document.makeWindowControllers()
             document.showWindows()
 
-            // ウィンドウ表示後にコンテンツを設定
-            document.textStorage.setAttributedString(attributedString)
+            // ウィンドウ表示後にコンテンツを設定。
+            // 他アプリ (例: ライトモードの Safari) から取得したテキストは黒固定の
+            // 文字色を持つことが多く、そのまま入れるとダークモードの書類で見えなく
+            // なる。ペーストと同じ色正規化を適用してから設定する (黒→動的 textColor 等)。
+            // ライブなテキストビューに依存しないよう、対象ウインドウの実効アピア
+            // ランスで判定する static 正規化を使う。
+            let windowController = document.windowControllers.first as? EditorWindowController
+            let isDark = (windowController?.window?.effectiveAppearance
+                          ?? NSApp.effectiveAppearance)
+                .bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+            let normalized = JeditTextView.normalizedColorsForAppearance(attributedString, isDark: isDark)
+            document.textStorage.setAttributedString(normalized)
 
-            if let windowController = document.windowControllers.first as? EditorWindowController {
-                windowController.applyWindowFrameFromPreset()
-            }
+            windowController?.applyWindowFrameFromPreset()
         } catch {
             print("Error creating rich text document from clipboard: \(error)")
         }
@@ -1088,12 +1096,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             document.makeWindowControllers()
             document.showWindows()
 
-            // ウィンドウ表示後にコンテンツを設定
-            document.textStorage.replaceCharacters(in: NSRange(location: 0, length: document.textStorage.length), with: text)
-
-            if let windowController = document.windowControllers.first as? EditorWindowController {
-                windowController.applyWindowFrameFromPreset()
+            // ウィンドウ表示後にコンテンツを設定。
+            // 生の String を replaceCharacters で入れると色・フォント属性が付かず、
+            // 既定の純黒文字になってダークモードで見えなくなる。タイプ時と同じ
+            // typingAttributes（動的テキストカラーとフォントを含む）を付与して
+            // 差し込み、通常入力と同じ見た目にする。
+            let windowController = document.windowControllers.first as? EditorWindowController
+            var attrs = (windowController?.currentTextView())?.typingAttributes ?? [:]
+            if attrs[.foregroundColor] == nil {
+                attrs[.foregroundColor] = NSColor.textColor
             }
+            let fullRange = NSRange(location: 0, length: document.textStorage.length)
+            document.textStorage.replaceCharacters(
+                in: fullRange,
+                with: NSAttributedString(string: text, attributes: attrs))
+
+            windowController?.applyWindowFrameFromPreset()
         } catch {
             print("Error creating plain text document from clipboard: \(error)")
         }
@@ -1116,6 +1134,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
            let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
             createRichTextDocument(with: attributedString)
             return
+        }
+
+        // HTML をチェック（ブラウザ等は RTF ではなく HTML でリッチテキストを渡す）。
+        // 取り込めればリッチ書類として開く（色正規化は createRichTextDocument 内で適用）。
+        for htmlType in [NSPasteboard.PasteboardType.html,
+                         NSPasteboard.PasteboardType("Apple HTML pasteboard type")] {
+            if let htmlData = pasteboard.data(forType: htmlType),
+               let attributedString = try? NSAttributedString(
+                    data: htmlData,
+                    options: [.documentType: NSAttributedString.DocumentType.html,
+                              .characterEncoding: String.Encoding.utf8.rawValue],
+                    documentAttributes: nil) {
+                createRichTextDocument(with: attributedString)
+                return
+            }
         }
 
         // プレーンテキストをチェック

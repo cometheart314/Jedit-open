@@ -142,6 +142,7 @@
 				<string>NSStringPboardType</string>
 				<string>NSRTFPboardType</string>
 				<string>NSRTFDPboardType</string>
+				<string>public.html</string>
 			</array>
 			<key>NSReturnTypes</key>
 			<array/>

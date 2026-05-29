@@ -1220,9 +1220,16 @@ extension JeditTextView {
     /// - 鮮やかな色や明色 → そのまま保持
     /// - 「ほぼ純白」の背景色 → 削除して書類の動的背景を透過させる
     private func normalizePastedColorsForAppearance(in attributedString: NSMutableAttributedString) {
+        Self.applyColorNormalization(to: attributedString, isDark: isViewAppearanceDark())
+    }
+
+    /// 色正規化の本体。ビューに依存しないよう static にしてあり、ライブな
+    /// テキストビューが無い経路 (サービスメニュー経由の新規書類作成など) からも
+    /// 利用できる。`isDark` は対象ウインドウ/アプリの実効アピアランスで判定する。
+    static func applyColorNormalization(to attributedString: NSMutableAttributedString,
+                                        isDark: Bool) {
         let range = NSRange(location: 0, length: attributedString.length)
         guard range.length > 0 else { return }
-        let isDark = isViewAppearanceDark()
 
         // 列挙中に属性を書き換えると run 構造が変わって不安定になるため、
         // 一旦適用先を収集してから後でまとめて適用する。
@@ -1263,6 +1270,15 @@ extension JeditTextView {
         }
     }
 
+    /// ビュー非依存の色正規化エントリ。サービスメニュー経由の新規書類作成など、
+    /// ライブなテキストビューが無い経路から、ペーストと同じ色補正を適用する。
+    static func normalizedColorsForAppearance(_ attributedString: NSAttributedString,
+                                              isDark: Bool) -> NSAttributedString {
+        let mutable = NSMutableAttributedString(attributedString: attributedString)
+        applyColorNormalization(to: mutable, isDark: isDark)
+        return mutable
+    }
+
     /// この view の現在の実効アピアランスがダーク (darkAqua) かを返す。
     private func isViewAppearanceDark() -> Bool {
         return effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
@@ -1271,7 +1287,7 @@ extension JeditTextView {
     /// 彩度がある暗色を「白側にブレンドする」ことで、色相を残しつつ自然に
     /// 脱彩度・明色化した色を返す。鮮やかな青ではなく、うっすら青みがかった
     /// パステル調になる。既に明るい色や、彩度がほぼ無い色は対象外として nil。
-    private func lightenedForDarkMode(_ color: NSColor) -> NSColor? {
+    private static func lightenedForDarkMode(_ color: NSColor) -> NSColor? {
         guard let rgb = rgbComponents(of: color) else { return nil }
         let maxC = max(rgb.r, rgb.g, rgb.b)
         let minC = min(rgb.r, rgb.g, rgb.b)
@@ -1293,7 +1309,7 @@ extension JeditTextView {
     /// 複数のカラースペースを試し、最初に得られた sRGB 相当の RGBA を返す。
     /// 外部アプリ由来の RTF/RTFD では色が deviceRGB やキャリブレーション付き空間で
     /// 来ることがあるため、sRGB だけで諦めずにフォールバックする。
-    private func rgbComponents(of color: NSColor)
+    private static func rgbComponents(of color: NSColor)
         -> (r: CGFloat, g: CGFloat, b: CGFloat, a: CGFloat)? {
         let candidates: [NSColorSpace] = [
             .sRGB, .deviceRGB, .genericRGB, .extendedSRGB
@@ -1311,7 +1327,7 @@ extension JeditTextView {
     /// デフォルトテキストとみなして動的色に置き換える。
     /// (例: 純黒 0x000000、Web 由来の本文色 0x1F1F1F、
     ///  わずかに青みがかった黒 0x16182A 等もまとめてカバーする)
-    private func isNearPureBlack(_ color: NSColor) -> Bool {
+    private static func isNearPureBlack(_ color: NSColor) -> Bool {
         guard let rgb = rgbComponents(of: color) else { return false }
         let maxC = max(rgb.r, rgb.g, rgb.b)
         let minC = min(rgb.r, rgb.g, rgb.b)
@@ -1324,7 +1340,7 @@ extension JeditTextView {
 
     /// 「ユーザーが意図しない明るいデフォルト背景色」かどうかの判定。
     /// 同様に彩度ベースで、明るくて彩度が低ければデフォルト白背景とみなす。
-    private func isNearPureWhite(_ color: NSColor) -> Bool {
+    private static func isNearPureWhite(_ color: NSColor) -> Bool {
         guard let rgb = rgbComponents(of: color) else { return false }
         let maxC = max(rgb.r, rgb.g, rgb.b)
         let minC = min(rgb.r, rgb.g, rgb.b)
