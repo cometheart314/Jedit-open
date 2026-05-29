@@ -1076,6 +1076,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             let normalized = JeditTextView.normalizedColorsForAppearance(attributedString, isDark: isDark)
             document.textStorage.setAttributedString(normalized)
 
+            // プログラムで内容を流し込んだだけでは変更カウントが立たず、しかも初期
+            // ロード完了クリアに打ち消されて、未保存のまま保存確認なしで閉じられて
+            // しまう。保留中のクリアを取り消したうえで編集済みとしてマークする。
+            document.markProgrammaticContentAsEdited()
+
             windowController?.applyWindowFrameFromPreset()
         } catch {
             print("Error creating rich text document from clipboard: \(error)")
@@ -1110,6 +1115,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
             document.textStorage.replaceCharacters(
                 in: fullRange,
                 with: NSAttributedString(string: text, attributes: attrs))
+
+            // プログラムで内容を流し込んだだけでは変更カウントが立たず、しかも初期
+            // ロード完了クリアに打ち消されて、未保存のまま保存確認なしで閉じられて
+            // しまう。保留中のクリアを取り消したうえで編集済みとしてマークする。
+            document.markProgrammaticContentAsEdited()
 
             windowController?.applyWindowFrameFromPreset()
         } catch {

@@ -642,6 +642,19 @@ class Document: NSDocument {
         updateChangeCount(.changeCleared)
     }
 
+    /// サービスメニュー等でプログラム的に内容を流し込んだ新規書類を「編集済み」と
+    /// して確定する。`scheduleFinishInitialLoading()` が次のランループで予約している
+    /// 初期ロード完了クリア (`finishInitialLoading` の `.changeCleared`) に打ち消され
+    /// ると、未保存の内容があるのに保存確認なしで閉じられてしまう。保留中のクリアを
+    /// キャンセルしてから `.changeDone` を立てることで、閉じる際に保存を問い合わせる。
+    func markProgrammaticContentAsEdited() {
+        NSObject.cancelPreviousPerformRequests(
+            withTarget: self,
+            selector: #selector(finishInitialLoading),
+            object: nil)
+        updateChangeCount(.changeDone)
+    }
+
     // MARK: - Helper Methods
 
     private func findTextView(in view: NSView) -> NSTextView? {
