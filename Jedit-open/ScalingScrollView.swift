@@ -100,6 +100,8 @@ class ScalingScrollView: NSScrollView {
 
     override func awakeFromNib() {
         super.awakeFromNib()
+        // 書類ウィンドウのスクロールバーは常に表示する（自動非表示しない）。
+        autohidesScrollers = false
         setupMagnification()
         setupFrameObserver()
         setupSplitButtons()
@@ -108,6 +110,19 @@ class ScalingScrollView: NSScrollView {
         setupScaleButton()
         setupInfoField()
         setupInfoPanelButton()
+    }
+
+    /// スクロールバーを常に表示する（legacy スタイル固定）。
+    ///
+    /// システム設定 > 外観 > 「スクロールバーの表示」が「内容のスクロール時のみ」/
+    /// 「マウスまたはトラックパッドに基づいて自動的に」でも、書類ウィンドウでは常に
+    /// スクロールバーを出したい。NSScrollView は環境設定の変更やマウス着脱時に
+    /// scrollerStyle を overlay に上書きしてくる
+    /// (NSPreferredScrollerStyleDidChangeNotification) ため、setter に値を持たせる
+    /// のではなく getter を .legacy 固定にして恒久化する。
+    override var scrollerStyle: NSScroller.Style {
+        get { .legacy }
+        set { /* 常に legacy。システムによる overlay への切り替えは無視する */ }
     }
 
     deinit {
