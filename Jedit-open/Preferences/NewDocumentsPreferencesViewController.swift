@@ -769,7 +769,7 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
     @IBAction func getCurrentToolbarItemsAsDefault(_ sender: Any) {
         guard let toolbar = frontmostDocumentToolbar() else {
             let alert = NSAlert()
-            alert.messageText = "No Document Window".localized
+            alert.messageText = "No Open Document Has a Toolbar".localized
             alert.informativeText = "Open a document, customize its toolbar, then click this button.".localized
             alert.addButton(withTitle: "OK".localized)
             if let window = view.window {

@@ -83,8 +83,8 @@ class DocumentColorsPanel: NSPanel {
     private func setupThemePopup() {
         themePopup.removeAllItems()
 
-        // 最初に"Theme"タイトルを追加（未選択状態を示す）
-        themePopup.addItem(withTitle: "Theme".localized)
+        // 最初に"Sample Theme"タイトルを追加（未選択状態を示す）
+        themePopup.addItem(withTitle: "Sample Theme".localized)
 
         let manager = ThemeColorManager.shared
 

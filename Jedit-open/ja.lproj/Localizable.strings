@@ -1,7 +1,7 @@
 /* Japanese Localization for Jedit */
 
 /* Alerts for "Get Current Toolbar Items As Default" button */
-"No Document Window" = "開いている書類がありません";
+"No Open Document Has a Toolbar" = "ツールバーがある書類が開いていません";
 "Open a document, customize its toolbar, then click this button." = "書類を開き、ツールバーをカスタマイズしてからこのボタンを押してください。";
 "Set toolbar items as default for \"%@\"?" = "次のツールバー項目をプリセット「%@」のデフォルトに設定します。";
 "(no items)" = "(項目なし)";
@@ -370,6 +370,7 @@
 
 /* Theme */
 "Theme" = "テーマ";
+"Sample Theme" = "サンプルテーマ";
 "Add Theme" = "テーマを追加";
 "Add Theme..." = "テーマを追加...";
 "New Theme" = "新規テーマ";

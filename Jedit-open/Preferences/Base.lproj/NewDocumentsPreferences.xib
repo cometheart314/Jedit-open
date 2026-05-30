@@ -1403,14 +1403,14 @@
                                         </connections>
                                     </button>
                                     <popUpButton verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="i32-qM-aHn" customClass="JOThemeColorPopupButton" customModule="Jedit" customModuleProvider="target">
-                                        <rect key="frame" x="29" y="244" width="117" height="25"/>
+                                        <rect key="frame" x="29" y="244" width="170" height="25"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
-                                        <popUpButtonCell key="cell" type="push" title="Theme" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="1ZY-y9-zdJ" id="UVo-UT-tMT">
+                                        <popUpButtonCell key="cell" type="push" title="Sample Theme" bezelStyle="rounded" alignment="left" lineBreakMode="truncatingTail" state="on" borderStyle="borderAndBezel" imageScaling="proportionallyDown" inset="2" pullsDown="YES" selectedItem="1ZY-y9-zdJ" id="UVo-UT-tMT">
                                             <behavior key="behavior" lightByBackground="YES" lightByGray="YES"/>
                                             <font key="font" metaFont="message"/>
                                             <menu key="menu" id="jnV-yk-mWN">
                                                 <items>
-                                                    <menuItem title="Theme" state="on" hidden="YES" id="1ZY-y9-zdJ"/>
+                                                    <menuItem title="Sample Theme" state="on" hidden="YES" id="1ZY-y9-zdJ"/>
                                                     <menuItem title="Item 2" id="ceb-4i-zeV"/>
                                                     <menuItem title="Item 3" id="RtL-uc-LN0"/>
                                                 </items>
