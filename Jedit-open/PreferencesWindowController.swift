@@ -38,13 +38,13 @@ class PreferencesWindowController: NSWindowController {
     
     convenience init() {
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 880, height: 500),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
         window.title = "Settings".localized
-        window.minSize = NSSize(width: 740, height: 480)
+        window.minSize = NSSize(width: 820, height: 480)
         window.center()
         
         self.init(window: window)
@@ -133,16 +133,26 @@ class PreferencesWindowController: NSWindowController {
         // Right Content View
         let contentContainer = NSView(frame: NSRect(x: 0, y: 0, width: 600, height: 500))
         contentView = NSView(frame: contentContainer.bounds)
-        contentView.autoresizingMask = [.width, .height]
+        contentView.translatesAutoresizingMaskIntoConstraints = false
         contentContainer.addSubview(contentView)
+        // コンテンツビューを常に親いっぱいに広げる（初回表示でもサイズが確定する）
+        NSLayoutConstraint.activate([
+            contentView.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor),
+            contentView.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor),
+            contentView.topAnchor.constraint(equalTo: contentContainer.topAnchor),
+            contentView.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor)
+        ])
         
         splitView.addArrangedSubview(sidebarContainer)
         splitView.addArrangedSubview(contentContainer)
         
         window.contentView = splitView
         
-        // Set sidebar width
-        splitView.setPosition(240, ofDividerAt: 0)
+        // 左カラムは固定幅 (200pt)。ドラッグ不可・ウインドウリサイズ時も不変にする。
+        // この NSSplitView は frame ベースで動くため、Auto Layout の幅制約ではなく
+        // NSSplitViewDelegate で制御する（制約を足すと右ペインが潰れるため使わない）。
+        splitView.delegate = self
+        splitView.setPosition(200, ofDividerAt: 0)
         
         // Select first item
         // ただし、selectCategory が外部から先に呼ばれてペインを切り替え済みなら上書きしない
@@ -164,9 +174,16 @@ class PreferencesWindowController: NSWindowController {
         let item = preferenceItems[index]
         let viewController = createViewController(for: item.identifier)
         
-        viewController.view.frame = contentView.bounds
-        viewController.view.autoresizingMask = [.width, .height]
-        contentView.addSubview(viewController.view)
+        // ペインを常に contentView いっぱいに広げる（初回表示でも右に空白が出ない）
+        let paneView = viewController.view
+        paneView.translatesAutoresizingMaskIntoConstraints = false
+        contentView.addSubview(paneView)
+        NSLayoutConstraint.activate([
+            paneView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
+            paneView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
+            paneView.topAnchor.constraint(equalTo: contentView.topAnchor),
+            paneView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
+        ])
         
         currentViewController = viewController
         
@@ -268,6 +285,39 @@ extension PreferencesWindowController: NSOutlineViewDelegate {
         let selectedRow = outlineView.selectedRow
         guard selectedRow >= 0 else { return }
         showPreferencePane(at: selectedRow)
+    }
+}
+
+// MARK: - NSSplitViewDelegate
+
+extension PreferencesWindowController: NSSplitViewDelegate {
+    // divider をドラッグできないようにする（左カラムは固定幅）
+    func splitView(_ splitView: NSSplitView,
+                   effectiveRect proposedEffectiveRect: NSRect,
+                   forDrawnRect drawnRect: NSRect,
+                   ofDividerAt dividerIndex: Int) -> NSRect {
+        return .zero
+    }
+
+    func splitView(_ splitView: NSSplitView,
+                   constrainMinCoordinate proposedMinimumPosition: CGFloat,
+                   ofSubviewAt dividerIndex: Int) -> CGFloat {
+        return 200
+    }
+
+    func splitView(_ splitView: NSSplitView,
+                   constrainMaxCoordinate proposedMaximumPosition: CGFloat,
+                   ofSubviewAt dividerIndex: Int) -> CGFloat {
+        return 200
+    }
+
+    // ウインドウのリサイズ時、左サイドバーのサイズは変えない（右コンテンツが吸収する）
+    func splitView(_ splitView: NSSplitView, shouldAdjustSizeOfSubview view: NSView) -> Bool {
+        return view !== splitView.subviews.first
+    }
+
+    func splitView(_ splitView: NSSplitView, canCollapseSubview subview: NSView) -> Bool {
+        return false
     }
 }
 
