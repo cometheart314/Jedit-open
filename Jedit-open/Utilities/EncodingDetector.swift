@@ -35,12 +35,17 @@ struct EncodingDetectionResult: Sendable {
     let confidence: Int32
     /// ロスのある変換が発生したか
     let usedLossyConversion: Bool
+    /// 検出時に得られたデコード済み文字列（あれば厳格再デコードの代わりに使う）。
+    /// Apple の寛容検出は不正バイトを置換しつつ正しく復元できるため、これを保持して
+    /// 1 バイトの不正で String(data:encoding:) 全体が nil になる問題を回避する。
+    let decodedString: String?
 
-    nonisolated init(encoding: String.Encoding, name: String? = nil, confidence: Int32, usedLossyConversion: Bool = false) {
+    nonisolated init(encoding: String.Encoding, name: String? = nil, confidence: Int32, usedLossyConversion: Bool = false, decodedString: String? = nil) {
         self.encoding = encoding
         self.name = name ?? String.localizedName(of: encoding)
         self.confidence = confidence
         self.usedLossyConversion = usedLossyConversion
+        self.decodedString = decodedString
     }
 }
 
@@ -146,7 +151,12 @@ final class EncodingDetector: Sendable {
 
         // 信頼度が閾値以上の場合、または ユーザー選択を許可しない場合は自動判定
         if bestResult.confidence >= Self.confidenceThreshold || !allowUserSelection {
-            if let string = decodeData(data, with: bestResult.encoding) {
+            // 検出時に復元済みの文字列があればそれを使う（不正バイトを含むファイルでも
+            // 1 バイトのために全体を捨てない）。無ければ厳格デコード、それも失敗したら
+            // 寛容デコードにフォールバックする。
+            if let string = bestResult.decodedString
+                ?? decodeData(data, with: bestResult.encoding)
+                ?? lossyDecode(data, with: bestResult.encoding) {
                 return .success(encoding: bestResult.encoding, string: string)
             }
         }
@@ -189,9 +199,14 @@ final class EncodingDetector: Sendable {
         // NUL も非テキスト制御バイトも無ければテキスト。
         if nulCount == 0 && controlCount == 0 { return false }
 
-        // NUL があるか、非テキスト制御バイトが多い場合はバイナリの疑いが強い。
+        // NUL / 非テキスト制御バイトの「密度」が高い場合のみバイナリの疑いが強い。
+        // 本物のバイナリ (PDF・画像・圧縮データ等) は NUL や制御バイトを大量に含むため
+        // 密度が高くなる。一方、テキストに紛れ込んだ少数の NUL は密度が極めて低い。
+        // かつて NUL が 1 個でもあれば弾いていたが、それでは NUL を数個含む実テキストまで
+        // 「フォーマットが正しくありません」で開けなくなるため、密度しきい値に変更した。
+        let nulRatio = Double(nulCount) / Double(scanLength)
         let controlRatio = Double(controlCount) / Double(scanLength)
-        let suspicious = nulCount > 0 || controlRatio > 0.1
+        let suspicious = nulRatio > 0.1 || controlRatio > 0.1
         if !suspicious { return false }
 
         // ただし BOM 無しの UTF-16 / UTF-32 テキストは NUL を多く含むため、
@@ -400,12 +415,23 @@ final class EncodingDetector: Sendable {
 
         if detectedEncoding != 0 {
             let encoding = String.Encoding(rawValue: detectedEncoding)
-            // ロスのない変換は高い信頼度、ロスのある変換は低い信頼度
-            let confidence: Int32 = usedLossyConversion.boolValue ? 40 : 80
+            let converted = convertedString as String?
+            // ロスのない変換は高信頼度。ロスのある変換でも、対象が日本語などの
+            // マルチバイト系で Apple が中身を復元できている場合は、単バイト西欧系の
+            // 「全バイト機械的一致」より上位に置く（不正バイト 1 個で全滅させない）。
+            let confidence: Int32
+            if !usedLossyConversion.boolValue {
+                confidence = 80
+            } else if isMeaningfulMultibyte(encoding), let c = converted, !c.isEmpty {
+                confidence = 75
+            } else {
+                confidence = 40
+            }
             results.append(EncodingDetectionResult(
                 encoding: encoding,
                 confidence: confidence,
-                usedLossyConversion: usedLossyConversion.boolValue
+                usedLossyConversion: usedLossyConversion.boolValue,
+                decodedString: converted
             ))
         }
 
@@ -474,6 +500,39 @@ final class EncodingDetector: Sendable {
         return encodings
     }
 
+    /// 単バイト西欧系（全 256 バイトを機械的に受理してしまう）ではなく、
+    /// 日本語などのマルチバイト系 / Unicode かどうか。
+    /// 不正バイトを含むファイルで、Apple の寛容変換結果を単バイト系より優先する判定に使う。
+    private nonisolated func isMeaningfulMultibyte(_ encoding: String.Encoding) -> Bool {
+        switch encoding {
+        case .ascii, .nonLossyASCII, .isoLatin1, .isoLatin2, .macOSRoman,
+             .windowsCP1250, .windowsCP1251, .windowsCP1252, .windowsCP1253, .windowsCP1254:
+            return false
+        default:
+            return true
+        }
+    }
+
+    /// 全 256 バイトを機械的に往復してしまう単バイトエンコーディングか。
+    /// これらは往復一致しても意味がないため、信頼度の往復ボーナスを与えない。
+    private nonisolated func isSingleByteCatchAll(_ encoding: String.Encoding) -> Bool {
+        return encoding == .isoLatin1 || encoding == .macOSRoman
+    }
+
+    /// 指定エンコーディングで寛容にデコードする（不正バイトは置換）。
+    /// 厳格な String(data:encoding:) が 1 バイトの不正で nil を返すケースの最終手段。
+    private nonisolated func lossyDecode(_ data: Data, with encoding: String.Encoding) -> String? {
+        var options: [StringEncodingDetectionOptionsKey: Any] = [:]
+        options[.suggestedEncodingsKey] = [NSNumber(value: encoding.rawValue)]
+        options[.useOnlySuggestedEncodingsKey] = true
+        options[.allowLossyKey] = true
+        var converted: NSString?
+        var lossy: ObjCBool = false
+        _ = NSString.stringEncoding(for: data, encodingOptions: options,
+                                    convertedString: &converted, usedLossyConversion: &lossy)
+        return converted as String?
+    }
+
     /// デコード結果の信頼度を計算
     /// - Parameters:
     ///   - string: デコードされた文字列
@@ -524,6 +583,10 @@ final class EncodingDetector: Sendable {
             if utf8Count == dataSize {
                 score += 30
             }
+        } else if isSingleByteCatchAll(encoding) {
+            // ISO Latin-1 / Mac Roman は全 256 バイトを機械的に往復するため、
+            // 往復一致ボーナスは無意味（文字化けでも満点になり、本来の日本語系
+            // エンコーディングを押しのけてしまう）。ボーナスを与えず基本スコアに留める。
         } else if let reencoded = string.data(using: encoding) {
             if reencoded == data {
                 score += 30 // 完全一致でボーナス
