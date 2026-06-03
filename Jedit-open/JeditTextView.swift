@@ -1235,8 +1235,11 @@ class JeditTextView: NSTextView {
     private func performTagJump(to url: URL,
                                 selecting range: NSRange,
                                 bookmark: Data?) {
-        var openURL = url
-        var didStartAccess = false
+        // ブックマーク（親フォルダまたはファイル自身）の security scope を獲得する。
+        // 実際に開くのは常に url（対象ファイル）。親フォルダのスコープ下では配下の
+        // ファイルにアクセスできるため、子ファイル個別のブックマークが無くても開ける。
+        let openURL = url
+        var scopedURL: URL?
         if let bd = bookmark {
             var stale = false
             if let resolved = try? URL(
@@ -1244,17 +1247,15 @@ class JeditTextView: NSTextView {
                 options: [.withSecurityScope],
                 relativeTo: nil,
                 bookmarkDataIsStale: &stale
-            ) {
-                openURL = resolved
-                didStartAccess = resolved.startAccessingSecurityScopedResource()
+            ), resolved.startAccessingSecurityScopedResource() {
+                scopedURL = resolved
             }
         }
-        let scopedURL = openURL
 
         NSDocumentController.shared.openDocument(
             withContentsOf: openURL, display: true
         ) { document, _, error in
-            if didStartAccess { scopedURL.stopAccessingSecurityScopedResource() }
+            if let scopedURL = scopedURL { scopedURL.stopAccessingSecurityScopedResource() }
             guard error == nil, let document = document else {
                 NSSound.beep()
                 return
