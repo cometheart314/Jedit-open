@@ -194,10 +194,19 @@ extension JeditTextView {
         // (\n, \r\n, \r, U+2028, U+2029 を網羅)。
         // 言語推定の base text には親文字側を渡す (ルビ読みは通常かな・ひらがな
         // で、本文全体の言語推定にバイアスをかけないため)。
-        let voice = preferredVoice(for: baseString)
-        // システム設定 > アクセシビリティ > 読み上げコンテンツ で、その言語に
-        // 設定された速度・音量を AVSpeechUtterance に反映するための言語コード。
-        let speechLang = dominantLanguageCode(for: baseString)
+        // 段落ごとに言語を判定し、その言語に合う声で読み上げる。日本語と英語が
+        // 混在する文章でも、各段落を適切な音声で読めるようにする。
+        // (システム標準の合成音声は 1 つの声で 1 言語しか話せないため、段落単位で
+        //  声を切り替える。) 同じ言語コードに対する声の解決結果はキャッシュする。
+        var voiceCache: [String: AVSpeechSynthesisVoice?] = [:]
+        func resolveVoice(for text: String) -> (voice: AVSpeechSynthesisVoice?, lang: String?) {
+            let lang = self.dominantLanguageCode(for: text)
+            let key = lang ?? ""
+            if let cached = voiceCache[key] { return (cached, lang) }
+            let v = self.preferredVoice(forDominant: lang)
+            voiceCache[key] = v
+            return (v, lang)
+        }
         let nsBase = baseString as NSString
         let fullRange = NSRange(location: 0, length: nsBase.length)
         var utterances: [(AVSpeechUtterance, [SpeechSegment])] = []
@@ -213,9 +222,11 @@ extension JeditTextView {
                 paragraphRange: paraRange,
                 docBase: safeRange.location)
             guard !built.speechText.isEmpty else { return }
+            // この段落の優勢言語に合わせて声と読み上げパラメータを決める。
+            let (paraVoice, paraLang) = resolveVoice(for: substring)
             let u = AVSpeechUtterance(string: built.speechText)
-            if let voice = voice { u.voice = voice }
-            self.applySpokenContentParameters(forLanguage: speechLang, to: u)
+            if let paraVoice = paraVoice { u.voice = paraVoice }
+            self.applySpokenContentParameters(forLanguage: paraLang, to: u)
             u.postUtteranceDelay = Self.paragraphPauseSeconds
             utterances.append((u, built.segments))
         }
@@ -227,9 +238,10 @@ extension JeditTextView {
                 paragraphRange: fullRange,
                 docBase: safeRange.location)
             if !built.speechText.isEmpty {
+                let (v, lang) = resolveVoice(for: baseString)
                 let u = AVSpeechUtterance(string: built.speechText)
-                if let voice = voice { u.voice = voice }
-                self.applySpokenContentParameters(forLanguage: speechLang, to: u)
+                if let v = v { u.voice = v }
+                self.applySpokenContentParameters(forLanguage: lang, to: u)
                 utterances.append((u, built.segments))
             }
         } else {
@@ -435,8 +447,12 @@ extension JeditTextView {
     /// それも本文言語に合わなければ本文言語で利用可能な「最も品質の高い」声に
     /// 切り替える。これにより、英文を日本語ボイスでカタカナ読みする問題を避ける。
     private func preferredVoice(for text: String) -> AVSpeechSynthesisVoice? {
-        let dominant = dominantLanguageCode(for: text)
+        return preferredVoice(forDominant: dominantLanguageCode(for: text))
+    }
 
+    /// 既に判定済みの優勢言語コードから声を決める。段落ごとに言語を変えて
+    /// 読み上げるため、言語コードを受け取る版を用意する。
+    private func preferredVoice(forDominant dominant: String?) -> AVSpeechSynthesisVoice? {
         // 1) アクセシビリティ > 読み上げコンテンツ の言語別「システムの声」を最優先。
         if let dominant = dominant,
            let v = spokenContentVoice(forLanguage: dominant) {
