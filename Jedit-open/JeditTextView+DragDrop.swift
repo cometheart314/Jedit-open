@@ -845,9 +845,102 @@ extension JeditTextView {
         super.paste(sender)
     }
 
+    /// 矩形（カラム）選択のコピーを TextEdit / Jedit Ω と同じ列分配で貼り付ける。
+    /// 各行をキャレットの列位置 (x) に合わせて、後続の表示行へ順に挿入する。
+    /// - Returns: 列分配を実施したら true。条件を満たさず通常ペーストに任せる場合は false。
+    func performColumnarPaste(from pasteboard: NSPasteboard) -> Bool {
+        guard let layoutManager = layoutManager,
+              textContainer != nil,
+              let textStorage = textStorage,
+              selectedRange().length == 0 else { return false }
+
+        // 行データを取得（リッチは RTF から属性付きで色等を保持、それ以外はプレーン）
+        var rows: [NSAttributedString] = []
+        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
+        if isRichText,
+           let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
+           let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
+           let attr = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+            rows = Self.splitAttributedByNewline(attr)
+        } else if let string = pasteboard.string(forType: .string) {
+            rows = string.components(separatedBy: "\n").map {
+                NSAttributedString(string: $0, attributes: typingAttributes)
+            }
+        }
+        // 1行のみなら矩形分配の意味がないため通常ペーストに任せる
+        guard rows.count > 1 else { return false }
+
+        // キャレットのジオメトリ（列 x と行の高さ）を求める
+        let caretLoc = selectedRange().location
+        let origin = textContainerOrigin
+        let glyphCount = layoutManager.numberOfGlyphs
+        let caretGlyph = min(layoutManager.glyphIndexForCharacter(at: caretLoc), max(0, glyphCount - 1))
+        let fragmentRect = layoutManager.lineFragmentRect(forGlyphAt: caretGlyph, effectiveRange: nil)
+        let locationInFragment = layoutManager.location(forGlyphAt: caretGlyph)
+        let caretX = fragmentRect.origin.x + locationInFragment.x
+        let lineHeight = fragmentRect.height > 0 ? fragmentRect.height : 16
+
+        // 各行の挿入位置を元テキスト上で算出（キャレットと同じ x で1行ずつ下の行へ）
+        var insertIndexes: [Int] = []
+        for i in 0..<rows.count {
+            let point = CGPoint(x: caretX + origin.x,
+                                y: fragmentRect.origin.y + (CGFloat(i) + 0.5) * lineHeight + origin.y)
+            insertIndexes.append(characterIndexForInsertion(at: point))
+        }
+
+        // Undo 対応: 全レンジ分の変更を通知してから、下の行から挿入してインデックスずれを回避
+        let ranges = insertIndexes.map { NSValue(range: NSRange(location: $0, length: 0)) }
+        let strings = rows.map { $0.string }
+        guard shouldChangeText(inRanges: ranges, replacementStrings: strings) else { return false }
+        textStorage.beginEditing()
+        for i in stride(from: rows.count - 1, through: 0, by: -1) {
+            textStorage.replaceCharacters(in: NSRange(location: insertIndexes[i], length: 0), with: rows[i])
+        }
+        textStorage.endEditing()
+        didChangeText()
+
+        // 選択を先頭行の挿入直後に置く
+        setSelectedRange(NSRange(location: insertIndexes[0] + rows[0].length, length: 0))
+        return true
+    }
+
+    /// 属性付き文字列を改行 (\n) で分割する（各行の属性は保持）
+    static func splitAttributedByNewline(_ attr: NSAttributedString) -> [NSAttributedString] {
+        var result: [NSAttributedString] = []
+        let ns = attr.string as NSString
+        var start = 0
+        while start <= ns.length {
+            let searchRange = NSRange(location: start, length: ns.length - start)
+            let found = ns.range(of: "\n", options: [], range: searchRange)
+            if found.location == NSNotFound {
+                result.append(attr.attributedSubstring(from: NSRange(location: start, length: ns.length - start)))
+                break
+            }
+            result.append(attr.attributedSubstring(from: NSRange(location: start, length: found.location - start)))
+            start = found.location + 1
+        }
+        return result
+    }
+
     /// ペースト時に文字変換を適用
     override func paste(_ sender: Any?) {
         let pasteboard = NSPasteboard.general
+
+        // 矩形（カラム）選択のコピーは、各行をキャレットの列位置 (x) に合わせて
+        // 後続の表示行へ分配する（カラムナーペースト = TextEdit / Jedit Ω と同じ挙動）。
+        // 通常のカスタムペースト経路（insertText / replaceString）では全行が改行付きで
+        // 1か所に挿入されてしまう。NSTextView 標準の readSelection は本アプリのカスタム
+        // テキストスタックでは列分配にならないため、レイアウトのジオメトリを用いて自前で
+        // 分配する（performColumnarPaste）。
+        let rectangularSelectionTypes: [NSPasteboard.PasteboardType] = [
+            NSPasteboard.PasteboardType("Apple rectangular text selection pasteboard type"),
+            NSPasteboard.PasteboardType(
+                "dyn.ah62d4rv4gu8yc6durvwwa6xfqr4gc5xhsz0gc6vasvw1u7basrw023pdsvy085vasbu1g7dfqm10c6xeeb4hw6df"),
+        ]
+        if pasteboard.availableType(from: rectangularSelectionTypes) != nil,
+           performColumnarPaste(from: pasteboard) {
+            return
+        }
 
         #if JEDIT_PRO
         // 青空文庫ルビ記法のペースト後パース用に、ペースト前の選択範囲と
