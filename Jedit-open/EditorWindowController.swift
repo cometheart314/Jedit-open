@@ -681,6 +681,9 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 // 次のランループで再適用（システムによる上書き対策）
                 DispatchQueue.main.async { [weak self] in
                     guard let window = self?.window else { return }
+                    // この時点でタブグループに合流していたら再適用しない
+                    // （合流先タブグループのフレームを上書きしないため）
+                    if Self.shouldSkipPresetFrameForTabbing(window: window) { return }
                     if window.frame != newFrame {
                         window.setFrame(newFrame, display: true)
                     }
@@ -853,6 +856,14 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // タブ化が明示的に禁止されているウィンドウ（例: ヘルプ）はタブ合流しないので保存位置を尊重する
         if window.tabbingMode == .disallowed { return false }
 
+        // 既に複数ウィンドウのタブグループに属している場合は、システムの「タブで開く」設定に
+        // 関わらず保存フレームを適用しない。ユーザが手動でタブバーを表示し「+」ボタンで
+        // 新規書類を作成したケースでは、新規ウィンドウが既存タブグループに合流するため、
+        // プリセットのフレームを適用するとタブグループ全体の位置・サイズを上書きしてしまう。
+        if let tabGroup = window.tabGroup, tabGroup.windows.count > 1 {
+            return true
+        }
+
         let prefersTabs: Bool
         switch NSWindow.userTabbingPreference {
         case .always:
@@ -875,6 +886,38 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
                 && other.tabbingMode != .disallowed
                 && other.windowController is EditorWindowController
         }
+    }
+
+    /// タブバーの「+」ボタンが押されたときに呼ばれるアクション。
+    /// AppKit の既定実装ではシステムの「書類をタブで開く」設定に依存して
+    /// 別ウィンドウとして開かれてしまうことがあるため、明示的に実装して
+    /// 必ず現在のウィンドウのタブグループに新規書類を追加する。
+    @objc override func newWindowForTab(_ sender: Any?) {
+        guard let currentWindow = self.window else { return }
+
+        // 「新規書類のデフォルト」プリセットで作成する。
+        // 選択中プリセット（リッチテキスト等）ではなく Default を使うため、
+        // makeUntitledDocument(=init で選択中プリセット適用) の後に明示的に上書きする。
+        guard let document = try? NSDocumentController.shared.makeUntitledDocument(
+            ofType: "public.plain-text") as? Document else {
+            return
+        }
+        let defaultPreset = DocumentPresetManager.shared.presets.first {
+            $0.id == DocumentPreset.builtInDefault.id
+        } ?? DocumentPreset.builtInDefault
+        document.applyPresetData(defaultPreset.data)
+        NSDocumentController.shared.addDocument(document)
+
+        // ウィンドウコントローラを生成（showWindows は呼ばず、タブとして合流させる）。
+        // makeWindowControllers 後に window へアクセスすると nib がロードされ
+        // windowDidLoad → applyPresetData が走るが、フレームの再適用は
+        // addTabbedWindow 後に tabGroup へ合流済みのためスキップされる。
+        document.makeWindowControllers()
+        guard let newWindow = document.windowControllers.first?.window else { return }
+
+        // 現在のウィンドウのタブグループに追加（フレームはタブグループ側に従う）
+        currentWindow.addTabbedWindow(newWindow, ordered: .above)
+        newWindow.makeKeyAndOrderFront(sender)
     }
 
     /// フォントをテキストビューに適用
