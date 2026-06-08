@@ -778,6 +778,18 @@ class Document: NSDocument {
                     : self.fileURL
                 if let xattrURL = xattrURL {
                     self.writePresetDataToExtendedAttribute(at: xattrURL)
+
+                    // プレーンテキストは標準の com.apple.TextEncoding 拡張属性にも
+                    // エンコーディングを書き込む。これがないと再オープン時の判定は
+                    // 自動判定に頼ることになり、日本語(Mac OS)と日本語(Windows)のような
+                    // Shift-JIS 系の近似エンコーディングが内容次第で入れ替わってしまう
+                    // (保存→再オープンで Mac → Windows に化け、非互換文字で保存不可になる)。
+                    // 標準 xattr は EncodingDetector の判定で最優先の確定材料になるため、
+                    // これを書くことでラウンドトリップでエンコーディングが保持される。
+                    // RTF/RTFD はエンコーディング情報を本体に持つため対象外。
+                    if self.documentType == .plain {
+                        EncodingDetector.shared.writeTextEncodingToExtendedAttribute(self.documentEncoding, to: xattrURL)
+                    }
                 }
                 // ユーザ操作の保存 (Save / Save As) が成功したらフラグを立てる。
                 // 以降の Save As の保存ダイアログでは内容ヘッド提案ではなく既存
