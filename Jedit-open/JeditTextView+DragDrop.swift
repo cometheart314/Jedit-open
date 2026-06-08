@@ -797,6 +797,18 @@ extension JeditTextView {
             return true
         }
 
+        // 他アプリ/他書類からのリッチテキストのドロップ: RTF を取り込み、
+        // 文字変換＋明暗モード色正規化を適用して挿入する（コピー＆ペーストと同じ挙動）。
+        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
+        if let rtfType = pboard.availableType(from: [.rtf, nextRTFType]),
+           let rtfData = pboard.data(forType: rtfType) ?? pboard.data(forType: .rtf),
+           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+            let converted = applyTextConversionsToAttributedString(attributedString)
+            replaceString(in: selectedRange(), with: converted)
+            fixTextListRenderingAfterPaste()
+            return true
+        }
+
         return super.readSelection(from: pboard)
     }
 
@@ -872,7 +884,9 @@ extension JeditTextView {
            let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
            let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
            let attr = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
-            return Self.splitAttributedByNewline(attr)
+            // 文字変換＋明暗モード色正規化を適用してから行分割する
+            let converted = applyTextConversionsToAttributedString(attr)
+            return Self.splitAttributedByNewline(converted)
         } else if let string = pasteboard.string(forType: .string) {
             return string.components(separatedBy: "\n").map {
                 NSAttributedString(string: $0, attributes: typingAttributes)
@@ -1383,103 +1397,152 @@ extension JeditTextView {
         return nil
     }
 
-    /// ペースト/ドロップで取り込まれた属性付き文字列の色を、現在のアピアランス
-    /// で読める色に正規化する。TextEdit の挙動に近づける:
+    /// ペースト/ドロップで取り込まれた属性付き文字列の色を、コピー先（この書類）の
+    /// 明暗モードに合わせて正規化する。
     ///
-    /// - 「前景色属性が無い」 → 動的な `.textColor` を明示付与する。
-    ///   (NSAttributedString の .foregroundColor 既定値は純黒であり、HTML 取り込み
-    ///    では本文に色が付かないことが多い。そのままだとダークモードで黒文字になって
-    ///    読めないため、明示的に動的色を入れる。)
-    /// - 「ほぼ純黒 (低彩度の暗色)」 → 動的な `.textColor` に置き換える
-    /// - ダークモード時、「彩度のある暗色」 → 色相と彩度を保ったまま明度だけ
-    ///   上げる (例: ダークネイビー → ライトブルー、ダークレッド → ピンク調)
-    /// - 鮮やかな色や明色 → そのまま保持
-    /// - 「ほぼ純白」の背景色 → 削除して書類の動的背景を透過させる
+    /// - コピー元・コピー先がライト/ダーク/不明かをテキスト色から判定し、
+    ///   ライト→ダークのときダーク変換、ダーク→ライトのときライト変換を行う。
+    ///   同一モード・どちらかが不明のときは色変換しない。
+    /// - 前景色属性が無い run は、ダークモードでも読めるよう動的な `.textColor` を付与する。
     private func normalizePastedColorsForAppearance(in attributedString: NSMutableAttributedString) {
-        Self.applyColorNormalization(to: attributedString, isDark: isViewAppearanceDark())
+        Self.applyColorNormalization(to: attributedString,
+                                     sourceMode: Self.sourceColorMode(of: attributedString),
+                                     destinationMode: destinationColorMode())
+    }
+
+    /// コピー先（この書類）の明暗モードをテキスト色から判定する。
+    private func destinationColorMode() -> ColorAppearanceMode {
+        let color = destinationModeTextColor()
+        var mode: ColorAppearanceMode = .unknown
+        let resolve = {
+            if let rgb = Self.rgbComponents(of: color) {
+                mode = Self.classifyColorMode(r: rgb.r, g: rgb.g, b: rgb.b)
+            }
+        }
+        // 動的色 (.textColor 等) をこのビューの実効アピアランスで解決してから判定する
+        if #available(macOS 11.0, *) {
+            effectiveAppearance.performAsCurrentDrawingAppearance(resolve)
+        } else {
+            let saved = NSAppearance.current
+            NSAppearance.current = effectiveAppearance
+            resolve()
+            NSAppearance.current = saved
+        }
+        return mode
+    }
+
+    /// コピー先の代表テキスト色（先頭文字の前景色 → typingAttributes → 動的 textColor）
+    private func destinationModeTextColor() -> NSColor {
+        if let textStorage = textStorage, textStorage.length > 0,
+           let color = textStorage.attribute(.foregroundColor, at: 0, effectiveRange: nil) as? NSColor {
+            return color
+        }
+        if let color = typingAttributes[.foregroundColor] as? NSColor {
+            return color
+        }
+        return .textColor
     }
 
     /// 色正規化の本体。ビューに依存しないよう static にしてあり、ライブな
     /// テキストビューが無い経路 (サービスメニュー経由の新規書類作成など) からも
-    /// 利用できる。`isDark` は対象ウインドウ/アプリの実効アピアランスで判定する。
+    /// 利用できる。
+    ///
+    /// 仕様:
+    ///   - コピー元ライト × コピー先ダーク → ダーク変換 (toDark)
+    ///   - コピー元ダーク × コピー先ライト → ライト変換 (toLight)
+    ///   - それ以外 (同一モード / どちらか不明) → 色変換なし
+    ///   変換は前景色・背景色の両方に適用する。
+    ///   前景色属性が無い run には、読みやすさのため動的 `.textColor` を付与する。
     static func applyColorNormalization(to attributedString: NSMutableAttributedString,
-                                        isDark: Bool) {
+                                        sourceMode: ColorAppearanceMode,
+                                        destinationMode: ColorAppearanceMode) {
         let range = NSRange(location: 0, length: attributedString.length)
         guard range.length > 0 else { return }
 
-        // 列挙中に属性を書き換えると run 構造が変わって不安定になるため、
-        // 一旦適用先を収集してから後でまとめて適用する。
-        var toTextColor: [NSRange] = []
-        var toLightened: [(NSRange, NSColor)] = []
+        // 変換方向を決定（新仕様）
+        let conversion: ColorModeConversion
+        if sourceMode == .light && destinationMode == .dark {
+            conversion = .toDark
+        } else if sourceMode == .dark && destinationMode == .light {
+            conversion = .toLight
+        } else {
+            conversion = .none
+        }
 
+        // 前景色・背景色の変換（クロスモード時のみ）。
+        // 列挙中に属性を書き換えると run 構造が変わるため、収集してから適用する。
+        if conversion != .none {
+            for key in [NSAttributedString.Key.foregroundColor, .backgroundColor] {
+                var changes: [(NSRange, NSColor)] = []
+                attributedString.enumerateAttribute(key, in: range, options: []) { value, subrange, _ in
+                    guard let color = value as? NSColor,
+                          let rgb = rgbComponents(of: color) else { return }
+                    let source = ModeRGB(r: Double(rgb.r), g: Double(rgb.g),
+                                         b: Double(rgb.b), alpha: Double(rgb.a))
+                    let converted = (conversion == .toDark) ? source.toDark() : source.toLight()
+                    changes.append((subrange, converted.nsColor))
+                }
+                for (subrange, color) in changes {
+                    attributedString.addAttribute(key, value: color, range: subrange)
+                }
+            }
+        }
+
+        // 前景色属性が無い run は、既定の純黒を避けて動的 `.textColor` を付与する。
+        var colorless: [NSRange] = []
         attributedString.enumerateAttribute(.foregroundColor, in: range, options: []) { value, subrange, _ in
-            guard let color = value as? NSColor else {
-                // 前景色属性が無い run。既定の純黒を避けて動的色を付与する。
-                toTextColor.append(subrange)
-                return
-            }
-            if isNearPureBlack(color) {
-                // 低彩度の暗色は「デフォルトの黒文字」とみなして動的色に。
-                toTextColor.append(subrange)
-            } else if isDark, let lightened = lightenedForDarkMode(color) {
-                // ダークモード時のみ、彩度のある暗色を明度反転して見えるようにする。
-                // 色相と彩度は保つので、紺色は薄水色、暗赤は薄ピンク、になる。
-                toLightened.append((subrange, lightened))
-            }
-            // それ以外 (元から明るい色 / 鮮やかな色) は保持。
+            if value == nil { colorless.append(subrange) }
         }
-        for r in toTextColor {
-            attributedString.addAttribute(.foregroundColor, value: NSColor.textColor, range: r)
+        for subrange in colorless {
+            attributedString.addAttribute(.foregroundColor, value: NSColor.textColor, range: subrange)
         }
-        for (r, color) in toLightened {
-            attributedString.addAttribute(.foregroundColor, value: color, range: r)
-        }
+    }
 
-        var toRemoveBackground: [NSRange] = []
-        attributedString.enumerateAttribute(.backgroundColor, in: range, options: []) { value, subrange, _ in
-            if let color = value as? NSColor, isNearPureWhite(color) {
-                toRemoveBackground.append(subrange)
+    /// コピー元の属性付き文字列の代表テキスト色から明暗モードを判定する。
+    static func sourceColorMode(of attributedString: NSAttributedString) -> ColorAppearanceMode {
+        guard let color = dominantForegroundColor(of: attributedString),
+              let rgb = rgbComponents(of: color) else { return .unknown }
+        return classifyColorMode(r: rgb.r, g: rgb.g, b: rgb.b)
+    }
+
+    /// テキスト色を ライト/ダーク/不明 に分類する。
+    /// ほぼ黒（全成分が小さい）→ ライトモード、ほぼ白（全成分が大きい）→ ダークモード。
+    static func classifyColorMode(r: CGFloat, g: CGFloat, b: CGFloat) -> ColorAppearanceMode {
+        let low: CGFloat = 0.25
+        let high: CGFloat = 0.75
+        if r < low && g < low && b < low { return .light }
+        if r > high && g > high && b > high { return .dark }
+        return .unknown
+    }
+
+    /// 属性付き文字列で最も多く使われている前景色（文字数で重み付け）を返す。
+    static func dominantForegroundColor(of attributedString: NSAttributedString) -> NSColor? {
+        let range = NSRange(location: 0, length: attributedString.length)
+        var lengths: [NSColor: Int] = [:]
+        var best: NSColor?
+        var bestLength = 0
+        attributedString.enumerateAttribute(.foregroundColor, in: range, options: []) { value, subrange, _ in
+            guard let color = value as? NSColor else { return }
+            let total = (lengths[color] ?? 0) + subrange.length
+            lengths[color] = total
+            if total > bestLength {
+                bestLength = total
+                best = color
             }
         }
-        for r in toRemoveBackground {
-            attributedString.removeAttribute(.backgroundColor, range: r)
-        }
+        return best
     }
 
     /// ビュー非依存の色正規化エントリ。サービスメニュー経由の新規書類作成など、
     /// ライブなテキストビューが無い経路から、ペーストと同じ色補正を適用する。
+    /// コピー先のモードは実効アピアランス (isDark) から与える。
     static func normalizedColorsForAppearance(_ attributedString: NSAttributedString,
                                               isDark: Bool) -> NSAttributedString {
         let mutable = NSMutableAttributedString(attributedString: attributedString)
-        applyColorNormalization(to: mutable, isDark: isDark)
+        applyColorNormalization(to: mutable,
+                                sourceMode: sourceColorMode(of: mutable),
+                                destinationMode: isDark ? .dark : .light)
         return mutable
-    }
-
-    /// この view の現在の実効アピアランスがダーク (darkAqua) かを返す。
-    private func isViewAppearanceDark() -> Bool {
-        return effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
-    }
-
-    /// 彩度がある暗色を「白側にブレンドする」ことで、色相を残しつつ自然に
-    /// 脱彩度・明色化した色を返す。鮮やかな青ではなく、うっすら青みがかった
-    /// パステル調になる。既に明るい色や、彩度がほぼ無い色は対象外として nil。
-    private static func lightenedForDarkMode(_ color: NSColor) -> NSColor? {
-        guard let rgb = rgbComponents(of: color) else { return nil }
-        let maxC = max(rgb.r, rgb.g, rgb.b)
-        let minC = min(rgb.r, rgb.g, rgb.b)
-        // 既に明るい色は触らない
-        if maxC >= 0.55 { return nil }
-        // ほぼ無彩色は isNearPureBlack 側で処理されるべきなのでスキップ
-        let saturation = maxC > 0.01 ? (maxC - minC) / maxC : 0
-        if saturation < 0.15 { return nil }
-        // 白に向かって線形ブレンド: result = color * (1 - t) + white * t
-        // t を大きくするほど明るく / 脱彩度的になる。
-        // 0.55 はやや穏やか。鮮やかな青→淡い水色、暗赤→薄ピンク、相当。
-        let t: CGFloat = 0.55
-        let r = rgb.r + (1.0 - rgb.r) * t
-        let g = rgb.g + (1.0 - rgb.g) * t
-        let b = rgb.b + (1.0 - rgb.b) * t
-        return NSColor(srgbRed: r, green: g, blue: b, alpha: rgb.a)
     }
 
     /// 複数のカラースペースを試し、最初に得られた sRGB 相当の RGBA を返す。
@@ -1498,31 +1561,101 @@ extension JeditTextView {
         return nil
     }
 
-    /// 「ユーザーが意図しない暗いデフォルト文字色」かどうかの判定。
-    /// 厳密にグレースケールでなくても、彩度が十分低くて暗い色は本文/見出しの
-    /// デフォルトテキストとみなして動的色に置き換える。
-    /// (例: 純黒 0x000000、Web 由来の本文色 0x1F1F1F、
-    ///  わずかに青みがかった黒 0x16182A 等もまとめてカバーする)
-    private static func isNearPureBlack(_ color: NSColor) -> Bool {
-        guard let rgb = rgbComponents(of: color) else { return false }
-        let maxC = max(rgb.r, rgb.g, rgb.b)
-        let minC = min(rgb.r, rgb.g, rgb.b)
-        // HSV 彩度: max が極端に小さい時 (= 真黒近傍) はゼロ扱い
-        let saturation = maxC > 0.01 ? (maxC - minC) / maxC : 0
-        let isDark = maxC < 0.55
-        let isLowSaturation = saturation < 0.3
-        return isDark && isLowSaturation && rgb.a > 0.5
+}
+
+// MARK: - ライト/ダークモード 色変換
+
+/// テキスト色から判定する明暗モード
+enum ColorAppearanceMode {
+    case light    // テキストがほぼ黒 → ライトモード
+    case dark     // テキストがほぼ白 → ダークモード
+    case unknown  // それ以外
+}
+
+/// 色変換の方向
+enum ColorModeConversion {
+    case toDark
+    case toLight
+    case none
+}
+
+/// ライト/ダークモード間の色変換ユーティリティ（HSB ベース）。
+/// 明度の補正を反転させることで、ダーク背景（深いグレー）↔ ライト背景（白）、
+/// ダーク文字（オフホワイト）↔ ライト文字（黒）を双方向に綺麗にマッピングする。
+struct ModeRGB {
+    let r: Double  // 0.0 ~ 1.0
+    let g: Double
+    let b: Double
+    let alpha: Double
+
+    var nsColor: NSColor {
+        NSColor(srgbRed: CGFloat(r), green: CGFloat(g), blue: CGFloat(b), alpha: CGFloat(alpha))
     }
 
-    /// 「ユーザーが意図しない明るいデフォルト背景色」かどうかの判定。
-    /// 同様に彩度ベースで、明るくて彩度が低ければデフォルト白背景とみなす。
-    private static func isNearPureWhite(_ color: NSColor) -> Bool {
-        guard let rgb = rgbComponents(of: color) else { return false }
-        let maxC = max(rgb.r, rgb.g, rgb.b)
-        let minC = min(rgb.r, rgb.g, rgb.b)
-        let saturation = maxC > 0.01 ? (maxC - minC) / maxC : 0
-        let isLight = minC > 0.6
-        let isLowSaturation = saturation < 0.3
-        return isLight && isLowSaturation && rgb.a > 0.5
+    /// ライトモード → ダークモード への変換
+    func toDark() -> ModeRGB {
+        let (h, s, brightness) = toHSB()
+        // 明度補正: [0.0, 1.0] -> [0.15, 0.92]
+        let newBrightness = 0.15 + (1.0 - brightness) * 0.77
+        // 彩度補正: 暗い背景でギラつかないよう 15% 下げる
+        let newSaturation = s * 0.85
+        return ModeRGB.fromHSB(h: h, s: newSaturation, b: newBrightness, alpha: alpha)
+    }
+
+    /// ダークモード → ライトモード への変換
+    func toLight() -> ModeRGB {
+        let (h, s, brightness) = toHSB()
+        // 明度補正: [0.15, 0.92] を [1.0, 0.0] 方向に逆転してマッピング
+        let normalized = (brightness - 0.15) / 0.77
+        let clamped = max(0.0, min(1.0, normalized))
+        let newBrightness = 1.0 - clamped
+        // 彩度補正: 白背景でも色がぼやけないよう 15% 引き上げる
+        let newSaturation = max(0.0, min(1.0, s / 0.85))
+        return ModeRGB.fromHSB(h: h, s: newSaturation, b: newBrightness, alpha: alpha)
+    }
+
+    // MARK: HSB ↔ RGB
+
+    private func toHSB() -> (h: Double, s: Double, b: Double) {
+        let maxC = max(r, g, b)
+        let minC = min(r, g, b)
+        let delta = maxC - minC
+
+        var h: Double = 0
+        if delta > 0 {
+            if maxC == r {
+                h = ((g - b) / delta).truncatingRemainder(dividingBy: 6)
+            } else if maxC == g {
+                h = ((b - r) / delta) + 2
+            } else {
+                h = ((r - g) / delta) + 4
+            }
+            h /= 6
+            if h < 0 { h += 1 }
+        }
+
+        let s = maxC == 0 ? 0 : delta / maxC
+        return (h, s, maxC)
+    }
+
+    static func fromHSB(h: Double, s: Double, b: Double, alpha: Double) -> ModeRGB {
+        if s == 0 { return ModeRGB(r: b, g: b, b: b, alpha: alpha) }
+
+        let hp = h * 6
+        let c = b * s
+        let x = c * (1 - abs(hp.truncatingRemainder(dividingBy: 2) - 1))
+        let m = b - c
+
+        var (r1, g1, b1) = (0.0, 0.0, 0.0)
+        switch Int(hp) {
+        case 0: (r1, g1, b1) = (c, x, 0)
+        case 1: (r1, g1, b1) = (x, c, 0)
+        case 2: (r1, g1, b1) = (0, c, x)
+        case 3: (r1, g1, b1) = (0, x, c)
+        case 4: (r1, g1, b1) = (x, 0, c)
+        default: (r1, g1, b1) = (c, 0, x)
+        }
+
+        return ModeRGB(r: r1 + m, g: g1 + m, b: b1 + m, alpha: alpha)
     }
 }
