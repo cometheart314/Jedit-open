@@ -56,6 +56,10 @@ class JeditTextView: NSTextView {
     /// ドラッグ開始時のソース選択範囲（ドロップ時に selectedRange() が変わっている場合の保護）
     var dragSourceRange: NSRange?
 
+    /// ドラッグ開始時のソース選択範囲（全レンジ）。矩形（カラム）選択は複数レンジを
+    /// 持つため、selectedRange() の1レンジでは取りこぼす。矩形ドロップ判定・処理に使う。
+    var dragSourceRanges: [NSRange]?
+
     /// 同一書類内ドラッグを自前で処理したかどうか（super のソース削除を防ぐフラグ）
     var handledSameDocumentDrag = false
 

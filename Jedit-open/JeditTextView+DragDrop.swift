@@ -45,6 +45,8 @@ extension JeditTextView {
     /// ドラッグ開始時のソース選択範囲を保存
     override func beginDraggingSession(with items: [NSDraggingItem], event: NSEvent, source: NSDraggingSource) -> NSDraggingSession {
         dragSourceRange = selectedRange()
+        // 矩形（カラム）選択は複数レンジを持つため全レンジを保存する
+        dragSourceRanges = selectedRanges.map { $0.rangeValue }
         return super.beginDraggingSession(with: items, event: event, source: source)
     }
 
@@ -136,6 +138,7 @@ extension JeditTextView {
             super.draggingSession(session, endedAt: screenPoint, operation: operation)
         }
         dragSourceRange = nil
+        dragSourceRanges = nil
 
         // Finder がファイルをコピーする時間を確保してから一時ファイルを削除
         let urlsToCleanup = dragTempFileURLs
@@ -259,6 +262,16 @@ extension JeditTextView {
         }
 
         let pboard = sender.draggingPasteboard
+
+        // 矩形（カラム）選択のドロップは列分配で処理する。
+        // ドラッグ元が複数レンジ（矩形選択）か、ペーストボードに矩形マーカーがある場合。
+        // 通常の移動／挿入経路では selectedRange() の1レンジしか扱わず最初の行しか
+        // ドロップされないため、専用処理へ振り分ける。
+        let isRectangularDrop = ((sender.draggingSource as? JeditTextView)?.dragSourceRanges?.count ?? 0) > 1
+            || pboard.availableType(from: Self.rectangularSelectionPasteboardTypes) != nil
+        if isRectangularDrop, performColumnarDrop(sender) {
+            return true
+        }
 
         // 同一書類内のドラッグで、Optionキーが押されていなければ移動処理
         if isDragFromSameDocument(sender) && !NSEvent.modifierFlags.contains(.option) {
@@ -845,30 +858,47 @@ extension JeditTextView {
         super.paste(sender)
     }
 
-    /// 矩形（カラム）選択のコピーを TextEdit / Jedit Ω と同じ列分配で貼り付ける。
-    /// 各行をキャレットの列位置 (x) に合わせて、後続の表示行へ順に挿入する。
-    /// - Returns: 列分配を実施したら true。条件を満たさず通常ペーストに任せる場合は false。
-    func performColumnarPaste(from pasteboard: NSPasteboard) -> Bool {
-        guard let layoutManager = layoutManager,
-              textContainer != nil,
-              let textStorage = textStorage,
-              selectedRange().length == 0 else { return false }
+    /// 矩形（カラム）選択を示すペーストボード型（コピー／ドラッグ共通）
+    static let rectangularSelectionPasteboardTypes: [NSPasteboard.PasteboardType] = [
+        NSPasteboard.PasteboardType("Apple rectangular text selection pasteboard type"),
+        NSPasteboard.PasteboardType(
+            "dyn.ah62d4rv4gu8yc6durvwwa6xfqr4gc5xhsz0gc6vasvw1u7basrw023pdsvy085vasbu1g7dfqm10c6xeeb4hw6df"),
+    ]
 
-        // 行データを取得（リッチは RTF から属性付きで色等を保持、それ以外はプレーン）
-        var rows: [NSAttributedString] = []
+    /// 矩形ペーストボードから行データを取得（リッチは RTF から属性付きで色等を保持、それ以外はプレーン）
+    func columnarRows(from pasteboard: NSPasteboard) -> [NSAttributedString] {
         let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
         if isRichText,
            let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
            let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
            let attr = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
-            rows = Self.splitAttributedByNewline(attr)
+            return Self.splitAttributedByNewline(attr)
         } else if let string = pasteboard.string(forType: .string) {
-            rows = string.components(separatedBy: "\n").map {
+            return string.components(separatedBy: "\n").map {
                 NSAttributedString(string: $0, attributes: typingAttributes)
             }
         }
+        return []
+    }
+
+    /// 矩形（カラム）選択のコピーを TextEdit / Jedit Ω と同じ列分配で貼り付ける。
+    /// - Returns: 列分配を実施したら true。条件を満たさず通常ペーストに任せる場合は false。
+    func performColumnarPaste(from pasteboard: NSPasteboard) -> Bool {
+        let rows = columnarRows(from: pasteboard)
         // 1行のみなら矩形分配の意味がないため通常ペーストに任せる
         guard rows.count > 1 else { return false }
+        return columnarInsert(rows: rows)
+    }
+
+    /// 与えられた各行を、現在のキャレットの列位置 (x) に合わせて後続の表示行へ分配挿入する。
+    /// （矩形ペースト／矩形ドロップ共通の挿入処理）
+    @discardableResult
+    func columnarInsert(rows: [NSAttributedString]) -> Bool {
+        guard let layoutManager = layoutManager,
+              textContainer != nil,
+              let textStorage = textStorage,
+              selectedRange().length == 0,
+              rows.count > 1 else { return false }
 
         // キャレットのジオメトリ（列 x と行の高さ）を求める
         let caretLoc = selectedRange().location
@@ -904,6 +934,64 @@ extension JeditTextView {
         return true
     }
 
+    /// 矩形（カラム）選択のドロップを列分配で処理する。
+    /// 同一書類内ドラッグ（移動）の場合はソースの全レンジを削除してから挿入する。
+    /// - Returns: 矩形ドロップとして処理したら true。対象外なら false（通常処理へ）。
+    func performColumnarDrop(_ sender: any NSDraggingInfo) -> Bool {
+        guard let textStorage = textStorage,
+              let dropIndex0 = characterIndex(for: sender) else { return false }
+
+        let pboard = sender.draggingPasteboard
+        let isMove = isDragFromSameDocument(sender) && !NSEvent.modifierFlags.contains(.option)
+        let sourceView = sender.draggingSource as? JeditTextView
+
+        // 行データ: 同一書類のソースがあればソース範囲から（属性保持・確実）、
+        // なければドラッグペーストボードから取得する。
+        var rows: [NSAttributedString]
+        var sourceRanges: [NSRange] = []
+        if let sourceView = sourceView,
+           let sourceStorage = sourceView.textStorage,
+           let savedRanges = sourceView.dragSourceRanges,
+           savedRanges.count > 1 {
+            sourceRanges = savedRanges.filter { $0.length > 0 }.sorted { $0.location < $1.location }
+            rows = sourceRanges.map { sourceStorage.attributedSubstring(from: $0) }
+        } else {
+            rows = columnarRows(from: pboard)
+        }
+        guard rows.count > 1 else { return false }
+
+        // ドロップ位置がいずれかのソース範囲内なら移動の意味がないので何もしない
+        if isMove, sourceRanges.contains(where: { NSLocationInRange(dropIndex0, $0) || dropIndex0 == $0.location }) {
+            handledSameDocumentDrag = true
+            return true
+        }
+
+        undoManager?.beginUndoGrouping()
+
+        var dropIndex = dropIndex0
+        // 移動の場合はソースの全レンジを削除（高位→低位、ドロップ位置を補正）
+        if isMove, !sourceRanges.isEmpty {
+            for range in sourceRanges.sorted(by: { $0.location > $1.location }) {
+                if NSMaxRange(range) <= dropIndex { dropIndex -= range.length }
+                if shouldChangeText(in: range, replacementString: "") {
+                    textStorage.deleteCharacters(in: range)
+                    didChangeText()
+                }
+            }
+        }
+
+        // ドロップ位置にキャレットを置いて列分配挿入
+        setSelectedRange(NSRange(location: min(dropIndex, textStorage.length), length: 0))
+        let inserted = columnarInsert(rows: rows)
+
+        undoManager?.endUndoGrouping()
+        if isMove {
+            undoManager?.setActionName(NSLocalizedString("Move", comment: "Undo action name for drag move"))
+        }
+        handledSameDocumentDrag = true
+        return inserted
+    }
+
     /// 属性付き文字列を改行 (\n) で分割する（各行の属性は保持）
     static func splitAttributedByNewline(_ attr: NSAttributedString) -> [NSAttributedString] {
         var result: [NSAttributedString] = []
@@ -932,12 +1020,7 @@ extension JeditTextView {
         // 1か所に挿入されてしまう。NSTextView 標準の readSelection は本アプリのカスタム
         // テキストスタックでは列分配にならないため、レイアウトのジオメトリを用いて自前で
         // 分配する（performColumnarPaste）。
-        let rectangularSelectionTypes: [NSPasteboard.PasteboardType] = [
-            NSPasteboard.PasteboardType("Apple rectangular text selection pasteboard type"),
-            NSPasteboard.PasteboardType(
-                "dyn.ah62d4rv4gu8yc6durvwwa6xfqr4gc5xhsz0gc6vasvw1u7basrw023pdsvy085vasbu1g7dfqm10c6xeeb4hw6df"),
-        ]
-        if pasteboard.availableType(from: rectangularSelectionTypes) != nil,
+        if pasteboard.availableType(from: Self.rectangularSelectionPasteboardTypes) != nil,
            performColumnarPaste(from: pasteboard) {
             return
         }
