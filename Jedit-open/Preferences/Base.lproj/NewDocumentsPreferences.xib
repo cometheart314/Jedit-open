@@ -1278,7 +1278,7 @@
                                         </connections>
                                     </colorWell>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="fPS-MW-Muv">
-                                        <rect key="frame" x="359" y="357" width="64" height="14"/>
+                                        <rect key="frame" x="313" y="357" width="110" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Invisibles " id="ny7-jR-Pgf">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1295,7 +1295,7 @@
                                         </connections>
                                     </colorWell>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="IMA-zQ-TpW">
-                                        <rect key="frame" x="56" y="326" width="38" height="14"/>
+                                        <rect key="frame" x="27" y="326" width="67" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Caret" id="Cn1-O2-Cqb">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1312,7 +1312,7 @@
                                         </connections>
                                     </colorWell>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="XSb-K6-rxT">
-                                        <rect key="frame" x="161" y="326" width="59" height="14"/>
+                                        <rect key="frame" x="156" y="326" width="64" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Highlight" id="WSQ-Wh-AKs">
                                             <font key="font" metaFont="smallSystem"/>
@@ -1329,7 +1329,7 @@
                                         </connections>
                                     </colorWell>
                                     <textField focusRingType="none" horizontalHuggingPriority="251" verticalHuggingPriority="750" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="0mU-P5-l2h">
-                                        <rect key="frame" x="340" y="324" width="82" height="14"/>
+                                        <rect key="frame" x="303" y="324" width="119" height="14"/>
                                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                                         <textFieldCell key="cell" controlSize="small" scrollable="YES" lineBreakMode="clipping" sendsActionOnEndEditing="YES" alignment="right" title="Line Number" id="c5J-ik-Kp6">
                                             <font key="font" metaFont="smallSystem"/>

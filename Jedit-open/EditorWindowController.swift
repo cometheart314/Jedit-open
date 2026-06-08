@@ -621,10 +621,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         }
 
         // フォント設定を適用（setupTextViews後に適用、新しいTextViewに反映するため）
+        // baseFontName がシステムフォントの内部名（".AppleSystemUIFont" 等）の場合、
+        // NSFont(name:) は nil を返す。その場合は systemFont でフォールバックして
+        // 必ず typingAttributes にフォントが反映されるようにする。
         let fontData = presetData.fontAndColors
-        if let font = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize) {
-            applyFontToTextViews(font)
-        }
+        let baseFont = NSFont(name: fontData.baseFontName, size: fontData.baseFontSize)
+            ?? NSFont.systemFont(ofSize: fontData.baseFontSize)
+        applyFontToTextViews(baseFont)
 
         // 色設定を適用（setupTextViews後に適用）
         // プレーンテキストでも色設定を適用する
@@ -1063,10 +1066,17 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
             newAttributes[.backgroundColor] = colors.highlight.nsColor
             textView.selectedTextAttributes = newAttributes
 
-            // プレーンテキストの場合のみtextColorを設定
-            // リッチテキストでは既存の色属性を保持するため、textColorは設定しない
+            // プレーンテキストの場合は全文に適用するtextColorを設定
+            // リッチテキストでは既存テキストの色属性は保持しつつ、以降の入力に
+            // 反映させるため typingAttributes に文字色を設定する（フォントと同様）。
+            // テキストがある場合はカーソル移動時に setSelectedRanges で上書きされるため、
+            // 実質的に空の新規書類で初期文字色を効かせる役割となる。
             if isPlainText {
                 textView.textColor = colors.character.nsColor
+            } else {
+                var attrs = textView.typingAttributes
+                attrs[.foregroundColor] = colors.character.nsColor
+                textView.typingAttributes = attrs
             }
 
             // 不可視文字の色を適用
