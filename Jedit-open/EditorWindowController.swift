@@ -860,7 +860,13 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
         // 関わらず保存フレームを適用しない。ユーザが手動でタブバーを表示し「+」ボタンで
         // 新規書類を作成したケースでは、新規ウィンドウが既存タブグループに合流するため、
         // プリセットのフレームを適用するとタブグループ全体の位置・サイズを上書きしてしまう。
-        if let tabGroup = window.tabGroup, tabGroup.windows.count > 1 {
+        //
+        // 注意: ここで window.tabGroup へアクセスしてはいけない。本メソッドは showWindows()
+        // 内でウィンドウを前面に出す（orderFront）前にも呼ばれるが、表示前のウィンドウに対して
+        // tabGroup を参照すると単独タブグループが確定してしまい、システムの「常にタブで開く」に
+        // よる既存ウィンドウへの自動タブ合流が阻害される（別ウィンドウで開いてしまう）。
+        // 未タブ化なら nil を返す tabbedWindows で判定し、tabGroup には触れない。
+        if let tabbed = window.tabbedWindows, tabbed.count > 1 {
             return true
         }
 
