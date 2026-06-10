@@ -25,6 +25,7 @@
 
 import Cocoa
 import UniformTypeIdentifiers
+import os.log
 
 // MARK: - LineEnding
 
@@ -764,7 +765,45 @@ class Document: NSDocument {
                 return
             }
 
-            if error == nil {
+            var effectiveError = error
+
+            // 「アクセス権がありません」(NSFileWriteNoPermissionError) での保存失敗に
+            // 対する最終救済。App Store / TestFlight 署名版を一部の環境で実行すると、
+            // 安全保存パイプラインのどこか (writeSafely 到達前のバージョン保全等を含む)
+            // で sandbox が元ファイルの一時領域へのリンク操作を forbidden-link-priv で
+            // 拒否し、既存リッチテキスト書類への上書き保存が 513 で失敗し続けることが
+            // ある (アプリのコードは関与しない OS 側の挙動)。writeSafely 内のフォール
+            // バックでは捕捉できない段階の失敗もあるため、保存パイプラインの最終出口で
+            // ある此処でも捕捉し、安全保存機構を経由しない直接書き込みでリトライする。
+            // 対象は既存ファイルへの上書き (.saveOperation / .autosaveInPlaceOperation)
+            // のみ。RTFD はパッケージのため直接上書きできず対象外。
+            if let nsError = effectiveError as NSError?,
+               nsError.domain == NSCocoaErrorDomain,
+               nsError.code == NSFileWriteNoPermissionError,
+               saveOperation == .saveOperation || saveOperation == .autosaveInPlaceOperation,
+               self.documentType != .rtfd,
+               FileManager.default.fileExists(atPath: url.path) {
+                do {
+                    try self.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: nil)
+                    // 安全保存を経由していないため、NSDocument の保存後処理に相当する
+                    // 内部状態の更新を自前で行う
+                    if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+                       let modDate = attrs[.modificationDate] as? Date {
+                        self.fileModificationDate = modDate
+                    }
+                    if saveOperation == .saveOperation {
+                        self.updateChangeCount(.changeCleared)
+                    }
+                    Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
+                        .error("save rescued by direct write after NSFileWriteNoPermissionError: \(url.path, privacy: .public)")
+                    effectiveError = nil
+                } catch let rescueError {
+                    Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
+                        .error("direct write rescue failed: \(String(describing: rescueError), privacy: .public)")
+                }
+            }
+
+            if effectiveError == nil {
                 // 保存成功後にプリセットデータを拡張属性に書き込む。
                 // - 通常の保存 / Save As / autosaveInPlace: self.fileURL に書き込む
                 //   (super.save の内部で一時ファイル → final URL への atomic rename が
@@ -847,7 +886,7 @@ class Document: NSDocument {
             self.saveFormatAction = nil
             self.saveEncodingAction = nil
 
-            completionHandler(error)
+            completionHandler(effectiveError)
         }
     }
 
@@ -912,8 +951,23 @@ class Document: NSDocument {
     /// 残る恐れがあり対象外とする。
     override nonisolated func writeSafely(to url: URL, ofType typeName: String, for saveOperation: NSDocument.SaveOperationType) throws {
         do {
+            #if DEBUG
+            // デバッグ専用: 実環境 (App Store 署名 + 特定マシン) でのみ発生する
+            // sandbox 拒否を擬似再現し、救済層の動作を検証するためのフラグ。
+            //   defaults write jp.co.artman21.Jedit-Pro JeditDebugSimulateNoPermissionError -int 1
+            //   1 = writeSafely 内フォールバックを検証 / 2 = save 完了時の救済層を検証
+            if UserDefaults.standard.integer(forKey: "JeditDebugSimulateNoPermissionError") > 0,
+               saveOperation == .saveOperation || saveOperation == .autosaveInPlaceOperation {
+                throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)
+            }
+            #endif
             try super.writeSafely(to: url, ofType: typeName, for: saveOperation)
         } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileWriteNoPermissionError {
+            #if DEBUG
+            if UserDefaults.standard.integer(forKey: "JeditDebugSimulateNoPermissionError") >= 2 {
+                throw error  // save 完了時の救済層へ素通しする
+            }
+            #endif
             let isPackage = typeName == "com.apple.rtfd"
                 || MainActor.assumeIsolated { self.documentType == .rtfd }
             let isOverwrite = saveOperation == .saveOperation
@@ -921,7 +975,8 @@ class Document: NSDocument {
             guard !isPackage, isOverwrite, FileManager.default.fileExists(atPath: url.path) else {
                 throw error
             }
-            Swift.print("writeSafely failed with NSFileWriteNoPermissionError; retrying with direct write: \(url.path)")
+            Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
+                .error("writeSafely failed with NSFileWriteNoPermissionError; retrying with direct write: \(url.path, privacy: .public)")
             try self.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: nil)
         }
     }
