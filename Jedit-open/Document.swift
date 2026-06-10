@@ -544,8 +544,7 @@ class Document: NSDocument {
         // 経由しない直接書き込みで内容を退避してから閉じる。
         // fileURL が nil の書類 (無題ドラフトの破棄) は対象外。
         if isDocumentEdited, let url = fileURL, documentType != .rtfd,
-           let typeName = fileType,
-           FileManager.default.fileExists(atPath: url.path) {
+           let typeName = fileType {
             do {
                 try self.write(to: url, ofType: typeName, for: .saveOperation, originalContentsURL: nil)
                 Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
@@ -805,21 +804,17 @@ class Document: NSDocument {
             var effectiveError = error
 
             // 「アクセス権がありません」(NSFileWriteNoPermissionError) での保存失敗に
-            // 対する最終救済。App Store / TestFlight 署名版を一部の環境で実行すると、
-            // 安全保存パイプラインのどこか (writeSafely 到達前のバージョン保全等を含む)
-            // で sandbox が元ファイルの一時領域へのリンク操作を forbidden-link-priv で
-            // 拒否し、既存リッチテキスト書類への上書き保存が 513 で失敗し続けることが
-            // ある (アプリのコードは関与しない OS 側の挙動)。writeSafely 内のフォール
-            // バックでは捕捉できない段階の失敗もあるため、保存パイプラインの最終出口で
-            // ある此処でも捕捉し、安全保存機構を経由しない直接書き込みでリトライする。
+            // 対する保険。上書き保存自体は writeSafely オーバーライドで安全保存を回避
+            // しているが、その前段 (autosaveInPlace 前のバージョン保全等) で sandbox が
+            // リンク操作を forbidden-link-priv で拒否し 513 になる経路が残るため、
+            // 保存パイプラインの最終出口でも捕捉して直接書き込みでリトライする。
             // 対象は既存ファイルへの上書き (.saveOperation / .autosaveInPlaceOperation)
             // のみ。RTFD はパッケージのため直接上書きできず対象外。
             if let nsError = effectiveError as NSError?,
                nsError.domain == NSCocoaErrorDomain,
                nsError.code == NSFileWriteNoPermissionError,
                saveOperation == .saveOperation || saveOperation == .autosaveInPlaceOperation,
-               self.documentType != .rtfd,
-               FileManager.default.fileExists(atPath: url.path) {
+               self.documentType != .rtfd {
                 do {
                     try self.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: nil)
                     // 安全保存を経由していないため、NSDocument の保存後処理に相当する
@@ -975,55 +970,49 @@ class Document: NSDocument {
         try super.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: absoluteOriginalContentsURL)
     }
 
-    /// 安全保存が「アクセス権がありません」で失敗した場合の直接書き込みフォールバック。
+    /// 上書き保存時に AppKit の安全保存 (writeSafely の既定実装) を回避し、
+    /// 直接アトミック書き込みを行う。
     ///
-    /// App Store / TestFlight 署名版を一部の環境で実行すると、AppKit が安全保存の
-    /// 準備段階で行う「元ファイルを一時ディレクトリ (NSIRD_*) へリンク/クローンする
-    /// 操作」が sandbox に forbidden-link-priv で拒否され、既存リッチテキスト書類への
-    /// 2 回目以降の上書き保存が NSFileWriteNoPermissionError (513) で失敗し続ける
-    /// ことがある (アプリのコードは関与しない OS 側の挙動。プレーンテキストは
-    /// この操作を伴わないため影響を受けない)。
-    /// その場合に限り、安全保存機構を経由せずファイルへ直接書き込んで救済する。
-    /// 成功すれば NSDocument 側の保存後処理 (更新日時・変更カウント) は通常通り走る。
-    /// RTFD はパッケージ (ディレクトリ) のため直接上書きでは古い内包ファイルが
-    /// 残る恐れがあり対象外とする。
+    /// 安全保存は内部で「元ファイルを一時ディレクトリ (NSIRD_*) へリンク/クローン
+    /// する操作」を行うが、App Store / TestFlight 署名版を一部の環境で実行すると
+    /// この操作が sandbox に forbidden-link-priv で拒否される。その結果、リッチ
+    /// テキスト書類の 2 回目以降の上書き保存が NSFileWriteNoPermissionError (513)
+    /// で失敗し、中断された安全保存が元ファイルを <名前>.sb-XXXX に退避リネーム
+    /// したまま放置したり、終了時の自動保存が暗黙キャンセルされて入力が失われたり
+    /// する (いずれもアプリのコードは関与しない OS 側の挙動。プレーンテキストや
+    /// TextEdit はこの操作を伴わないため影響を受けない)。
+    ///
+    /// 対策として、上書き保存 (.saveOperation / .autosaveInPlaceOperation) では
+    /// 最初から安全保存を使わず、data(ofType:) の結果を Data.write(options:.atomic)
+    /// で直接書き込む (write(to:) 経由)。アトミック書き込みは同一ディレクトリ内の
+    /// 一時ファイル → rename(2) で行われ、拒否されるリンク/クローン操作を一切
+    /// 伴わない (Markdown 保存で実績のある経路)。これにより退避リネームもデータ
+    /// 損失も根本から防ぐ。新規保存 (.saveAsOperation 等) は保存パネル由来の
+    /// セキュリティスコープ確立を安全保存に委ねる必要があるため super を使う。
+    /// RTFD はパッケージのためアトミック直接書き込みできず super を使う。
     override nonisolated func writeSafely(to url: URL, ofType typeName: String, for saveOperation: NSDocument.SaveOperationType) throws {
-        do {
-            #if DEBUG
-            // デバッグ専用: 実環境 (App Store 署名 + 特定マシン) でのみ発生する
-            // sandbox 拒否を擬似再現し、救済層の動作を検証するためのフラグ。
-            //   defaults write jp.co.artman21.Jedit-Pro JeditDebugSimulateNoPermissionError -int 1
-            //   1 = writeSafely 内フォールバックを検証 / 2 = save 完了時の救済層を検証
-            if UserDefaults.standard.integer(forKey: "JeditDebugSimulateNoPermissionError") > 0,
-               saveOperation == .saveOperation || saveOperation == .autosaveInPlaceOperation {
-                throw NSError(domain: NSCocoaErrorDomain, code: NSFileWriteNoPermissionError)
-            }
-            #endif
+        let isPackage = typeName == "com.apple.rtfd"
+            || MainActor.assumeIsolated { self.documentType == .rtfd }
+        let isOverwrite = saveOperation == .saveOperation
+            || saveOperation == .autosaveInPlaceOperation
+        guard isOverwrite, !isPackage else {
             try super.writeSafely(to: url, ofType: typeName, for: saveOperation)
-        } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileWriteNoPermissionError {
-            #if DEBUG
-            if UserDefaults.standard.integer(forKey: "JeditDebugSimulateNoPermissionError") >= 2 {
-                throw error  // save 完了時の救済層へ素通しする
-            }
-            #endif
-            let isPackage = typeName == "com.apple.rtfd"
-                || MainActor.assumeIsolated { self.documentType == .rtfd }
-            let isOverwrite = saveOperation == .saveOperation
-                || saveOperation == .autosaveInPlaceOperation
-            guard !isPackage, isOverwrite, FileManager.default.fileExists(atPath: url.path) else {
-                throw error
-            }
-            Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
-                .error("writeSafely failed with NSFileWriteNoPermissionError; retrying with direct write: \(url.path, privacy: .public)")
-            try self.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: nil)
-            Self.cleanupSafeSaveLeftovers(for: url)
+            return
         }
+        try self.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: nil)
+        // 安全保存を経由していないため、NSDocument が通常 writeSafely 内で記録する
+        // ファイル更新日時を自前で更新する (次回保存時の競合検出に使われる)。
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+           let modDate = attrs[.modificationDate] as? Date {
+            MainActor.assumeIsolated { self.fileModificationDate = modDate }
+        }
+        // 過去に中断された安全保存が残した一時ファイルがあれば掃除する。
+        Self.cleanupSafeSaveLeftovers(for: url)
     }
 
     /// 中断された安全保存が書類と同じフォルダに残す一時ファイル
     /// (`<ファイル名>.sb-XXXXXXXX-XXXXXX`) を削除する。
-    /// 直接書き込みによる救済が成功した後に呼ぶ。sandbox の制限で削除できない
-    /// 場合もあるため、失敗は無視する。
+    /// sandbox の制限で削除できない場合もあるため、失敗は無視する。
     private nonisolated static func cleanupSafeSaveLeftovers(for url: URL) {
         let dir = url.deletingLastPathComponent()
         let prefix = url.lastPathComponent + ".sb-"
