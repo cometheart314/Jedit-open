@@ -499,11 +499,27 @@ class Document: NSDocument {
         return true
     }
 
+    /// ファイルが実際にロックされている（Finder ロック = immutable、または
+    /// POSIX 的に書き込み不可）かどうかを返す。
+    /// NSDocument.isLocked は sandbox 環境によっては親フォルダの xattr 読み取り
+    /// 拒否などで誤って true になることがある (App Store 署名版 + 特定マシンで
+    /// 確認)。isLocked を信じて変更カウントを抑制すると、書類が「未編集」扱いに
+    /// なり終了時の自動保存が走らずサイレントなデータ損失につながるため、
+    /// 実ファイル属性で裏取りする。
+    private var isFileActuallyLocked: Bool {
+        guard let url = fileURL else { return false }
+        if let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+           (attrs[.immutable] as? Bool) == true {
+            return true
+        }
+        return !FileManager.default.isWritableFile(atPath: url.path)
+    }
+
     /// Finder でロックされたファイルの場合は変更カウント更新をブロックし、
     /// _checkAutosavingThenUpdateChangeCount: による autosave 安全性チェック
     /// （Unlock/Duplicate/Cancel ダイアログ）の発生を防ぐ
     override func updateChangeCount(_ change: NSDocument.ChangeType) {
-        if self.isLocked {
+        if self.isLocked, isFileActuallyLocked {
             if !isLockedFileHandled {
                 // 初回のみ編集ロック処理を実行
                 isLockedFileHandled = true
@@ -520,6 +536,27 @@ class Document: NSDocument {
     }
 
     override func close() {
+        // 未保存変更のデータ損失に対する最終安全網。
+        // autosavesInPlace のアプリでは保存済み書類のクローズ時に AppKit が
+        // 自動保存するため、ここに到達した時点で isDocumentEdited が true なのは
+        // 「自動保存が失敗または暗黙キャンセルされた」場合のみ (App Store 署名版 +
+        // 特定マシンで sandbox 拒否により発生することを確認)。その場合は安全保存を
+        // 経由しない直接書き込みで内容を退避してから閉じる。
+        // fileURL が nil の書類 (無題ドラフトの破棄) は対象外。
+        if isDocumentEdited, let url = fileURL, documentType != .rtfd,
+           let typeName = fileType,
+           FileManager.default.fileExists(atPath: url.path) {
+            do {
+                try self.write(to: url, ofType: typeName, for: .saveOperation, originalContentsURL: nil)
+                Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
+                    .error("unsaved changes rescued by direct write at close: \(url.path, privacy: .public)")
+                Self.cleanupSafeSaveLeftovers(for: url)
+            } catch {
+                Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
+                    .error("direct write at close failed: \(String(describing: error), privacy: .public)")
+            }
+        }
+
         // エイリアスアタッチメントのセキュリティスコープ付きリソースを解放
         for url in securityScopedAttachmentURLs {
             url.stopAccessingSecurityScopedResource()
@@ -797,6 +834,7 @@ class Document: NSDocument {
                     Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
                         .error("save rescued by direct write after NSFileWriteNoPermissionError: \(url.path, privacy: .public)")
                     effectiveError = nil
+                    Self.cleanupSafeSaveLeftovers(for: url)
                 } catch let rescueError {
                     Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
                         .error("direct write rescue failed: \(String(describing: rescueError), privacy: .public)")
@@ -978,6 +1016,24 @@ class Document: NSDocument {
             Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
                 .error("writeSafely failed with NSFileWriteNoPermissionError; retrying with direct write: \(url.path, privacy: .public)")
             try self.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: nil)
+            Self.cleanupSafeSaveLeftovers(for: url)
+        }
+    }
+
+    /// 中断された安全保存が書類と同じフォルダに残す一時ファイル
+    /// (`<ファイル名>.sb-XXXXXXXX-XXXXXX`) を削除する。
+    /// 直接書き込みによる救済が成功した後に呼ぶ。sandbox の制限で削除できない
+    /// 場合もあるため、失敗は無視する。
+    private nonisolated static func cleanupSafeSaveLeftovers(for url: URL) {
+        let dir = url.deletingLastPathComponent()
+        let prefix = url.lastPathComponent + ".sb-"
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: dir.path) else { return }
+        for name in names where name.hasPrefix(prefix) {
+            let leftover = dir.appendingPathComponent(name)
+            if (try? FileManager.default.removeItem(at: leftover)) != nil {
+                Logger(subsystem: "jp.co.artman21.Jedit", category: "save")
+                    .error("removed leftover safe-save temp: \(leftover.path, privacy: .public)")
+            }
         }
     }
 
