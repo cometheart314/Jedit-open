@@ -898,6 +898,34 @@ class Document: NSDocument {
         try super.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: absoluteOriginalContentsURL)
     }
 
+    /// 安全保存が「アクセス権がありません」で失敗した場合の直接書き込みフォールバック。
+    ///
+    /// App Store / TestFlight 署名版を一部の環境で実行すると、AppKit が安全保存の
+    /// 準備段階で行う「元ファイルを一時ディレクトリ (NSIRD_*) へリンク/クローンする
+    /// 操作」が sandbox に forbidden-link-priv で拒否され、既存リッチテキスト書類への
+    /// 2 回目以降の上書き保存が NSFileWriteNoPermissionError (513) で失敗し続ける
+    /// ことがある (アプリのコードは関与しない OS 側の挙動。プレーンテキストは
+    /// この操作を伴わないため影響を受けない)。
+    /// その場合に限り、安全保存機構を経由せずファイルへ直接書き込んで救済する。
+    /// 成功すれば NSDocument 側の保存後処理 (更新日時・変更カウント) は通常通り走る。
+    /// RTFD はパッケージ (ディレクトリ) のため直接上書きでは古い内包ファイルが
+    /// 残る恐れがあり対象外とする。
+    override nonisolated func writeSafely(to url: URL, ofType typeName: String, for saveOperation: NSDocument.SaveOperationType) throws {
+        do {
+            try super.writeSafely(to: url, ofType: typeName, for: saveOperation)
+        } catch let error as NSError where error.domain == NSCocoaErrorDomain && error.code == NSFileWriteNoPermissionError {
+            let isPackage = typeName == "com.apple.rtfd"
+                || MainActor.assumeIsolated { self.documentType == .rtfd }
+            let isOverwrite = saveOperation == .saveOperation
+                || saveOperation == .autosaveInPlaceOperation
+            guard !isPackage, isOverwrite, FileManager.default.fileExists(atPath: url.path) else {
+                throw error
+            }
+            Swift.print("writeSafely failed with NSFileWriteNoPermissionError; retrying with direct write: \(url.path)")
+            try self.write(to: url, ofType: typeName, for: saveOperation, originalContentsURL: nil)
+        }
+    }
+
     /// 現在のウィンドウ状態でプリセットデータを更新
     func updatePresetDataFromCurrentState() {
         guard presetData != nil else { return }
