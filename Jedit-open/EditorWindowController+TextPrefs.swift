@@ -506,10 +506,17 @@ extension EditorWindowController {
         guard let undoManager = textView.undoManager else { return }
 
         // 現在の属性を保存（Redo用）
+        // range は Undo 登録時点のもの。Undo 実行までにテキストが縮んでいると
+        // textStorage.length を超え、enumerateAttribute が範囲外例外でクラッシュ
+        // するため、現在の長さでクランプした範囲を列挙対象にする。
         var currentAttributes: [(range: NSRange, style: NSParagraphStyle)] = []
-        let targetRange = NSRange(location: 0, length: min(range.location + range.length, textStorage.length))
+        let clampedLocation = min(range.location, textStorage.length)
+        let targetRange = NSRange(
+            location: clampedLocation,
+            length: min(range.length, textStorage.length - clampedLocation)
+        )
         if targetRange.length > 0 {
-            textStorage.enumerateAttribute(.paragraphStyle, in: range, options: []) { value, attrRange, _ in
+            textStorage.enumerateAttribute(.paragraphStyle, in: targetRange, options: []) { value, attrRange, _ in
                 let style: NSParagraphStyle
                 if let existingStyle = value as? NSParagraphStyle {
                     style = existingStyle.copy() as! NSParagraphStyle
