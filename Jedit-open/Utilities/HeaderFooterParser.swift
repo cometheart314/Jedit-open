@@ -115,9 +115,11 @@ class HeaderFooterParser {
                     replacement = String(value)
 
                     // 属性を保持して置換
+                    // (searchStart は NSRange と同じ UTF-16 単位で進める。
+                    //  String.count は書記素数のため、絵文字等を含むとずれる)
                     let attributes = result.attributes(at: range.location, effectiveRange: nil)
                     result.replaceCharacters(in: finalRange, with: NSAttributedString(string: replacement, attributes: attributes))
-                    searchStart = finalRange.location + replacement.count
+                    searchStart = finalRange.location + (replacement as NSString).length
                     continue
 
                 case 2:
@@ -188,10 +190,10 @@ class HeaderFooterParser {
                     replacement = "?"
                 }
 
-                // 属性を保持して置換
+                // 属性を保持して置換 (searchStart は UTF-16 単位で進める)
                 let attributes = result.attributes(at: range.location, effectiveRange: nil)
                 result.replaceCharacters(in: range, with: NSAttributedString(string: replacement, attributes: attributes))
-                searchStart = range.location + replacement.count
+                searchStart = range.location + (replacement as NSString).length
             }
         }
 
@@ -365,23 +367,23 @@ class HeaderFooterParser {
         var j = NSMaxRange(range)
 
         // オフセット記号をチェック（+ または -）
+        // NSString.character(at:) は UTF-16 コードユニットを返すため、サロゲートペア
+        // (絵文字等) を UnicodeScalar/Character に変換するとクラッシュする。
+        // 変換せずコードユニットのまま比較する。
         if j < nsString.length {
-            let char = Character(UnicodeScalar(nsString.character(at: j))!)
-            if char == "+" || char == "-" {
-                sign = char
+            let char = nsString.character(at: j)
+            if char == 0x2B || char == 0x2D {  // '+' または '-'
+                sign = (char == 0x2B) ? "+" : "-"
                 j += 1
                 finalRange.length += 1
 
                 // 数字を読み取る
                 while j < nsString.length {
                     let digitChar = nsString.character(at: j)
-                    if let digit = Int(String(UnicodeScalar(digitChar)!)), digit >= 0 && digit <= 9 {
-                        offset = offset * 10 + digit
-                        j += 1
-                        finalRange.length += 1
-                    } else {
-                        break
-                    }
+                    guard digitChar >= 0x30 && digitChar <= 0x39 else { break }  // '0'〜'9'
+                    offset = offset * 10 + Int(digitChar - 0x30)
+                    j += 1
+                    finalRange.length += 1
                 }
             }
         }
