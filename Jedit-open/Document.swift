@@ -1359,16 +1359,19 @@ class Document: NSDocument {
         }
 
         #if JEDIT_PRO
-        // 青空文庫記法のルビ (`漢字《かんじ》` / `|親文字《ルビ》`) をパースして
-        // rubyAnnotation 属性に変換する。Markdown/インポート書類はスキップ。
+        // 青空文庫記法のルビ (`漢字《かんじ》` / `|親文字《ルビ》`) と傍点
+        // (`青空［＃「青空」に傍点］` 等) をパースして属性に変換する。
+        // Markdown/インポート書類はスキップ。
         // 既定 OFF。ON にするとプレーンテキスト/RTF の《》がルビ解釈されるため、
         // 引用記号として使うユーザーの誤動作を防ぐためユーザー設定でガード。
+        // 順序: ルビ → 傍点 (ルビ記法が消えると傍点の後方参照の隣接判定が成立する)
         MainActor.assumeIsolated {
             guard AozoraRubyParser.isParsingEnabled else { return }
             guard !self.isMarkdownDocument, !self.isImportedDocument else { return }
             switch self.documentType {
             case .plain, .rtf, .rtfd:
                 AozoraRubyParser.applyAnnotations(to: self.textStorage)
+                AozoraBoutenParser.applyAnnotations(to: self.textStorage)
             default:
                 break
             }

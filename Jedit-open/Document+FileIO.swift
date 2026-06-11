@@ -198,8 +198,10 @@ extension Document {
             let savedAnchorData = convertAnchorsToLinksForSave()
 
             #if JEDIT_PRO
-            // rubyAnnotation 属性を青空文庫記法に展開してから RTFD 化する (クローンに対して展開)。
+            // ルビ・傍点属性を青空文庫記法に展開してから RTFD 化する (クローンに対して展開)。
+            // 順序: 傍点 → ルビ (ルビの《》が対象と傍点注記の間に正しく入る)
             let storageForSave = NSMutableAttributedString(attributedString: textStorage)
+            AozoraBoutenParser.embedAnnotationsAsAozora(in: storageForSave)
             AozoraRubyParser.embedAnnotationsAsAozora(in: storageForSave)
             let saveRange = NSRange(location: 0, length: storageForSave.length)
             let fileWrapperOpt = storageForSave.rtfdFileWrapper(from: saveRange, documentAttributes: documentAttributes)
@@ -561,9 +563,11 @@ extension Document {
 
             do {
                 #if JEDIT_PRO
-                // rubyAnnotation 属性を青空文庫記法に展開してから RTF/RTFD 化する。
+                // ルビ・傍点属性を青空文庫記法に展開してから RTF/RTFD 化する。
                 // 元の textStorage は変更しない (クローンに対して展開)。
+                // 順序: 傍点 → ルビ (ルビの《》が対象と傍点注記の間に正しく入る)
                 let storageForSave = NSMutableAttributedString(attributedString: textStorage)
+                AozoraBoutenParser.embedAnnotationsAsAozora(in: storageForSave)
                 AozoraRubyParser.embedAnnotationsAsAozora(in: storageForSave)
                 let saveRange = NSRange(location: 0, length: storageForSave.length)
                 let data = try storageForSave.data(from: saveRange, documentAttributes: options)
@@ -641,8 +645,10 @@ extension Document {
 
         // 4. テキストを取得し、改行コードを変換
         #if JEDIT_PRO
-        // rubyAnnotation 属性を青空文庫記法に展開してから保存する。
+        // ルビ・傍点属性を青空文庫記法に展開してから保存する。
+        // 順序: 傍点 → ルビ (ルビの《》が対象と傍点注記の間に正しく入る)
         let storageForSave = NSMutableAttributedString(attributedString: textStorage)
+        AozoraBoutenParser.embedAnnotationsAsAozora(in: storageForSave)
         AozoraRubyParser.embedAnnotationsAsAozora(in: storageForSave)
         var string = storageForSave.string
         #else
