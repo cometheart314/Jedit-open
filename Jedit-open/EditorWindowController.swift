@@ -2697,6 +2697,12 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // MARK: - NSWindowDelegate
 
     func windowWillClose(_ notification: Notification) {
+        // クラッシュ回避のテアダウン (makeFirstResponder(nil) / page mode の
+        // textView 切り離し) は、未保存書類 (fileURL == nil) や presetData なしの
+        // 書類でも必ず実行する必要がある。プリセット保存処理の guard に巻き込まれて
+        // スキップされないよう、defer で確実に走らせる。
+        defer { teardownTextViewsBeforeClose() }
+
         // ウィンドウが閉じる前にプリセットデータを保存
         guard let document = textDocument,
               let url = document.fileURL,
@@ -2754,12 +2760,16 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
         // プリセットデータを拡張属性に保存（修正日付を保持）
         document.savePresetDataToExtendedAttribute(at: url)
+    }
 
-        // page mode の textViews1[i] / textViews2[i] が window 経由のテアダウンで
-        // 共有 layoutManager との解放順序が崩れて NSTextView dealloc 内で
-        // クラッシュする現象 (特にカーソルがページ 2 以降にある場合) を回避するため、
-        // ここで明示的に first responder を辞退させ、また page mode の場合は
-        // 各 textView を superview から外して layoutManager との結合を弱める。
+    /// ウィンドウクローズ直前の textView テアダウン。
+    /// page mode の textViews1[i] / textViews2[i] が window 経由のテアダウンで
+    /// 共有 layoutManager との解放順序が崩れて NSTextView dealloc 内で
+    /// クラッシュする現象 (特にカーソルがページ 2 以降にある場合) を回避するため、
+    /// 明示的に first responder を辞退させ、page mode では各 textView を
+    /// superview から外して layoutManager との結合を弱める。
+    /// 書類の保存状態に関わらず常に実行する必要がある。
+    private func teardownTextViewsBeforeClose() {
         if let win = self.window, win.firstResponder is NSTextView {
             win.makeFirstResponder(nil)
         }
