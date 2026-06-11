@@ -2231,7 +2231,12 @@ enum MarkdownParser {
             let isBold = font.map { isFontBold($0) } ?? false
             let isItalic = font.map { isFontItalic($0) } ?? false
             let isMonospaced = font.map { isFontMonospaced($0) } ?? false
-            let hasCodeBackground = attrs[.backgroundColor] as? NSColor != nil && isMonospaced
+            // インラインコードの背景は .backgroundColor ではなくカスタム属性
+            // (inlineCodeBackgroundKey) で付与される (applyInlineCode 参照)。
+            // .backgroundColor のみの判定だと本パーサーが生成したコードスパンを
+            // 取りこぼし、保存時にバッククォートが脱落する。
+            let hasCodeBackground = attrs[inlineCodeBackgroundKey] != nil
+                || (attrs[.backgroundColor] as? NSColor != nil && isMonospaced)
             let hasStrikethrough = (attrs[.strikethroughStyle] as? Int ?? 0) != 0
 
             let effectiveBold = isBold && !baseIsBold
