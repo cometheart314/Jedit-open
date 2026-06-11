@@ -807,9 +807,11 @@ extension Document {
         case .utf16LittleEndian:
             // UTF-16 LE BOM: FF FE
             result.append(contentsOf: [0xFF, 0xFE])
-        case .utf16:
-            // UTF-16 (システムのエンディアンに依存、通常はLE)
-            result.append(contentsOf: [0xFF, 0xFE])
+        case .utf16, .utf32:
+            // エンディアン未指定の Unicode (.utf16 / .utf32) は、String.data(using:)
+            // が既に先頭へ BOM を付けて返す。ここで再付加すると BOM が二重になり、
+            // 再オープン時に 2 つ目が本文先頭の ZWNBSP として混入するため、何もしない。
+            return data
         case .utf32BigEndian:
             // UTF-32 BE BOM: 00 00 FE FF
             result.append(contentsOf: [0x00, 0x00, 0xFE, 0xFF])
