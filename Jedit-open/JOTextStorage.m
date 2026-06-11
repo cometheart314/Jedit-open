@@ -190,6 +190,9 @@ static NSString * const JOCantSeparateChars = @"CantSeparateChars";
                 }
             }
             else if ([topKinsokuChars characterIsMember:char_C]) {
+                // maxIndex == 1 (極端に狭い行) のとき maxIndex - 2 が負になり、
+                // NSUInteger の ret に代入されて巨大値を返してしまうためガードする
+                if (maxIndex < 2) return defaultBreak;
                 ret = maxIndex - 2;
             }
             else
@@ -233,7 +236,11 @@ static NSString * const JOCantSeparateChars = @"CantSeparateChars";
 
 - (void)endEditing
 {
-    if (editingCount < 0)
+    // editingCount == 0 で余分な endEditing が来た場合もここで止める。
+    // (< 0 だと一度 -1 まで沈み、次の beginEditing が 0 になって
+    //  editingCount == 1 の条件を満たさず、以後 super への
+    //  beginEditing/endEditing 転送が丸ごと欠落する)
+    if (editingCount <= 0)
     {
         NSLog(@"*** JOTextStorage: too many endEditing ****");
         editingCount = 0;
