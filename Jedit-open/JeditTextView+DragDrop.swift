@@ -185,6 +185,10 @@ extension JeditTextView {
 
     /// ファイルURLドラッグ時のオペレーションを判定
     /// Ctrl押下時は.link（↩マーク）、通常はsuperの結果を使用
+    /// Note: ここではファイル内容の種別判定 (detectFileContentType) を行わないこと。
+    /// draggingUpdated からマウス移動のたびに呼ばれるため、内容判定 (UTI 不明の
+    /// ファイルでは全読み込み + エンコーディング検出) を行うとホバー中に固まる。
+    /// 種別判定はドロップ確定時 (prepareForDragOperation / performDragOperation) に行う。
     func dragOperationForFileDrop(_ sender: any NSDraggingInfo) -> NSDragOperation? {
         if NSApp.currentEvent?.modifierFlags.contains(.control) == true {
             // Ctrl+ドロップ: 任意のファイル/フォルダでパス+リンク挿入
@@ -192,8 +196,6 @@ extension JeditTextView {
                 return .link
             }
         }
-        // 通常ドロップ: テキストファイルのみ処理
-        guard pasteboardContainsDroppableTextFile(sender.draggingPasteboard) else { return nil }
         return nil
     }
 
