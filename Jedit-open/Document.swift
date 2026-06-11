@@ -770,8 +770,8 @@ class Document: NSDocument {
         // 保存前にプリセットデータを現在のウィンドウ状態で更新
         updatePresetDataFromCurrentState()
 
-        // Save Panel のフォーマット選択に基づいてドキュメントタイプを一時的に変更（Save As のみ）
-        // 保存完了後は元のタイプに復元する（書類タイプは変更しない）
+        // Save Panel のフォーマット選択に基づいてドキュメントタイプを変更（Save As のみ）
+        // 保存成功時はそのまま採用してファイルと書類状態を一致させ、失敗時のみ復元する
         let originalDocumentType = self.documentType
         let originalIsMarkdownDocument = self.isMarkdownDocument
         let originalEncoding = self.documentEncoding
@@ -901,16 +901,6 @@ class Document: NSDocument {
                 }
             }
 
-            // フォーマット変更は一時的なもの。成功・失敗に関わらず常に元のタイプに復元する
-            if formatChanged {
-                self.documentType = originalDocumentType
-                self.isMarkdownDocument = originalIsMarkdownDocument
-                self.documentEncoding = originalEncoding
-                self.lineEnding = originalLineEnding
-                self.hasBOM = originalHasBOM
-                self.fileType = originalFileType
-            }
-
             // Save Panel の参照をクリーンアップ
             self.savePanelFormatTag = nil
             self.savePanelEncodingPopUp = nil
@@ -918,6 +908,53 @@ class Document: NSDocument {
             self.savePanelBOMCheckbox = nil
             self.saveFormatAction = nil
             self.saveEncodingAction = nil
+
+            // Save Panel でのフォーマット選択の後始末。
+            // 保存成功時はパネルの選択を書類に採用し、ファイルと書類状態を一致させる。
+            // (以前は常に元の状態へ復元していたため、fileURL は新しいファイルを指すのに
+            //  書類タイプ・エンコーディング表示が保存前のまま残る不整合があった)
+            // 保存失敗時のみ元の状態へ復元する。
+            if formatChanged {
+                if effectiveError == nil {
+                    let wasPlain = originalDocumentType == .plain
+                    let isPlainNow = self.documentType == .plain
+                    if wasPlain != isPlainNow {
+                        // プレーン ↔ リッチが変わる保存は、テキスト属性や textView の
+                        // isRichText 等の変換も必要になるため、保存したファイルを
+                        // 読み直して再オープンと同じ状態にそろえる。
+                        // 保存パイプラインが完全に終わってから行うため次の runloop に遅延する。
+                        let savedURL = self.fileURL
+                        let savedFileType = self.fileType
+                        DispatchQueue.main.async { [weak self] in
+                            guard let self = self,
+                                  let url = savedURL, let type = savedFileType else { return }
+                            do {
+                                try self.revert(toContentsOf: url, ofType: type)
+                                // read 経路は textView の isRichText 等を再構成しないため、
+                                // ウィンドウ側のビュー状態を書類タイプに合わせて更新する
+                                if let wc = self.windowControllers.first as? EditorWindowController {
+                                    wc.updateForRichTextState(self.documentType != .plain)
+                                    wc.setupTextViews(with: self.textStorage)
+                                }
+                            } catch {
+                                // 読み直せない場合は書類状態の採用のみ反映する
+                                NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                            }
+                        }
+                    } else {
+                        // 同クラス内の変更 (エンコーディング・改行・BOM、RTF↔RTFD、
+                        // Word/Markdown 形式) はそのまま採用し、ツールバー等の表示を更新する
+                        NotificationCenter.default.post(name: Document.documentTypeDidChangeNotification, object: self)
+                    }
+                } else {
+                    self.documentType = originalDocumentType
+                    self.isMarkdownDocument = originalIsMarkdownDocument
+                    self.documentEncoding = originalEncoding
+                    self.lineEnding = originalLineEnding
+                    self.hasBOM = originalHasBOM
+                    self.fileType = originalFileType
+                }
+            }
 
             completionHandler(effectiveError)
         }

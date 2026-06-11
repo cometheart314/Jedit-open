@@ -26,6 +26,46 @@
 import Cocoa
 import UniformTypeIdentifiers
 
+/// ExportAccessoryView.xib のロード結果。
+/// コントロールは XIB に設定した identifier で特定する。
+/// （以前は title / toolTip の英語文字列で特定していたが、ja.lproj で
+/// ローカライズされると一致せず、日本語 UI でエンコーディング選択等が
+/// 機能しなくなるため identifier ベースに変更した）
+struct ExportAccessoryControls {
+    let view: NSView
+    let formatPopUp: NSPopUpButton?
+    let encodingPopUp: NSPopUpButton?
+    let lineEndingPopUp: NSPopUpButton?
+    let bomCheckbox: NSButton?
+    let selectionOnlyCheckbox: NSButton?
+    let encodingLabel: NSTextField?
+
+    /// XIB をロードしてコントロールを identifier で解決する
+    static func load() -> ExportAccessoryControls? {
+        var topLevelObjects: NSArray?
+        guard Bundle.main.loadNibNamed("ExportAccessoryView", owner: nil, topLevelObjects: &topLevelObjects),
+              let objects = topLevelObjects,
+              let accessoryView = objects.compactMap({ $0 as? NSView }).first(where: { $0.frame.size.height > 0 })
+        else { return nil }
+
+        func subview<T: NSView>(_ identifier: String) -> T? {
+            accessoryView.subviews.first {
+                $0.identifier?.rawValue == identifier
+            } as? T
+        }
+
+        return ExportAccessoryControls(
+            view: accessoryView,
+            formatPopUp: subview("exportFormatPopUp"),
+            encodingPopUp: subview("exportEncodingPopUp"),
+            lineEndingPopUp: subview("exportLineEndingPopUp"),
+            bomCheckbox: subview("exportBOMCheckbox"),
+            selectionOnlyCheckbox: subview("exportSelectionOnlyCheckbox"),
+            encodingLabel: subview("exportEncodingLabel")
+        )
+    }
+}
+
 extension Document {
 
     // MARK: - Encoding Selection
@@ -119,26 +159,17 @@ extension Document {
         saveFormatAction = nil
         saveEncodingAction = nil
 
-        // ExportAccessoryView.xib を読み込む
-        var topLevelObjects: NSArray?
-        guard Bundle.main.loadNibNamed("ExportAccessoryView", owner: nil, topLevelObjects: &topLevelObjects),
-              let objects = topLevelObjects,
-              let accessoryView = objects.compactMap({ $0 as? NSView }).first(where: { $0.frame.size.height > 0 })
-        else {
+        // ExportAccessoryView.xib を読み込み、identifier でコントロールを特定する
+        guard let controls = ExportAccessoryControls.load() else {
             return super.prepareSavePanel(savePanel)
         }
-
-        // アクセサリビュー内のコントロールをプロパティで特定（Export と同じロジック）
-        let allButtons = accessoryView.subviews.compactMap { $0 as? NSButton }
-        let allPopUps = accessoryView.subviews.compactMap { $0 as? NSPopUpButton }
-        let allLabels = accessoryView.subviews.compactMap { $0 as? NSTextField }
-
-        let encodingPopUp = allPopUps.first(where: { $0.toolTip?.contains("encoding") == true })
-        let formatPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0.numberOfItems > 4 })
-        let lineEndingPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0 !== formatPopUp })
-        let bomCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title == "BOM" })
-        let selectionOnlyCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title.contains("Selection") == true })
-        let encodingLabel = allLabels.first(where: { ($0.cell as? NSTextFieldCell)?.title == "Encoding:" })
+        let accessoryView = controls.view
+        let encodingPopUp = controls.encodingPopUp
+        let formatPopUp = controls.formatPopUp
+        let lineEndingPopUp = controls.lineEndingPopUp
+        let bomCheckbox = controls.bomCheckbox
+        let selectionOnlyCheckbox = controls.selectionOnlyCheckbox
+        let encodingLabel = controls.encodingLabel
 
         // 「Export Only Selection」チェックボックスを非表示にする（Save では不要）
         selectionOnlyCheckbox?.isHidden = true
@@ -292,31 +323,15 @@ extension Document {
     @IBAction func exportDocument(_ sender: Any?) {
         guard let window = windowControllers.first?.window else { return }
 
-        // ExportAccessoryView.xib を読み込む
-        var topLevelObjects: NSArray?
-        guard Bundle.main.loadNibNamed("ExportAccessoryView", owner: nil, topLevelObjects: &topLevelObjects),
-              let objects = topLevelObjects,
-              let accessoryView = objects.compactMap({ $0 as? NSView }).first(where: { $0.frame.size.height > 0 })
-        else { return }
-
-        // アクセサリビュー内のコントロールをプロパティで特定
-        let allButtons = accessoryView.subviews.compactMap { $0 as? NSButton }
-        let allPopUps = accessoryView.subviews.compactMap { $0 as? NSPopUpButton }
-        let allLabels = accessoryView.subviews.compactMap { $0 as? NSTextField }
-
-        // Encoding ポップアップ（toolTipで特定。XIBの customClass=EncodingPopUpButtonCell は
-        // loadNibNamed 時に NSPopUpButtonCell としてロードされるため cell is では判定不可）
-        let encodingPopUp = allPopUps.first(where: { $0.toolTip?.contains("encoding") == true })
-        // 8項目以上のメニューを持つポップアップ = File Format ポップアップ
-        let formatPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0.numberOfItems > 4 })
-        // 3項目のポップアップ (LF/CR/CR+LF) = 改行コードポップアップ
-        let lineEndingPopUp = allPopUps.first(where: { $0 !== encodingPopUp && $0 !== formatPopUp })
-        // チェックボックスの中で "BOM" を含むもの
-        let bomCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title == "BOM" })
-        // チェックボックスの中で "Selection" を含むもの
-        let selectionOnlyCheckbox = allButtons.first(where: { ($0.cell as? NSButtonCell)?.title.contains("Selection") == true })
-        // "Encoding:" ラベル
-        let encodingLabel = allLabels.first(where: { ($0.cell as? NSTextFieldCell)?.title == "Encoding:" })
+        // ExportAccessoryView.xib を読み込み、identifier でコントロールを特定する
+        guard let controls = ExportAccessoryControls.load() else { return }
+        let accessoryView = controls.view
+        let encodingPopUp = controls.encodingPopUp
+        let formatPopUp = controls.formatPopUp
+        let lineEndingPopUp = controls.lineEndingPopUp
+        let bomCheckbox = controls.bomCheckbox
+        let selectionOnlyCheckbox = controls.selectionOnlyCheckbox
+        let encodingLabel = controls.encodingLabel
 
         // NIBロード後にエンコーディングポップアップを手動で構築
         // （XIBの EncodingPopUpButtonCell が NSPopUpButtonCell としてロードされ、
