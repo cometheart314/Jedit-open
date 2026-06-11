@@ -1041,6 +1041,12 @@ extension JeditTextView {
             return
         }
 
+        // RTFD 昇格でシート（非同期）を出す経路では、実際の挿入は完了クロージャ内で
+        // 後から行われる。下の defer 群は paste() の return 時点（＝挿入前）に
+        // 発火してしまうため、その経路では後処理を完了クロージャに肩代わりさせ、
+        // ここでの早期発火をこのフラグでスキップする。
+        var pasteHandledByUpgradeCompletion = false
+
         #if JEDIT_PRO
         // 青空文庫ルビ記法のペースト後パース用に、ペースト前の選択範囲と
         // textStorage 長さを記録する。defer は宣言順の逆に発火するため、
@@ -1049,16 +1055,20 @@ extension JeditTextView {
         let rubyPrePasteRange = selectedRange()
         let rubyPrePasteLength = textStorage?.length ?? 0
         defer {
-            handleRubyParseAfterPaste(preRange: rubyPrePasteRange,
-                                       oldLength: rubyPrePasteLength)
+            if !pasteHandledByUpgradeCompletion {
+                handleRubyParseAfterPaste(preRange: rubyPrePasteRange,
+                                           oldLength: rubyPrePasteLength)
+            }
         }
         #endif
 
         // Smart Language Separation のペースト中フラグを設定
         smartLanguageSeparation?.isPasting = true
         defer {
-            smartLanguageSeparation?.isPasting = false
-            smartLanguageSeparation?.processPendingFullSeparation()
+            if !pasteHandledByUpgradeCompletion {
+                smartLanguageSeparation?.isPasting = false
+                smartLanguageSeparation?.processPendingFullSeparation()
+            }
         }
 
         // リッチテキスト書類の場合
@@ -1075,8 +1085,22 @@ extension JeditTextView {
             let hasRTFD = pasteboard.availableType(from: rtfdTypes) != nil
             let hasImage = pasteboard.availableType(from: [.tiff, .png]) != nil
             if hasRTFD || hasImage {
+                // 昇格シートは非同期。後処理 (isPasting 解除・分離・ルビパース) は
+                // paste() の defer ではなく、挿入が完了したこの完了クロージャ内で行う。
+                pasteHandledByUpgradeCompletion = true
                 upgradeToRTFDIfNeeded { [weak self] proceed in
-                    guard let self = self, proceed else { return }
+                    guard let self = self else { return }
+                    // proceed/キャンセルに関わらず、挿入後（またはキャンセル後）に
+                    // ペースト中フラグの解除とペンディング処理を必ず行う。
+                    defer {
+                        self.smartLanguageSeparation?.isPasting = false
+                        self.smartLanguageSeparation?.processPendingFullSeparation()
+                        #if JEDIT_PRO
+                        self.handleRubyParseAfterPaste(preRange: rubyPrePasteRange,
+                                                       oldLength: rubyPrePasteLength)
+                        #endif
+                    }
+                    guard proceed else { return }
                     // RTFD は自前で NSAttributedString に展開し、色を正規化してから
                     // 差し込む。これにより super.paste 経路でも、ダークモード非対応
                     // アプリ由来のハードコード黒文字色がダイナミック色に置き換わる。
@@ -1087,7 +1111,6 @@ extension JeditTextView {
                     } else {
                         self.performSuperPaste(sender)
                     }
-                    self.smartLanguageSeparation?.isPasting = false
                 }
                 return
             }
