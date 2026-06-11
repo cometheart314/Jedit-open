@@ -121,39 +121,36 @@ extension JeditTextView {
         let range = selectedRange()
         let lineRange = text.lineRange(for: range)
 
-        // 対象行の各行頭にインデント文字列を挿入
-        var newText = ""
-        var insertedCount = 0
-        text.enumerateSubstrings(in: lineRange, options: .byLines) { substring, substringRange, _, _ in
-            guard let substring = substring else { return }
-            newText += indent + substring
-            insertedCount += 1
-            // 元のテキストで行末に改行があれば追加
-            let afterSubstring = substringRange.location + substringRange.length
-            if afterSubstring < lineRange.location + lineRange.length {
-                let nlRange = NSRange(location: afterSubstring, length: 1)
-                newText += text.substring(with: nlRange)
-            }
+        // 対象行の行頭位置を収集する。
+        // 行全体を文字列として組み立て直して一括置換すると、置換範囲の属性が
+        // 先頭文字の属性で均一化され、リッチテキストの書式・画像添付・ルビ等が
+        // 失われるため、行頭への挿入だけを最小範囲の編集として行う。
+        var lineStarts: [Int] = []
+        text.enumerateSubstrings(in: lineRange, options: [.byLines, .substringNotRequired]) { _, _, enclosingRange, _ in
+            lineStarts.append(enclosingRange.location)
         }
+        guard !lineStarts.isEmpty else { return }
 
-        // 最後の改行が lineRange にあるが enumerateSubstrings で処理されない場合を考慮
-        let lastChar = lineRange.location + lineRange.length - 1
-        if lastChar >= 0 && lastChar < text.length {
-            let ch = text.character(at: lastChar)
-            if (ch == 0x0A || ch == 0x0D) && !newText.hasSuffix("\n") && !newText.hasSuffix("\r") {
-                newText += String(Character(UnicodeScalar(ch)!))
+        // Undo 対応で各行頭にインデント文字列を挿入（後ろの行から処理して位置ずれを防ぐ）。
+        // 複数レンジ編集はタイピング合体 (undo coalescing) と正しく統合されないため、
+        // 前後で合体を切って各シフト操作を独立した Undo ステップにする。
+        breakUndoCoalescing()
+        let insertionRanges = lineStarts.map { NSValue(range: NSRange(location: $0, length: 0)) }
+        let insertionStrings = Array(repeating: indent, count: lineStarts.count)
+        if shouldChangeText(inRanges: insertionRanges, replacementStrings: insertionStrings) {
+            textStorage.beginEditing()
+            for lineStart in lineStarts.reversed() {
+                textStorage.replaceCharacters(in: NSRange(location: lineStart, length: 0), with: indent)
             }
-        }
-
-        // Undo 対応で置換
-        if shouldChangeText(in: lineRange, replacementString: newText) {
-            textStorage.replaceCharacters(in: lineRange, with: newText)
+            textStorage.endEditing()
             didChangeText()
+            breakUndoCoalescing()
+            undoManager?.setActionName("Shift Right".localized)
 
             // 選択範囲を更新（インデントされた範囲全体を選択）
             let indentLen = (indent as NSString).length
             let newStart = range.location + indentLen
-            let newLength = range.length + indentLen * (insertedCount - 1)
+            let newLength = range.length + indentLen * (lineStarts.count - 1)
             setSelectedRange(NSRange(location: newStart, length: max(0, newLength)))
         }
     }
@@ -175,67 +172,52 @@ extension JeditTextView {
         let range = selectedRange()
         let lineRange = text.lineRange(for: range)
 
-        // 各行頭から先頭のインデント文字列を1レベル分除去
-        var newText = ""
+        // 各行頭から除去する範囲（インデント1レベル分）を収集する。
+        // shiftRight 同様、行全体の組み立て直しはリッチテキストの属性を壊すため、
+        // 行頭の空白の削除だけを最小範囲の編集として行う。
+        var removalRanges: [NSRange] = []
         var removedFromFirstLine = 0
-        var totalRemoved = 0
         var isFirstLine = true
 
-        text.enumerateSubstrings(in: lineRange, options: .byLines) { substring, substringRange, _, _ in
-            guard let substring = substring else { return }
-            var line = substring
-
+        text.enumerateSubstrings(in: lineRange, options: [.byLines, .substringNotRequired]) { _, substringRange, _, _ in
+            var removeLength = 0
             if indent == "\t" {
                 // タブモード: 先頭のタブを1つ除去
-                if line.hasPrefix("\t") {
-                    line = String(line.dropFirst())
-                    if isFirstLine { removedFromFirstLine = 1 }
-                    totalRemoved += 1
+                if substringRange.length > 0 && text.character(at: substringRange.location) == 0x09 {
+                    removeLength = 1
                 }
             } else {
                 // スペースモード: 先頭のスペースをインデント幅分除去
-                let indentLen = indent.count
-                var removeCount = 0
-                for ch in line {
-                    if ch == " " && removeCount < indentLen {
-                        removeCount += 1
-                    } else {
-                        break
-                    }
-                }
-                if removeCount > 0 {
-                    line = String(line.dropFirst(removeCount))
-                    if isFirstLine { removedFromFirstLine = removeCount }
-                    totalRemoved += removeCount
+                let maxRemove = (indent as NSString).length
+                while removeLength < substringRange.length && removeLength < maxRemove
+                        && text.character(at: substringRange.location + removeLength) == 0x20 {
+                    removeLength += 1
                 }
             }
-
+            if removeLength > 0 {
+                removalRanges.append(NSRange(location: substringRange.location, length: removeLength))
+                if isFirstLine { removedFromFirstLine = removeLength }
+            }
             isFirstLine = false
-            newText += line
-
-            // 行末の改行を追加
-            let afterSubstring = substringRange.location + substringRange.length
-            if afterSubstring < lineRange.location + lineRange.length {
-                let nlRange = NSRange(location: afterSubstring, length: 1)
-                newText += text.substring(with: nlRange)
-            }
         }
 
-        // 末尾改行の処理
-        let lastChar = lineRange.location + lineRange.length - 1
-        if lastChar >= 0 && lastChar < text.length {
-            let ch = text.character(at: lastChar)
-            if (ch == 0x0A || ch == 0x0D) && !newText.hasSuffix("\n") && !newText.hasSuffix("\r") {
-                newText += String(Character(UnicodeScalar(ch)!))
-            }
-        }
-
+        let totalRemoved = removalRanges.reduce(0) { $0 + $1.length }
         if totalRemoved == 0 { return }
 
-        // Undo 対応で置換
-        if shouldChangeText(in: lineRange, replacementString: newText) {
-            textStorage.replaceCharacters(in: lineRange, with: newText)
+        // Undo 対応で除去（後ろの行から処理して位置ずれを防ぐ）。
+        // shiftRight 同様、前後で合体を切って各シフト操作を独立した Undo ステップにする。
+        breakUndoCoalescing()
+        let rangeValues = removalRanges.map { NSValue(range: $0) }
+        let replacementStrings = Array(repeating: "", count: removalRanges.count)
+        if shouldChangeText(inRanges: rangeValues, replacementStrings: replacementStrings) {
+            textStorage.beginEditing()
+            for removalRange in removalRanges.reversed() {
+                textStorage.deleteCharacters(in: removalRange)
+            }
+            textStorage.endEditing()
             didChangeText()
+            breakUndoCoalescing()
+            undoManager?.setActionName("Shift Left".localized)
 
             // 選択範囲を更新
             let newStart = max(lineRange.location, range.location - removedFromFirstLine)

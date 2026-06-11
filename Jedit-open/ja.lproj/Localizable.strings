@@ -563,6 +563,8 @@
 "Copy Style and Ruler" = "スタイルとルーラーをコピー";
 "Paste Style and Ruler" = "スタイルとルーラーをペースト";
 "Change Image Size…" = "画像サイズを変更…";
+"Shift Right" = "右にシフト";
+"Shift Left" = "左にシフト";
 
 /* Document Preset Names */
 "Default" = "デフォルト";
