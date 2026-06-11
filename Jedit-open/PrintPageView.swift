@@ -135,6 +135,12 @@ class PrintPageView: NSView {
         lm.invisibleCharacterOptions = configuration.invisibleCharacterOptions
         // 印刷時はグレーで出力（画面表示色だとダークモード時に見えない場合がある）
         lm.invisibleCharacterColor = configuration.invisibleCharacterColor
+        #if JEDIT_PRO
+        // ルビ・傍点を含む段落の行間 (縦書きでは列間) をエディタと同様に拡張する。
+        // これが無いと縦書き印刷で傍点・ルビが右隣の行に重なる。
+        // 属性の無い書類では拡張量 0 でページ割り含め従来と同一。
+        lm.delegate = RubyPrintLayoutDelegate.shared
+        #endif
         self.layoutManager = lm
 
         super.init(frame: NSRect(x: 0, y: 0, width: pageWidth, height: pageHeight))
@@ -381,9 +387,15 @@ class PrintPageView: NSView {
                 layoutManager.drawGlyphs(forGlyphRange: glyphRange, at: textOrigin)
 
                 #if JEDIT_PRO
-                // ルビ描画 (Phase 5 後半 Step 1 は縦書きを未対応にしているので
-                // ここでは何もしない。Step 2 で縦書きを実装する際に有効化する)
+                // ルビ・傍点を親文字の右に重ね描き (縦書き)。
+                // 属性が無い書類では enumerateAttribute が空ループになるだけで、
+                // 印刷出力は従来と同一。
                 RubyPrintRenderer.drawRubyAnnotations(
+                    in: glyphRange,
+                    layoutManager: layoutManager,
+                    textOrigin: textOrigin,
+                    isVertical: true)
+                BoutenRenderer.drawBoutenAnnotations(
                     in: glyphRange,
                     layoutManager: layoutManager,
                     textOrigin: textOrigin,
@@ -404,10 +416,15 @@ class PrintPageView: NSView {
                 layoutManager.drawGlyphs(forGlyphRange: glyphRange, at: textOrigin)
 
                 #if JEDIT_PRO
-                // ルビを親文字の上に重ね描き (Phase 5 後半 Step 1)。
-                // rubyAnnotation 属性が無い書類では enumerateAttribute が
-                // 空ループになるだけで、印刷出力は従来と同一。
+                // ルビ・傍点を親文字の上に重ね描き (横書き)。
+                // 属性が無い書類では enumerateAttribute が空ループになるだけで、
+                // 印刷出力は従来と同一。
                 RubyPrintRenderer.drawRubyAnnotations(
+                    in: glyphRange,
+                    layoutManager: layoutManager,
+                    textOrigin: textOrigin,
+                    isVertical: false)
+                BoutenRenderer.drawBoutenAnnotations(
                     in: glyphRange,
                     layoutManager: layoutManager,
                     textOrigin: textOrigin,
