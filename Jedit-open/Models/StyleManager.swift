@@ -65,7 +65,7 @@ class StyleManager {
 
         if FileManager.default.fileExists(atPath: url.path),
            let data = try? Data(contentsOf: url),
-           let collection = try? JSONDecoder().decode(StyleCollection.self, from: data) {
+           let collection = Self.decodeStyleCollection(from: data) {
             // マージ: ビルトインスタイルは常に存在、ユーザー追加スタイルを追加
             var result: [TextStyle] = []
 
@@ -88,6 +88,23 @@ class StyleManager {
             // 初回起動時はビルトインスタイルのみ
             styles = TextStyle.builtInStyles
         }
+    }
+
+    /// 保存済みスタイルコレクションをデコードする。
+    /// styles 配列を一括デコードすると 1 件でも壊れていると全スタイルが失われるため、
+    /// 失敗時は要素ごとにデコードして壊れた要素だけスキップする。
+    private static func decodeStyleCollection(from data: Data) -> StyleCollection? {
+        if let collection = try? JSONDecoder().decode(StyleCollection.self, from: data) {
+            return collection
+        }
+        // styles を要素ごとにデコードする寛容版にフォールバック
+        struct TolerantCollection: Decodable {
+            var styles: [FailableDecodable<TextStyle>]
+        }
+        guard let tolerant = try? JSONDecoder().decode(TolerantCollection.self, from: data) else {
+            return nil
+        }
+        return StyleCollection(styles: tolerant.styles.compactMap { $0.value })
     }
 
     func saveStyles() {

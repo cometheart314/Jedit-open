@@ -26,6 +26,19 @@
 import Foundation
 import UniformTypeIdentifiers
 
+// MARK: - FailableDecodable
+
+/// 配列要素ごとのデコードを許容するためのラッパー。
+/// `[FailableDecodable<T>]` としてデコードすると、壊れた要素は value == nil に
+/// なり、配列全体のデコード失敗を避けられる（1 件の破損で全件喪失しない）。
+struct FailableDecodable<T: Decodable>: Decodable {
+    let value: T?
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        value = try? container.decode(T.self)
+    }
+}
+
 // MARK: - Notification Names
 
 extension Notification.Name {
@@ -137,7 +150,7 @@ class DocumentPresetManager {
 
     func loadPresets() {
         if let data = UserDefaults.standard.data(forKey: userDefaultsKey),
-           let savedPresets = try? JSONDecoder().decode([DocumentPreset].self, from: data) {
+           let savedPresets = Self.decodePresets(from: data) {
             // マージ: ビルトインプリセットは常に存在、ユーザー追加プリセットを追加
             var result: [DocumentPreset] = []
 
@@ -171,6 +184,21 @@ class DocumentPresetManager {
         } else {
             selectedPresetID = DocumentPreset.builtInDefault.id
         }
+    }
+
+    /// 保存済みプリセット配列をデコードする。
+    /// 配列全体を一括デコードすると 1 件でも壊れていると全プリセットが失われるため、
+    /// 要素ごとにデコードして壊れた要素だけスキップする。
+    private static func decodePresets(from data: Data) -> [DocumentPreset]? {
+        // まず通常デコードを試す（全件正常なら最速）
+        if let presets = try? JSONDecoder().decode([DocumentPreset].self, from: data) {
+            return presets
+        }
+        // 1 件以上壊れている場合は要素ごとにデコードし、生存分だけ返す
+        guard let failables = try? JSONDecoder().decode([FailableDecodable<DocumentPreset>].self, from: data) else {
+            return nil
+        }
+        return failables.compactMap { $0.value }
     }
 
     func savePresets() {

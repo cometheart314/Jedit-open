@@ -272,32 +272,34 @@ struct NewDocData: Codable, Equatable {
 
         init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
+            let def = FormatData.default
 
-            newDocNameType = try container.decode(NewDocNameType.self, forKey: .newDocNameType)
-            richText = try container.decode(Bool.self, forKey: .richText)
-            fileExtension = try container.decode(String.self, forKey: .fileExtension)
-            textEncoding = try container.decode(String.Encoding.RawValue.self, forKey: .textEncoding)
-            lineEndingType = try container.decode(LineEndingType.self, forKey: .lineEndingType)
-            bom = try container.decode(Bool.self, forKey: .bom)
-            editingDirection = try container.decode(EditingDirection.self, forKey: .editingDirection)
-            tabWidthPoints = try container.decode(CGFloat.self, forKey: .tabWidthPoints)
-            tabWidthUnit = try container.decode(TabWidthUnit.self, forKey: .tabWidthUnit)
-
-            // 新しいプロパティ（古いデータにはないのでデフォルト値を使用）
-            lineHeightMultiple = try container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMultiple) ?? 1.0
-            lineHeightMinimum = try container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMinimum) ?? 0
-            lineHeightMaximum = try container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMaximum) ?? 0
-
-            interLineSpacing = try container.decode(CGFloat.self, forKey: .interLineSpacing)
-            paragraphSpacingBefore = try container.decode(CGFloat.self, forKey: .paragraphSpacingBefore)
-            paragraphSpacingAfter = try container.decode(CGFloat.self, forKey: .paragraphSpacingAfter)
-            autoIndent = try container.decode(Bool.self, forKey: .autoIndent)
-            indentWrappedLines = try container.decode(Bool.self, forKey: .indentWrappedLines)
-            wrappedLineIndent = try container.decode(CGFloat.self, forKey: .wrappedLineIndent)
-            wordWrappingType = try container.decode(WordWrappingType.self, forKey: .wordWrappingType)
-            targetSizeType = try container.decode(TargetSizeType.self, forKey: .targetSizeType)
-            minTargetSize = try container.decode(Int.self, forKey: .minTargetSize)
-            maxTargetSize = try container.decode(Int.self, forKey: .maxTargetSize)
+            // 全フィールドを decodeIfPresent + デフォルト値フォールバックで読む。
+            // 1 つのフィールドが欠落/型変更/enum 値追加で壊れても、そのフィールドだけ
+            // デフォルトに落として残りのプリセット設定を保持する（将来のスキーマ変更で
+            // 全ユーザープリセットが消えるのを防ぐ）。
+            newDocNameType = (try? container.decodeIfPresent(NewDocNameType.self, forKey: .newDocNameType)) ?? def.newDocNameType
+            richText = (try? container.decodeIfPresent(Bool.self, forKey: .richText)) ?? def.richText
+            fileExtension = (try? container.decodeIfPresent(String.self, forKey: .fileExtension)) ?? def.fileExtension
+            textEncoding = (try? container.decodeIfPresent(String.Encoding.RawValue.self, forKey: .textEncoding)) ?? def.textEncoding
+            lineEndingType = (try? container.decodeIfPresent(LineEndingType.self, forKey: .lineEndingType)) ?? def.lineEndingType
+            bom = (try? container.decodeIfPresent(Bool.self, forKey: .bom)) ?? def.bom
+            editingDirection = (try? container.decodeIfPresent(EditingDirection.self, forKey: .editingDirection)) ?? def.editingDirection
+            tabWidthPoints = (try? container.decodeIfPresent(CGFloat.self, forKey: .tabWidthPoints)) ?? def.tabWidthPoints
+            tabWidthUnit = (try? container.decodeIfPresent(TabWidthUnit.self, forKey: .tabWidthUnit)) ?? def.tabWidthUnit
+            lineHeightMultiple = (try? container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMultiple)) ?? def.lineHeightMultiple
+            lineHeightMinimum = (try? container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMinimum)) ?? def.lineHeightMinimum
+            lineHeightMaximum = (try? container.decodeIfPresent(CGFloat.self, forKey: .lineHeightMaximum)) ?? def.lineHeightMaximum
+            interLineSpacing = (try? container.decodeIfPresent(CGFloat.self, forKey: .interLineSpacing)) ?? def.interLineSpacing
+            paragraphSpacingBefore = (try? container.decodeIfPresent(CGFloat.self, forKey: .paragraphSpacingBefore)) ?? def.paragraphSpacingBefore
+            paragraphSpacingAfter = (try? container.decodeIfPresent(CGFloat.self, forKey: .paragraphSpacingAfter)) ?? def.paragraphSpacingAfter
+            autoIndent = (try? container.decodeIfPresent(Bool.self, forKey: .autoIndent)) ?? def.autoIndent
+            indentWrappedLines = (try? container.decodeIfPresent(Bool.self, forKey: .indentWrappedLines)) ?? def.indentWrappedLines
+            wrappedLineIndent = (try? container.decodeIfPresent(CGFloat.self, forKey: .wrappedLineIndent)) ?? def.wrappedLineIndent
+            wordWrappingType = (try? container.decodeIfPresent(WordWrappingType.self, forKey: .wordWrappingType)) ?? def.wordWrappingType
+            targetSizeType = (try? container.decodeIfPresent(TargetSizeType.self, forKey: .targetSizeType)) ?? def.targetSizeType
+            minTargetSize = (try? container.decodeIfPresent(Int.self, forKey: .minTargetSize)) ?? def.minTargetSize
+            maxTargetSize = (try? container.decodeIfPresent(Int.self, forKey: .maxTargetSize)) ?? def.maxTargetSize
         }
 
         private enum CodingKeys: String, CodingKey {
