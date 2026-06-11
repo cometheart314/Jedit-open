@@ -770,6 +770,15 @@ class Document: NSDocument {
         // 保存前にプリセットデータを現在のウィンドウ状態で更新
         updatePresetDataFromCurrentState()
 
+        // Save Panel の選択値が有効なのはパネル経由の保存 (.saveAsOperation) のみ。
+        // パネルをキャンセルすると savePanelFormatTag が残留するため、上書き保存
+        // (Cmd+S) では入口で破棄する。これを怠ると dataForPlainText のパネル値優先が
+        // 誤発動する (autosave 系では破棄しない: パネル表示中に autosave が走ると
+        // 確定前のタグが消えてしまうため)。
+        if saveOperation == .saveOperation {
+            savePanelFormatTag = nil
+        }
+
         // Save Panel のフォーマット選択に基づいてドキュメントタイプを変更（Save As のみ）
         // 保存成功時はそのまま採用してファイルと書類状態を一致させ、失敗時のみ復元する
         let originalDocumentType = self.documentType
@@ -960,6 +969,18 @@ class Document: NSDocument {
         }
     }
 
+    /// Word/ODT 系の typeName をエクスポートフォーマットタグに変換する
+    /// (該当しない typeName は nil)
+    private nonisolated static func wordExportFormatTag(forTypeName typeName: String) -> Int? {
+        switch typeName {
+        case "com.microsoft.word.doc": return 3
+        case "com.microsoft.word.wordml": return 4
+        case "org.openxmlformats.wordprocessingml.document": return 5
+        case "org.oasis-open.opendocument.text": return 6
+        default: return nil
+        }
+    }
+
     /// Markdown ドキュメントの場合は Markdown 形式でファイルに書き込む
     /// NSDocument の保存チェーンの中で最終的にファイルに書き込むメソッド。
     /// ここで RTF の代わりに Markdown を書き込むことで、
@@ -985,11 +1006,33 @@ class Document: NSDocument {
             return
         }
 
-        // Save Panel で Word/ODT フォーマット（tag 3-6）が選択された場合、
-        // generateExportData() を使用してファイルに書き込む
+        // Word/ODT 形式で保存する場合は generateExportData() でファイルに書き込む。
+        // typeName で判定することで、Save As でパネルから選ばれた直後だけでなく、
+        // 保存後に fileType が Word 系のまま編集を続けた場合の上書き保存・autosave も
+        // この経路を通る (これがないと通常経路に落ちて data(ofType:) が documentType
+        // に従った RTF データを .docx 等へ書き込み、ファイルが壊れる)。
+        if let tag = Self.wordExportFormatTag(forTypeName: typeName) {
+            let data = try MainActor.assumeIsolated {
+                try self.generateExportData(
+                    formatTag: tag,
+                    selectionOnly: false,
+                    encodingPopUp: nil,
+                    lineEndingPopUp: nil,
+                    bomCheckbox: nil
+                )
+            }
+            try data.write(to: url, options: .atomic)
+            return
+        }
+
+        // フォールバック: Save Panel で Word/ODT フォーマット（tag 3-6）が選択されたのに
+        // typeName が Word 系で渡ってこなかった場合に備える。
+        // パネル経由の保存は常に .saveAsOperation (名称未設定書類の初回保存を含む)。
+        // .saveOperation を含めると、パネルをキャンセルして残留したタグで上書き保存時に
+        // Word データが元ファイルへ書き込まれる事故経路になるため限定する。
         let formatTag = MainActor.assumeIsolated { self.savePanelFormatTag }
         if let tag = formatTag,
-           (saveOperation == .saveAsOperation || saveOperation == .saveOperation),
+           saveOperation == .saveAsOperation,
            [3, 4, 5, 6].contains(tag) {
             let data = try MainActor.assumeIsolated {
                 try self.generateExportData(
