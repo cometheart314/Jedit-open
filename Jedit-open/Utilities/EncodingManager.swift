@@ -400,12 +400,9 @@ class EncodingManager: NSObject {
 
     // MARK: - Actions
 
-    /// カスタマイズパネルを表示（Preferencesウィンドウを開いてEncodingsカテゴリを選択）
+    /// エンコーディングリストのカスタマイズパネルを表示
     @objc func showPanel(_ sender: Any?) {
-        // AppDelegateからPreferencesウィンドウを取得して表示
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            appDelegate.showPreferencesWindow(selectingCategory: "encodings")
-        }
+        EncodingCustomizeWindowController.showPanel()
     }
 }
 
