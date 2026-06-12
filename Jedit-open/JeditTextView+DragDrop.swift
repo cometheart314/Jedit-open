@@ -801,13 +801,7 @@ extension JeditTextView {
 
         // 他アプリ/他書類からのリッチテキストのドロップ: RTF を取り込み、
         // 文字変換＋明暗モード色正規化を適用して挿入する（コピー＆ペーストと同じ挙動）。
-        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
-        if let rtfType = pboard.availableType(from: [.rtf, nextRTFType]),
-           let rtfData = pboard.data(forType: rtfType) ?? pboard.data(forType: .rtf),
-           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
-            let converted = applyTextConversionsToAttributedString(attributedString)
-            replaceString(in: selectedRange(), with: converted)
-            fixTextListRenderingAfterPaste()
+        if pasteConvertedRTF(from: pboard) {
             return true
         }
 
@@ -853,6 +847,33 @@ extension JeditTextView {
 
     // MARK: - Paste and Drop Text Conversion
 
+    /// 外部アプリが RTF を載せる際の別名型。実環境では .rtf (public.rtf) ではなく
+    /// この NeXT 型で載ることが多く、両方を RTF として扱う必要がある。
+    static let nextRTFPasteboardType = NSPasteboard.PasteboardType(
+        "NeXT Rich Text Format v1.0 pasteboard type")
+
+    /// ペーストボードから RTF を読み込み、文字変換＋明暗モード色正規化を
+    /// 適用した属性付き文字列を返す。RTF が無い／読めない場合は nil。
+    func convertedRTF(from pasteboard: NSPasteboard) -> NSAttributedString? {
+        guard let rtfType = pasteboard.availableType(from: [.rtf, Self.nextRTFPasteboardType]),
+              let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
+              let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil)
+        else { return nil }
+        return applyTextConversionsToAttributedString(attributedString)
+    }
+
+    /// ペーストボードの RTF を変換して選択範囲へ挿入する（ペースト/ドロップ共通）。
+    /// insertText ではなく replaceString を使用する
+    /// （insertText は typingAttributes を適用してしまい書式が失われるため）。
+    /// - Returns: 挿入した場合は true。RTF が無い／読めない場合は false。
+    @discardableResult
+    func pasteConvertedRTF(from pasteboard: NSPasteboard) -> Bool {
+        guard let converted = convertedRTF(from: pasteboard) else { return false }
+        replaceString(in: selectedRange(), with: converted)
+        fixTextListRenderingAfterPaste()
+        return true
+    }
+
     /// リッチテキスト書類の場合、画像タイプも読み取り可能に追加
     override var readablePasteboardTypes: [NSPasteboard.PasteboardType] {
         var types = super.readablePasteboardTypes
@@ -881,13 +902,9 @@ extension JeditTextView {
 
     /// 矩形ペーストボードから行データを取得（リッチは RTF から属性付きで色等を保持、それ以外はプレーン）
     func columnarRows(from pasteboard: NSPasteboard) -> [NSAttributedString] {
-        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
         if isRichText,
-           let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
-           let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
-           let attr = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
+           let converted = convertedRTF(from: pasteboard) {
             // 文字変換＋明暗モード色正規化を適用してから行分割する
-            let converted = applyTextConversionsToAttributedString(attr)
             return Self.splitAttributedByNewline(converted)
         } else if let string = pasteboard.string(forType: .string) {
             return string.components(separatedBy: "\n").map {
@@ -908,6 +925,9 @@ extension JeditTextView {
 
     /// 与えられた各行を、現在のキャレットの列位置 (x) に合わせて後続の表示行へ分配挿入する。
     /// （矩形ペースト／矩形ドロップ共通の挿入処理）
+    /// ペースト先に十分な行数が無い場合、足りない行は改行を前置して文末へ追記する
+    /// （TextEdit と同じ挙動）。これが無いと、座標→文字位置の逆引きが全行で
+    /// 文末を返し、全行が 1 行に連結されてしまう。
     @discardableResult
     func columnarInsert(rows: [NSAttributedString]) -> Bool {
         guard let layoutManager = layoutManager,
@@ -916,37 +936,91 @@ extension JeditTextView {
               selectedRange().length == 0,
               rows.count > 1 else { return false }
 
-        // キャレットのジオメトリ（列 x と行の高さ）を求める
         let caretLoc = selectedRange().location
         let origin = textContainerOrigin
         let glyphCount = layoutManager.numberOfGlyphs
-        let caretGlyph = min(layoutManager.glyphIndexForCharacter(at: caretLoc), max(0, glyphCount - 1))
-        let fragmentRect = layoutManager.lineFragmentRect(forGlyphAt: caretGlyph, effectiveRange: nil)
-        let locationInFragment = layoutManager.location(forGlyphAt: caretGlyph)
-        let caretX = fragmentRect.origin.x + locationInFragment.x
-        let lineHeight = fragmentRect.height > 0 ? fragmentRect.height : 16
 
-        // 各行の挿入位置を元テキスト上で算出（キャレットと同じ x で1行ずつ下の行へ）
+        // 各行の挿入位置と「改行を前置するか」を決める
         var insertIndexes: [Int] = []
-        for i in 0..<rows.count {
-            let point = CGPoint(x: caretX + origin.x,
-                                y: fragmentRect.origin.y + (CGFloat(i) + 0.5) * lineHeight + origin.y)
-            insertIndexes.append(characterIndexForInsertion(at: point))
+        var needsNewlinePrefix: [Bool] = []
+
+        if glyphCount == 0 {
+            // 空書類: すべて文頭へ。2 行目以降は改行を前置して順に追記する。
+            for i in 0..<rows.count {
+                insertIndexes.append(0)
+                needsNewlinePrefix.append(i > 0)
+            }
+        } else {
+            // キャレットのジオメトリ（列 x と行の高さ）を求める
+            let caretGlyph = min(layoutManager.glyphIndexForCharacter(at: caretLoc), glyphCount - 1)
+            let fragmentRect = layoutManager.lineFragmentRect(forGlyphAt: caretGlyph, effectiveRange: nil)
+            let locationInFragment = layoutManager.location(forGlyphAt: caretGlyph)
+            let caretX = fragmentRect.origin.x + locationInFragment.x
+            let lineHeight = fragmentRect.height > 0 ? fragmentRect.height : 16
+
+            // キャレット行以降に存在する表示行数を数える。
+            // 必要なのは rows.count 行分だけなので、それ以上は数えない。
+            // 書類末尾まで走査すると lineFragmentRect が全文のレイアウト確定を
+            // 強制し（その過程で textView リサイズ → ルーラー再構築まで連鎖する）、
+            // 大きな書類への矩形ペーストで数秒のフリーズになるため。
+            var availableLines = 0
+            var fragRange = NSRange(location: 0, length: 0)
+            _ = layoutManager.lineFragmentRect(forGlyphAt: caretGlyph, effectiveRange: &fragRange)
+            while availableLines < rows.count {
+                availableLines += 1
+                let next = NSMaxRange(fragRange)
+                if next >= glyphCount {
+                    // 末尾が改行で終わる場合の空行 (extra line fragment) も 1 行と数える
+                    if availableLines < rows.count,
+                       layoutManager.extraLineFragmentTextContainer != nil {
+                        availableLines += 1
+                    }
+                    break
+                }
+                _ = layoutManager.lineFragmentRect(forGlyphAt: next, effectiveRange: &fragRange)
+            }
+
+            for i in 0..<rows.count {
+                if i < availableLines {
+                    // 既存の表示行: キャレットと同じ x で 1 行ずつ下の位置へ
+                    let point = CGPoint(x: caretX + origin.x,
+                                        y: fragmentRect.origin.y + (CGFloat(i) + 0.5) * lineHeight + origin.y)
+                    insertIndexes.append(characterIndexForInsertion(at: point))
+                    needsNewlinePrefix.append(false)
+                } else {
+                    // 行が足りない: 文末へ改行付きで追記
+                    insertIndexes.append(textStorage.length)
+                    needsNewlinePrefix.append(true)
+                }
+            }
+        }
+
+        // 改行前置が必要な行は、行自身の属性を引き継いだ改行を先頭に足す
+        let effectiveRows: [NSAttributedString] = rows.enumerated().map { i, row in
+            guard needsNewlinePrefix[i] else { return row }
+            let attrs = row.length > 0
+                ? row.attributes(at: 0, effectiveRange: nil)
+                : typingAttributes
+            let prefixed = NSMutableAttributedString(string: "\n", attributes: attrs)
+            prefixed.append(row)
+            return prefixed
         }
 
         // Undo 対応: 全レンジ分の変更を通知してから、下の行から挿入してインデックスずれを回避
+        // （文末追記の行は同一インデックスを共有するが、下から同じ位置へ挿入することで
+        //   先に挿入した行の前に積まれ、結果として元の行順が保たれる）
         let ranges = insertIndexes.map { NSValue(range: NSRange(location: $0, length: 0)) }
-        let strings = rows.map { $0.string }
+        let strings = effectiveRows.map { $0.string }
         guard shouldChangeText(inRanges: ranges, replacementStrings: strings) else { return false }
         textStorage.beginEditing()
         for i in stride(from: rows.count - 1, through: 0, by: -1) {
-            textStorage.replaceCharacters(in: NSRange(location: insertIndexes[i], length: 0), with: rows[i])
+            textStorage.replaceCharacters(in: NSRange(location: insertIndexes[i], length: 0), with: effectiveRows[i])
         }
         textStorage.endEditing()
         didChangeText()
 
         // 選択を先頭行の挿入直後に置く
-        setSelectedRange(NSRange(location: insertIndexes[0] + rows[0].length, length: 0))
+        setSelectedRange(NSRange(location: insertIndexes[0] + effectiveRows[0].length, length: 0))
         return true
     }
 
@@ -1115,20 +1189,8 @@ extension JeditTextView {
                 return
             }
 
-            // RTFデータがある場合はリッチテキストとしてペースト（書式を保持）。
-            // 外部アプリは RTF を .rtf (public.rtf) ではなく
-            // "NeXT Rich Text Format v1.0 pasteboard type" で載せることがある。
-            // ドラッグ経路 (readSelection) と同様、両方を RTF として扱わないと
-            // 書式が見つからずプレーンテキストにフォールバックしてしまう。
-            // insertText ではなく replaceString を使用する
-            // （insertText は typingAttributes を適用してしまい書式が失われるため）
-            let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
-            if let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
-               let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
-               let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
-                let convertedString = applyTextConversionsToAttributedString(attributedString)
-                replaceString(in: selectedRange(), with: convertedString)
-                fixTextListRenderingAfterPaste()
+            // RTFデータがある場合はリッチテキストとしてペースト（書式を保持）
+            if pasteConvertedRTF(from: pasteboard) {
                 return
             }
 
@@ -1162,15 +1224,7 @@ extension JeditTextView {
         }
 
         let pasteboard = NSPasteboard.general
-        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
-        if let rtfType = pasteboard.availableType(from: [.rtf, nextRTFType]),
-           let rtfData = pasteboard.data(forType: rtfType) ?? pasteboard.data(forType: .rtf),
-           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
-            let convertedString = applyTextConversionsToAttributedString(attributedString)
-            // insertText ではなく replaceString を使用（書式を保持するため）
-            replaceString(in: selectedRange(), with: convertedString)
-            fixTextListRenderingAfterPaste()
-        } else {
+        if !pasteConvertedRTF(from: pasteboard) {
             super.pasteAsRichText(sender)
         }
     }
@@ -1259,17 +1313,9 @@ extension JeditTextView {
             return true
         }
 
-        // RTF データ。NSTextView が D&D 時に渡してくる型は実環境では
-        // .rtf (public.rtf) ではなく "NeXT Rich Text Format v1.0 pasteboard type"
-        // のことが多いので、両方を RTF として扱う。
-        let nextRTFType = NSPasteboard.PasteboardType("NeXT Rich Text Format v1.0 pasteboard type")
-        if (type == .rtf || type == nextRTFType),
-           let rtfData = pboard.data(forType: type) ?? pboard.data(forType: .rtf),
-           let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil) {
-            let convertedString = applyTextConversionsToAttributedString(attributedString)
-            // insertText ではなく replaceString を使用（書式を保持するため）
-            replaceString(in: selectedRange(), with: convertedString)
-            fixTextListRenderingAfterPaste()
+        // RTF データ（型の別名対応・文字変換・挿入はヘルパーに集約）
+        if (type == .rtf || type == Self.nextRTFPasteboardType),
+           pasteConvertedRTF(from: pboard) {
             return true
         }
 
