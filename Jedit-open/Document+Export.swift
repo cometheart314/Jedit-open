@@ -150,31 +150,35 @@ extension Document {
         }
     }
 
-    override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
-        // 前回の Save Panel 状態をクリーンアップ
-        savePanelFormatTag = nil
-        savePanelEncodingPopUp = nil
-        savePanelLineEndingPopUp = nil
-        savePanelBOMCheckbox = nil
-        saveFormatAction = nil
-        saveEncodingAction = nil
-
-        // ExportAccessoryView.xib を読み込み、identifier でコントロールを特定する
-        guard let controls = ExportAccessoryControls.load() else {
-            return super.prepareSavePanel(savePanel)
-        }
-        let accessoryView = controls.view
+    /// Save パネル / Export パネル共通のアクセサリコントロール初期化。
+    /// - エンコーディングポップアップの手動構築（XIB の EncodingPopUpButtonCell が
+    ///   NSPopUpButtonCell としてロードされ init(coder:) の自動構築が機能しないため）
+    ///   と、変換できないエンコーディングのグレイアウト
+    /// - 書類タイプに応じた初期フォーマット選択
+    /// - 改行コード・BOM の初期値と、Unicode 系エンコーディングのみ BOM 有効化
+    /// - アクセサリビューの設定と、フォーマットに応じた allowedContentTypes・
+    ///   Encoding/改行/BOM 表示の初期化
+    /// - Parameters:
+    ///   - controls: ExportAccessoryView.xib のコントロール群
+    ///   - savePanel: 対象の保存パネル（allowedContentTypes の更新先）
+    ///   - onFormatTagChanged: フォーマット変更時の追加処理（Save パネルの
+    ///     savePanelFormatTag 記録など）。共通処理より先に呼ばれる。
+    /// - Returns: フォーマット/エンコーディング変更時に呼ぶクロージャ。呼び出し側で
+    ///   saveFormatAction / exportFormatAction 等へ格納し、ポップアップの
+    ///   target/action を自前のセレクタへ接続すること。
+    private func configureExportAccessoryControls(
+        _ controls: ExportAccessoryControls,
+        for savePanel: NSSavePanel,
+        onFormatTagChanged: ((Int) -> Void)? = nil
+    ) -> (formatChanged: () -> Void, encodingChanged: () -> Void) {
         let encodingPopUp = controls.encodingPopUp
         let formatPopUp = controls.formatPopUp
         let lineEndingPopUp = controls.lineEndingPopUp
         let bomCheckbox = controls.bomCheckbox
-        let selectionOnlyCheckbox = controls.selectionOnlyCheckbox
         let encodingLabel = controls.encodingLabel
 
-        // 「Export Only Selection」チェックボックスを非表示にする（Save では不要）
-        selectionOnlyCheckbox?.isHidden = true
-
-        // エンコーディングポップアップを手動で構築
+        // エンコーディングポップアップを手動で構築し、
+        // テキスト内容で変換できないエンコーディングをグレイアウト
         if let encodingCell = encodingPopUp?.cell as? NSPopUpButtonCell {
             EncodingManager.shared.setupPopUpCell(encodingCell,
                                                    selectedEncoding: UInt(documentEncoding.rawValue),
@@ -201,9 +205,6 @@ extension Document {
             }
         }
 
-        // 初期フォーマットタグを保存
-        savePanelFormatTag = formatPopUp?.selectedTag()
-
         // 改行コード・BOMの初期値を設定
         lineEndingPopUp?.selectItem(withTag: lineEnding.rawValue)
         bomCheckbox?.state = hasBOM ? .on : .off
@@ -218,50 +219,81 @@ extension Document {
         bomCheckbox?.isEnabled = isUnicodeEncoding()
 
         // アクセサリビューを設定
-        savePanel.accessoryView = accessoryView
+        savePanel.accessoryView = controls.view
         savePanel.isExtensionHidden = false
         savePanel.canSelectHiddenExtension = true
 
-        // フォーマットに基づいてパネルの allowedContentTypes を更新
-        updateExportPanelContentTypes(savePanel: savePanel, formatTag: formatPopUp?.selectedTag() ?? 1)
-
-        // フォーマットポップアップ変更時のアクション
-        saveFormatAction = { [weak self, weak savePanel] in
-            guard let self = self, let panel = savePanel,
-                  let currentTag = formatPopUp?.selectedTag() else { return }
-            self.savePanelFormatTag = currentTag
-            self.updateExportPanelContentTypes(savePanel: panel, formatTag: currentTag)
-            // プレーンテキスト以外では Encoding/改行/BOM を非表示
-            let isPlainText = currentTag == 0
+        // Encoding/改行/BOM はプレーンテキスト選択時のみ表示
+        let updateOptionVisibility = {
+            let isPlainText = (formatPopUp?.selectedTag() ?? 1) == 0
             encodingPopUp?.isHidden = !isPlainText
             encodingLabel?.isHidden = !isPlainText
             lineEndingPopUp?.isHidden = !isPlainText
             bomCheckbox?.isHidden = !isPlainText
         }
-        formatPopUp?.target = self
-        formatPopUp?.action = #selector(saveFormatPopUpChanged(_:))
 
-        // エンコーディングポップアップ変更時のアクション
-        saveEncodingAction = {
+        // フォーマットに基づいてパネルの allowedContentTypes と表示を初期化
+        updateExportPanelContentTypes(savePanel: savePanel, formatTag: formatPopUp?.selectedTag() ?? 1)
+        updateOptionVisibility()
+
+        // フォーマットポップアップ変更時: content types 更新 + 表示切替
+        let formatChanged: () -> Void = { [weak self, weak savePanel] in
+            guard let self = self, let panel = savePanel,
+                  let currentTag = formatPopUp?.selectedTag() else { return }
+            onFormatTagChanged?(currentTag)
+            self.updateExportPanelContentTypes(savePanel: panel, formatTag: currentTag)
+            updateOptionVisibility()
+        }
+
+        // エンコーディングポップアップ変更時: Unicode 系のみ BOM を有効化
+        let encodingChanged: () -> Void = {
             bomCheckbox?.isEnabled = isUnicodeEncoding()
             if !(bomCheckbox?.isEnabled ?? false) {
                 bomCheckbox?.state = .off
             }
         }
-        encodingPopUp?.target = self
-        encodingPopUp?.action = #selector(saveEncodingPopUpChanged(_:))
 
-        // 初期状態でプレーンテキスト以外は Encoding/改行/BOM を非表示
-        let isPlainText = (formatPopUp?.selectedTag() ?? 1) == 0
-        encodingPopUp?.isHidden = !isPlainText
-        encodingLabel?.isHidden = !isPlainText
-        lineEndingPopUp?.isHidden = !isPlainText
-        bomCheckbox?.isHidden = !isPlainText
+        return (formatChanged, encodingChanged)
+    }
+
+    override func prepareSavePanel(_ savePanel: NSSavePanel) -> Bool {
+        // 前回の Save Panel 状態をクリーンアップ
+        savePanelFormatTag = nil
+        savePanelEncodingPopUp = nil
+        savePanelLineEndingPopUp = nil
+        savePanelBOMCheckbox = nil
+        saveFormatAction = nil
+        saveEncodingAction = nil
+
+        // ExportAccessoryView.xib を読み込み、identifier でコントロールを特定する
+        guard let controls = ExportAccessoryControls.load() else {
+            return super.prepareSavePanel(savePanel)
+        }
+
+        // 「Export Only Selection」チェックボックスを非表示にする（Save では不要）
+        controls.selectionOnlyCheckbox?.isHidden = true
+
+        // 共通初期化（エンコーディング/フォーマット/改行/BOM の構築と連動）。
+        // フォーマット変更時は savePanelFormatTag を記録する（保存時に採用）。
+        let actions = configureExportAccessoryControls(
+            controls, for: savePanel,
+            onFormatTagChanged: { [weak self] tag in self?.savePanelFormatTag = tag })
+
+        // 初期フォーマットタグを保存
+        savePanelFormatTag = controls.formatPopUp?.selectedTag()
+
+        saveFormatAction = actions.formatChanged
+        controls.formatPopUp?.target = self
+        controls.formatPopUp?.action = #selector(saveFormatPopUpChanged(_:))
+
+        saveEncodingAction = actions.encodingChanged
+        controls.encodingPopUp?.target = self
+        controls.encodingPopUp?.action = #selector(saveEncodingPopUpChanged(_:))
 
         // Save Panel のコントロール参照を保存（save 時に使用）
-        savePanelEncodingPopUp = encodingPopUp
-        savePanelLineEndingPopUp = lineEndingPopUp
-        savePanelBOMCheckbox = bomCheckbox
+        savePanelEncodingPopUp = controls.encodingPopUp
+        savePanelLineEndingPopUp = controls.lineEndingPopUp
+        savePanelBOMCheckbox = controls.bomCheckbox
 
         // super を先に呼んでパネル既定値を確定させてから、こちらで上書きする。
         // NSDocument の super.prepareSavePanel は nameFieldStringValue を
@@ -314,61 +346,11 @@ extension Document {
 
         // ExportAccessoryView.xib を読み込み、identifier でコントロールを特定する
         guard let controls = ExportAccessoryControls.load() else { return }
-        let accessoryView = controls.view
         let encodingPopUp = controls.encodingPopUp
         let formatPopUp = controls.formatPopUp
         let lineEndingPopUp = controls.lineEndingPopUp
         let bomCheckbox = controls.bomCheckbox
         let selectionOnlyCheckbox = controls.selectionOnlyCheckbox
-        let encodingLabel = controls.encodingLabel
-
-        // NIBロード後にエンコーディングポップアップを手動で構築
-        // （XIBの EncodingPopUpButtonCell が NSPopUpButtonCell としてロードされ、
-        //   init(coder:) の自動構築が機能しないため、手動でエンコーディングリストを設定する）
-        if let encodingCell = encodingPopUp?.cell as? NSPopUpButtonCell {
-            EncodingManager.shared.setupPopUpCell(encodingCell,
-                                                   selectedEncoding: UInt(documentEncoding.rawValue),
-                                                   withDefaultEntry: false)
-
-            // テキスト内容で変換できないエンコーディングをグレイアウト
-            EncodingManager.shared.disableIncompatibleEncodings(in: encodingCell, for: textStorage.string)
-        }
-
-        // 現在のドキュメントタイプに基づいて初期フォーマットを選択
-        if isMarkdownDocument {
-            formatPopUp?.selectItem(withTag: 7)
-        } else {
-            switch documentType {
-            case .plain:
-                formatPopUp?.selectItem(withTag: 0)
-            case .rtfd:
-                formatPopUp?.selectItem(withTag: 2)
-            default:
-                // アタッチメントが含まれている場合は RTFD を選択
-                if textStorage.containsAttachments {
-                    formatPopUp?.selectItem(withTag: 2)
-                } else {
-                    formatPopUp?.selectItem(withTag: 1)
-                }
-            }
-        }
-
-        // 改行コードの初期値を設定
-        lineEndingPopUp?.selectItem(withTag: lineEnding.rawValue)
-
-        // BOMの初期値を設定
-        bomCheckbox?.state = hasBOM ? .on : .off
-
-        // 選択中のエンコーディングがUnicode系かどうかを判定するクロージャ
-        let isUnicodeEncoding: () -> Bool = {
-            guard let cell = encodingPopUp?.cell as? NSPopUpButtonCell,
-                  let selectedItem = cell.selectedItem,
-                  let encNumber = selectedItem.representedObject as? NSNumber else { return false }
-            return EncodingManager.isUnicodeEncoding(String.Encoding(rawValue: encNumber.uintValue))
-        }
-
-        // BOMチェックボックスの初期状態
-        bomCheckbox?.isEnabled = isUnicodeEncoding()
 
         // 選択範囲がない場合は「Export Only Selection」を無効化
         if let textView = windowControllers.first.flatMap({ ($0 as? EditorWindowController)?.currentTextView() }) {
@@ -381,9 +363,6 @@ extension Document {
 
         // Save パネルを構成
         let savePanel = NSSavePanel()
-        savePanel.accessoryView = accessoryView
-        savePanel.isExtensionHidden = false
-        savePanel.canSelectHiddenExtension = true
         savePanel.title = "Export".localized
 
         // ファイル名を提案
@@ -396,40 +375,16 @@ extension Document {
             }
         }
 
-        // フォーマットに基づいてパネルのallowedContentTypesを更新
-        updateExportPanelContentTypes(savePanel: savePanel, formatTag: formatPopUp?.selectedTag() ?? 1)
+        // 共通初期化（エンコーディング/フォーマット/改行/BOM の構築と連動）
+        let actions = configureExportAccessoryControls(controls, for: savePanel)
 
-        // フォーマットポップアップ変更時のアクション
-        exportFormatAction = { [weak self, weak savePanel] in
-            guard let self = self, let panel = savePanel,
-                  let currentTag = formatPopUp?.selectedTag() else { return }
-            self.updateExportPanelContentTypes(savePanel: panel, formatTag: currentTag)
-            // プレーンテキスト以外では Encoding/改行/BOM を非表示
-            let isPlainText = currentTag == 0
-            encodingPopUp?.isHidden = !isPlainText
-            encodingLabel?.isHidden = !isPlainText
-            lineEndingPopUp?.isHidden = !isPlainText
-            bomCheckbox?.isHidden = !isPlainText
-        }
+        exportFormatAction = actions.formatChanged
         formatPopUp?.target = self
         formatPopUp?.action = #selector(exportFormatPopUpChanged(_:))
 
-        // エンコーディングポップアップ変更時のアクション
-        exportEncodingAction = {
-            bomCheckbox?.isEnabled = isUnicodeEncoding()
-            if !(bomCheckbox?.isEnabled ?? false) {
-                bomCheckbox?.state = .off
-            }
-        }
+        exportEncodingAction = actions.encodingChanged
         encodingPopUp?.target = self
         encodingPopUp?.action = #selector(exportEncodingPopUpChanged(_:))
-
-        // 初期状態でプレーンテキスト以外は Encoding/改行/BOM を非表示
-        let isPlainText = (formatPopUp?.selectedTag() ?? 1) == 0
-        encodingPopUp?.isHidden = !isPlainText
-        encodingLabel?.isHidden = !isPlainText
-        lineEndingPopUp?.isHidden = !isPlainText
-        bomCheckbox?.isHidden = !isPlainText
 
         savePanel.beginSheetModal(for: window) { [weak self] response in
             // コールバックをクリーンアップ
