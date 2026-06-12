@@ -1382,14 +1382,7 @@ class Document: NSDocument {
                 // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
                 self.applyLoadedDocumentAttributeViewSettings()
 
-                // ブックマーク復元: presetData にブックマークがあれば復元
-                if !self.restoreBookmarksFromPresetData() {
-                    // presetData にブックマークがない場合、
-                    // RTF/RTFD ならリンク属性から復元を試みる
-                    if self.documentType == .rtf || self.documentType == .rtfd {
-                        self.restoreBookmarksFromLinkAttributes()
-                    }
-                }
+                // ブックマーク復元は read の終端（ルビ・傍点パースの後）で行う
             }
         } else if let omegaPresetData = JeditOmegaSettingImporter.importSettings(from: url) {
             // JeditΩ の拡張属性が見つかった場合
@@ -1414,10 +1407,7 @@ class Document: NSDocument {
                 // ビュー・ページ設定も Document Attributes から適用（presetData より優先）
                 self.applyLoadedDocumentAttributeViewSettings()
 
-                // 拡張属性なしの RTF/RTFD の場合、リンク属性からブックマーク復元を試みる
-                if self.documentType == .rtf || self.documentType == .rtfd {
-                    self.restoreBookmarksFromLinkAttributes()
-                }
+                // ブックマーク復元は read の終端（ルビ・傍点パースの後）で行う
             }
         }
 
@@ -1457,6 +1447,21 @@ class Document: NSDocument {
             }
         }
         #endif
+
+        // ブックマーク復元。
+        // 重要: ルビ・傍点パース（記法文字の除去）より後に行うこと。
+        // presetData のブックマーク range は編集中 textStorage（記法除去後）の
+        // 座標系で保存されているため、除去前の生テキストに適用すると、
+        // ブックマークより前にあるルビ記法の文字数ぶん位置がずれる。
+        MainActor.assumeIsolated {
+            if !self.restoreBookmarksFromPresetData() {
+                // presetData にブックマークがない場合、
+                // RTF/RTFD ならリンク属性から復元を試みる
+                if self.documentType == .rtf || self.documentType == .rtfd {
+                    self.restoreBookmarksFromLinkAttributes()
+                }
+            }
+        }
     }
 
     // MARK: - Word / OpenDocument Support
