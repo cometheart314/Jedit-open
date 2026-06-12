@@ -231,3 +231,32 @@ class JeditDocumentController: NSDocumentController {
         currentOpenPanel?.cancel(self)
     }
 }
+
+// MARK: - Frontmost Document Lookup
+
+extension NSApplication {
+    /// 最前面の書類ウィンドウを返す。ユーティリティパネル (NSPanel) は無視する。
+    /// 各パネル類に重複していた NSApp.orderedWindows の走査を共通化したもの。
+    /// - Parameters:
+    ///   - excluded: 除外するウィンドウ（呼び出し元の自パネルや、閉じる途中のウィンドウ）
+    ///   - visibleOnly: true ならミニチュア化等で非表示のウィンドウを対象外にする
+    func frontmostDocumentWindow(excluding excluded: NSWindow? = nil,
+                                 visibleOnly: Bool = false) -> NSWindow? {
+        for window in orderedWindows {
+            if window === excluded { continue }
+            if window is NSPanel { continue }
+            if visibleOnly && !window.isVisible { continue }
+            if window.windowController?.document is Document {
+                return window
+            }
+        }
+        return nil
+    }
+
+    /// 最前面の書類ウィンドウに対応する Document を返す。
+    func frontmostDocument(excluding excluded: NSWindow? = nil,
+                           visibleOnly: Bool = false) -> Document? {
+        return frontmostDocumentWindow(excluding: excluded, visibleOnly: visibleOnly)?
+            .windowController?.document as? Document
+    }
+}

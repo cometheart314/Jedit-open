@@ -293,22 +293,7 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
 
     /// 最前面のドキュメントウィンドウに対応するDocumentを返す
     private func currentDocument() -> Document? {
-        // メインウィンドウから Document を取得
-        // Document Info Panel 自身がメインウィンドウの場合はスキップ
-        for window in NSApp.orderedWindows {
-            // Document Info Panel 自身はスキップ
-            if window === documentInfoPanel { continue }
-
-            // NSPanel（他のユーティリティパネル）はスキップ
-            if window is NSPanel { continue }
-
-            // ウィンドウコントローラーからドキュメントを取得
-            if let windowController = window.windowController,
-               let document = windowController.document as? Document {
-                return document
-            }
-        }
-        return nil
+        return NSApp.frontmostDocument(excluding: documentInfoPanel)
     }
 
     // MARK: - IBActions

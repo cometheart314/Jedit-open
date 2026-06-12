@@ -830,18 +830,8 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
     }
 
     /// 環境設定ウィンドウ自身を除いた最前面の書類ウィンドウのツールバーを返す。
-    /// BookmarkPanelController の currentDocument() と同じパターン。
     private func frontmostDocumentToolbar() -> NSToolbar? {
-        let myWindow = view.window
-        for window in NSApp.orderedWindows {
-            if window === myWindow { continue }
-            if window is NSPanel { continue }
-            guard window.windowController?.document is Document else { continue }
-            if let toolbar = window.toolbar {
-                return toolbar
-            }
-        }
-        return nil
+        return NSApp.frontmostDocumentWindow(excluding: view.window)?.toolbar
     }
 
     /// View タブのみをデフォルト値にリセット
@@ -1209,13 +1199,7 @@ class NewDocumentsPreferencesViewController: NSViewController, NSTextViewDelegat
         }
 
         // orderedWindowsから最前面のドキュメントウィンドウを探す
-        for window in NSApp.orderedWindows {
-            if window.windowController is EditorWindowController {
-                return window
-            }
-        }
-
-        return nil
+        return NSApp.frontmostDocumentWindow()
     }
 }
 

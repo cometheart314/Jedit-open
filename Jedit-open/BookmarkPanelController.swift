@@ -572,17 +572,9 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         }
     }
 
-    /// 最前面のドキュメントを取得（DocumentInfoPanelController と同じパターン）
+    /// 最前面のドキュメントを取得
     private func currentDocument() -> Document? {
-        for window in NSApp.orderedWindows {
-            if window === bookmarkPanel { continue }
-            if window is NSPanel { continue }
-            if let windowController = window.windowController,
-               let document = windowController.document as? Document {
-                return document
-            }
-        }
-        return nil
+        return NSApp.frontmostDocument(excluding: bookmarkPanel)
     }
 
     // MARK: - Notifications
@@ -620,15 +612,7 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
         let closingWindow = notification.object as? NSWindow
         DispatchQueue.main.async { [weak self] in
             // 閉じるウィンドウ以外のドキュメントウィンドウを探す
-            var remainingDocument: Document?
-            for window in NSApp.orderedWindows {
-                if window is NSPanel { continue }
-                if window === closingWindow { continue }
-                if let doc = window.windowController?.document as? Document {
-                    remainingDocument = doc
-                    break
-                }
-            }
+            let remainingDocument = NSApp.frontmostDocument(excluding: closingWindow)
             if let document = remainingDocument {
                 self?.reloadOutlineView(for: document)
             } else {

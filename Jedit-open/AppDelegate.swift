@@ -559,11 +559,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuItemValidation {
     @objc private func documentWindowWillClose(_ notification: Notification) {
         DispatchQueue.main.async {
             // 残りのドキュメントウィンドウがあるか確認
-            let hasDocumentWindow = NSApp.orderedWindows.contains { window in
-                !(window is NSPanel)
-                    && window.windowController?.document is Document
-                    && window != notification.object as? NSWindow
-            }
+            let hasDocumentWindow = NSApp.frontmostDocumentWindow(
+                excluding: notification.object as? NSWindow) != nil
 
             if hasDocumentWindow {
                 DocumentInfoPanelController.shared.updateForCurrentDocument()

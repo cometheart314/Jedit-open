@@ -365,27 +365,12 @@ class LinkPanelController: NSObject, NSTextFieldDelegate, NSWindowDelegate {
 
     /// 現在のメインドキュメントを取得する
     private func currentDocument() -> Document? {
-        for window in NSApp.orderedWindows {
-            if isLoaded && window === linkPanel { continue }
-            if window is NSPanel { continue }
-            if let windowController = window.windowController,
-               let document = windowController.document as? Document {
-                return document
-            }
-        }
-        return nil
+        return NSApp.frontmostDocument(excluding: isLoaded ? linkPanel : nil)
     }
 
     /// 現在のメインドキュメントのウィンドウを取得する（シート提示先）
     private func currentDocumentWindow() -> NSWindow? {
-        for window in NSApp.orderedWindows {
-            if isLoaded && window === linkPanel { continue }
-            if window is NSPanel { continue }
-            if window.windowController?.document is Document {
-                return window
-            }
-        }
-        return nil
+        return NSApp.frontmostDocumentWindow(excluding: isLoaded ? linkPanel : nil)
     }
 }
 
