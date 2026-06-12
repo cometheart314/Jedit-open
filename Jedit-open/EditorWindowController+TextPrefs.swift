@@ -561,13 +561,9 @@ extension EditorWindowController {
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // 全文のテキストを取得してフォントを適用
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        mutableString.addAttribute(.font, value: font, range: NSRange(location: 0, length: mutableString.length))
-
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
+        // 属性のみの変更なので applyAttributes（shouldChangeText(replacementString: nil)
+        // の標準パターン）で適用する（Undo対応）
+        textView.applyAttributes([.font: font], to: targetRange)
 
         // presetData を更新
         textDocument?.presetData?.fontAndColors.baseFontName = font.fontName
@@ -589,19 +585,13 @@ extension EditorWindowController {
         let currentUnderline = textStorage.attribute(.underlineStyle, at: 0, effectiveRange: nil) as? Int ?? 0
         let hasUnderline = currentUnderline != 0
 
-        // 全文のテキストを取得して下線を適用/削除
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        let fullRange = NSRange(location: 0, length: mutableString.length)
-
+        // 属性のみの変更なので標準パターンで適用/削除する（Undo対応）
         if hasUnderline {
-            mutableString.removeAttribute(.underlineStyle, range: fullRange)
+            textView.removeAttribute(.underlineStyle, from: targetRange)
         } else {
-            mutableString.addAttribute(.underlineStyle, value: NSUnderlineStyle.single.rawValue, range: fullRange)
+            textView.applyAttributes(
+                [.underlineStyle: NSUnderlineStyle.single.rawValue], to: targetRange)
         }
-
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
 
         // タイピングアトリビュートも更新（新規入力文字に反映）
         var attrs = textView.typingAttributes
@@ -622,19 +612,12 @@ extension EditorWindowController {
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // 全文のテキストを取得してカーニングを適用/削除
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        let fullRange = NSRange(location: 0, length: mutableString.length)
-
+        // 属性のみの変更なので標準パターンで適用/削除する（Undo対応）
         if let kernValue = value {
-            mutableString.addAttribute(.kern, value: kernValue, range: fullRange)
+            textView.applyAttributes([.kern: kernValue], to: targetRange)
         } else {
-            mutableString.removeAttribute(.kern, range: fullRange)
+            textView.removeAttribute(.kern, from: targetRange)
         }
-
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
 
         // タイピングアトリビュートも更新
         var attrs = textView.typingAttributes
@@ -657,13 +640,8 @@ extension EditorWindowController {
         let currentKern = textStorage.attribute(.kern, at: 0, effectiveRange: nil) as? Float ?? 0
         let newKern = currentKern + delta
 
-        // 全文のテキストを取得してカーニングを適用
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        mutableString.addAttribute(.kern, value: newKern, range: NSRange(location: 0, length: mutableString.length))
-
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
+        // 属性のみの変更なので標準パターンで適用する（Undo対応）
+        textView.applyAttributes([.kern: newKern], to: targetRange)
 
         // タイピングアトリビュートも更新
         var attrs = textView.typingAttributes
@@ -680,13 +658,8 @@ extension EditorWindowController {
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // 全文のテキストを取得して合字設定を適用
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        mutableString.addAttribute(.ligature, value: value, range: NSRange(location: 0, length: mutableString.length))
-
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
+        // 属性のみの変更なので標準パターンで適用する（Undo対応）
+        textView.applyAttributes([.ligature: value], to: targetRange)
 
         // タイピングアトリビュートも更新
         var attrs = textView.typingAttributes
@@ -703,19 +676,13 @@ extension EditorWindowController {
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // 全文のテキストを取得してアラインメントを適用
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        let fullRange = NSRange(location: 0, length: mutableString.length)
-
         // 既存のパラグラフスタイルを取得または新規作成
-        let existingStyle = mutableString.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
+        let existingStyle = textStorage.attribute(.paragraphStyle, at: 0, effectiveRange: nil) as? NSParagraphStyle
         let mutableStyle = (existingStyle?.mutableCopy() as? NSMutableParagraphStyle) ?? NSMutableParagraphStyle()
         mutableStyle.alignment = alignment
-        mutableString.addAttribute(.paragraphStyle, value: mutableStyle, range: fullRange)
 
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
+        // 属性のみの変更なので標準パターンで適用する（Undo対応）
+        textView.applyAttributes([.paragraphStyle: mutableStyle], to: targetRange)
     }
 
     // MARK: - Character Color Support
@@ -727,13 +694,8 @@ extension EditorWindowController {
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // 全文のテキストを取得して前景色を適用
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        mutableString.addAttribute(.foregroundColor, value: color, range: NSRange(location: 0, length: mutableString.length))
-
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
+        // 属性のみの変更なので標準パターンで適用する（Undo対応）
+        textView.applyAttributes([.foregroundColor: color], to: targetRange)
 
         // タイピングアトリビュートも更新
         var attrs = textView.typingAttributes
@@ -748,19 +710,12 @@ extension EditorWindowController {
 
         let targetRange = NSRange(location: 0, length: textStorage.length)
 
-        // 全文のテキストを取得して背景色を適用/削除
-        let currentAttributedString = textStorage.attributedSubstring(from: targetRange)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        let fullRange = NSRange(location: 0, length: mutableString.length)
-
+        // 属性のみの変更なので標準パターンで適用/削除する（Undo対応）
         if let color = color {
-            mutableString.addAttribute(.backgroundColor, value: color, range: fullRange)
+            textView.applyAttributes([.backgroundColor: color], to: targetRange)
         } else {
-            mutableString.removeAttribute(.backgroundColor, range: fullRange)
+            textView.removeAttribute(.backgroundColor, from: targetRange)
         }
-
-        // replaceStringを使って置換（Undo対応）
-        textView.replaceString(in: targetRange, with: mutableString)
 
         // タイピングアトリビュートも更新
         var attrs = textView.typingAttributes

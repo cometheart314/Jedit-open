@@ -259,6 +259,10 @@ class JeditTextView: NSTextView {
     }
 
     /// 指定範囲の属性を変更（Undo/Redo対応）
+    /// 属性のみの変更なので、文字置換ではなく shouldChangeText(in:replacementString: nil)
+    /// の標準パターンで textStorage を直接変更する。文字置換で行うと
+    /// 「文字が編集された」として通知され、IME・一時属性・変更通知系に
+    /// 副作用が出るうえ、対象範囲の属性付きコピーも無駄になるため。
     /// - Parameters:
     ///   - range: 変更する範囲
     ///   - attributes: 適用する属性の辞書
@@ -266,17 +270,13 @@ class JeditTextView: NSTextView {
         guard let textStorage = textStorage,
               range.length > 0,
               range.location + range.length <= textStorage.length else { return }
-
-        // 現在のテキストを取得して属性を変更
-        let currentAttributedString = textStorage.attributedSubstring(from: range)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        mutableString.addAttributes(attributes, range: NSRange(location: 0, length: mutableString.length))
-
-        // replaceStringを使って置換（Undo対応）
-        replaceString(in: range, with: mutableString)
+        guard shouldChangeText(in: range, replacementString: nil) else { return }
+        textStorage.addAttributes(attributes, range: range)
+        didChangeText()
     }
 
     /// 指定範囲から属性を削除（Undo/Redo対応）
+    /// applyAttributes と同じく属性のみの変更の標準パターンで行う。
     /// - Parameters:
     ///   - attributeKey: 削除する属性のキー
     ///   - range: 変更する範囲
@@ -284,14 +284,9 @@ class JeditTextView: NSTextView {
         guard let textStorage = textStorage,
               range.length > 0,
               range.location + range.length <= textStorage.length else { return }
-
-        // 現在のテキストを取得して属性を削除
-        let currentAttributedString = textStorage.attributedSubstring(from: range)
-        let mutableString = NSMutableAttributedString(attributedString: currentAttributedString)
-        mutableString.removeAttribute(attributeKey, range: NSRange(location: 0, length: mutableString.length))
-
-        // replaceStringを使って置換（Undo対応）
-        replaceString(in: range, with: mutableString)
+        guard shouldChangeText(in: range, replacementString: nil) else { return }
+        textStorage.removeAttribute(attributeKey, range: range)
+        didChangeText()
     }
 
     // MARK: - Drag Source / Destination Operation — See JeditTextView+DragDrop.swift
@@ -1096,8 +1091,10 @@ class JeditTextView: NSTextView {
             }
         }
 
-        // Baseline submenu actions, Character colors, and Attach Files are disabled for plain text
+        // Baseline submenu actions and Attach Files are disabled for plain text
         // (These attributes are not meaningful in plain text documents)
+        // Character fore/back colors stay enabled: the actions support plain text
+        // (confirmation alert, then apply to the entire document)
         if isPlainText {
             // Note: subscript is a Swift keyword, so we use NSSelectorFromString
             let subscriptSelector = NSSelectorFromString("subscript:")
@@ -1107,10 +1104,6 @@ class JeditTextView: NSTextView {
                  #selector(superscript(_:)),
                  #selector(unscript(_:)),
                  subscriptSelector,
-                 #selector(changeForeColor(_:)),
-                 #selector(orderFrontForeColorPanel(_:)),
-                 #selector(changeBackColor(_:)),
-                 #selector(orderFrontBackColorPanel(_:)),
                  #selector(attachFile(_:)):
                 return false
             default:
