@@ -2230,9 +2230,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
     // MARK: - Pagination Methods — see EditorWindowController+DisplayMode.swift
 
-    // ページフレーム更新が必要かどうか
-    var needsPageFrameUpdate: Bool = false
-
     // MARK: - Text View Size Management
 
     /// NSClipView の frameDidChangeNotification ハンドラ (selector ベース)。
@@ -2831,8 +2828,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
     // ページ操作中の再入防止フラグ（より広範囲に適用）
     var isUpdatingPages: Bool = false
     var isAddingPage: Bool = false
-    private var previousTextLength1: Int = 0
-    private var previousTextLength2: Int = 0
     // レイアウト方向切り替え中フラグ（ページ追加を抑制）
     var isChangingLayoutOrientation: Bool = false
     // 遅延削除中フラグ
@@ -3014,9 +3009,6 @@ class EditorWindowController: NSWindowController, NSLayoutManagerDelegate, NSSpl
 
             // 余分なページの削除は遅延チェック（checkForLayoutIssues）でのみ行う
             // レイアウト中にremoveExcessPagesを呼ぶと同期ずれが発生する
-
-            // フレーム更新完了
-            needsPageFrameUpdate = false
 
             // ペンディング中のスクロール位置があれば適用
             if pendingScrollPosition != nil && target == .scrollView1 {

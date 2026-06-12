@@ -300,23 +300,12 @@ extension Document {
 
     // MARK: - Export
 
-    /// エクスポートパネルのフォーマットポップアップ変更時コールバック
-    var exportFormatAction: (() -> Void)? {
-        get { return _exportFormatAction }
-        set { _exportFormatAction = newValue }
-    }
-    /// エクスポートパネルのエンコーディングポップアップ変更時コールバック
-    var exportEncodingAction: (() -> Void)? {
-        get { return _exportEncodingAction }
-        set { _exportEncodingAction = newValue }
-    }
-
     @objc func exportFormatPopUpChanged(_ sender: Any?) {
-        _exportFormatAction?()
+        exportFormatAction?()
     }
 
     @objc func exportEncodingPopUpChanged(_ sender: Any?) {
-        _exportEncodingAction?()
+        exportEncodingAction?()
     }
 
     /// Export... メニューアクション
@@ -411,7 +400,7 @@ extension Document {
         updateExportPanelContentTypes(savePanel: savePanel, formatTag: formatPopUp?.selectedTag() ?? 1)
 
         // フォーマットポップアップ変更時のアクション
-        _exportFormatAction = { [weak self, weak savePanel] in
+        exportFormatAction = { [weak self, weak savePanel] in
             guard let self = self, let panel = savePanel,
                   let currentTag = formatPopUp?.selectedTag() else { return }
             self.updateExportPanelContentTypes(savePanel: panel, formatTag: currentTag)
@@ -426,7 +415,7 @@ extension Document {
         formatPopUp?.action = #selector(exportFormatPopUpChanged(_:))
 
         // エンコーディングポップアップ変更時のアクション
-        _exportEncodingAction = {
+        exportEncodingAction = {
             bomCheckbox?.isEnabled = isUnicodeEncoding()
             if !(bomCheckbox?.isEnabled ?? false) {
                 bomCheckbox?.state = .off
@@ -444,8 +433,8 @@ extension Document {
 
         savePanel.beginSheetModal(for: window) { [weak self] response in
             // コールバックをクリーンアップ
-            self?._exportFormatAction = nil
-            self?._exportEncodingAction = nil
+            self?.exportFormatAction = nil
+            self?.exportEncodingAction = nil
 
             guard response == .OK, let self = self, let url = savePanel.url else { return }
 

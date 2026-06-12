@@ -1814,9 +1814,9 @@ class Document: NSDocument {
     // → Moved to Document+Export.swift
 
     /// エクスポートパネルのフォーマットポップアップ変更時コールバック（Document+Export.swift から使用）
-    var _exportFormatAction: (() -> Void)?
+    var exportFormatAction: (() -> Void)?
     /// エクスポートパネルのエンコーディングポップアップ変更時コールバック（Document+Export.swift から使用）
-    var _exportEncodingAction: (() -> Void)?
+    var exportEncodingAction: (() -> Void)?
 
     // MARK: - RTF Data Detection
     // → Moved to Document+FileIO.swift

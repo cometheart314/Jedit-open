@@ -458,8 +458,6 @@ extension EditorWindowController {
             textViews2 = textViews
         }
 
-        // ページ追加をマーク（レイアウト完了後にフレームを更新するため）
-        needsPageFrameUpdate = true
     }
 
     internal func removeExcessPages(from layoutManager: NSLayoutManager, in scrollView: NSScrollView, for target: ScrollViewTarget) {
