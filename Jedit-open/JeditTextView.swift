@@ -1183,6 +1183,7 @@ class JeditTextView: NSTextView {
             let cleanURL = stripFragment(from: url)
             performTagJump(to: cleanURL,
                            selecting: parsed.range,
+                           expectedText: parsed.expectedText,
                            bookmark: parsed.bookmark)
             return
         }
@@ -1196,13 +1197,14 @@ class JeditTextView: NSTextView {
         return nil
     }
 
-    /// URL の fragment から `loc=N&len=N&b=BASE64` を抽出する。
-    /// bookmark は任意（旧フォーマットとの互換のため）。
+    /// URL の fragment から `loc=N&len=N&t=BASE64&b=BASE64` を抽出する。
+    /// expectedText（マッチ文字列）と bookmark は任意（旧フォーマットとの互換のため）。
     private func parseTagJumpFragment(in url: URL)
-    -> (range: NSRange, bookmark: Data?)? {
+    -> (range: NSRange, expectedText: String?, bookmark: Data?)? {
         guard let frag = url.fragment, !frag.isEmpty else { return nil }
         var loc: Int?
         var len: Int?
+        var expectedText: String?
         var bookmark: Data?
         for kv in frag.split(separator: "&") {
             let parts = kv.split(separator: "=", maxSplits: 1).map(String.init)
@@ -1210,12 +1212,16 @@ class JeditTextView: NSTextView {
             switch parts[0] {
             case "loc": loc = Int(parts[1])
             case "len": len = Int(parts[1])
+            case "t":
+                if let data = Data(urlSafeBase64Encoded: parts[1]) {
+                    expectedText = String(data: data, encoding: .utf8)
+                }
             case "b": bookmark = Data(urlSafeBase64Encoded: parts[1])
             default: break
             }
         }
         guard let l = loc, let n = len, l >= 0, n >= 0 else { return nil }
-        return (NSRange(location: l, length: n), bookmark)
+        return (NSRange(location: l, length: n), expectedText, bookmark)
     }
 
     /// fragment を取り除いた URL を返す。
@@ -1229,8 +1235,13 @@ class JeditTextView: NSTextView {
     /// bookmark が付いている場合はサンドボックス対応として
     /// `.withSecurityScope` で resolve し、access scope を獲得してから開く。
     /// 初回オープン時は textStorage のロード完了を待ってから選択を反映する。
+    /// `expectedText`（リンク作成時のマッチ文字列）が渡された場合、loc/len の
+    /// 位置のテキストが一致しなければ最も近い出現位置へ補正する。リンクの
+    /// loc/len はファイル上の生テキスト座標なので、ルビ・傍点記法の除去で
+    /// エディタ上の位置がずれている書類でも正しい場所に着地させるため。
     private func performTagJump(to url: URL,
                                 selecting range: NSRange,
+                                expectedText: String?,
                                 bookmark: Data?) {
         // ブックマーク（親フォルダまたはファイル自身）の security scope を獲得する。
         // 実際に開くのは常に url（対象ファイル）。親フォルダのスコープ下では配下の
@@ -1261,11 +1272,71 @@ class JeditTextView: NSTextView {
                 where: { $0 is EditorWindowController }
             ) as? EditorWindowController else { return }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak editor] in
-                editor?.restoreSelectionAndScrollToVisible(range, delay: 0)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak editor, weak document] in
+                guard let editor = editor else { return }
+                let resolved = Self.resolveTagJumpRange(
+                    in: (document as? Document)?.textStorage,
+                    raw: range,
+                    expectedText: expectedText)
+                editor.restoreSelectionAndScrollToVisible(resolved, delay: 0)
             }
             NSApp.activate(ignoringOtherApps: true)
         }
+    }
+
+    /// タグジャンプの選択範囲を解決する。
+    /// 1) raw の位置で expectedText が前方一致すればそのまま使う
+    ///    （expectedText はリンク作成時に先頭 512 文字へ切り詰められている
+    ///    可能性があるため、完全一致ではなく前方一致で照合する）
+    /// 2) 不一致なら全文から expectedText を検索し、raw.location に最も近い
+    ///    出現位置を開始点として raw.length ぶん選択する
+    /// 3) expectedText が無い（旧フォーマット）/見つからない場合は raw を
+    ///    範囲内に丸めて返す
+    private static func resolveTagJumpRange(in storage: NSTextStorage?,
+                                            raw: NSRange,
+                                            expectedText: String?) -> NSRange {
+        guard let storage = storage else { return raw }
+        let ns = storage.string as NSString
+        let total = ns.length
+
+        let clampedLoc = min(max(0, raw.location), total)
+        let clamped = NSRange(location: clampedLoc,
+                              length: min(raw.length, total - clampedLoc))
+
+        guard let expected = expectedText, !expected.isEmpty else { return clamped }
+        let expectedLen = (expected as NSString).length
+
+        // 1) raw の位置で前方一致するか確認
+        if raw.location >= 0, raw.location + expectedLen <= total,
+           ns.substring(with: NSRange(location: raw.location, length: expectedLen)) == expected {
+            return clamped
+        }
+
+        // 2) 全文から検索して raw.location に最も近い出現位置を選ぶ
+        var best: NSRange?
+        var bestDist = Int.max
+        var searchRange = NSRange(location: 0, length: total)
+        while searchRange.length > 0 {
+            let r = ns.range(of: expected, options: [.literal], range: searchRange)
+            if r.location == NSNotFound { break }
+            let dist = abs(r.location - raw.location)
+            if dist < bestDist {
+                bestDist = dist
+                best = r
+            }
+            let next = r.location + max(r.length, 1)
+            if next >= total { break }
+            searchRange = NSRange(location: next, length: total - next)
+        }
+        if let b = best {
+            // 開始位置だけ補正し、選択長は元のマッチ全長 (raw.length) を使う
+            // （expectedText が切り詰められていても全長を選択できるように）
+            return NSRange(location: b.location,
+                           length: min(raw.length, total - b.location))
+        }
+
+        // 3) 見つからなければ範囲内に丸めた raw へフォールバック
+        return clamped
     }
 }
 
