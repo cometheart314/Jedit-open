@@ -159,7 +159,7 @@ class SmartLanguageSeparation {
         let textStorage = document.textStorage
 
         // テキストビューを取得
-        guard let textView = textStorage.layoutManagers.first?.firstTextView as? JeditTextView else { return }
+        guard let textView = textStorage.firstAttachedTextView as? JeditTextView else { return }
 
         // IME入力中は延期
         if textView.hasMarkedText() {

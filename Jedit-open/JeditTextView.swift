@@ -1362,3 +1362,20 @@ extension Data {
         self.init(base64Encoded: s)
     }
 }
+
+// MARK: - NSTextStorage Convenience
+
+extension NSTextStorage {
+    /// この textStorage に接続されている最初の NSTextView を返す。
+    /// `layoutManagers.first?.firstTextView` は分割ビュー等で先頭の
+    /// layoutManager に textView が無いケースを取りこぼすため、
+    /// 見つかるまで全 layoutManager を走査する。
+    var firstAttachedTextView: NSTextView? {
+        for layoutManager in layoutManagers {
+            if let textView = layoutManager.firstTextView {
+                return textView
+            }
+        }
+        return nil
+    }
+}
