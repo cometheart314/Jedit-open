@@ -1405,11 +1405,18 @@ enum RegexHelpPresenter {
 
         guard let helpURL = Bundle.main.url(forResource: "RegExpHelp", withExtension: "rtf"),
               let rtfData = try? Data(contentsOf: helpURL),
-              let attributedString = NSAttributedString(rtf: rtfData, documentAttributes: nil)
+              let loaded = NSAttributedString(rtf: rtfData, documentAttributes: nil)
         else {
             NSSound.beep()
             return
         }
+
+        // 表のヘッダーセルはライトモード向けの薄グレー背景で作られており、
+        // usesAdaptiveColorMappingForDarkAppearance でも NSTextBlock の背景色までは
+        // 反転されずダークモードで文字が読めなくなる。ヘッダーの背景色・文字色を
+        // アピアランス対応の動的カラーへ差し替えて補正する。
+        let attributedString = NSMutableAttributedString(attributedString: loaded)
+        adaptTableHeaderColorsForDarkMode(attributedString)
 
         let p = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 600),
@@ -1433,6 +1440,9 @@ enum RegexHelpPresenter {
         textView.isSelectable = true
         textView.autoresizingMask = [.width]
         textView.textContainerInset = NSSize(width: 12, height: 12)
+        // RTF 内の固定色（黒など）はダークモードの暗い背景で読めなくなるため、
+        // ドキュメントの色をアピアランスに合わせて自動マッピングさせる。
+        textView.usesAdaptiveColorMappingForDarkAppearance = true
         textView.textStorage?.setAttributedString(attributedString)
 
         scrollView.documentView = textView
@@ -1442,5 +1452,45 @@ enum RegexHelpPresenter {
         p.makeKeyAndOrderFront(nil)
 
         panel = p
+    }
+
+    /// 表のヘッダーセル（薄グレー背景＋濃グレー文字）を、ライト/ダーク両対応の
+    /// 動的カラーへ差し替える。動的カラーは usesAdaptiveColorMappingForDarkAppearance の
+    /// 自動マッピング対象外として保持されるため、両アピアランスで意図通りに表示される。
+    private static func adaptTableHeaderColorsForDarkMode(_ string: NSMutableAttributedString) {
+        let fullRange = NSRange(location: 0, length: string.length)
+
+        // ヘッダーセル背景: ライトでは元の薄グレー、ダークでは濃グレー
+        let headerBackground = NSColor(name: "regexHelpHeaderBackground") { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(white: 0.22, alpha: 1.0)
+                : NSColor(white: 240.0 / 255.0, alpha: 1.0)
+        }
+        // ヘッダー文字: ライトでは濃グレー、ダークでは明るいグレー
+        let headerText = NSColor(name: "regexHelpHeaderText") { appearance in
+            appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+                ? NSColor(white: 0.92, alpha: 1.0)
+                : NSColor(white: 50.0 / 255.0, alpha: 1.0)
+        }
+
+        func averageBrightness(_ color: NSColor) -> CGFloat {
+            guard let c = color.usingColorSpace(.deviceRGB) else { return 0 }
+            return (c.redComponent + c.greenComponent + c.blueComponent) / 3.0
+        }
+
+        string.enumerateAttribute(.paragraphStyle, in: fullRange, options: []) { value, range, _ in
+            guard let style = value as? NSParagraphStyle else { return }
+            // 薄い背景色を持つテキストブロック＝表のヘッダーセルとみなす
+            let headerBlocks = style.textBlocks.filter { block in
+                guard let bg = block.backgroundColor else { return false }
+                return averageBrightness(bg) > 0.7
+            }
+            guard !headerBlocks.isEmpty else { return }
+
+            for block in headerBlocks {
+                block.backgroundColor = headerBackground
+            }
+            string.addAttribute(.foregroundColor, value: headerText, range: range)
+        }
     }
 }
