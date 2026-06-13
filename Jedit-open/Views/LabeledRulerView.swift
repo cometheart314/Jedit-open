@@ -152,6 +152,43 @@ class LabeledRulerView: NSRulerView {
         needsDisplay = true
     }
 
+    /// スクロール監視中の clip view（重複登録・解除のため弱参照で保持）
+    private weak var observedClipView: NSClipView?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        setupScrollObservation()
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    /// 所属スクロールビューの contentView の bounds 変化（＝スクロール）を監視する
+    private func setupScrollObservation() {
+        guard let clipView = scrollView?.contentView else { return }
+        if observedClipView === clipView { return }
+        if let old = observedClipView {
+            NotificationCenter.default.removeObserver(
+                self, name: NSView.boundsDidChangeNotification, object: old)
+        }
+        clipView.postsBoundsChangedNotifications = true
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(scrollContentBoundsDidChange(_:)),
+            name: NSView.boundsDidChangeNotification,
+            object: clipView)
+        observedClipView = clipView
+    }
+
+    @objc private func scrollContentBoundsDidChange(_ notification: Notification) {
+        // 可視領域の端に追従するタイプラベル／キャレットスリットは、NSRulerView の
+        // コピーオンスクロール最適化により前フレームの描画が残り二重表示になることがある。
+        // オーバーレイがある場合に限りルーラー全体を再描画してゴーストを消す。
+        guard !typeLabel.isEmpty || caretPosition != nil else { return }
+        needsDisplay = true
+    }
+
     override func setFrameSize(_ newSize: NSSize) {
         super.setFrameSize(newSize)
         // フレームサイズが変わったら再描画
