@@ -235,11 +235,12 @@ class DocumentInfoPanelController: NSObject, NSTableViewDataSource, NSTableViewD
             bomCheckBox?.isHidden = true
         }
 
-        // パス名を表示
+        // パス名を表示。未保存（ファイル未割当）の書類はパスがないため、
+        // 'Untitled' ではなく分かりやすい未保存メッセージを表示する。
         if let fileURL = document.fileURL {
             pathTextView?.string = fileURL.path
         } else {
-            pathTextView?.string = "Untitled"
+            pathTextView?.string = "Not saved yet".localized
         }
     }
 
