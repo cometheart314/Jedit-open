@@ -1101,6 +1101,11 @@ class FindBarViewController: NSViewController, NSSearchFieldDelegate, NSTextFiel
         // Regex Help Button
         regexHelpButton.translatesAutoresizingMaskIntoConstraints = false
         regexHelpButton.bezelStyle = .helpButton
+        // NSButton() のデフォルトタイトル "Button" が残っていると、macOS 15 では
+        // helpButton ベゼルが「？」を描かずタイトルを円内に描画してしまい、潰れて
+        // 別のグリフのように見える（macOS 26 ではタイトルを無視するため問題なし）。
+        // タイトルを空にして「？」が正しく描画されるようにする。
+        regexHelpButton.title = ""
         regexHelpButton.controlSize = .small
         regexHelpButton.target = self
         regexHelpButton.action = #selector(showRegexHelp(_:))
