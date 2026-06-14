@@ -78,6 +78,12 @@ class PropertyPanel: NSWindow {
         // Setボタンのアクションを設定
         setButton?.target = self
         setButton?.action = #selector(setClicked(_:))
+
+        // コメント欄 (NSTextView) は XIB で textColor が未設定のため、typing attributes に
+        // 前景色が無く入力文字がデフォルトの黒で描画され、ダークモードで見えなくなる。
+        // 動的カラー (.textColor) を textColor / insertionPointColor に設定して解消する。
+        commentTextView?.textColor = .textColor
+        commentTextView?.insertionPointColor = .textColor
     }
 
     // MARK: - Public Methods
