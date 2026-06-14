@@ -72,6 +72,18 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
     /// 現在表示中のルートブックマーク（データソースの一貫性を保つために強参照で保持）
     private var displayedRootBookmark: Bookmark?
 
+    /// ユーザーがブックマークパネルを「オン」にしているか。
+    /// ブックマークのない書類へ切り替えるとパネルは一時的に非表示（orderOut）になるが、
+    /// このフラグは true のまま保持し、ブックマークのある書類に戻ったとき自動で再表示する。
+    /// パネルのクローズボタンで閉じた場合やメニューで非表示にした場合は false になる。
+    private var panelEnabled = false
+
+    /// ユーザーが明示的に（メニュー/追加で）パネルを開いた対象書類。
+    /// この書類が最前面である限り、ブックマークが空でもパネルを隠さない
+    /// （空のパネルへドラッグ＆ドロップして登録したいケースに対応）。
+    /// パネルを閉じる/オフにすると nil に戻る。weak で保持し書類解放時に自動で切れる。
+    private weak var explicitlyShownDocument: Document?
+
     // MARK: - Initialization
 
     private override init() {
@@ -154,16 +166,52 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
     // MARK: - Public Methods
 
-    /// パネルを表示/非表示（トグル動作）
+    /// パネルを表示/非表示（トグル動作）。
+    /// メニューや (+) 追加などユーザーの明示操作から呼ばれる。明示操作では
+    /// ブックマークが空の書類でも表示する（これから登録するため）。
     func showPanel() {
         loadPanelIfNeeded()
         guard let panel = bookmarkPanel else { return }
 
         if panel.isVisible {
+            // 表示中 → オフにする
+            panelEnabled = false
+            explicitlyShownDocument = nil
             panel.orderOut(nil)
+            displayedRootBookmark = nil
         } else {
-            reloadOutlineView()
+            // 非表示（オフ、または空書類で自動非表示中）→ 明示表示する
+            panelEnabled = true
+            let document = currentDocument()
+            // 明示的に開いた書類を記録し、内容が空でも以後隠さないようにする
+            explicitlyShownDocument = document
+            updatePanelVisibility(for: document, explicit: true)
+        }
+    }
+
+    /// panelEnabled の状態と書類の内容に応じてパネルの表示/非表示を更新する。
+    /// - Parameters:
+    ///   - document: 対象の書類。
+    ///   - explicit: ユーザーの明示操作（メニュー/追加）なら true。
+    ///     true のときはブックマークが空でも表示する。
+    ///     false（書類切替など）のときは、ブックマークのない書類ではパネルを隠す。
+    private func updatePanelVisibility(for document: Document?, explicit: Bool) {
+        guard let panel = bookmarkPanel else { return }
+        guard panelEnabled else {
+            panel.orderOut(nil)
+            displayedRootBookmark = nil
+            return
+        }
+        let hasBookmarks = !(document?.rootBookmark.childBookmarks.isEmpty ?? true)
+        // 明示的に開いた当の書類なら、空でも隠さない（D&D 登録などのため）
+        let isExplicitDocument = (document != nil && document === explicitlyShownDocument)
+        if hasBookmarks || explicit || isExplicitDocument {
+            reloadOutlineView(for: document)
             panel.orderFront(nil)
+        } else {
+            // ブックマークのない書類では空パネルを表示しない
+            panel.orderOut(nil)
+            displayedRootBookmark = nil
         }
     }
 
@@ -174,6 +222,8 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
     /// パネルを閉じる
     func closePanel() {
+        panelEnabled = false
+        explicitlyShownDocument = nil
         guard isLoaded, let panel = bookmarkPanel, panel.isVisible else { return }
         panel.orderOut(nil)
         displayedRootBookmark = nil
@@ -573,24 +623,30 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
     }
 
     /// 最前面のドキュメントを取得
+    /// メニュー実行直後など orderedWindows からは取れないタイミングがあるため、
+    /// NSDocumentController.currentDocument でフォールバックする。
     private func currentDocument() -> Document? {
         return NSApp.frontmostDocument(excluding: bookmarkPanel)
+            ?? (NSDocumentController.shared.currentDocument as? Document)
     }
 
     // MARK: - Notifications
 
-    /// ドキュメントウィンドウがメイン/キーになった時にアウトラインビューを更新
+    /// ドキュメントウィンドウがメイン/キーになった時にパネルの内容と表示状態を更新
     /// didBecomeMainNotification と didBecomeKeyNotification の両方から呼ばれる。
+    /// パネルが有効（panelEnabled）であれば、ブックマークのある書類では表示・更新し、
+    /// ブックマークのない書類では空パネルを出さずに隠す。
     @objc private func documentWindowDidChange(_ notification: Notification) {
-        guard isPanelVisible else { return }
+        // パネルが一時的に非表示でも、有効なら書類切替に追従させる
+        guard panelEnabled else { return }
         // ドキュメントウィンドウの場合のみ更新（パネル自体の通知は無視）
         if let window = notification.object as? NSWindow,
            !(window is NSPanel),
            let document = window.windowController?.document as? Document {
-            // 表示中のドキュメントと同じ場合は不要なリロードを避ける
+            // 表示中のドキュメントと同じ場合は不要な更新を避ける
             if document.rootBookmark !== displayedRootBookmark {
                 // 通知のウィンドウからドキュメントを直接渡す（NSApp.orderedWindows に依存しない）
-                reloadOutlineView(for: document)
+                updatePanelVisibility(for: document, explicit: false)
             }
         }
     }
@@ -608,13 +664,22 @@ class BookmarkPanelController: NSObject, NSOutlineViewDataSource, NSOutlineViewD
 
     /// ドキュメントウィンドウが閉じられる時の処理
     @objc private func documentWindowWillClose(_ notification: Notification) {
-        guard isPanelVisible else { return }
         let closingWindow = notification.object as? NSWindow
+        // パネル自体がクローズボタンで閉じられた場合は、ユーザーが明示的に
+        // オフにしたものとして panelEnabled を下げ、書類切替で再表示しないようにする。
+        if closingWindow === bookmarkPanel {
+            panelEnabled = false
+            explicitlyShownDocument = nil
+            displayedRootBookmark = nil
+            return
+        }
+        guard panelEnabled else { return }
         DispatchQueue.main.async { [weak self] in
             // 閉じるウィンドウ以外のドキュメントウィンドウを探す
             let remainingDocument = NSApp.frontmostDocument(excluding: closingWindow)
             if let document = remainingDocument {
-                self?.reloadOutlineView(for: document)
+                // 残った書類の内容に応じて表示/非表示を更新（空なら隠す）
+                self?.updatePanelVisibility(for: document, explicit: false)
             } else {
                 self?.closePanel()
             }
